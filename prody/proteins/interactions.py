@@ -752,13 +752,15 @@ def calcHydrophobic(atoms, **kwargs):
                             'with `getCoords` method')
     
     distA = kwargs.pop('distA', 4.5)
-
+    
+    Hydrophobic_list = []  
     atoms_hydrophobic = atoms.select('resname ALA VAL ILE MET LEU PHE TYR TRP')
     hydrophobic_resids = list(set(zip(atoms_hydrophobic.getResnums(), atoms_hydrophobic.getChids())))
 
     if atoms.aromatic is None:
         return []
-
+    
+    aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
     aromatic = list(set(zip(atoms.aromatic.getResnames())))
     
     hydrophobic_dic = {'ALA': 'noh and not backbone', 'VAL': 'noh and not (backbone or name CB)',
@@ -769,20 +771,16 @@ def calcHydrophobic(atoms, **kwargs):
 
     non_standard = kwargs.get('non_standard', {})
     for key, value in non_standard.items():
-        hydrophobic_dic[key] = value
+        aromatic_dic[key] = value
     
     LOGGER.info('Calculating hydrophobic interactions.')
     Hydrophobic_calculations = []
-
-    hydrophobic_atoms = atoms.select('('+' or '.join([ '(resname '+item[0]+' and '+item[1]+')' for item in hydrophobic_dic.items() ])+')')
     for i in hydrophobic_resids:
         try:
-            sele1_full = hydrophobic_atoms.select('resid '+str(i[0])+' and chain '+i[1])
-            sele1_name = sele1_full.getResnames()[0]
-            sele1_nr = i[0]
-            sele1 = hydrophobic_atoms.select('resid '+str(i[0])+' and '+' chain '+i[1]+' and '+hydrophobic_dic[sele1_name])
-
-            sele2 = hydrophobic_atoms.select('(same residue as exwithin '+str(distA)+' of (resid '+str(sele1_nr)+' and chain '+i[1]+' and resname '+sele1_name+
+            sele1_name = atoms.select('resid '+str(i[0])+' and chain '+i[1]+' and name CA').getResnames()
+            sele1 = atoms.select('resid '+str(i[0])+' and '+' chain '+i[1]+' and '+hydrophobic_dic[sele1_name[0]]) 
+            sele1_nr = sele1.getResnums()[0]  
+            sele2 = atoms.select('(same residue as exwithin '+str(distA)+' of (resid '+str(sele1_nr)+' and chain '+i[1]+' and resname '+sele1_name[0]+
                                ')) and ('+' or '.join([ '(resname '+item[0]+' and '+item[1]+')' for item in hydrophobic_dic.items() ])+')')
 
         except:
@@ -793,12 +791,12 @@ def calcHydrophobic(atoms, **kwargs):
         if sele2 != None:
             sele2_nr = list(set(zip(sele2.getResnums(), sele2.getChids())))
 
-            if sele1_name in aromatic:
+            if sele1_name[0] in aromatic:
                 sele2_filter = sele2.select('all and not (resname TYR PHE TRP or resid '+str(i)+')')
                 if sele2_filter != None:
                     listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
                 
-            elif sele1_name not in aromatic and i in sele2_nr:
+            elif sele1_name[0] not in aromatic and i in sele2_nr:
                 sele2_filter = sele2.select(sele2.select('all and not (resid '+str(i[0])+' and chain '+i[1]+')'))
                 if sele2_filter != None:
                     listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
@@ -809,8 +807,8 @@ def calcHydrophobic(atoms, **kwargs):
                 listOfAtomToCompare = sorted(listOfAtomToCompare, key=lambda x : x[-1])
                 minDistancePair = listOfAtomToCompare[0]
                 if minDistancePair[-1] < distA:
-                    sele1_new = hydrophobic_atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
-                    sele2_new = hydrophobic_atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
+                    sele1_new = atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
+                    sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
                     Hydrophobic_calculations.append([sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]), 
                                                              minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
                                                              sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]), 
@@ -820,10 +818,10 @@ def calcHydrophobic(atoms, **kwargs):
     Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-1])
     Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
     
-    # selection = kwargs.get('selection', None)
-    # selection2 = kwargs.get('selection2', None)
+    selection = kwargs.get('selection', None)
+    selection2 = kwargs.get('selection2', None)    
     sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
-    Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, hydrophobic_atoms, **sel_kwargs)
+    Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, atoms, **sel_kwargs)
     
     for kk in Hydrophobic_calculations_final2:
         LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
