@@ -1387,25 +1387,36 @@ def showInteractionsGraph(statistics, **kwargs):
     :type statistics: list
     
     :arg cutoff: Minimal number of counts per residue in the trajectory
-    :type cutoff: int, by default 3.
+        by default 0.1.
+    :type cutoff: int or float
 
     :arg code: representation of the residues, 3-letter or 1-letter
-    :type code: str, by default 3-letter.
+        by default 3-letter
+    :type code: str
 
+    :arg multiple_chains: display chain name for structure with many chains
+        by default False
+    :type multiple_chains: True or False
+    
     :arg edge_cmap: color of the residue connection
-    :type edge_cmap: str, by default plt.cm.Blues (blue color).
+        by default plt.cm.Blues (blue color)
+    :type edge_cmap: str
 
     :arg node_size: size of the nodes which describes residues
-    :type node_size: int, by default 300.
+        by default 300
+    :type node_size: int
     
     :arg node_distance: value which will scale residue-residue interactions
-    :type node_distance: int, by default 5.
+        by default 5
+    :type node_distance: int
 
     :arg font_size: size of the font
-    :type font_size: int, by default 14.
+        by default 14
+    :type font_size: int
 
     :arg seed: random number which affect the distribution of residues
-    :type seed: int, by default 42.  """
+        by default 42
+    :type seed: int  """
     
     import networkx as nx
     import matplotlib.pyplot as plt
@@ -1478,18 +1489,27 @@ def showInteractionsGraph(statistics, **kwargs):
     node_distance = kwargs.pop('node_distance', 5)
     font_size = kwargs.pop('font_size', 14)
     seed = kwargs.pop('seed', 42)
-    cutoff = kwargs.pop('cutoff', 3)
+    cutoff = kwargs.pop('cutoff', 0.1)
+    multiple_chains = kwargs.pop('cutoff', False)
     
     X = [i for i in statistics if i[1] >= cutoff]   
     G = nx.Graph()
     
     for row in X:  
-        if code == '1-letter':
-            aa1 = aa_dic[row[0].split('-')[0][:3]] + row[0].split('-')[0][3:]
-            aa2 = aa_dic[row[0].split('-')[1][:3]] + row[0].split('-')[1][3:]
+        if multiple_chains == False:
+            if code == '1-letter':
+                aa1 = aa_dic[row[0].split('-')[0][:3]] + row[0].split('-')[0][3:-1]
+                aa2 = aa_dic[row[0].split('-')[1][:3]] + row[0].split('-')[1][3:-1]
+            else:
+                aa1 = row[0].split('-')[0][:-1]
+                aa2 = row[0].split('-')[1][:-1]   
         else:
-            aa1 = row[0].split('-')[0]
-            aa2 = row[0].split('-')[1]   
+            if code == '1-letter':
+                aa1 = aa_dic[row[0].split('-')[0][:3]] + row[0].split('-')[0][3:]
+                aa2 = aa_dic[row[0].split('-')[1][:3]] + row[0].split('-')[1][3:]
+            else:
+                aa1 = row[0].split('-')[0]
+                aa2 = row[0].split('-')[1]  
             
         G.add_node(aa1)
         G.add_node(aa2)
