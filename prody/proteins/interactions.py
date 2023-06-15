@@ -2876,15 +2876,20 @@ class InteractionsTrajectory(object):
             else:
                 traj = trajectory[start_frame:stop_frame+1]
 
+            atoms_copy = atoms.copy()
+            protein = atoms_copy.protein
+
             for j0, frame0 in enumerate(traj, start=start_frame):
                 LOGGER.info('Frame: {0}'.format(j0))
-                hydrogen_bonds = calcHydrogenBonds(atoms.protein, **kwargs)
-                salt_bridges = calcSaltBridges(atoms.protein, **kwargs)
-                RepulsiveIonicBonding = calcRepulsiveIonicBonding(atoms.protein, **kwargs)
-                Pi_stacking = calcPiStacking(atoms.protein, **kwargs)
-                Pi_cation = calcPiCation(atoms.protein, **kwargs)
-                hydrophobic = calcHydrophobic(atoms.protein, **kwargs)
-                Disulfide_Bonds = calcDisulfideBonds(atoms.protein, **kwargs)
+                atoms_copy.setCoords(frame0.getCoords())
+                
+                hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
+                salt_bridges = calcSaltBridges(protein, **kwargs)
+                RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
+                Pi_stacking = calcPiStacking(protein, **kwargs)
+                Pi_cation = calcPiCation(protein, **kwargs)
+                hydrophobic = calcHydrophobic(protein, **kwargs)
+                Disulfide_Bonds = calcDisulfideBonds(protein, **kwargs)
 
                 HBs_all.append(hydrogen_bonds)
                 SBs_all.append(salt_bridges)
