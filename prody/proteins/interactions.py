@@ -1057,9 +1057,11 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
         else:
             traj = trajectory[start_frame:stop_frame+1]
         
+        atoms_copy = atoms.copy()
         for j0, frame0 in enumerate(traj, start=start_frame):
             LOGGER.info('Frame: {0}'.format(j0))
-            protein = atoms.select('protein')
+            atoms_copy.setCoords(frame0.getCoords())
+            protein = atoms_copy.select('protein')
             interactions = interactions_dic[interaction_type](protein, **kwargs)
             interactions_all.append(interactions)
         trajectory._nfi = nfi
