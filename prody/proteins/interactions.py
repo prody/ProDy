@@ -45,7 +45,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'compareInteractions', 'showInteractionsGraph',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
-           'calcHydrogenBondsTrajectory',
+           'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory']
 
 
@@ -135,6 +135,42 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
         final = list_of_interactions
     return final
 
+
+def calcHydrophobicOverlapingAreas(atoms, selection):
+    """Provide information about hydrophobic contacts between pairs of residues based on 
+    the regsurf program.
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    
+    :arg selection: selection string of hydrophobic residues
+    :type selection: str
+    """
+    
+    import subprocess
+    
+    full_structure = atoms.getTitle()+".pdb"
+    selectedHydrophobicRes = atoms.select(selection)
+    writePDB('selRes_'+atoms.getTitle(), selectedHydrophobicRes)
+    hydrophobic_structure = 'selRes_'+atoms.getTitle()+".pdb"
+
+    # Direct path is given for tests - it is not working without it [no idea why]    
+    try:
+        result = subprocess.run(["./regsurf", full_structure, hydrophobic_structure], 
+            capture_output=True, text=True)
+    except:
+        result = subprocess.run(["/home/karolamik/ProDy/prody/proteins/regsurf", 
+            full_structure, hydrophobic_structure], capture_output=True, text=True)
+
+    if result.returncode == 0:
+        output = result.stdout
+        output = [ i.split() for i in output.split('\n')]
+    else:
+        error = result.stderr
+        LOGGER.info("Problem with provided atoms or selection")
+                
+    return output
+    
 
 def calcHydrogenBonds(atoms, **kwargs):
     """Compute hydrogen bonds for proteins and other molecules.
@@ -1735,8 +1771,6 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
             LOGGER.info('Additional contacts for '+residue1+':')
             for i in additional_residues:
                 LOGGER.info(i)
-
-    
 
 def calcLigandInteractions(atoms, **kwargs):
     """Provide ligand interactions with other elements of the system including protein, 
