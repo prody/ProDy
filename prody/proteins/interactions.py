@@ -154,13 +154,17 @@ def calcHydrophobicOverlapingAreas(atoms, selection):
     writePDB('selRes_'+atoms.getTitle(), selectedHydrophobicRes)
     hydrophobic_structure = 'selRes_'+atoms.getTitle()+".pdb"
 
-    # Direct path is given for tests - it is not working without it [no idea why]    
     try:
+        # Python 3 (direct path to regsurf might be required):
         result = subprocess.run(["./regsurf", full_structure, hydrophobic_structure], 
             capture_output=True, text=True)
     except:
-        result = subprocess.run(["/home/karolamik/ProDy/prody/proteins/regsurf", 
-            full_structure, hydrophobic_structure], capture_output=True, text=True)
+        # Python 2:
+        result = subprocess.call(["./regsurf", full_structure, hydrophobic_structure],
+            capture_output=True, text=True)
+        
+        #result = subprocess.run(["/home/karolamik/ProDy/prody/proteins/regsurf", 
+        #    full_structure, hydrophobic_structure], capture_output=True, text=True)
 
     if result.returncode == 0:
         output = result.stdout
