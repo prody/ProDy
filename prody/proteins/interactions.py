@@ -21,7 +21,7 @@ __email__ = ['karolamik@fizyka.umk.pl', 'jamesmkrieger@gmail.com']
 
 import numpy as np
 from numpy import *
-from prody import LOGGER, SETTINGS
+from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
 from prody.atomic import flags
 from prody.utilities import importLA, checkCoords, showFigure, getCoords
@@ -42,7 +42,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBondingTrajectory', 'calcPiStackingTrajectory', 
            'calcPiCationTrajectory', 'calcHydrophobicTrajectory', 'calcDisulfideBondsTrajectory',
            'calcProteinInteractions', 'calcStatisticsInteractions', 'calcDistribution',
-           'compareInteractions', 'showInteractionsGraph',
+           'calcSASA', 'compareInteractions', 'showInteractionsGraph',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
@@ -136,7 +136,7 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
     return final
 
 
-def calcHydrophobicOverlapingAreas(atoms, selection):
+def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     """Provide information about hydrophobic contacts between pairs of residues based on 
     the regsurf program.
 
@@ -146,35 +146,69 @@ def calcHydrophobicOverlapingAreas(atoms, selection):
     :arg selection: selection string of hydrophobic residues
     :type selection: str
     """
-    
-    import subprocess
-    
-    full_structure = atoms.getTitle()+".pdb"
-    selectedHydrophobicRes = atoms.select(selection)
-    writePDB('selRes_'+atoms.getTitle(), selectedHydrophobicRes)
-    hydrophobic_structure = 'selRes_'+atoms.getTitle()+".pdb"
 
-    try:
-        # Python 3 (direct path to regsurf might be required):
-        result = subprocess.run(["./regsurf", full_structure, hydrophobic_structure], 
-            capture_output=True, text=True)
-    except:
-        # Python 2:
-        result = subprocess.call(["./regsurf", full_structure, hydrophobic_structure],
-            capture_output=True, text=True)
-        
-        #result = subprocess.run(["/home/karolamik/ProDy/prody/proteins/regsurf", 
-        #    full_structure, hydrophobic_structure], capture_output=True, text=True)
-
-    if result.returncode == 0:
-        output = result.stdout
-        output = [ i.split() for i in output.split('\n')]
+    if PY3K:
+        import hpb
     else:
-        error = result.stderr
-        LOGGER.info("Problem with provided atoms or selection")
+        import hpb_py27
+
+    selection = kwargs.pop('selection', 'protein and noh')
+    sele = atoms.select(selection)
+    lB = sele.getCoords().tolist()
+    
+    x = sele.getResnames()
+    y = sele.getResnums()
+    z = sele.getNames()
+    w = sele.getIndices()
+    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i])] for i in range(len(x))]
+        
+    output = hpb.hpb((lB,lA))
+    LOGGER.info("Hydrophobic Overlaping Areas are computed.")
                 
     return output
+
+
+def calcSASA(atoms, **kwargs):
+    """Provide information about solvent accessible surface area (SASA) based on 
+    the sasa program.
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
     
+    :arg selection: selection string
+        by default all the protein structure is used
+    :type selection: str
+    
+    :arg resnames: residues name included
+        by default is False
+    :type resnames: True or False
+    """
+    
+    if PY3K:
+        import hpb
+    else:
+        import hpb_py27
+
+    selection = kwargs.pop('selection', 'protein and noh')
+    resnames = kwargs.pop('resnames', False)
+    
+    sele = atoms.select(selection)
+    lB = sele.getCoords().tolist()
+    
+    x = sele.getResnames()
+    y = sele.getResnums()
+    z = sele.getNames()
+    w = sele.getIndices()
+    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i])] for i in range(len(x))]
+        
+    output = hpb.sasa((lB,lA))
+    LOGGER.info("Solvent Accessible Surface Area (SASA) is computed.")
+    
+    if resnames == True:            
+        return output
+    else:
+        return [ float(i[-1]) for i in output ]
+
 
 def calcHydrogenBonds(atoms, **kwargs):
     """Compute hydrogen bonds for proteins and other molecules.
