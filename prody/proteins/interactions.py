@@ -145,6 +145,15 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     
     :arg selection: selection string of hydrophobic residues
     :type selection: str
+    
+    :arg hpb_cutoff: cutoff for hydrophobic overlaping area values
+        by default is 0.0
+    :type hpb_cutoff: float or int
+    
+    :arg cumulative_values: sum of results for pairs of residues or
+        for single residues without distinguishing pairs,
+        by default is None
+    :type cumulative_values: 'pairs' or 'single_residues'    
     """
 
     if PY3K:
@@ -153,6 +162,8 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
         import hpb_py27
 
     selection = kwargs.pop('selection', 'protein and noh')
+    hpb_cutoff = kwargs.pop('hpb_cutoff', 0.0)
+    cumulative_values = kwargs.pop('cumulative_values', None)
     sele = atoms.select(selection)
     lB = sele.getCoords().tolist()
     
@@ -164,8 +175,29 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
         
     output = hpb.hpb((lB,lA))
     LOGGER.info("Hydrophobic Overlaping Areas are computed.")
-                
-    return output
+    output_final = [i for i in output if i[-1] >= hpb_cutoff]
+    
+    if cumulative_values == None:            
+        return output_final
+        
+    if cumulative_values == 'pairs':
+        sums = {}
+        for item in output_final:
+            k = (item[0], item[2])
+            v = item[4]
+            if k in sums:
+                sums[k] += v
+            else:
+                sums[k] = v
+        return sums 
+           
+    if cumulative_values == 'single_residues':
+        sums = {}
+        for j in output_final:
+            k = j[0]
+            w = j[-1]
+            sums[k] = sums.get(k, 0) + w
+        return sums
 
 
 def calcSASA(atoms, **kwargs):
@@ -179,9 +211,13 @@ def calcSASA(atoms, **kwargs):
         by default all the protein structure is used
     :type selection: str
     
+    :arg sasa_cutoff: cutoff for SASA values
+        by default is 0.0
+    :type sasa_cutoff: float or int
+
     :arg resnames: residues name included
         by default is False
-    :type resnames: True or False
+    :type resnames: True or False    
     """
     
     if PY3K:
@@ -191,6 +227,7 @@ def calcSASA(atoms, **kwargs):
 
     selection = kwargs.pop('selection', 'protein and noh')
     resnames = kwargs.pop('resnames', False)
+    sasa_cutoff = kwargs.pop('sasa_cutoff', 0.0)
     
     sele = atoms.select(selection)
     lB = sele.getCoords().tolist()
@@ -203,11 +240,12 @@ def calcSASA(atoms, **kwargs):
         
     output = hpb.sasa((lB,lA))
     LOGGER.info("Solvent Accessible Surface Area (SASA) is computed.")
+    output_final = [i for i in output if i[-1] >= sasa_cutoff]
     
     if resnames == True:            
-        return output
+        return output_final
     else:
-        return [ float(i[-1]) for i in output ]
+        return [ float(i[-1]) for i in output_final ]
 
 
 def calcHydrogenBonds(atoms, **kwargs):
