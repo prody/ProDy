@@ -42,7 +42,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBondingTrajectory', 'calcPiStackingTrajectory', 
            'calcPiCationTrajectory', 'calcHydrophobicTrajectory', 'calcDisulfideBondsTrajectory',
            'calcProteinInteractions', 'calcStatisticsInteractions', 'calcDistribution',
-           'calcSASA', 'compareInteractions', 'showInteractionsGraph',
+           'calcSASA', 'calcVolume','compareInteractions', 'showInteractionsGraph',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
@@ -187,7 +187,8 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     y = sele.getResnums()
     z = sele.getNames()
     w = sele.getIndices()
-    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i])] for i in range(len(x))]
+    ch = sele.getChids()
+    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
         
     output = hpb.hpb((lB,lA))
     LOGGER.info("Hydrophobic Overlaping Areas are computed.")
@@ -199,8 +200,8 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     if cumulative_values == 'pairs':
         sums = {}
         for item in output_final:
-            k = (item[0], item[2])
-            v = item[4]
+            k = (item[0]+item[2], item[3]+item[5])
+            v = item[-1]
             if k in sums:
                 sums[k] += v
             else:
@@ -210,7 +211,7 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     if cumulative_values == 'single_residues':
         sums = {}
         for j in output_final:
-            k = j[0]
+            k = j[0]+j[2]
             w = j[-1]
             sums[k] = sums.get(k, 0) + w
         return sums
@@ -252,7 +253,9 @@ def calcSASA(atoms, **kwargs):
     y = sele.getResnums()
     z = sele.getNames()
     w = sele.getIndices()
-    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i])] for i in range(len(x))]
+    
+    ch = sele.getChids()
+    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
         
     output = hpb.sasa((lB,lA))
     LOGGER.info("Solvent Accessible Surface Area (SASA) is computed.")
@@ -260,6 +263,60 @@ def calcSASA(atoms, **kwargs):
     
     if resnames == True:            
         return output_final
+    else:
+        return [ float(i[-1]) for i in output_final ]
+
+
+def calcVolume(atoms, **kwargs):
+    """Provide information about volume for each residue/molecule/chain
+    or other selection".
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    
+    :arg selection: selection string
+        by default all the protein structure is used
+    :type selection: str
+    
+    :arg volume_cutoff: cutoff for volume
+        by default is 0.0 to include all the results
+    :type sasa_volume: float or int
+
+    :arg resnames: residues name included
+        by default is 'sum'
+        True - will give residue names and values for each residue
+        False - will give only the values for each residues
+    :type resnames: True, False, 'sum'    
+    """
+    
+    if PY3K:
+        import hpb
+    else:
+        import hpb_py27
+
+    selection = kwargs.pop('selection', 'protein and noh')
+    resnames = kwargs.pop('resnames', 'sum')
+    volume_cutoff = kwargs.pop('volume_cutoff', 0.0)
+    
+    sele = atoms.select(selection)
+    lB = sele.getCoords().tolist()
+    
+    x = sele.getResnames()
+    y = sele.getResnums()
+    z = sele.getNames()
+    w = sele.getIndices()
+    
+    ch = sele.getChids()
+    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
+        
+    output = hpb.volume((lB,lA))
+    LOGGER.info("Volume is computed.")
+    output_final = [i for i in output if i[-1] >= volume_cutoff]
+    
+    if resnames == True:            
+        return output_final
+    elif resnames == 'sum':
+        return sum( [float(i[-1]) for i in output_final] )
     else:
         return [ float(i[-1]) for i in output_final ]
 
@@ -915,6 +972,10 @@ def calcHydrophobic(atoms, **kwargs):
         default is False
     :type zerosHPh: True, False
 
+    Last value in the output corresponds to the total hydrophobic overlaping area for two residues
+    not only for the atoms that are included in the list. Atoms that which are listed are the closest
+    between two residues and they will be inluded to draw the line in VMD_.
+    
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
         selection='chain A and resid 1 to 50'
@@ -1020,7 +1081,8 @@ def calcHydrophobic(atoms, **kwargs):
                                                     residue2, 
                                                     minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
                                                     round(minDistancePair[-1],4),
-                                                    round(get_permutation_from_dic(hpb_overlaping_results,(residue1,residue2)),4)]) 
+                                                    round(get_permutation_from_dic(hpb_overlaping_results,(residue1+sele1_new.getChids()[0],
+                                                    residue2+sele2_new.getChids()[0])),4)]) 
                     
     Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-2])
     Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
