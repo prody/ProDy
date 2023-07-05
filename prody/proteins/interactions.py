@@ -103,6 +103,22 @@ def removeDuplicates(list_of_interactions):
     return newList
 
 
+def get_permutation_from_dic(dictionary, key):
+    """Check permutations of residue pairs in a dictionary
+    format: key=('VAL8', 'LEU89')
+    ('VAL8', 'LEU89') and ('LEU89', 'VAL8') will be check and corresponding
+    value will be returned."""
+    
+    if key in dictionary:
+        return dictionary[key]
+
+    reversed_key = tuple(reversed(key))
+    if reversed_key in dictionary:
+        return dictionary[reversed_key]
+
+    return 0
+
+
 def filterInteractions(list_of_interactions, atoms, **kwargs):
     """Return interactions based on selection."""
     
@@ -895,6 +911,10 @@ def calcHydrophobic(atoms, **kwargs):
                         non_standard works too
     :type non_standard_Hph: dictionary
 
+    :arg zerosHPh: zero values of hydrophobic overlaping areas included
+        default is False
+    :type zerosHPh: True, False
+
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
         selection='chain A and resid 1 to 50'
@@ -903,7 +923,7 @@ def calcHydrophobic(atoms, **kwargs):
     
     Additional selection can be added as shown below (with selection that includes 
     only hydrophobic part): 
-        >>> calcHydrophobic(atoms, non_standard={'XLE'='noh and not backbone', 
+        >>> calcHydrophobic(atoms, non_standard_Hph={'XLE'='noh and not backbone', 
                                                 'XLI'='noh and not backbone'})
     Predictions for proteins only. To compute protein-ligand interactions use 
     calcLigandInteractions().
@@ -924,17 +944,9 @@ def calcHydrophobic(atoms, **kwargs):
     
     distHph = kwargs.pop('distHph', 4.5)
     distA = kwargs.pop('distA', distHph)
-    
-    Hydrophobic_list = []  
-    atoms_hydrophobic = atoms.select('resname ALA VAL ILE MET LEU PHE TYR TRP')
-    hydrophobic_resids = list(set(zip(atoms_hydrophobic.getResnums(), atoms_hydrophobic.getChids())))
+    zerosHPh = kwargs.pop('zerosHPh', False)
 
-    if atoms.aromatic is None:
-        return []
-    
-    aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
-    aromatic = list(set(atoms.aromatic.getResnames()))
-    
+    # Nonstandard residues:    
     hydrophobic_dic = {'ALA': 'noh and not backbone', 'VAL': 'noh and not (backbone or name CB)',
     'ILE': 'noh and not (backbone or name CB)', 'LEU': 'noh and not (backbone or name CB)',
     'MET': 'noh and not (backbone or name CB)', 'PHE': 'noh and not (backbone or name CB)',
@@ -946,6 +958,22 @@ def calcHydrophobic(atoms, **kwargs):
 
     for key, value in non_standard.items():
         hydrophobic_dic[key] = value
+
+    
+    Hydrophobic_list = []  
+    # All residues, also non-standard will be included in the selection:
+    residue_list = list(hydrophobic_dic.keys())
+    atoms_hydrophobic = atoms.select('resname '+' '.join(residue_list))
+    hydrophobic_resids = list(set(zip(atoms_hydrophobic.getResnums(), atoms_hydrophobic.getChids())))
+
+    if atoms.aromatic is None:
+        return []
+    
+    aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
+    aromatic = list(set(atoms.aromatic.getResnames()))
+    
+    # Computing hydrophobic overlaping areas for pairs of residues:
+    hpb_overlaping_results = calcHydrophobicOverlapingAreas(atoms_hydrophobic, cumulative_values='pairs')
     
     LOGGER.info('Calculating hydrophobic interactions.')
     Hydrophobic_calculations = []
@@ -985,13 +1013,16 @@ def calcHydrophobic(atoms, **kwargs):
                 if minDistancePair[-1] < distA:
                     sele1_new = atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
                     sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
-                    Hydrophobic_calculations.append([sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]), 
-                                                             minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
-                                                             sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]), 
-                                                             minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                             round(minDistancePair[-1],4)]) 
+                    residue1 = sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]) 
+                    residue2 = sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0])
+                    Hydrophobic_calculations.append([residue1, 
+                                                    minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
+                                                    residue2, 
+                                                    minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
+                                                    round(minDistancePair[-1],4),
+                                                    round(get_permutation_from_dic(hpb_overlaping_results,(residue1,residue2)),4)]) 
                     
-    Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-1])
+    Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-2])
     Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
     
     selection = kwargs.get('selection', None)
@@ -999,12 +1030,17 @@ def calcHydrophobic(atoms, **kwargs):
     sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
     Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, atoms, **sel_kwargs)
     
-    for kk in Hydrophobic_calculations_final2:
-        LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
-        
-    LOGGER.info("Number of detected hydrophobic interactions: {0}.".format(len(Hydrophobic_calculations_final2)))
+    if zerosHPh == False:
+        Hydrophobic_calculations_final3 = [ i for i in Hydrophobic_calculations_final2 if i[-1] != 0 ]
+    else:
+        Hydrophobic_calculations_final3 = Hydrophobic_calculations_final2
     
-    return Hydrophobic_calculations_final2
+    for kk in Hydrophobic_calculations_final3:
+        LOGGER.info("%10s%5s%14s14s  <---> %10s%5s%14s%8.1f%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6], kk[7]))
+        
+    LOGGER.info("Number of detected hydrophobic interactions: {0}.".format(len(Hydrophobic_calculations_final3)))
+    
+    return Hydrophobic_calculations_final3
 
 
 def calcDisulfideBonds(atoms, **kwargs):
