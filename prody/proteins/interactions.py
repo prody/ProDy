@@ -282,11 +282,15 @@ def calcVolume(atoms, **kwargs):
         by default is 0.0 to include all the results
     :type sasa_volume: float or int
 
+    :arg split_residues: it will provide values for each residue
+        by default is False
+    :type split_residues: True or False
+
     :arg resnames: residues name included
-        by default is 'sum'
+        by default is False
         True - will give residue names and values for each residue
         False - will give only the values for each residues
-    :type resnames: True, False, 'sum'    
+    :type resnames: True or False
     """
     
     if PY3K:
@@ -295,8 +299,9 @@ def calcVolume(atoms, **kwargs):
         import hpb_py27
 
     selection = kwargs.pop('selection', 'protein and noh')
-    resnames = kwargs.pop('resnames', 'sum')
+    resnames = kwargs.pop('resnames', False)
     volume_cutoff = kwargs.pop('volume_cutoff', 0.0)
+    split_residues = kwargs.pop('split_residues', False)
     
     sele = atoms.select(selection)
     lB = sele.getCoords().tolist()
@@ -315,10 +320,12 @@ def calcVolume(atoms, **kwargs):
     
     if resnames == True:            
         return output_final
-    elif resnames == 'sum':
-        return sum( [float(i[-1]) for i in output_final] )
-    else:
+
+    if split_residues == True and resnames == False:
         return [ float(i[-1]) for i in output_final ]
+        
+    else:
+        return sum( [float(i[-1]) for i in output_final] )
 
 
 def calcHydrogenBonds(atoms, **kwargs):
@@ -2765,7 +2772,7 @@ class Interactions(object):
         atoms = self._atoms   
         interactions = self._interactions
         
-        InteractionsMap = np.empty([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()], dtype='S256')
+        InteractionsMap = np.empty([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()], dtype=object)
         resIDs = list(atoms.select('name CA').getResnums())
         resChIDs = list(atoms.select('name CA').getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
@@ -2778,8 +2785,6 @@ class Interactions(object):
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
                     InteractionsMap[m1][m2] = interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5]
             
-        InteractionsMap = InteractionsMap.astype(str)
-
         ListOfInteractions = [ list(filter(None, InteractionsMap[:,j])) for j in range(len(interactions[0])) ]
         ListOfInteractions = list(filter(lambda x : x != [], ListOfInteractions))
         ListOfInteractions = [k for k in ListOfInteractions if len(k) >= contacts_min ]
