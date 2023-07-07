@@ -110,7 +110,8 @@ def prody_anm(pdb, **kwargs):
     LOGGER.info('Writing numerical output.')
 
     if kwargs.get('outnpz'):
-        prody.saveModel(anm, join(outdir, prefix))
+        prody.saveModel(anm, join(outdir, prefix), 
+                        matrices=kwargs.get('npzmatrices'))
 
     if kwargs.get('outscipion'):
         prody.writeScipionModes(outdir, anm)
