@@ -105,7 +105,7 @@ def addNMAOutput(parser):
 
     parser.add_argument('-P', '--number-of-processors', dest='nproc', type=int,
         default=DEFAULTS['nproc'], metavar='INT',
-        help=HELPTEXT['nproc'] + ' (default: %(default)s)')        
+        help=HELPTEXT['nproc'] + ' (default: %(default)s meaning use all)')        
 
     return parser
 
