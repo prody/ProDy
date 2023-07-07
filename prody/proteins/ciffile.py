@@ -259,6 +259,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     fields = OrderedDict()
     fieldCounter = -1
     foundAtomBlock = False
+    foundAtomFields = False
     doneAtomBlock = False
     start = 0
     stop = 0
@@ -267,8 +268,9 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         if line[:11] == '_atom_site.':
             fieldCounter += 1
             fields[line.split('.')[1].strip()] = fieldCounter
+            foundAtomFields = True
 
-        if line.startswith('ATOM ') or line.startswith('HETATM'):
+        elif foundAtomFields and line != '# \n':
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
@@ -276,6 +278,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if len(models) == 1 or (models[asize] != models[asize-1]):
                 nModels += 1
             asize += 1
+
         else:
             if foundAtomBlock:
                 doneAtomBlock = True
