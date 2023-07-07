@@ -17,6 +17,7 @@ for key, txt, val in [
     ('outeig', 'write eigenvalues/vectors', False),
     ('outcov', 'write covariance matrix', False),
     ('outnpz', 'write compressed ProDy data file', False),
+    ('npzmatrices', 'write matrix to compressed ProDy data file', False),
     ('outscipion', 'write continuousflex modes directory and sqlite', False),
     ('outcc', 'write cross-correlations', False),
     ('outhm', 'write cross-correlations heatmap file', False),
@@ -95,6 +96,9 @@ def addNMAOutput(parser):
 
     parser.add_argument('-z', '--npz', dest='outnpz', action='store_true',
         default=DEFAULTS['outnpz'], help=HELPTEXT['outnpz'])
+
+    parser.add_argument('-Z', '--npzmatrices', dest='npzmatrices', action='store_true',
+        default=DEFAULTS['npzmatrices'], help=HELPTEXT['npzmatrices'])
 
     parser.add_argument('-S', '--export-scipion', dest='outscipion', action='store_true',
         default=DEFAULTS['outscipion'], help=HELPTEXT['outscipion'])
