@@ -129,7 +129,7 @@ def prody_energy(*pdbs, **kwargs):
 def addCommand(commands):
 
     subparser = commands.add_parser('energy',
-    help='fix missing atoms, solvate and write a file containing energy')
+    help='fix missing atoms, solvate, minimise and calculate energy')
 
     subparser.add_argument('--quiet', help="suppress info messages to stderr",
         action=Quiet, nargs=0)
@@ -146,7 +146,7 @@ def addCommand(commands):
         help=('number of repeats (default: %(default)s)'))
 
     subparser.set_defaults(usage_example=
-    """This command fixes missing atoms, solvates and writes energies in a txt file.
+    """This command fixes missing atoms, solvates, minimises and calculates energies.
 
 Fetch PDB files 1p38 and 1r39 and write energies in a file:
 
