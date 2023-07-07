@@ -1090,7 +1090,11 @@ def _getChemicals(lines):
 
         chem_names[resname] += data["_chem_comp.name"].upper()
 
-        synonym = data["_chem_comp.pdbx_synonyms"]
+        if "_chem_comp.pdbx_synonyms" in data.keys():
+            synonym = data["_chem_comp.pdbx_synonyms"]
+        else:
+            synonym = '?'
+
         if synonym == '?':
             synonym = ' '
         synonym = synonym.rstrip()
