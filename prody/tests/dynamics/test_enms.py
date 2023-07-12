@@ -137,8 +137,7 @@ class TestANMResults(testGNMBase):
         assert_equal(anm[indices1].numModes(), 1,
                          'slicing ANM for last mode does not work')
         indices = slice(228, 230)
-        self.assertRaises(IndexError, anm.__getitem__, indices,
-                          'slicing ANM for too many modes does not give IndexError')
+        self.assertRaises(IndexError, anm.__getitem__, indices)
 
 class TestEXANMResults(testGNMBase):
 
