@@ -39,7 +39,7 @@ def extendModel(model, nodes, atoms, norm=False):
         raise ValueError('model must be an NMA instance')
 
     if model.numAtoms() != nodes.numAtoms():
-        raise ValueError('mode and nodes atom numbers must be the same')
+        raise ValueError('atom numbers must be the same')
 
     indices, atommap = extendAtoms(nodes, atoms, model.is3d())
 
@@ -92,7 +92,7 @@ def extendVector(vector, nodes, atoms):
         raise ValueError('vector must be a Vector instance')
 
     if vector.numAtoms() != nodes.numAtoms():
-        raise ValueError('vector and nodes atom numbers must be the same')
+        raise ValueError('atom numbers must be the same')
 
     indices, atommap = extendAtoms(nodes, atoms, vector.is3d())
     extended = Vector(vec[indices], 'Extended ' + str(vector), vector.is3d())
@@ -539,7 +539,7 @@ def interpolateModel(model, nodes, atoms, norm=False, **kwargs):
         raise TypeError('model must be an NMA instance')
 
     if model.numAtoms() != nodes.numAtoms():
-        raise ValueError('model and nodes atom numbers must be the same')
+        raise ValueError('atom numbers must be the same')
 
     if not model.is3d():
         raise ValueError('model must be 3D')
