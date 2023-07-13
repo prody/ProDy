@@ -1197,6 +1197,11 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     :arg renumber: whether to renumber atoms with serial indices
         Default is **True**
     :type renumber: bool
+
+    :arg hybrid36: whether to use hybrid36 format for atom residue numbers
+        Default is **False**, which means using hexadecimal instead.
+        NB: ChimeraX seems to prefer hybrid36 and may have problems with hexadecimal.
+    :type hybrid36: bool
     """
 
     renumber = kwargs.get('renumber', True)
@@ -1538,6 +1543,11 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     :arg renumber: whether to renumber atoms with serial indices
         Default is **True**
     :type renumber: bool
+
+    :arg hybrid36: whether to use hybrid36 format for atom residue numbers
+        Default is **False**, which means using hexadecimal instead.
+        NB: ChimeraX seems to prefer hybrid36 and may have problems with hexadecimal.
+    :type hybrid36: bool
     """
 
     if not (filename.lower().endswith('.pdb') or filename.lower().endswith('.pdb.gz') or
