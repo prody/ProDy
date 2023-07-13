@@ -18,7 +18,7 @@ from .nma import NMA
 from .gnm import GNMBase, GNM
 from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
-from .analysis import calcSqFlucts, calcProjection
+from .analysis import calcSqFlucts, calcProjection, calcRMSFlucts
 from .analysis import calcCrossCorr, calcCovariance, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
@@ -29,7 +29,7 @@ __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showCumulFractVars', 'showMode',
            'showOverlap', 'showOverlaps', 'showOverlapTable', 
            'showProjection', 'showCrossProjection', 
-           'showEllipsoid', 'showSqFlucts', 'showScaledSqFlucts', 
+           'showEllipsoid', 'showSqFlucts', 'showRMSFlucts', 'showScaledSqFlucts', 
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
@@ -108,7 +108,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
             show = child
             break
     if show is None:
-        show = Axes3D(cf)
+        show = cf.add_subplot(projection="3d")
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
         onto = list(onto)
@@ -200,10 +200,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
-    :keyword by_time: whether to show a 1D projection by time (number of steps) 
-        on the x-axis, rather than making a population histogram. 
-        Default is **False** to maintain old behaviour.
-    :type by_time: bool
+    :keyword show_density: whether to show a density histogram or kernel density estimate
+        rather than a 2D scatter of points or a 1D projection by time (number of steps) 
+        on the x-axis. This option is not valid for 3D projections.
+        Default is **True** for 1D and **False** for 2D to maintain old behaviour.
+    :type show_density: bool
 
     :keyword color: a color name or a list of color names or values, 
         default is ``'blue'``
@@ -246,12 +247,13 @@ def showProjection(ensemble, modes, *args, **kwargs):
                                 kwargs.pop('norm', False))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
-        by_time = kwargs.pop('by_time', False)
+        by_time = not kwargs.pop('show_density', True)
+        by_time = kwargs.pop('by_time', by_time)
         if by_time:
             show = plt.plot(range(len(projection)), projection.flatten(), *args, **kwargs)
             plt.ylabel('Mode {0} coordinate'.format(str(modes)))
             plt.xlabel('Conformation number')  
-        else:          
+        else:
             show = plt.hist(projection.flatten(), *args, **kwargs)
             plt.xlabel('Mode {0} coordinate'.format(str(modes)))
             plt.ylabel('Number of conformations')
@@ -311,12 +313,25 @@ def showProjection(ensemble, modes, *args, **kwargs):
         indict[opts].append(i)
 
     modes = [m for m in modes]
-    if len(modes) == 2: 
-        plot = plt.plot
+    if len(modes) == 2:
+        show_density = kwargs.pop("show_density", False)
+        if show_density:
+            try:
+                import seaborn as sns
+                plot = sns.kdeplot
+                kwargs["cmap"] = cmap
+            except ImportError:
+                raise ImportError('Please install seaborn to plot kernel density estimates')
+        else:
+            plot = plt.plot
         show = plt.gcf()
         text = plt.text
     else: 
         from mpl_toolkits.mplot3d import Axes3D
+        show_density = kwargs.pop("show_density", False)
+        if show_density:
+            LOGGER.warn("show_density is not supported yet for 3D projections")
+            show_density = False
         cf = plt.gcf()
         show = None
         for child in cf.get_children():
@@ -324,7 +339,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 show = child
                 break
         if show is None:
-            show = Axes3D(cf)
+            show = cf.add_subplot(projection="3d")
         plot = show.plot
         text = show.text
 
@@ -344,7 +359,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
         else:
             kwargs.pop('label', None)
 
-        plot(*(list(projection[indices].T) + args), **kwargs)
+        if not show_density:
+            plot(*(list(projection[indices].T) + args), **kwargs)
+        else:
+            plot(x=list(projection[indices,0]), y=list(projection[indices,1]), **kwargs)
 
     if texts:
         ts = []
@@ -359,7 +377,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
         except ImportError:
             pass
         else:
-            adjust_text(ts)
+            if len(modes) == 2:
+                adjust_text(ts)
 
     if len(modes) == 2:
         plt.xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
@@ -609,7 +628,9 @@ def showCrossCorr(modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    cross_correlations = calcCrossCorr(modes)
+    norm = kwargs.pop('norm', True)
+    cross_correlations = calcCrossCorr(modes, norm=norm) 
+
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
@@ -824,6 +845,136 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     show = showSqFlucts(modes, *args, norm=norm, **kwargs)
     return show
 
+def showRMSFlucts(modes, *args, **kwargs):
+    """Show square fluctuations using :func:`.showAtomicLines`.  See
+    also :func:`.calcRMSFlucts`."""
+
+    from matplotlib.pyplot import title, ylabel, xlabel
+
+    def _showRMSFlucts(modes, *args, **kwargs):
+        show_hinge = kwargs.pop('hinges', False)
+        show_hinge = kwargs.pop('hinges', show_hinge)
+        show_hinge = kwargs.pop('show_hinge', show_hinge)
+        show_hinge = kwargs.pop('hinge', show_hinge)
+        norm = kwargs.pop('norm', False)
+
+        sqf = calcRMSFlucts(modes)
+        
+        scaled = kwargs.pop('scaled', None)
+        if scaled is not None:
+            scale = scaled / sqf.mean()
+        else:
+            scale = 1.
+        scale = kwargs.pop('scale', scale)
+
+        if norm:
+            sqf = sqf / (sqf**2).sum()**0.5
+        
+        if scale != 1.:
+            sqf *= scale
+            def_label = '{0} (x{1:.2f})'.format(str(modes), scale)
+        else:
+            def_label = str(modes)
+
+        label = kwargs.pop('label', def_label)
+        mode = kwargs.pop('mode', None)
+
+        if mode is not None:
+            is3d = False
+            try:
+                arr = mode.getArray()
+                is3d = mode.is3d()
+                n_nodes = mode.numAtoms()
+            except AttributeError:
+                arr = mode
+                is3d = len(arr) == len(sqf)*3
+                n_nodes = len(arr)//3 if is3d else len(arr)
+            if n_nodes != len(sqf):
+                raise RuntimeError('size mismatch between the protein ({0} residues) and the mode ({1} nodes).'
+                                    .format(len(sqf), n_nodes))
+
+            if is3d:
+                raise ValueError('Cannot color sqFlucts by mode direction for 3D modes')
+
+            rbody = []
+            first_sign = np.sign(arr[0])
+            rcolor = ['red', 'red', 'blue']
+            n = 1
+            for i, a in enumerate(arr):
+                s = np.sign(a)
+                if s == 0: 
+                    s = first_sign
+                if first_sign != s or i == len(arr)-1:
+                    show = showAtomicLines(rbody, sqf[rbody], label=label,
+                                           color=rcolor[int(first_sign+1)],
+                                           **kwargs)
+                    rbody = []
+                    n += 1
+                    first_sign = s
+                rbody.append(i)
+        else:
+            show = showAtomicLines(sqf, *args, label=label, **kwargs)
+
+        if show_hinge and not modes.is3d():
+            hinges = calcHinges(modes)
+            if hinges is not None:
+                kwargs.pop('final', False)
+                showAtomicLines(hinges, sqf[hinges], 'r*', final=False, **kwargs)
+        return show, sqf
+
+    scaled = kwargs.pop('scaled', False)
+    final = kwargs.pop('final', True)
+
+    args = list(args)
+    modesarg = []
+    i = 0
+    while i < len(args):
+        if isinstance(args[i], (VectorBase, ModeSet, NMA)):
+            modesarg.append(args.pop(i))
+        else:
+            i += 1
+
+    shows = []
+    _final = len(modesarg) == 0 and final
+    show, sqf = _showRMSFlucts(modes, *args, final=_final, **kwargs)
+    shows.append(show)
+    if scaled:
+        mean = sqf.mean()
+    else:
+        mean = None
+
+    for i, modes in enumerate(modesarg):
+        if i == len(modesarg)-1:
+            _final = final
+        
+        show, sqf = _showRMSFlucts(modes, *args, scaled=mean, final=_final, **kwargs)
+        shows.append(show)
+
+    xlabel('Residue')
+    ylabel('Root Square fluctuations')
+    if len(modesarg) == 0:
+        title(str(modes))
+
+    return shows
+
+
+def showScaledRMSFlucts(modes, *args, **kwargs):
+    """Show scaled root square fluctuations using :func:`~matplotlib.pyplot.plot`.
+    Modes or mode sets given as additional arguments will be scaled to have
+    the same mean squared fluctuations as *modes*."""
+
+    scaled = kwargs.pop('scaled', True)
+    show = showRMSFlucts(modes, *args, scaled=scaled, **kwargs)
+    return show
+
+
+def showNormedRMSFlucts(modes, *args, **kwargs):
+    """Show normalized root square fluctuations via :func:`~matplotlib.pyplot.plot`.
+    """
+
+    norm = kwargs.pop('norm', True)
+    show = showRMSFlucts(modes, *args, norm=norm, **kwargs)
+    return show
 
 def showContactMap(enm, **kwargs):
     """Show contact map using :func:`showAtomicMatrix`. *enm* can be 
@@ -1376,6 +1527,11 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
     interactive = kwargs.pop('interactive', True)
+    
+    import matplotlib
+    if float(matplotlib.__version__[:-2]) >= 3.6:
+        LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
+        interactive = False
 
     if isinstance(fig, Figure):
         fig_num = fig.number
@@ -1729,7 +1885,7 @@ def showAtomicLines(*args, **kwargs):
                         _y.append(y[last:last+len(resnums)])
                         if dy is not None:
                             _dy.append(dy[last:last+len(resnums)])
-                        last = len(resnums)
+                        last += len(resnums)
                     else:
                         x.extend(resnums + last)
                         last = resnums[-1]

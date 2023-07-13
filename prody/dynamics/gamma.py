@@ -6,7 +6,7 @@ import numpy as np
 
 from prody.atomic import Atomic
 
-__all__ = ['Gamma', 'GammaStructureBased', 'GammaVariableCutoff']
+__all__ = ['Gamma', 'GammaStructureBased', 'GammaVariableCutoff', 'GammaGOdMD']
 
 
 class Gamma(object):
@@ -299,3 +299,100 @@ class GammaVariableCutoff(Gamma):
                   'effective cutoff:', str(cutoff), 'distance:',
                   str(dist2**0.5), 'gamma:', str(gamma)]))  # PY3K: OK
         return gamma
+
+
+class GammaGOdMD(Gamma):
+    """Facilitate setting the spring constant based on 
+    sequence distance and spatial distance as in GOdMD.
+
+    The sequence distance-dependent term is Cseq/(S**2)
+    for S=abs(i,j) <= Slim
+
+    The structure distance-dependent term is (Ccart/dist)**Ex
+
+    **Example**:
+
+    Let's parse coordinates from a PDB file.
+
+    .. ipython:: python
+
+       from prody import *
+       ubi = parsePDB('1aar', chain='A', subset='calpha')
+
+    In the above we parsed only the atoms needed for this calculation, i.e.
+    Cα atoms from chain A.
+
+    We build the Hessian matrix using GOdMD spring constants as
+    follows;
+
+    .. ipython:: python
+
+       gamma = GammaGOdMD(ubi)
+       anm = ANM('')
+       anm.buildHessian(ubi, gamma=gamma)
+    
+    """
+
+    def __init__(self, atoms, Ccart=6., Ex=6, Cseq=60., Slim=3):
+        """Setup the parameters.
+
+        :arg atoms: A set of atoms
+        :type atoms: :class:`.Atomic`
+
+        :arg Ccart: Multiplication constant inside the exponential
+            in the spatial distance-dependent term 
+            Default is 6.
+        :type Ccart: float
+
+        :arg Ex: Exponent in spatial distance-dependent term
+            Default is 6
+        :type sheet: float
+
+        :arg Cseq: Multiplication constant in sequence distance-dependent term 
+            Default is 60.
+        :type Cseq: float
+
+        :arg Slim: Sequence distance limit for sequence distance-dependence
+            This limit is used with a less-or-equal operator
+            Default is 3
+        :type Slim: float
+
+    """
+
+        if not isinstance(atoms, Atomic):
+            raise TypeError('atoms must be an Atomic instance')
+
+        n_atoms = atoms.numAtoms()
+        if n_atoms < 3:
+            raise ValueError('number of atoms must be larger than 2')
+
+        rnum = atoms.getResindices()
+        assert rnum is not None, 'residue numbers must be set'
+
+        Ccart = float(Ccart)
+        assert Ccart > 0, 'gamma must be greater than 0'
+
+        Cseq = float(Cseq)
+        assert Cseq > 0, 'Cseq must be greater than 0'
+
+        self._Ccart = Ccart
+        self._Ex = Ex
+
+        self._Cseq = Cseq
+        self._Slim = Slim
+
+    def gamma(self, dist2, i, j):
+        """Returns force constant."""
+
+        Ccart = self._Ccart
+        Ex = self._Ex
+
+        Cseq = self._Cseq
+        Slim = self._Slim
+
+        S = abs(i-j)
+        if S <= Slim:
+            return Cseq/(S**2)
+        else:
+            dist = dist2**0.5
+            return (Ccart/dist)**Ex

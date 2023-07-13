@@ -1,0 +1,32 @@
+ProDy 2.3 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+2.3.1 (Nov 15, 2022)
+------------------------------------------------------------------------------
+
+**Bug Fixes and Improvements**:
+
+* use of 4-char hybrid36 (residue version) for biomol segnames 
+* remove pfam tests
+* remove python 3.5 support
+
+2.3.0 (Nov 12, 2022)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+* new Gamma function class from GOdMD
+* added prody energy app based on ClustENM
+
+**Bug Fixes and Improvements**:
+
+* restored matrix option to dfi and dci
+* pfam migrated to pfam-legacy
+* fix to apps for broken imp.find_module
+* various other fixes including to mmCIF parsing and alignments
+
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.2.0...v2.3.0
