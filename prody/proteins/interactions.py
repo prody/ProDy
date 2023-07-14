@@ -173,9 +173,9 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     """
 
     if PY3K:
-        import hpb
+        from .hpb import hpb
     else:
-        import hpb_py27
+        from .hpb import hpb_py27
 
     selection = kwargs.pop('selection', 'protein and noh')
     hpb_cutoff = kwargs.pop('hpb_cutoff', 0.0)
