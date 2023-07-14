@@ -1,0 +1,11 @@
+Hi Karolina,
+
+I only tested the program in python2 before, so I did not notice the errors in python3. Please see the attached updated files for the module. The compilation now is below. 
+gfortran -O3 -fPIC -c reg_tet.f
+g++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/usr/include/python2.7/
+g++ -shared -Wl,-soname,hpb.so -o hpb.so hpbmodule.o reg_tet.o -lgfortran
+
+The bold words indicate that you need to change the include directory for 3.x, here I am using 2.7 (It is also working in 3.7 now). The error Py_InitModule4_64, is saying that you compile with python2 but using python3 to import the module.
+
+Best,
+Xin

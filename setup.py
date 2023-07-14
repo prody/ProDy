@@ -133,6 +133,9 @@ CONTRIBUTED = [
               include_dirs=[numpy.get_include()]),
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
+              include_dirs=[tntDir], language='c++'),
+    Extension('prody.proteins.hpb.so', 
+              [join('prody', 'proteins', 'hpb', 'hpbmodule.cpp')], 
               include_dirs=[tntDir], language='c++',
               )
 ]
