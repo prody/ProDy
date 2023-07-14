@@ -163,13 +163,13 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     :type selection: str
     
     :arg hpb_cutoff: cutoff for hydrophobic overlaping area values
-        by default is 0.0
-    :type hpb_cutoff: float or int
+        default is 0.0
+    :type hpb_cutoff: float, int
     
     :arg cumulative_values: sum of results for pairs of residues or
         for single residues without distinguishing pairs,
-        by default is None
-    :type cumulative_values: 'pairs' or 'single_residues'    
+        default is None
+    :type cumulative_values: 'pairs' or 'single_residues'
     """
 
     if PY3K:
@@ -229,12 +229,12 @@ def calcSASA(atoms, **kwargs):
     :type selection: str
     
     :arg sasa_cutoff: cutoff for SASA values
-        by default is 0.0
-    :type sasa_cutoff: float or int
+        default is 0.0
+    :type sasa_cutoff: float, int
 
     :arg resnames: residues name included
-        by default is False
-    :type resnames: True or False    
+        default is False
+    :type resnames: bool    
     """
     
     if PY3K:
@@ -279,18 +279,18 @@ def calcVolume(atoms, **kwargs):
     :type selection: str
     
     :arg volume_cutoff: cutoff for volume
-        by default is 0.0 to include all the results
-    :type sasa_volume: float or int
+        default is 0.0 to include all the results
+    :type sasa_volume: float, int
 
     :arg split_residues: it will provide values for each residue
-        by default is False
-    :type split_residues: True or False
+        default is False
+    :type split_residues: bool
 
     :arg resnames: residues name included
-        by default is False
+        default is False
         True - will give residue names and values for each residue
         False - will give only the values for each residues
-    :type resnames: True or False
+    :type resnames: bool
     """
     
     if PY3K:
@@ -744,7 +744,7 @@ def calcPiStacking(atoms, **kwargs):
     :arg non_standard_PS: dictionary of non-standard residue in the protein structure
                         that need to be included in calculations
                         non_standard works too
-    :type non_standard_PS: dictionary
+    :type non_standard_PS: dict
 
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -864,7 +864,7 @@ def calcPiCation(atoms, **kwargs):
     :arg non_standard_PC: dictionary of non-standard residue in the protein structure
                         that need to be included in calculations
                         non_standard also works
-    :type non_standard_PC: dictionary
+    :type non_standard_PC: dict
 
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -973,11 +973,11 @@ def calcHydrophobic(atoms, **kwargs):
     :arg non_standard_Hph: dictionary of non-standard residue in the protein structure
                         that need to be included in calculations
                         non_standard works too
-    :type non_standard_Hph: dictionary
+    :type non_standard_Hph: dict
 
     :arg zerosHPh: zero values of hydrophobic overlaping areas included
         default is False
-    :type zerosHPh: True, False
+    :type zerosHPh: bool
 
     Last value in the output corresponds to the total hydrophobic overlaping area for two residues
     not only for the atoms that are included in the list. Atoms that which are listed are the closest
@@ -1201,7 +1201,8 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
     :type extraIons: list
     
     :arg excluded_ions: ions which should be excluded from the analysis.
-    :type excluded_ions: list """
+    :type excluded_ions: list
+    """
     
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1592,7 +1593,8 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     :type start_frame: int
 
     :arg stop_frame: index of last frame to read
-    :type stop_frame: int """
+    :type stop_frame: int
+    """
 
     return calcInteractionsMultipleFrames(atoms, 'DiB', trajectory, **kwargs)
 
@@ -1671,7 +1673,7 @@ def showInteractionsGraph(statistics, **kwargs):
     
     :arg cutoff: Minimal number of counts per residue in the trajectory
         by default 0.1.
-    :type cutoff: int or float
+    :type cutoff: int, float
 
     :arg code: representation of the residues, 3-letter or 1-letter
         by default 3-letter
@@ -1679,7 +1681,7 @@ def showInteractionsGraph(statistics, **kwargs):
 
     :arg multiple_chains: display chain name for structure with many chains
         by default False
-    :type multiple_chains: True or False
+    :type multiple_chains: bool
     
     :arg edge_cmap: color of the residue connection
         by default plt.cm.Blues (blue color)
@@ -1699,7 +1701,8 @@ def showInteractionsGraph(statistics, **kwargs):
 
     :arg seed: random number which affect the distribution of residues
         by default 42
-    :type seed: int  """
+    :type seed: int
+    """
     
     import networkx as nx
     import matplotlib.pyplot as plt
@@ -1833,7 +1836,7 @@ def calcStatisticsInteractions(data, **kwargs):
     :arg weight_cutoff: value above which results will be displayed
         1 or more means that residue contact is present in all conformations/frames
         default value is 0.2 (in 20% of conformations contact appeared)
-    :type weight_cutoff: int or float 
+    :type weight_cutoff: int, float 
     
     Example of usage: 
     >>> atoms = parsePDB('PDBfile.pdb')
@@ -2123,7 +2126,8 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
     
     :arg color: color to draw interactions in VMD,
                 not used only for single interaction type.
-    :type color: str or **None**, by default `red`.
+                default **"red"**
+    :type color: str
     
     :arg filename: name of TCL file where interactions will be saved.
     :type filename: str
@@ -2158,15 +2162,16 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
         """Creates TCL file for the VMD program based on the interactions
         computed by any function which returns interactions.
         
-        :arg interactions: List of interactions for protein interactions.
-        :type interactions: List of lists
+        :arg interactions: List of interaction lists for protein interactions.
+        :type interactions: List
         
         :arg color: Name of the color which will be used for the visualization of 
                     interactions in VMD
         :type color: str
         
         :arg tcl_file: name of the TCL file which will be saved for visualization                
-        :type tcl_file: str """
+        :type tcl_file: str
+        """
         
         tcl_file.write('draw color '+color+'\n')
         for nr_i,i in enumerate(interaction):
@@ -2219,8 +2224,8 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg interactions: List of interactions for protein-ligand interactions.
-    :type interactions: List of lists
+    :arg interactions: List of interactions lists for protein-ligand interactions.
+    :type interactions: list
     
     :arg filename: name of TCL file where interactions will be saved.
     :type filename: str
