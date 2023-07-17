@@ -135,8 +135,10 @@ CONTRIBUTED = [
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
               include_dirs=[tntDir], language='c++'),
     Extension('prody.proteins.hpb.so', 
-              [join('prody', 'proteins', 'hpb', 'hpbmodule.cpp')], 
+              [join('prody', 'proteins', 'hpbmodule', 'hpbmodule.cpp')], 
               include_dirs=[tntDir], language='c++',
+              extra_compile_args=['-O3', '-g', '-fPIC'],
+              extra_link_args=['-lgfortran']
               )
 ]
 

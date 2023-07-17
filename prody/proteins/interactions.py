@@ -172,10 +172,7 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     :type cumulative_values: 'pairs' or 'single_residues'
     """
 
-    if PY3K:
-        from .hpb import hpb
-    else:
-        from .hpb import hpb_py27
+    from .hpb import hpb
 
     selection = kwargs.pop('selection', 'protein and noh')
     hpb_cutoff = kwargs.pop('hpb_cutoff', 0.0)
