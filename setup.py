@@ -134,7 +134,7 @@ CONTRIBUTED = [
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
               include_dirs=[tntDir], language='c++'),
-    Extension('prody.proteins.hpb.so', 
+    Extension('prody.proteins.hpb', 
               [join('prody', 'proteins', 'hpbmodule', 'hpbmodule.cpp')], 
               include_dirs=[tntDir], language='c++',
               extra_compile_args=['-O3', '-g', '-fPIC'],
