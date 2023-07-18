@@ -126,6 +126,12 @@ if platform.system() == 'Darwin':
     #extra_compile_args.append('-stdlib=libc++')
 
 
+# extra compilation of reg_tet.f (hpb):
+import subprocess
+subprocess.call(['gfortran', '-O3', '-fPIC', '-c',
+                 join('prody', 'proteins', 'hpbmodule', 'reg_tet.f'),
+                 '-o', join('prody', 'proteins', 'hpbmodule', 'reg_tet.o')])
+
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
@@ -134,11 +140,13 @@ CONTRIBUTED = [
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
               include_dirs=[tntDir], language='c++'),
-    Extension('prody.proteins.hpb', 
-              [join('prody', 'proteins', 'hpbmodule', 'hpbmodule.cpp')], 
+    Extension('prody.proteins.hpb',
+              [join('prody', 'proteins', 'hpbmodule', 'hpbmodule.cpp'), 
+              join('prody', 'proteins', 'hpbmodule', 'reg_tet.o')],
               include_dirs=[tntDir], language='c++',
               extra_compile_args=['-O3', '-g', '-fPIC'],
-              extra_link_args=['-lgfortran']
+              extra_link_args=['-lgfortran'],
+              extra_objects=[join('prody', 'proteins', 'hpbmodule', 'reg_tet.o')]
               )
 ]
 

@@ -7220,7 +7220,14 @@ c
 c
 c     check which sons exist
 c
-      if(iis - iast) 110, 140, 150
+c      if(iis - iast) 110, 140, 150
+      if (iis > iast) then
+          goto 110
+      else if (iis < iast) then
+          goto 140
+      else
+          goto 150
+      end if
 c
 c     both sons exist
 c
