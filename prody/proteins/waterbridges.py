@@ -53,92 +53,17 @@ def getNeighborsForAtom(atom, selection, dist):
     return list(map(lambda p: p[1], findNeighbors(atom, dist, selection)))
 
 
-def checkDoesGroupFormBridge(waterGroup):
-    resAtomIndices = []
-    for pair in waterGroup:
-        if pair[0].type == ResType.PROTEIN:
-            resAtomIndices.append(pair[0].hydrophilic.getIndex())
-        if pair[1].type == ResType.PROTEIN:
-            resAtomIndices.append(pair[1].hydrophilic.getIndex())
-
-    return len(set(resAtomIndices)) >= 2
-
-
-def getWaterGroupAtoms(group):
-    currentGroupAtoms = []
-    for bond in group:
-        currentGroupAtoms += [bond[0].hydrophilic,
-                              bond[1].hydrophilic]
-
-    uniqueAtomIndices = set([cga.getIndex() for cga in currentGroupAtoms])
-
-    return uniqueAtomIndices
-
-def calcBridgesFromHBonds_cluster(hydrogenBonds):
+def calcBridges_cluster(relations, hydrophilicList):
     waterBridges = []
 
-    while len(hydrogenBonds):
-        if not (len(hydrogenBonds) % 500):
-            LOGGER.info(len(hydrogenBonds))
-        waterGroup = []
-        firstWater = hydrogenBonds[0][0] if hydrogenBonds[0][0].type == ResType.WATER else hydrogenBonds[0][1]
-        newWaters = [firstWater]
+    for atom in hydrophilicList:
+      observedGroup = relations[atom.getIndex()][0]
+      if not observedGroup:
+        continue
 
-        while True:
-            currentWater = newWaters[0]
-            for bond in hydrogenBonds.copy():
-                if currentWater.hydrophilic.getIndex() not in [bond[0].hydrophilic.getIndex(), bond[1].hydrophilic.getIndex()]:
-                    continue
+      waterBridges += getBridgeChains_BFS(observedGroup, relations)
 
-                hydrogenBonds.remove(bond)
-                waterGroup.append(bond)
-                otherAtom = bond[0] if currentWater == bond[1] else bond[1]
-                if otherAtom.type == ResType.WATER:
-                    newWaters.append(otherAtom)
-
-            newWaters.pop(0)
-            if not len(newWaters):
-                if checkDoesGroupFormBridge(waterGroup):
-                    atoms = getWaterGroupAtoms(waterGroup)
-                    waterBridges.append(atoms)
-
-                break
-            
     return waterBridges
-
-def listToSmallerDim(list):
-    newList = []
-    for el_1 in list:
-      for el_2 in el_1:
-          newList.append(el_2)
-    
-    return newList
-
-def goDeeper_old(currentBond, hydrogenBondsWithDepth, maxDepth):
-    if currentBond[2] != 0 and ResType.PROTEIN in [currentBond[0].type, currentBond[1].type]:
-        return [[currentBond]]
-
-    if currentBond[2] == maxDepth:
-        return [[]]
-
-    newBonds = []
-    for bond in hydrogenBondsWithDepth:
-        if bond[2] == None and (currentBond[0].hydrophilic.getIndex() in [bond[0].hydrophilic.getIndex(), bond[1].hydrophilic.getIndex()] or currentBond[1].hydrophilic.getIndex() in [bond[0].hydrophilic.getIndex(), bond[1].hydrophilic.getIndex()]):
-            bond[2] = currentBond[2] + 1
-            newBonds.append(bond)
-
-    newBondsChains = listToSmallerDim([goDeeper(bond, hydrogenBondsWithDepth, maxDepth) for bond in newBonds])
-    return [[currentBond, *chain] for chain in newBondsChains if chain]
-    
-def calcBridgesFromHBonds_depth_old(hydrogenBonds, hydrophilic):
-    hydrogenBondsWithDepth = [[hb[0], hb[1], None] for hb in hydrogenBonds]
-    initialBonds = []
-    for bond in hydrogenBonds:
-      if hydrophilic.getIndex() in [bond[0].hydrophilic.getIndex(), bond[1].hydrophilic.getIndex()]:
-          initialBonds.append([bond[0], bond[1], 0])
-
-    newBondsChains = listToSmallerDim([goDeeper(bond, hydrogenBondsWithDepth, 2) for bond in initialBonds])
-    return newBondsChains
 
 def getRelationsList(hydrogenBonds, numAtoms):
     relations = [[None, [], [], False] for _ in range(numAtoms)]
@@ -159,25 +84,7 @@ def resetRelationsList(relationList):
     for el in relationList:
       el[3] = False
 
-def goDeeper_DFS(currentAtom, relationsList, depthLeft):
-    currentIndex = currentAtom.hydrophilic.getIndex()
-    relationsList[currentIndex] = True
-
-    if currentAtom.type == ResType.PROTEIN:
-        return [[currentAtom]]
-    
-    if depthLeft == 0:
-        return [[]]
-    
-    newAtoms = []
-    for atomIndex in relationsList[currentIndex][2]:
-        if not relationsList[atomIndex][3]:
-            newAtoms.append(relationsList[atomIndex][0])
-    
-    newAtomsChains = listToSmallerDim([goDeeper(atom, relationsList, depthLeft-1) for atom in newAtoms])
-    return [[currentAtom, *chain] for chain in newAtomsChains if chain]
-    
-def calcBridgesBFS(watchedAtom, relationsList, maxDepth):
+def getBridges_BFS(watchedAtom, relationsList, maxDepth):
     queue = deque([(watchedAtom.hydrophilic.getIndex(), [])])
     waterBridges = []
 
@@ -202,13 +109,36 @@ def calcBridgesBFS(watchedAtom, relationsList, maxDepth):
     
     return waterBridges
 
+def getBridgeChains_BFS(watchedAtom, relationsList):
+    waterBridges = []
+    residueWaterIndices = relationsList[watchedAtom.hydrophilic.getIndex()][2]
 
-def calcBridgesFromHBonds(watchedAtom, relationsList, depth):
-    initialAtom = relationsList[watchedAtom[0].hydrophilic.getIndex()]
-    initialAtom[2] = True
+    for waterIndex in residueWaterIndices:
+        bridgeAtoms = []
+        queue = deque([waterIndex])
+        while queue:
+            currentAtomIndex = queue.popleft()
+            currentAtom = relationsList[currentAtomIndex][0]
+
+            if relationsList[currentAtomIndex][3]:
+                continue
+            
+            bridgeAtoms.append(currentAtomIndex)
+
+            if currentAtom.type == ResType.WATER:
+              relationsList[currentAtomIndex][3] = True
+
+            if currentAtom.type == ResType.PROTEIN:
+                continue
+            
+            for index in relationsList[currentAtomIndex][2]:
+                queue.append(index)
+        
+        bridgeAtoms = list(set(bridgeAtoms))
+        if sum(relationsList[atomIndex][0].type == ResType.PROTEIN for atomIndex in bridgeAtoms) >= 2:
+          waterBridges.append(bridgeAtoms)
     
-    return goDeeper(initialAtom, relationsList, depth-1)
-
+    return waterBridges
 
 def calcWaterBridges(atoms, **kwargs):
     """Compute water bridges for a protein that has water molecules.
@@ -306,19 +236,18 @@ def calcWaterBridges(atoms, **kwargs):
             hydrogenBonds.append((nbPair[1], nbPair[0]))
     LOGGER.info(f'Hydrogen bonds ({len(hydrogenBonds)}) calculated.')
 
-    #waterBridges = calcBridgesFromHBonds_cluster(hydrogenBonds)
     start = timer()
     relations = getRelationsList(hydrogenBonds, len(atoms))
-    waterBridges = []
-    for atom in proteinHydrophilic:
-      observedGroup = relations[atom.getIndex()][0]
-      if not observedGroup:
-        continue
-
-      waterBridges += calcBridgesBFS(relations[atom.getIndex()][0], relations, waterDepth+1)
-      resetRelationsList(relations)
+    waterBridges_2 = calcBridges_cluster(relations, proteinHydrophilic)
     end = timer()
     LOGGER.info(end-start)
-    LOGGER.info(f'Water bridges calculated.')
-
-    return waterBridges
+    #waterBridges = []
+    #for atom in proteinHydrophilic:
+    #  observedGroup = relations[atom.getIndex()][0]
+    #  if not observedGroup:
+    #    continue
+#
+    #  waterBridges += getBridges_BFS(relations[atom.getIndex()][0], relations, waterDepth+1)
+    #  resetRelationsList(relations)
+    LOGGER.info(f'Water bridges (2) calculated.')
+    return waterBridges_2
