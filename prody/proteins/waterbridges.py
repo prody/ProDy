@@ -8,7 +8,7 @@ __credits__ = ['Frane Doljanin', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
 
-from itertools import chain
+from collections import deque
 from enum import Enum, auto
 from numpy import *
 
@@ -154,8 +154,12 @@ def getRelationsList(hydrogenBonds, numAtoms):
         relations[index_1][2].append(index_0)
 
     return relations
-    
-def goDeeper(currentAtom, relationsList, depthLeft):
+
+def resetRelationsList(relationList):
+    for el in relationList:
+      el[3] = False
+
+def goDeeper_DFS(currentAtom, relationsList, depthLeft):
     currentIndex = currentAtom.hydrophilic.getIndex()
     relationsList[currentIndex] = True
 
@@ -173,6 +177,32 @@ def goDeeper(currentAtom, relationsList, depthLeft):
     newAtomsChains = listToSmallerDim([goDeeper(atom, relationsList, depthLeft-1) for atom in newAtoms])
     return [[currentAtom, *chain] for chain in newAtomsChains if chain]
     
+def calcBridgesBFS(watchedAtom, relationsList, maxDepth):
+    queue = deque([(watchedAtom.hydrophilic.getIndex(), [])])
+    waterBridges = []
+
+    while queue:
+        currentAtomIndex, currentPath = queue.popleft()
+        currentAtom = relationsList[currentAtomIndex][0]
+
+        if relationsList[currentAtomIndex][3]:
+            continue
+        
+        relationsList[currentAtomIndex][3] = True
+        
+        if currentAtom.type == ResType.PROTEIN and len(currentPath):
+            waterBridges.append(currentPath + [currentAtom])
+            continue
+        
+        if len(currentPath) == maxDepth:
+            continue
+        
+        for index in relationsList[currentAtomIndex][2]:
+            queue.append((index, currentPath + [currentAtom]))
+    
+    return waterBridges
+
+
 def calcBridgesFromHBonds(watchedAtom, relationsList, depth):
     initialAtom = relationsList[watchedAtom[0].hydrophilic.getIndex()]
     initialAtom[2] = True
@@ -206,6 +236,10 @@ def calcWaterBridges(atoms, **kwargs):
         default is (140, 180)
     :type angleWW: (int, int)
 
+    :arg waterDepth: maximum number of waters in chain
+      default is 2
+    :type waterDepth: int
+
     :arg donors: which atoms to count as donors 
         default is ['N', 'O', 'S', 'F']
     :type donors: list
@@ -220,6 +254,7 @@ def calcWaterBridges(atoms, **kwargs):
     anglePDWA = kwargs.pop('anglePDWA', (100, 200))
     anglePAWD = kwargs.pop('anglePAWD', (100, 140))
     angleWW = kwargs.pop('angleWW', (140, 180))
+    waterDepth = kwargs.pop('waterDepth', 3)
     donors = kwargs.pop('donors', ['nitrogen', 'oxygen', 'sulfur'])
     acceptors = kwargs.pop('acceptors', ['nitrogen', 'oxygen', 'sulfur'])
 
@@ -274,7 +309,14 @@ def calcWaterBridges(atoms, **kwargs):
     #waterBridges = calcBridgesFromHBonds_cluster(hydrogenBonds)
     start = timer()
     relations = getRelationsList(hydrogenBonds, len(atoms))
-    waterBridges = calcBridgesFromHBonds(relations[2459], relations, 2)
+    waterBridges = []
+    for atom in proteinHydrophilic:
+      observedGroup = relations[atom.getIndex()][0]
+      if not observedGroup:
+        continue
+
+      waterBridges += calcBridgesBFS(relations[atom.getIndex()][0], relations, waterDepth+1)
+      resetRelationsList(relations)
     end = timer()
     LOGGER.info(end-start)
     LOGGER.info(f'Water bridges calculated.')
