@@ -11,14 +11,15 @@ __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 from collections import deque
 from enum import Enum, auto
 
-from prody import LOGGER, Atom
+from prody import LOGGER, Atom, Atomic
 from prody.measure import calcAngle
 from prody.measure.contacts import findNeighbors
+from prody.ensemble import Ensemble
 
 from timeit import default_timer as timer
 
 
-__all__ = ['calcWaterBridges']
+__all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory']
 
 
 class ResType(Enum):
@@ -75,7 +76,7 @@ class HydrogenBond:
 
 
 def getSameResidueAtoms(observedAtom, atoms):
-    return atoms.select(f'resnum {observedAtom.getResnum()}')
+    return atoms.select(f'resindex {observedAtom.getResindex()}')
 
 
 def checkHBondAngle(donor, acceptor, angleRange):
@@ -253,43 +254,55 @@ def calcWaterBridges(atoms, **kwargs):
     anglePDWA = kwargs.pop('anglePDWA', (100, 200))
     anglePAWD = kwargs.pop('anglePAWD', (100, 140))
     angleWW = kwargs.pop('angleWW', (140, 180))
-    waterDepth = kwargs.pop('waterDepth', 3)
+    waterDepth = kwargs.pop('waterDepth', 2)
     donors = kwargs.pop('donors', ['nitrogen', 'oxygen', 'sulfur'])
     acceptors = kwargs.pop('acceptors', ['nitrogen', 'oxygen', 'sulfur'])
 
     if method not in ['chain', 'cluster']:
         raise TypeError('Method should be chain or cluster.')
-
+    start = timer()
     consideredAtoms = ~atoms.select(
         f'water and not within {distWR} of protein')
     waterHydrogens = consideredAtoms.select('water and hydrogen')
     waterOxygens = consideredAtoms.select('water and oxygen')
+    end = timer()
+    # LOGGER.info(f"M1 {end-start}")
+    start = timer()
     neighborWaterOxygens = findNeighbors(waterOxygens, distDA)
+    end = timer()
+    # LOGGER.info(f"M2 {end-start}")
     contactingWaters = []
-
+    start = timer()
     for nbPair in neighborWaterOxygens:
         hydrogens_0, hydrogens_1 = getSameResidueAtoms(
             nbPair[0], waterHydrogens), getSameResidueAtoms(nbPair[1], waterHydrogens)
         water_0, water_1 = AtomNode(
             nbPair[0], hydrogens_0, ResType.WATER), AtomNode(nbPair[1], hydrogens_1, ResType.WATER)
         contactingWaters.append((water_0, water_1))
-    LOGGER.info(f'Water contacts ({len(contactingWaters)}) saved.')
+    end = timer()
+    # LOGGER.info(f"M3 {end-start}")
+    # LOGGER.info(f'Water contacts ({len(contactingWaters)}) saved.')
 
+    start = timer()
     proteinHydrogens = atoms.select('protein and hydrogen')
     proteinHydrophilic = atoms.select(
         f'protein and ({" or ".join(donors + acceptors)})')
     neighborWaterProtein = findNeighbors(
         waterOxygens, distDA, proteinHydrophilic)
+    end = timer()
+    # LOGGER.info(f"M4 {end-start}")
     contactingWaterProtein = []
 
+    start = timer()
     for nbPair in neighborWaterProtein:
         hydrogens_w, hydrogens_p = getSameResidueAtoms(
-            nbPair[0], waterHydrogens), getNeighborsForAtom(nbPair[1], proteinHydrogens, 1.4)
+            nbPair[0], waterHydrogens), getNeighborsForAtom(nbPair[1], getSameResidueAtoms(nbPair[1], proteinHydrogens), 1.4)
         water, protein = AtomNode(
             nbPair[0], hydrogens_w, ResType.WATER), AtomNode(nbPair[1], hydrogens_p, ResType.PROTEIN)
         contactingWaterProtein.append((water, protein))
-    LOGGER.info(
-        f'Water-protein contacts ({len(contactingWaterProtein)}) saved.')
+    # LOGGER.info(f'Water-protein contacts ({len(contactingWaterProtein)}) saved.')
+    end = timer()
+    # LOGGER.info(f"M5 {end-start}")
 
     hydrogenBonds = []
 
@@ -311,7 +324,7 @@ def calcWaterBridges(atoms, **kwargs):
         if nbPair[1].atom.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[1], nbPair[0], anglePAWD):
             newHBond = HydrogenBond(nbPair[1], nbPair[0])
             hydrogenBonds.append(newHBond)
-    LOGGER.info(f'Hydrogen bonds ({len(hydrogenBonds)}) calculated.')
+    # LOGGER.info(f'Hydrogen bonds ({len(hydrogenBonds)}) calculated.')
 
     relations = getRelationsList(hydrogenBonds, len(atoms))
     waterBridges = []
@@ -322,5 +335,48 @@ def calcWaterBridges(atoms, **kwargs):
     elif method == 'cluster':
         waterBridges = calcBridges(relations, proteinHydrophilic)
 
-    LOGGER.info(f'Water bridges calculated.')
+    LOGGER.info(f'{len(waterBridges)} water bridges calculated.')
     return waterBridges
+
+
+# took from interactions.py
+def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
+    """Compute selected type interactions for DCD trajectory or multi-model PDB 
+    using default parameters."""
+
+    interactions_all = []
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+
+    if trajectory is not None:
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)
+
+        # nfi = trajectory._nfi
+        # trajectory.reset()
+        numFrames = trajectory._n_csets
+
+        if stop_frame == -1:
+            traj = trajectory[start_frame:]
+        else:
+            traj = trajectory[start_frame:stop_frame+1]
+
+        atoms_copy = atoms.copy()
+        for j0, frame0 in enumerate(traj, start=start_frame):
+            LOGGER.info('Frame: {0}'.format(j0))
+            atoms_copy.setCoords(frame0.getCoords())
+            interactions = calcWaterBridges(atoms_copy, **kwargs)
+            interactions_all.append(interactions)
+        # trajectory._nfi = nfi
+
+    else:
+        if atoms.numCoordsets() > 1:
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                LOGGER.info('Model: {0}'.format(i+start_frame))
+                atoms.setACSIndex(i+start_frame)
+                interactions = calcWaterBridges(atoms, **kwargs)
+                interactions_all.append(interactions)
+        else:
+            LOGGER.info('Include trajectory or use multi-model PDB file.')
+
+    return interactions_all
