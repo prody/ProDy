@@ -28,17 +28,10 @@ class ResType(Enum):
 
 
 class AtomNode:
-    def __init__(self, hydrophilicAtom, hydrogens, type):
-        self.atom = hydrophilicAtom
-        self.hydrogens = hydrogens if hydrogens else []
+    def __init__(self, atom, type):
+        self.atom = atom
+        self.hydrogens = []
         self.type = type
-
-
-class AtomNodeWithRelations(AtomNode):
-    def __init__(self, atomNode):
-        self.atom = atomNode.atom
-        self.hydrogens = atomNode.hydrogens
-        self.type = atomNode.type
         self.bonds = []
         self.bondedAtoms = []
         self.isVisited = False
@@ -53,11 +46,24 @@ class RelationList:
             if node:
                 node.isVisited = False
 
-    def createIfNotExists(self, node):
-        if not self[node.atom]:
-            self[node.atom.getIndex()] = AtomNodeWithRelations(node)
+    def addNode(self, atom, type):
+        self[atom.getIndex()] = AtomNode(atom, type)
 
-        return self[node.atom]
+        return self[atom]
+
+    def addHBond(self, bond):
+        donor, acceptor = bond.donor, bond.acceptor
+        self[donor].bonds.append(bond)
+        self[acceptor].bonds.append(bond)
+        if acceptor.getIndex() not in map(lambda a: a.getIndex(), self[donor].bondedAtoms):
+            self[donor].bondedAtoms.append(acceptor)
+        if donor.getIndex() not in map(lambda a: a.getIndex(), self[acceptor].bondedAtoms):
+            self[acceptor].bondedAtoms.append(donor)
+
+    def removeUnnecessary(self):
+        for i in range(len(self.nodes)):
+            if self.nodes[i] and not self.nodes[i].bonds:
+                self[i] = None
 
     def __getitem__(self, key):
         if isinstance(key, Atom):
@@ -75,10 +81,6 @@ class HydrogenBond:
         self.acceptor = acceptor
 
 
-def getSameResidueAtoms(observedAtom, atoms):
-    return atoms.select(f'resindex {observedAtom.getResindex()}')
-
-
 def checkHBondAngle(donor, acceptor, angleRange):
     for hydrogen in donor.hydrogens:
         bondAngle = calcAngle(donor.atom, hydrogen, acceptor.atom)
@@ -86,25 +88,6 @@ def checkHBondAngle(donor, acceptor, angleRange):
             return True
 
     return False
-
-
-def getNeighborsForAtom(observedAtom, atoms, dist):
-    return list(map(lambda p: p[1], findNeighbors(observedAtom, dist, atoms)))
-
-
-def getRelationsList(hydrogenBonds, numAtoms):
-    relations = RelationList(numAtoms)
-    for bond in hydrogenBonds:
-        atomNode_0 = relations.createIfNotExists(bond.donor)
-        atomNode_1 = relations.createIfNotExists(bond.acceptor)
-
-        atomNode_0.bonds.append(bond)
-        atomNode_1.bonds.append(bond)
-
-        atomNode_0.bondedAtoms.append(atomNode_1.atom)
-        atomNode_1.bondedAtoms.append(atomNode_0.atom)
-
-    return relations
 
 
 def calcBridges(relations, hydrophilicList, waterDepth=None):
@@ -260,73 +243,60 @@ def calcWaterBridges(atoms, **kwargs):
 
     if method not in ['chain', 'cluster']:
         raise TypeError('Method should be chain or cluster.')
-    start = timer()
+
+    relations = RelationList(len(atoms))
     consideredAtoms = ~atoms.select(
         f'water and not within {distWR} of protein')
+
     waterHydrogens = consideredAtoms.select('water and hydrogen')
     waterOxygens = consideredAtoms.select('water and oxygen')
-    end = timer()
-    # LOGGER.info(f"M1 {end-start}")
-    start = timer()
-    neighborWaterOxygens = findNeighbors(waterOxygens, distDA)
-    end = timer()
-    # LOGGER.info(f"M2 {end-start}")
-    contactingWaters = []
-    start = timer()
-    for nbPair in neighborWaterOxygens:
-        hydrogens_0, hydrogens_1 = getSameResidueAtoms(
-            nbPair[0], waterHydrogens), getSameResidueAtoms(nbPair[1], waterHydrogens)
-        water_0, water_1 = AtomNode(
-            nbPair[0], hydrogens_0, ResType.WATER), AtomNode(nbPair[1], hydrogens_1, ResType.WATER)
-        contactingWaters.append((water_0, water_1))
-    end = timer()
-    # LOGGER.info(f"M3 {end-start}")
-    # LOGGER.info(f'Water contacts ({len(contactingWaters)}) saved.')
+    waterHydroOxyPairs = findNeighbors(waterOxygens, 1.4, waterHydrogens)
+    for oxygen in waterOxygens:
+        relations.addNode(oxygen, ResType.WATER)
+    for pair in waterHydroOxyPairs:
+        oxygen, hydrogen = pair[0], pair[1]
+        relations[oxygen].hydrogens.append(hydrogen)
 
-    start = timer()
-    proteinHydrogens = atoms.select('protein and hydrogen')
-    proteinHydrophilic = atoms.select(
-        f'protein and ({" or ".join(donors + acceptors)})')
-    neighborWaterProtein = findNeighbors(
+    proteinHydrophilic = consideredAtoms.select(
+        f'protein and ({" or ".join(donors + acceptors)}) and within {distWR} of water')
+    proteinHydrogens = consideredAtoms.select(f'protein and hydrogen')
+    proteinHydroPairs = findNeighbors(
+        proteinHydrophilic, 1.4, proteinHydrogens)
+    for hydrophilic in proteinHydrophilic:
+        relations.addNode(hydrophilic, ResType.PROTEIN)
+    for pair in proteinHydroPairs:
+        hydrophilic, hydrogen = pair[0], pair[1]
+        relations[hydrophilic].hydrogens.append(hydrogen)
+
+    contactingWaters = findNeighbors(waterOxygens, distDA)
+    contactingWaterProtein = findNeighbors(
         waterOxygens, distDA, proteinHydrophilic)
-    end = timer()
-    # LOGGER.info(f"M4 {end-start}")
-    contactingWaterProtein = []
 
-    start = timer()
-    for nbPair in neighborWaterProtein:
-        hydrogens_w, hydrogens_p = getSameResidueAtoms(
-            nbPair[0], waterHydrogens), getNeighborsForAtom(nbPair[1], getSameResidueAtoms(nbPair[1], proteinHydrogens), 1.4)
-        water, protein = AtomNode(
-            nbPair[0], hydrogens_w, ResType.WATER), AtomNode(nbPair[1], hydrogens_p, ResType.PROTEIN)
-        contactingWaterProtein.append((water, protein))
-    # LOGGER.info(f'Water-protein contacts ({len(contactingWaterProtein)}) saved.')
-    end = timer()
-    # LOGGER.info(f"M5 {end-start}")
-
-    hydrogenBonds = []
+    contactingWaters = list(
+        map(lambda ww: (relations[ww[0]], relations[ww[1]]), contactingWaters))
+    contactingWaterProtein = list(
+        map(lambda wp: (relations[wp[0]], relations[wp[1]]), contactingWaterProtein))
 
     for nbPair in contactingWaters:
         if checkHBondAngle(nbPair[0], nbPair[1], angleWW):
-            newHBond = HydrogenBond(nbPair[0], nbPair[1])
-            hydrogenBonds.append(newHBond)
+            newHBond = HydrogenBond(nbPair[0].atom, nbPair[1].atom)
+            relations.addHBond(newHBond)
 
         if checkHBondAngle(nbPair[1], nbPair[0], angleWW):
-            newHBond = HydrogenBond(nbPair[1], nbPair[0])
-            hydrogenBonds.append(newHBond)
-    LOGGER.info(f'Hydrogen bonds ({len(hydrogenBonds)}) calculated.')
+            newHBond = HydrogenBond(nbPair[1].atom, nbPair[0].atom)
+            relations.addHBond(newHBond)
 
     for nbPair in contactingWaterProtein:
         if nbPair[1].atom.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[0], nbPair[1], anglePDWA):
-            newHBond = HydrogenBond(nbPair[0], nbPair[1])
-            hydrogenBonds.append(newHBond)
+            newHBond = HydrogenBond(nbPair[0].atom, nbPair[1].atom)
+            relations.addHBond(newHBond)
 
         if nbPair[1].atom.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[1], nbPair[0], anglePAWD):
-            newHBond = HydrogenBond(nbPair[1], nbPair[0])
-            hydrogenBonds.append(newHBond)
-    # LOGGER.info(f'Hydrogen bonds ({len(hydrogenBonds)}) calculated.')
+            newHBond = HydrogenBond(nbPair[1].atom, nbPair[0].atom)
+            relations.addHBond(newHBond)
+    LOGGER.info(f'Hydrogen bonds calculated.')
 
-    relations = getRelationsList(hydrogenBonds, len(atoms))
+    relations.removeUnnecessary()
     waterBridges = []
 
     if method == 'chain':
