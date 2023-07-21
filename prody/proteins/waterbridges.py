@@ -12,12 +12,11 @@ from collections import deque
 from enum import Enum, auto
 from numpy import *
 
-from prody import LOGGER
+from prody import LOGGER, Atom
 from prody.measure import calcAngle
 from prody.measure.contacts import findNeighbors
 
 from timeit import default_timer as timer
-
 
 
 __all__ = ['calcWaterBridges']
@@ -28,117 +27,158 @@ class ResType(Enum):
     PROTEIN = auto()
 
 
-class HydrophilicGroup:
+class AtomNode:
     def __init__(self, hydrophilicAtom, hydrogens, type):
-        self.hydrophilic = hydrophilicAtom
+        self.atom = hydrophilicAtom
         self.hydrogens = hydrogens if hydrogens else []
         self.type = type
 
 
-def getResidueAtoms(atom, atomGroup):
-    return atomGroup.select(f'resnum {atom.getResnum()}')
+class AtomNodeWithRelations(AtomNode):
+    def __init__(self, atomNode):
+        self.atom = atomNode.atom
+        self.hydrogens = atomNode.hydrogens
+        self.type = atomNode.type
+        self.bonds = []
+        self.bondedAtoms = []
+        self.isVisited = False
 
 
-def checkHBondAngle(donorGroup, acceptorGroup, angleRange):
-    for hydrogen in donorGroup.hydrogens:
-        bondAngle = calcAngle(donorGroup.hydrophilic,
-                              hydrogen, acceptorGroup.hydrophilic)
+class RelationList:
+    def __init__(self, numNodes):
+        self.nodes = [None for _ in range(numNodes)]
+
+    def resetVisits(self):
+        for node in self.nodes:
+            if node:
+                node.isVisited = False
+
+    def createIfNotExists(self, node):
+        if not self[node.atom]:
+            self[node.atom.getIndex()] = AtomNodeWithRelations(node)
+
+        return self[node.atom]
+
+    def __getitem__(self, key):
+        if isinstance(key, Atom):
+            key = key.getIndex()
+
+        return self.nodes[key]
+
+    def __setitem__(self, key, value):
+        self.nodes[key] = value
+
+
+def getSameResidueAtoms(observedAtom, atoms):
+    return atoms.select(f'resnum {observedAtom.getResnum()}')
+
+
+def checkHBondAngle(donor, acceptor, angleRange):
+    for hydrogen in donor.hydrogens:
+        bondAngle = calcAngle(donor.atom, hydrogen, acceptor.atom)
         if angleRange[0] < bondAngle < angleRange[1]:
             return True
 
     return False
 
 
-def getNeighborsForAtom(atom, selection, dist):
-    return list(map(lambda p: p[1], findNeighbors(atom, dist, selection)))
+def getNeighborsForAtom(observedAtom, atoms, dist):
+    return list(map(lambda p: p[1], findNeighbors(observedAtom, dist, atoms)))
 
-
-def calcBridges_cluster(relations, hydrophilicList):
-    waterBridges = []
-
-    for atom in hydrophilicList:
-      observedGroup = relations[atom.getIndex()][0]
-      if not observedGroup:
-        continue
-
-      waterBridges += getBridgeChains_BFS(observedGroup, relations)
-
-    return waterBridges
 
 def getRelationsList(hydrogenBonds, numAtoms):
-    relations = [[None, [], [], False] for _ in range(numAtoms)]
+    relations = RelationList(numAtoms)
     for bond in hydrogenBonds:
-        index_0, index_1 = bond[0].hydrophilic.getIndex(), bond[1].hydrophilic.getIndex()
-        relations[index_0][0] = bond[0]
-        relations[index_1][0] = bond[1]
+        atomNode_0 = relations.createIfNotExists(bond[0])
+        atomNode_1 = relations.createIfNotExists(bond[1])
 
-        relations[index_0][1].append(bond)
-        relations[index_1][1].append(bond)
-        
-        relations[index_0][2].append(index_1)
-        relations[index_1][2].append(index_0)
+        atomNode_0.bonds.append(bond)
+        atomNode_1.bonds.append(bond)
+
+        atomNode_0.bondedAtoms.append(atomNode_1.atom)
+        atomNode_1.bondedAtoms.append(atomNode_0.atom)
 
     return relations
 
-def resetRelationsList(relationList):
-    for el in relationList:
-      el[3] = False
 
-def getBridges_BFS(watchedAtom, relationsList, maxDepth):
-    queue = deque([(watchedAtom.hydrophilic.getIndex(), [])])
+def calcBridges(relations, hydrophilicList, waterDepth=None):
+    waterBridges = []
+
+    for atom in hydrophilicList:
+        observedNode = relations[atom]
+        if not observedNode:
+            continue
+
+        newBridges = []
+        if waterDepth:
+            newBridges = getBridgeChain_BFS(
+                observedNode, relations, waterDepth+1)
+            relations.resetVisits()
+        else:
+            newBridges = getBridgeForResidue_BFS(observedNode, relations)
+
+        waterBridges += newBridges
+
+    return waterBridges
+
+
+def getBridgeChain_BFS(observedNode, relationsList, maxDepth):
+    queue = deque([(observedNode.atom, [])])
     waterBridges = []
 
     while queue:
-        currentAtomIndex, currentPath = queue.popleft()
-        currentAtom = relationsList[currentAtomIndex][0]
+        currentAtom, currentPath = queue.popleft()
+        currentNode = relationsList[currentAtom]
 
-        if relationsList[currentAtomIndex][3]:
+        if currentNode.isVisited:
             continue
-        
-        relationsList[currentAtomIndex][3] = True
-        
-        if currentAtom.type == ResType.PROTEIN and len(currentPath):
+
+        currentNode.isVisited = True
+
+        if currentNode.type == ResType.PROTEIN and len(currentPath):
             waterBridges.append(currentPath + [currentAtom])
             continue
-        
+
         if len(currentPath) == maxDepth:
             continue
-        
-        for index in relationsList[currentAtomIndex][2]:
+
+        for index in currentNode.bondedAtoms:
             queue.append((index, currentPath + [currentAtom]))
-    
+
     return waterBridges
 
-def getBridgeChains_BFS(watchedAtom, relationsList):
+
+def getBridgeForResidue_BFS(observedNode, relationsList):
     waterBridges = []
-    residueWaterIndices = relationsList[watchedAtom.hydrophilic.getIndex()][2]
+    observedRelNode = relationsList[observedNode.atom]
 
-    for waterIndex in residueWaterIndices:
-        bridgeAtoms = []
-        queue = deque([waterIndex])
+    for waterAtom in observedRelNode.bondedAtoms:
+        bridgeAtomIndices = []
+        queue = deque([waterAtom])
         while queue:
-            currentAtomIndex = queue.popleft()
-            currentAtom = relationsList[currentAtomIndex][0]
+            currentAtom = queue.popleft()
+            currentNode = relationsList[currentAtom]
 
-            if relationsList[currentAtomIndex][3]:
+            if currentNode.isVisited:
                 continue
-            
-            bridgeAtoms.append(currentAtomIndex)
 
-            if currentAtom.type == ResType.WATER:
-              relationsList[currentAtomIndex][3] = True
+            bridgeAtomIndices.append(currentAtom)
 
-            if currentAtom.type == ResType.PROTEIN:
+            if currentNode.type == ResType.PROTEIN:
                 continue
-            
-            for index in relationsList[currentAtomIndex][2]:
-                queue.append(index)
-        
-        bridgeAtoms = list(set(bridgeAtoms))
-        if sum(relationsList[atomIndex][0].type == ResType.PROTEIN for atomIndex in bridgeAtoms) >= 2:
-          waterBridges.append(bridgeAtoms)
-    
+            if currentNode.type == ResType.WATER:
+                currentNode.isVisited = True
+
+            for atom in currentNode.bondedAtoms:
+                queue.append(atom)
+
+        bridgeAtomIndices = list(
+            set(map(lambda a: a.getIndex(), bridgeAtomIndices)))
+        if sum(relationsList[atomIndex].type == ResType.PROTEIN for atomIndex in bridgeAtomIndices) >= 2:
+            waterBridges.append(bridgeAtomIndices)
+
     return waterBridges
+
 
 def calcWaterBridges(atoms, **kwargs):
     """Compute water bridges for a protein that has water molecules.
@@ -188,17 +228,18 @@ def calcWaterBridges(atoms, **kwargs):
     donors = kwargs.pop('donors', ['nitrogen', 'oxygen', 'sulfur'])
     acceptors = kwargs.pop('acceptors', ['nitrogen', 'oxygen', 'sulfur'])
 
-    consideredAtoms = ~atoms.select(f'water and not within {distWR} of protein')
+    consideredAtoms = ~atoms.select(
+        f'water and not within {distWR} of protein')
     waterHydrogens = consideredAtoms.select('water and hydrogen')
     waterOxygens = consideredAtoms.select('water and oxygen')
     neighborWaterOxygens = findNeighbors(waterOxygens, distDA)
     contactingWaters = []
 
     for nbPair in neighborWaterOxygens:
-        hydrogens_0, hydrogens_1 = getResidueAtoms(
-            nbPair[0], waterHydrogens), getResidueAtoms(nbPair[1], waterHydrogens)
-        water_0, water_1 = HydrophilicGroup(
-            nbPair[0], hydrogens_0, ResType.WATER), HydrophilicGroup(nbPair[1], hydrogens_1, ResType.WATER)
+        hydrogens_0, hydrogens_1 = getSameResidueAtoms(
+            nbPair[0], waterHydrogens), getSameResidueAtoms(nbPair[1], waterHydrogens)
+        water_0, water_1 = AtomNode(
+            nbPair[0], hydrogens_0, ResType.WATER), AtomNode(nbPair[1], hydrogens_1, ResType.WATER)
         contactingWaters.append((water_0, water_1))
     LOGGER.info(f'Water contacts ({len(contactingWaters)}) saved.')
 
@@ -210,10 +251,10 @@ def calcWaterBridges(atoms, **kwargs):
     contactingWaterProtein = []
 
     for nbPair in neighborWaterProtein:
-        hydrogens_w, hydrogens_p = getResidueAtoms(
+        hydrogens_w, hydrogens_p = getSameResidueAtoms(
             nbPair[0], waterHydrogens), getNeighborsForAtom(nbPair[1], proteinHydrogens, 1.4)
-        water, protein = HydrophilicGroup(
-            nbPair[0], hydrogens_w, ResType.WATER), HydrophilicGroup(nbPair[1], hydrogens_p, ResType.PROTEIN)
+        water, protein = AtomNode(
+            nbPair[0], hydrogens_w, ResType.WATER), AtomNode(nbPair[1], hydrogens_p, ResType.PROTEIN)
         contactingWaterProtein.append((water, protein))
     LOGGER.info(
         f'Water-protein contacts ({len(contactingWaterProtein)}) saved.')
@@ -229,20 +270,21 @@ def calcWaterBridges(atoms, **kwargs):
     LOGGER.info(f'Hydrogen bonds ({len(hydrogenBonds)}) calculated.')
 
     for nbPair in contactingWaterProtein:
-        if nbPair[1].hydrophilic.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[0], nbPair[1], anglePDWA):
+        if nbPair[1].atom.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[0], nbPair[1], anglePDWA):
             hydrogenBonds.append((nbPair[0], nbPair[1]))
 
-        if nbPair[1].hydrophilic.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[1], nbPair[0], anglePAWD):
+        if nbPair[1].atom.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[1], nbPair[0], anglePAWD):
             hydrogenBonds.append((nbPair[1], nbPair[0]))
     LOGGER.info(f'Hydrogen bonds ({len(hydrogenBonds)}) calculated.')
 
     start = timer()
     relations = getRelationsList(hydrogenBonds, len(atoms))
-    waterBridges_2 = calcBridges_cluster(relations, proteinHydrophilic)
+    # waterBridges = calcBridges_cluster(relations, proteinHydrophilic)
+    waterBridges = calcBridges(relations, proteinHydrophilic, waterDepth)
     end = timer()
     LOGGER.info(end-start)
-    #waterBridges = []
-    #for atom in proteinHydrophilic:
+    # waterBridges = []
+    # for atom in proteinHydrophilic:
     #  observedGroup = relations[atom.getIndex()][0]
     #  if not observedGroup:
     #    continue
@@ -250,4 +292,4 @@ def calcWaterBridges(atoms, **kwargs):
     #  waterBridges += getBridges_BFS(relations[atom.getIndex()][0], relations, waterDepth+1)
     #  resetRelationsList(relations)
     LOGGER.info(f'Water bridges (2) calculated.')
-    return waterBridges_2
+    return relations, waterBridges
