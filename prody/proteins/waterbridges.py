@@ -55,6 +55,7 @@ class RelationList:
         donor, acceptor = bond.donor, bond.acceptor
         self[donor].bonds.append(bond)
         self[acceptor].bonds.append(bond)
+
         if acceptor.getIndex() not in map(lambda a: a.getIndex(), self[donor].bondedAtoms):
             self[donor].bondedAtoms.append(acceptor)
         if donor.getIndex() not in map(lambda a: a.getIndex(), self[acceptor].bondedAtoms):
@@ -75,19 +76,45 @@ class RelationList:
         self.nodes[key] = value
 
 
+class HBondConstraints:
+    def __init__(self, donors, acceptors, angleWW, anglePAWD, anglePDWA):
+        self.donors = donors
+        self.acceptors = acceptors
+        self.angleWW = angleWW
+        self.anglePAWD = anglePAWD
+        self.anglePDWA = anglePDWA
+
+
 class HydrogenBond:
     def __init__(self, donor, acceptor):
         self.donor = donor
         self.acceptor = acceptor
 
+    @staticmethod
+    def checkIsHBond(donor, acceptor, constraints):
+        if donor.type != ResType.WATER and donor.atom.getName()[0] not in constraints.donors:
+            return False
+        if acceptor.type != ResType.WATER and acceptor.atom.getName()[0] not in constraints.acceptors:
+            return False
 
-def checkHBondAngle(donor, acceptor, angleRange):
-    for hydrogen in donor.hydrogens:
-        bondAngle = calcAngle(donor.atom, hydrogen, acceptor.atom)
-        if angleRange[0] < bondAngle < angleRange[1]:
-            return True
+        angleRange = ()
+        if donor.type == ResType.WATER and acceptor.type == ResType.WATER:
+            angleRange = constraints.angleWW
+        elif donor.type == ResType.WATER and acceptor.type == ResType.PROTEIN:
+            angleRange = constraints.anglePAWD
+        else:
+            angleRange = constraints.anglePDWA
 
-    return False
+        return HydrogenBond.checkIsHBondAngle(donor, acceptor, angleRange)
+
+    @staticmethod
+    def checkIsHBondAngle(donor, acceptor, angleRange):
+        for hydrogen in donor.hydrogens:
+            bondAngle = calcAngle(donor.atom, hydrogen, acceptor.atom)
+            if angleRange[0] < bondAngle < angleRange[1]:
+                return True
+
+        return False
 
 
 def calcBridges(relations, hydrophilicList, waterDepth=None):
@@ -161,7 +188,7 @@ def getBridgeForResidue_BFS(observedNode, relationsList):
     observedRelNode = relationsList[observedNode.atom]
 
     for waterAtom in observedRelNode.bondedAtoms:
-        bridgeAtomIndices = []
+        bridgeAtoms = []
         queue = deque([waterAtom])
         while queue:
             currentAtom = queue.popleft()
@@ -170,7 +197,7 @@ def getBridgeForResidue_BFS(observedNode, relationsList):
             if currentNode.isVisited:
                 continue
 
-            bridgeAtomIndices.append(currentAtom)
+            bridgeAtoms.append(currentAtom)
 
             if currentNode.type == ResType.PROTEIN:
                 continue
@@ -181,7 +208,7 @@ def getBridgeForResidue_BFS(observedNode, relationsList):
                 queue.append(atom)
 
         bridgeAtomIndices = list(
-            set(map(lambda a: a.getIndex(), bridgeAtomIndices)))
+            set(map(lambda a: a.getIndex(), bridgeAtoms)))
         if sum(relationsList[atomIndex].type == ResType.PROTEIN for atomIndex in bridgeAtomIndices) >= 2:
             waterBridges.append(bridgeAtomIndices)
 
@@ -241,6 +268,9 @@ def calcWaterBridges(atoms, **kwargs):
     donors = kwargs.pop('donors', ['nitrogen', 'oxygen', 'sulfur'])
     acceptors = kwargs.pop('acceptors', ['nitrogen', 'oxygen', 'sulfur'])
 
+    constraints = HBondConstraints(
+        ['N', 'O', 'S', 'F'], ['N', 'O', 'S', 'F'], angleWW, anglePAWD, anglePDWA)
+
     if method not in ['chain', 'cluster']:
         raise TypeError('Method should be chain or cluster.')
 
@@ -277,24 +307,12 @@ def calcWaterBridges(atoms, **kwargs):
     contactingWaterProtein = list(
         map(lambda wp: (relations[wp[0]], relations[wp[1]]), contactingWaterProtein))
 
-    for nbPair in contactingWaters:
-        if checkHBondAngle(nbPair[0], nbPair[1], angleWW):
-            newHBond = HydrogenBond(nbPair[0].atom, nbPair[1].atom)
-            relations.addHBond(newHBond)
-
-        if checkHBondAngle(nbPair[1], nbPair[0], angleWW):
-            newHBond = HydrogenBond(nbPair[1].atom, nbPair[0].atom)
-            relations.addHBond(newHBond)
-
-    for nbPair in contactingWaterProtein:
-        if nbPair[1].atom.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[0], nbPair[1], anglePDWA):
-            newHBond = HydrogenBond(nbPair[0].atom, nbPair[1].atom)
-            relations.addHBond(newHBond)
-
-        if nbPair[1].atom.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[1], nbPair[0], anglePAWD):
-            newHBond = HydrogenBond(nbPair[1].atom, nbPair[0].atom)
-            relations.addHBond(newHBond)
-    LOGGER.info(f'Hydrogen bonds calculated.')
+    for pair in contactingWaters + contactingWaterProtein:
+        for a, b in [(0, 1), (1, 0)]:
+            if HydrogenBond.checkIsHBond(pair[a], pair[b], constraints):
+                newHBond = HydrogenBond(pair[a].atom, pair[b].atom)
+                relations.addHBond(newHBond)
+                x_cnt += 1
 
     relations.removeUnnecessary()
     waterBridges = []
