@@ -10,7 +10,6 @@ __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
 from collections import deque
 from enum import Enum, auto
-from numpy import *
 
 from prody import LOGGER, Atom
 from prody.measure import calcAngle
@@ -69,6 +68,12 @@ class RelationList:
         self.nodes[key] = value
 
 
+class HydrogenBond:
+    def __init__(self, donor, acceptor):
+        self.donor = donor
+        self.acceptor = acceptor
+
+
 def getSameResidueAtoms(observedAtom, atoms):
     return atoms.select(f'resnum {observedAtom.getResnum()}')
 
@@ -89,8 +94,8 @@ def getNeighborsForAtom(observedAtom, atoms, dist):
 def getRelationsList(hydrogenBonds, numAtoms):
     relations = RelationList(numAtoms)
     for bond in hydrogenBonds:
-        atomNode_0 = relations.createIfNotExists(bond[0])
-        atomNode_1 = relations.createIfNotExists(bond[1])
+        atomNode_0 = relations.createIfNotExists(bond.donor)
+        atomNode_1 = relations.createIfNotExists(bond.acceptor)
 
         atomNode_0.bonds.append(bond)
         atomNode_1.bonds.append(bond)
@@ -122,12 +127,30 @@ def calcBridges(relations, hydrophilicList, waterDepth=None):
     return waterBridges
 
 
+def getChainBridgeTuple(bridge):
+    i_1, i_2 = bridge[0][0].getIndex(), bridge[0][-1].getIndex()
+    return (min(i_1, i_2), max(i_1, i_2))
+
+
+def getUniqueElements(list, key):
+    unique, uniqueKeys = [], []
+    for element in list:
+        elementKey = key(element)
+        if elementKey in uniqueKeys:
+            continue
+
+        unique.append(element)
+        uniqueKeys.append(elementKey)
+
+    return unique
+
+
 def getBridgeChain_BFS(observedNode, relationsList, maxDepth):
-    queue = deque([(observedNode.atom, [])])
+    queue = deque([(observedNode.atom, [], [])])
     waterBridges = []
 
     while queue:
-        currentAtom, currentPath = queue.popleft()
+        currentAtom, currentPath, currentBonds = queue.popleft()
         currentNode = relationsList[currentAtom]
 
         if currentNode.isVisited:
@@ -136,14 +159,15 @@ def getBridgeChain_BFS(observedNode, relationsList, maxDepth):
         currentNode.isVisited = True
 
         if currentNode.type == ResType.PROTEIN and len(currentPath):
-            waterBridges.append(currentPath + [currentAtom])
+            waterBridges.append((currentPath + [currentAtom], currentBonds))
             continue
 
         if len(currentPath) == maxDepth:
             continue
 
-        for index in currentNode.bondedAtoms:
-            queue.append((index, currentPath + [currentAtom]))
+        for atom, bond in zip(currentNode.bondedAtoms, currentNode.bonds):
+            queue.append(
+                (atom, currentPath + [currentAtom], currentBonds + [bond]))
 
     return waterBridges
 
@@ -186,6 +210,10 @@ def calcWaterBridges(atoms, **kwargs):
     :arg atoms: Atomic object from which atoms are considered
     :type atoms: :class:`.Atomic`
 
+    :arg method: 'cluster' | 'chain'
+      default is 'chain'
+    :type method: string
+
     :arg distDA: maximal distance between water/protein donor and acceptor
         default is 3.5
     :type distDA: int, float
@@ -219,6 +247,7 @@ def calcWaterBridges(atoms, **kwargs):
     :type acceptors: list
     """
 
+    method = kwargs.pop('method', 'chain')
     distDA = kwargs.pop('distDA', 3.5)
     distWR = kwargs.pop('distWR', 4)
     anglePDWA = kwargs.pop('anglePDWA', (100, 200))
@@ -227,6 +256,9 @@ def calcWaterBridges(atoms, **kwargs):
     waterDepth = kwargs.pop('waterDepth', 3)
     donors = kwargs.pop('donors', ['nitrogen', 'oxygen', 'sulfur'])
     acceptors = kwargs.pop('acceptors', ['nitrogen', 'oxygen', 'sulfur'])
+
+    if method not in ['chain', 'cluster']:
+        raise TypeError('Method should be chain or cluster.')
 
     consideredAtoms = ~atoms.select(
         f'water and not within {distWR} of protein')
@@ -263,33 +295,32 @@ def calcWaterBridges(atoms, **kwargs):
 
     for nbPair in contactingWaters:
         if checkHBondAngle(nbPair[0], nbPair[1], angleWW):
-            hydrogenBonds.append((nbPair[0], nbPair[1]))
+            newHBond = HydrogenBond(nbPair[0], nbPair[1])
+            hydrogenBonds.append(newHBond)
 
         if checkHBondAngle(nbPair[1], nbPair[0], angleWW):
-            hydrogenBonds.append((nbPair[1], nbPair[0]))
+            newHBond = HydrogenBond(nbPair[1], nbPair[0])
+            hydrogenBonds.append(newHBond)
     LOGGER.info(f'Hydrogen bonds ({len(hydrogenBonds)}) calculated.')
 
     for nbPair in contactingWaterProtein:
         if nbPair[1].atom.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[0], nbPair[1], anglePDWA):
-            hydrogenBonds.append((nbPair[0], nbPair[1]))
+            newHBond = HydrogenBond(nbPair[0], nbPair[1])
+            hydrogenBonds.append(newHBond)
 
         if nbPair[1].atom.getName()[0] in ['N', 'S', 'F', 'O'] and checkHBondAngle(nbPair[1], nbPair[0], anglePAWD):
-            hydrogenBonds.append((nbPair[1], nbPair[0]))
+            newHBond = HydrogenBond(nbPair[1], nbPair[0])
+            hydrogenBonds.append(newHBond)
     LOGGER.info(f'Hydrogen bonds ({len(hydrogenBonds)}) calculated.')
 
-    start = timer()
     relations = getRelationsList(hydrogenBonds, len(atoms))
-    # waterBridges = calcBridges_cluster(relations, proteinHydrophilic)
-    waterBridges = calcBridges(relations, proteinHydrophilic, waterDepth)
-    end = timer()
-    LOGGER.info(end-start)
-    # waterBridges = []
-    # for atom in proteinHydrophilic:
-    #  observedGroup = relations[atom.getIndex()][0]
-    #  if not observedGroup:
-    #    continue
-#
-    #  waterBridges += getBridges_BFS(relations[atom.getIndex()][0], relations, waterDepth+1)
-    #  resetRelationsList(relations)
-    LOGGER.info(f'Water bridges (2) calculated.')
-    return relations, waterBridges
+    waterBridges = []
+
+    if method == 'chain':
+        waterBridges = calcBridges(relations, proteinHydrophilic, waterDepth)
+        waterBridges = getUniqueElements(waterBridges, getChainBridgeTuple)
+    elif method == 'cluster':
+        waterBridges = calcBridges(relations, proteinHydrophilic)
+
+    LOGGER.info(f'Water bridges calculated.')
+    return waterBridges
