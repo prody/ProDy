@@ -7,6 +7,7 @@ __author__ = 'Karolina Mikulska-Ruminska'
 __credits__ = ['Frane Doljanin', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
+import scipy as sp
 from itertools import combinations
 from collections import deque
 from enum import Enum, auto
@@ -16,10 +17,11 @@ from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
 from prody.ensemble import Ensemble
 
-from timeit import default_timer as timer
+# from timeit import default_timer as timer
 
 
-__all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory']
+__all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
+           'calcWaterBridgesStatistics']
 
 
 class ResType(Enum):
@@ -262,19 +264,21 @@ def getInfoOutput(waterBridges, relations):
 
     return output
 
+
 def getAtomicOutput(waterBridges, relations):
     output = []
     for bridge in waterBridges:
         proteinAtoms, waterAtoms = [], []
-
-        if relations[atomIndex].type == ResType.PROTEIN:
+        for atomIndex in bridge:
+            if relations[atomIndex].type == ResType.PROTEIN:
                 proteinAtoms.append(relations[atomIndex].atom)
             else:
                 waterAtoms.append(relations[atomIndex].atom)
 
         output.append((proteinAtoms, waterAtoms))
-    
+
     return output
+
 
 def calcWaterBridges(atoms, **kwargs):
     """Compute water bridges for a protein that has water molecules.
@@ -446,3 +450,50 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
     return interactions_all
+
+
+class InteractionInfo:
+    def __init__(self, interactionPercentage, averageDistance):
+        self.interactionPercentage = interactionPercentage
+        self.averageDistance = averageDistance
+
+
+def calcWaterBridgesStatistics(frames, numAtoms):
+    """Returns statistics - lil_matrix where indices are atom indices and value is percentage of bridge appearance of frames for each residue.
+
+    :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
+    :type frames: list
+
+    :arg numAtoms: list of atoms in PDB struct (also size of lil_matrix)
+    :type data: list
+    """
+    interactionCount = sp.sparse.lil_matrix((numAtoms, numAtoms), dtype=float)
+    distanceSum = sp.sparse.lil_matrix((numAtoms, numAtoms), dtype=float)
+
+    for frame in frames:
+        for bridge in frame:
+            proteinAtoms = bridge[0]
+            for atom_1, atom_2 in combinations(proteinAtoms, r=2):
+                ind_1, ind_2 = atom_1.getIndex(), atom_2.getIndex()
+
+                interactionCount[ind_1, ind_2] += 1
+                interactionCount[ind_2, ind_1] += 1
+
+                distance = calcDistance(atom_1, atom_2)
+                distanceSum[ind_1, ind_2] += distance
+                distanceSum[ind_2, ind_1] += distance
+
+    interactionPerc = sp.sparse.lil_matrix((numAtoms, numAtoms), dtype=float)
+    distanceAvg = sp.sparse.lil_matrix((numAtoms, numAtoms), dtype=float)
+
+    for x, y in zip(*interactionCount.nonzero()):
+        if not interactionCount[x, y]:
+            continue
+
+        interactionPerc[x, y] = interactionCount[x, y]/len(frames)
+        distanceAvg[x, y] = distanceSum[x, y]/interactionCount[x, y]
+
+    return {
+        "interactionPercentage": interactionPerc,
+        "distanceAverage": distanceAvg,
+    }
