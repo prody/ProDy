@@ -7,21 +7,24 @@ __author__ = 'Karolina Mikulska-Ruminska'
 __credits__ = ['Frane Doljanin', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
-import scipy as sp
+import numpy as np
+from scipy.sparse import lil_matrix
 from itertools import combinations
 from collections import deque
 from enum import Enum, auto
 
-from prody import LOGGER, Atom, Atomic
+from prody import LOGGER
+from prody.atomic import Atom, Atomic, AtomGroup
 from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
+from prody.proteins import writePDB, parsePDB
 from prody.ensemble import Ensemble
 
 # from timeit import default_timer as timer
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
-           'calcWaterBridgesStatistics']
+           'calcWaterBridgesStatistics', 'calcWaterBridgingResidues', 'savePDBWaterBridges']
 
 
 class ResType(Enum):
@@ -328,7 +331,11 @@ def calcWaterBridges(atoms, **kwargs):
 
     :arg output: output information arrays, (protein atoms, water atoms) or just atom indices per bridge
       default is 'info'
-    :type string: 'info' | 'atomic' | 'indices'
+    :type output: 'info' | 'atomic' | 'indices'
+
+    :filenamePDB: save residues and atoms that are forming water bridges into a PDB file
+        default is None
+    :type filenamePDB: string, None
     """
 
     method = kwargs.pop('method', 'chain')
@@ -452,12 +459,6 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     return interactions_all
 
 
-class InteractionInfo:
-    def __init__(self, interactionPercentage, averageDistance):
-        self.interactionPercentage = interactionPercentage
-        self.averageDistance = averageDistance
-
-
 def calcWaterBridgesStatistics(frames, numAtoms):
     """Returns statistics - lil_matrix where indices are atom indices and value is percentage of bridge appearance of frames for each residue.
 
@@ -467,8 +468,8 @@ def calcWaterBridgesStatistics(frames, numAtoms):
     :arg numAtoms: list of atoms in PDB struct (also size of lil_matrix)
     :type data: list
     """
-    interactionCount = sp.sparse.lil_matrix((numAtoms, numAtoms), dtype=float)
-    distanceSum = sp.sparse.lil_matrix((numAtoms, numAtoms), dtype=float)
+    interactionCount = lil_matrix((numAtoms, numAtoms), dtype=float)
+    distanceSum = lil_matrix((numAtoms, numAtoms), dtype=float)
 
     for frame in frames:
         for bridge in frame:
@@ -483,8 +484,8 @@ def calcWaterBridgesStatistics(frames, numAtoms):
                 distanceSum[ind_1, ind_2] += distance
                 distanceSum[ind_2, ind_1] += distance
 
-    interactionPerc = sp.sparse.lil_matrix((numAtoms, numAtoms), dtype=float)
-    distanceAvg = sp.sparse.lil_matrix((numAtoms, numAtoms), dtype=float)
+    interactionPerc = lil_matrix((numAtoms, numAtoms), dtype=float)
+    distanceAvg = lil_matrix((numAtoms, numAtoms), dtype=float)
 
     for x, y in zip(*interactionCount.nonzero()):
         if not interactionCount[x, y]:
@@ -497,3 +498,53 @@ def calcWaterBridgesStatistics(frames, numAtoms):
         "interactionPercentage": interactionPerc,
         "distanceAverage": distanceAvg,
     }
+
+
+def reduceTo1D(list, elementSel=lambda x: x, sublistSel=lambda x: x):
+    return [elementSel(element) for sublist in list for element in sublistSel(sublist)]
+
+
+def calcWaterBridgingResidues(frames, atoms, **kwargs):
+    proteinThreshold = kwargs.pop('proteinThreshold', 0.7) * len(frames)
+    waterThreshold = kwargs.pop('waterThreshold', 0.7) * len(frames)
+
+    proteinAtoms, waterAtoms = np.zeros(len(atoms)), np.zeros(len(atoms))
+    for i, frame in enumerate(frames):
+        frameProteins = set(reduceTo1D(
+            frame, lambda p: p.getIndex(), lambda wb: wb[0]))
+        frameWaters = set(reduceTo1D(
+            frame, lambda w: w.getIndex(), lambda wb: wb[1]))
+
+        for atomIndex in frameProteins:
+            proteinAtoms[atomIndex] += 1
+        for atomIndex in frameWaters:
+            waterAtoms[atomIndex] += 1
+
+    bridgingProteinIndices = list(filter(
+        lambda i: proteinAtoms[i] >= proteinThreshold, range(len(atoms))))
+    bridgingWaterIndices = list(filter(
+        lambda i: waterAtoms[i] >= waterThreshold, range(len(atoms))))
+
+    bridgingProteinResidues = atoms.select(
+        f'same residue as index {" ".join(map(str, bridgingProteinIndices))}')
+    bridgingWaterResidues = atoms.select(
+        f'same residue as index {" ".join(map(str, bridgingWaterIndices))}')
+
+    if len(bridgingProteinIndices) == 0:
+        bridgingProteinResidues = []
+    if len(bridgingWaterIndices) == 0:
+        bridgingWaterResidues = []
+
+    return bridgingProteinResidues, bridgingWaterResidues
+
+
+def savePDBWaterBridges(frames, atoms, filename, **kwargs):
+    proteinResidues, waterResidues = calcWaterBridgingResidues(
+        frames, atoms, **kwargs)
+
+    atoms.setOccupancies(0)
+    for atom in proteinResidues:
+        atoms[atom.getIndex()].setOccupancy(1)
+
+    atomsToSave = (atoms.select('protein') | waterResidues).toAtomGroup()
+    return writePDB(filename, atomsToSave)
