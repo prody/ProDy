@@ -14,13 +14,11 @@ from collections import deque
 from enum import Enum, auto
 
 from prody import LOGGER
-from prody.atomic import Atom, Atomic, AtomGroup
+from prody.atomic import Atom, Atomic
+from prody.ensemble import Ensemble
 from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
-from prody.proteins import writePDB, parsePDB
-from prody.ensemble import Ensemble
-
-# from timeit import default_timer as timer
+from prody.proteins import writePDB
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
@@ -46,7 +44,13 @@ class RelationList:
     def __init__(self, numNodes):
         self.nodes = [None for _ in range(numNodes)]
 
-    def resetVisits(self):
+    def resetVisits(self, atomsToReset=[]):
+        if atomsToReset:
+            for atom in atomsToReset:
+                self[atom].isVisited = False
+
+            return
+
         for node in self.nodes:
             if node:
                 node.isVisited = False
@@ -63,12 +67,11 @@ class RelationList:
 
         if acceptor.getIndex() not in map(lambda a: a.getIndex(), self[donor].bondedAtoms):
             self[donor].bondedAtoms.append(acceptor)
-        if donor.getIndex() not in map(lambda a: a.getIndex(), self[acceptor].bondedAtoms):
             self[acceptor].bondedAtoms.append(donor)
 
-    def removeUnnecessary(self):
-        for i in range(len(self.nodes)):
-            if self.nodes[i] and not self.nodes[i].bonds:
+    def removeUnbonded(self):
+        for i, node in enumerate(self.nodes):
+            if node and not node.bonds:
                 self[i] = None
 
     def __getitem__(self, key):
@@ -107,14 +110,13 @@ class HydrogenBond:
         if acceptor.type != ResType.WATER and acceptor.atom.getName()[0] not in constraints.acceptors:
             return False
 
-        angleRange = ()
-        if donor.type == ResType.WATER and acceptor.type == ResType.WATER:
-            angleRange = constraints.angleWW
-        elif donor.type == ResType.WATER and acceptor.type == ResType.PROTEIN:
-            angleRange = constraints.anglePAWD
-        else:
-            angleRange = constraints.anglePDWA
+        anglesForComb = {
+            (ResType.WATER, ResType.WATER): constraints.angleWW,
+            (ResType.WATER, ResType.PROTEIN): constraints.anglePAWD,
+            (ResType.PROTEIN, ResType.WATER): constraints.anglePDWA,
+        }
 
+        angleRange = anglesForComb[(donor.type, acceptor.type)]
         if not angleRange:
             return True
 
@@ -199,9 +201,8 @@ def getBridgeChain_BFS(observedNode, relationsList, maxDepth):
 
 def getBridgeForResidue_BFS(observedNode, relationsList, maxDepth, maxNumResidues):
     waterBridges = []
-    observedRelNode = relationsList[observedNode.atom]
 
-    for waterAtom in observedRelNode.bondedAtoms:
+    for waterAtom in observedNode.bondedAtoms:
         bridgeAtoms = []
         newWaters = []
         queue = deque([(waterAtom, 0)])
@@ -229,11 +230,11 @@ def getBridgeForResidue_BFS(observedNode, relationsList, maxDepth, maxNumResidue
         numProteinResidues = sum(
             relationsList[atomIndex].type == ResType.PROTEIN for atomIndex in bridgeAtomIndices)
         numResidues = len(bridgeAtomIndices)
+
         if (not maxNumResidues or numResidues <= maxNumResidues) and numProteinResidues >= 2:
             waterBridges.append(bridgeAtomIndices)
         else:
-            for water in newWaters:
-                relationsList[water].isVisited = False
+            relationsList.resetVisits(newWaters)
 
     return waterBridges
 
@@ -268,6 +269,12 @@ def getInfoOutput(waterBridges, relations):
     return output
 
 
+class AtomicOutput:
+    def __init__(self, proteins, waters):
+        self.proteins = proteins
+        self.waters = waters
+
+
 def getAtomicOutput(waterBridges, relations):
     output = []
     for bridge in waterBridges:
@@ -278,9 +285,13 @@ def getAtomicOutput(waterBridges, relations):
             else:
                 waterAtoms.append(relations[atomIndex].atom)
 
-        output.append((proteinAtoms, waterAtoms))
+        output.append(AtomicOutput(proteinAtoms, waterAtoms))
 
     return output
+
+
+def getElementsRegex(elements):
+    return f'[{"|".join(elements)}].*'
 
 
 def calcWaterBridges(atoms, **kwargs):
@@ -289,15 +300,15 @@ def calcWaterBridges(atoms, **kwargs):
     :arg atoms: Atomic object from which atoms are considered
     :type atoms: :class:`.Atomic`
 
-    :arg method: 'cluster' | 'chain'
-      default is 'chain'
-    :type method: string
+    :arg method: cluster or chain, where chain find shortest water bridging path between two protein atoms
+        default is 'chain'
+    :type method: string 'cluster' | 'chain'
 
     :arg distDA: maximal distance between water/protein donor and acceptor
         default is 3.5
     :type distDA: int, float
 
-    :arg distWR: maximal distance between water and residue
+    :arg distWR: maximal distance between considered water and any residue
         default is 4
     :type distWR: int, float
 
@@ -314,11 +325,11 @@ def calcWaterBridges(atoms, **kwargs):
     :type angleWW: (int, int)
 
     :arg maxDepth: maximum number of waters in chain/depth of residues in cluster
-      default is 2
+        default is 2
     :type maxDepth: int, None
 
-    :arg maxNumRes: maximum number of water+protein residues in cluser
-      default is None
+    :arg maxNumRes: maximum number of water+protein residues in cluster
+        default is None
     :type maxNumRes: int, None
 
     :arg donors: which atoms to count as donors 
@@ -329,13 +340,9 @@ def calcWaterBridges(atoms, **kwargs):
         default is ['N', 'O', 'S', 'F']
     :type acceptors: list
 
-    :arg output: output information arrays, (protein atoms, water atoms) or just atom indices per bridge
-      default is 'info'
+    :arg output: return information arrays, (protein atoms, water atoms), or just atom indices per bridge
+        default is 'info'
     :type output: 'info' | 'atomic' | 'indices'
-
-    :filenamePDB: save residues and atoms that are forming water bridges into a PDB file
-        default is None
-    :type filenamePDB: string, None
     """
 
     method = kwargs.pop('method', 'chain')
@@ -346,12 +353,15 @@ def calcWaterBridges(atoms, **kwargs):
     angleWW = kwargs.pop('angleWW', (140, 180))
     maxDepth = kwargs.pop('maxDepth', 2)
     maxNumResidues = kwargs.pop('maxNumRes', None)
-    donors = kwargs.pop('donors', ['nitrogen', 'oxygen', 'sulfur'])
-    acceptors = kwargs.pop('acceptors', ['nitrogen', 'oxygen', 'sulfur'])
+    donors = kwargs.pop('donors', ['N', 'O', 'S', 'F'])
+    acceptors = kwargs.pop('acceptors', ['N', 'O', 'S', 'F'])
     outputType = kwargs.pop('output', 'info')
+    DIST_COVALENT_H = 1.4
 
     if method not in ['chain', 'cluster']:
         raise TypeError('Method should be chain or cluster.')
+    if outputType not in ['info', 'atomic', 'indices']:
+        raise TypeError('Output can be info, atomic or indices.')
 
     relations = RelationList(len(atoms))
     consideredAtoms = ~atoms.select(
@@ -359,47 +369,48 @@ def calcWaterBridges(atoms, **kwargs):
 
     waterHydrogens = consideredAtoms.select('water and hydrogen') or []
     waterOxygens = consideredAtoms.select('water and oxygen')
-    waterHydroOxyPairs = findNeighbors(waterOxygens, 1.4, waterHydrogens)
+    waterHydroOxyPairs = findNeighbors(
+        waterOxygens, DIST_COVALENT_H, waterHydrogens)
     for oxygen in waterOxygens:
         relations.addNode(oxygen, ResType.WATER)
     for pair in waterHydroOxyPairs:
-        oxygen, hydrogen = pair[0], pair[1]
+        oxygen, hydrogen, _ = pair
         relations[oxygen].hydrogens.append(hydrogen)
 
     proteinHydrophilic = consideredAtoms.select(
-        f'protein and ({" or ".join(donors + acceptors)}) and within {distWR} of water')
+        f'protein and name "{getElementsRegex(set(donors+acceptors))}" and within {distWR} of water')
+
     proteinHydrogens = consideredAtoms.select(f'protein and hydrogen') or []
     proteinHydroPairs = findNeighbors(
-        proteinHydrophilic, 1.4, proteinHydrogens)
+        proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens)
     for hydrophilic in proteinHydrophilic:
         relations.addNode(hydrophilic, ResType.PROTEIN)
     for pair in proteinHydroPairs:
-        hydrophilic, hydrogen = pair[0], pair[1]
+        hydrophilic, hydrogen, _ = pair
         relations[hydrophilic].hydrogens.append(hydrogen)
 
     contactingWaters = findNeighbors(waterOxygens, distDA)
     contactingWaterProtein = findNeighbors(
         waterOxygens, distDA, proteinHydrophilic)
 
-    contactingWaters = list(
+    contactingWaterNodes = list(
         map(lambda ww: (relations[ww[0]], relations[ww[1]]), contactingWaters))
-    contactingWaterProtein = list(
+    contactingWaterProteinNodes = list(
         map(lambda wp: (relations[wp[0]], relations[wp[1]]), contactingWaterProtein))
 
-    constraints = HBondConstraints(['N', 'O', 'S', 'F'], ['N', 'O', 'S', 'F'])
+    constraints = HBondConstraints(acceptors, donors)
     if len(waterHydrogens) + len(proteinHydrogens):
         constraints.addAngles(angleWW, anglePAWD, anglePDWA)
     else:
         LOGGER.info('No hydrogens detected, angle criteria will not be used.')
 
-    for pair in contactingWaters + contactingWaterProtein:
+    for pair in contactingWaterNodes + contactingWaterProteinNodes:
         for a, b in [(0, 1), (1, 0)]:
             if HydrogenBond.checkIsHBond(pair[a], pair[b], constraints):
                 newHBond = HydrogenBond(pair[a].atom, pair[b].atom)
                 relations.addHBond(newHBond)
 
-    relations.removeUnnecessary()
-    waterBridges = []
+    relations.removeUnbonded()
 
     waterBridges = calcBridges(
         relations, proteinHydrophilic, method, maxDepth, maxNumResidues)
@@ -413,6 +424,7 @@ def calcWaterBridges(atoms, **kwargs):
     else:
         output = waterBridges
 
+    LOGGER.info(f'{len(waterBridges)} water bridges detected.')
     return output
 
 
@@ -465,15 +477,15 @@ def calcWaterBridgesStatistics(frames, numAtoms):
     :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
     :type frames: list
 
-    :arg numAtoms: list of atoms in PDB struct (also size of lil_matrix)
-    :type data: list
+    :arg numAtoms: number of atoms in PDB struct (also size of lil_matrix)
+    :type data: int
     """
-    interactionCount = lil_matrix((numAtoms, numAtoms), dtype=float)
+    interactionCount = lil_matrix((numAtoms, numAtoms))
     distanceSum = lil_matrix((numAtoms, numAtoms), dtype=float)
 
     for frame in frames:
         for bridge in frame:
-            proteinAtoms = bridge[0]
+            proteinAtoms = bridge.proteins
             for atom_1, atom_2 in combinations(proteinAtoms, r=2):
                 ind_1, ind_2 = atom_1.getIndex(), atom_2.getIndex()
 
@@ -491,7 +503,7 @@ def calcWaterBridgesStatistics(frames, numAtoms):
         if not interactionCount[x, y]:
             continue
 
-        interactionPerc[x, y] = interactionCount[x, y]/len(frames)
+        interactionPerc[x, y] = 100 * interactionCount[x, y]/len(frames)
         distanceAvg[x, y] = distanceSum[x, y]/interactionCount[x, y]
 
     return {
@@ -505,15 +517,31 @@ def reduceTo1D(list, elementSel=lambda x: x, sublistSel=lambda x: x):
 
 
 def calcWaterBridgingResidues(frames, atoms, **kwargs):
+    """Returns proteins and waters residues participating in water bridges.
+
+    :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
+    :type frames: list
+
+    :arg atoms: Atomic object from which atoms are considered
+    :type atoms: :class:`.Atomic`
+
+    :proteinThreshold: minimum number of residue appearances in bridges per frame (from 0 to 1)
+        default is 0.7
+    :type proteinThreshold: int
+
+    :waterThreshold: minimum number of water appearances in bridges per frame (from 0 to 1)
+        default is 0.7
+    :type waterThreshold: int
+    """
     proteinThreshold = kwargs.pop('proteinThreshold', 0.7) * len(frames)
     waterThreshold = kwargs.pop('waterThreshold', 0.7) * len(frames)
 
     proteinAtoms, waterAtoms = np.zeros(len(atoms)), np.zeros(len(atoms))
-    for i, frame in enumerate(frames):
+    for frame in frames:
         frameProteins = set(reduceTo1D(
-            frame, lambda p: p.getIndex(), lambda wb: wb[0]))
+            frame, lambda p: p.getIndex(), lambda wb: wb.proteins))
         frameWaters = set(reduceTo1D(
-            frame, lambda w: w.getIndex(), lambda wb: wb[1]))
+            frame, lambda w: w.getIndex(), lambda wb: wb.waters))
 
         for atomIndex in frameProteins:
             proteinAtoms[atomIndex] += 1
