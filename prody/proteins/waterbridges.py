@@ -14,7 +14,7 @@ from collections import deque
 from enum import Enum, auto
 
 from prody import LOGGER
-from prody.atomic import Atom, Atomic
+from prody.atomic import Atom, Atomic, AtomGroup
 from prody.ensemble import Ensemble
 from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
@@ -471,15 +471,26 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     return interactions_all
 
 
-def calcWaterBridgesStatistics(frames, numAtoms):
-    """Returns statistics - lil_matrix where indices are atom indices and value is percentage of bridge appearance of frames for each residue.
+def getResidueName(atom):
+    return f'{atom.getResname()}{atom.getIndex()}{atom.getChid()}'
+
+
+def calcWaterBridgesStatistics(frames, atoms, **kwargs):
+    """Returns statistics - either dictionary or lil_matrix where indices are atom indices. Value is percentage of bridge appearance of frames for each residue.
 
     :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
     :type frames: list
 
-    :arg numAtoms: number of atoms in PDB struct (also size of lil_matrix)
-    :type data: int
+    :arg atoms: atoms in PDB struct
+    :type atoms:
+
+    :arg output: return 2D matrices or dictionary where key is residue info
+        default is 'dict'
+    :type output: 'dict' | 'indices'
     """
+    outputType = kwargs.pop('output', 'dict')
+
+    numAtoms = len(atoms)
     interactionCount = lil_matrix((numAtoms, numAtoms))
     distanceSum = lil_matrix((numAtoms, numAtoms), dtype=float)
 
@@ -496,15 +507,28 @@ def calcWaterBridgesStatistics(frames, numAtoms):
                 distanceSum[ind_1, ind_2] += distance
                 distanceSum[ind_2, ind_1] += distance
 
-    interactionPerc = lil_matrix((numAtoms, numAtoms), dtype=float)
-    distanceAvg = lil_matrix((numAtoms, numAtoms), dtype=float)
+    interactionPerc, distanceAvg = None, None
+    if outputType == 'dict':
+        interactionPerc, distanceAvg = {}, {}
+    else:
+        interactionPerc = lil_matrix((numAtoms, numAtoms), dtype=float)
+        distanceAvg = lil_matrix((numAtoms, numAtoms), dtype=float)
 
     for x, y in zip(*interactionCount.nonzero()):
         if not interactionCount[x, y]:
             continue
 
-        interactionPerc[x, y] = 100 * interactionCount[x, y]/len(frames)
-        distanceAvg[x, y] = distanceSum[x, y]/interactionCount[x, y]
+        percentage = 100 * interactionCount[x, y]/len(frames)
+        average = distanceSum[x, y]/interactionCount[x, y]
+
+        if outputType == 'dict':
+            x_resname, y_resname = getResidueName(
+                atoms[x]), getResidueName(atoms[y])
+            interactionPerc[(x_resname, y_resname)] = percentage
+            distanceAvg[(x_resname, y_resname)] = average
+        else:
+            interactionPerc[x, y] = percentage
+            distanceAvg[x, y] = average
 
     return {
         "interactionPercentage": interactionPerc,
@@ -517,7 +541,7 @@ def reduceTo1D(list, elementSel=lambda x: x, sublistSel=lambda x: x):
 
 
 def calcWaterBridgingResidues(frames, atoms, **kwargs):
-    """Returns proteins and waters residues participating in water bridges.
+    """Returns proteins and waters residues participating in water bridges (proteins are tuples with occupancy).
 
     :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
     :type frames: list
@@ -553,10 +577,16 @@ def calcWaterBridgingResidues(frames, atoms, **kwargs):
     bridgingWaterIndices = list(filter(
         lambda i: waterAtoms[i] >= waterThreshold, range(len(atoms))))
 
-    bridgingProteinResidues = atoms.select(
-        f'same residue as index {" ".join(map(str, bridgingProteinIndices))}')
     bridgingWaterResidues = atoms.select(
-        f'same residue as index {" ".join(map(str, bridgingWaterIndices))}')
+        f'same residue as water within 1.6 of index {" ".join(map(str, bridgingWaterIndices))}') # ProDy bug?
+    bridgingProteinResidues = []
+
+    for atomIndex in bridgingProteinIndices:
+        residueAtoms = atoms.select(
+            f'same residue as index {atomIndex}')
+        occupancy = proteinAtoms[atomIndex]/len(frames)
+        bridgingProteinResidues += list(map(lambda a: (a,
+                                        occupancy), residueAtoms))
 
     if len(bridgingProteinIndices) == 0:
         bridgingProteinResidues = []
@@ -566,13 +596,17 @@ def calcWaterBridgingResidues(frames, atoms, **kwargs):
     return bridgingProteinResidues, bridgingWaterResidues
 
 
-def savePDBWaterBridges(frames, atoms, filename, **kwargs):
+def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
+    if not isinstance(bridges, list):
+        bridges = [bridges]
+
     proteinResidues, waterResidues = calcWaterBridgingResidues(
-        frames, atoms, **kwargs)
+        bridges, atoms, **kwargs)
 
     atoms.setOccupancies(0)
     for atom in proteinResidues:
-        atoms[atom.getIndex()].setOccupancy(1)
+        atoms[atom[0].getIndex()].setOccupancy(atom[1])
 
-    atomsToSave = (atoms.select('protein') | waterResidues).toAtomGroup()
+    atomsToSave = atoms.select(
+        'protein').toAtomGroup() + waterResidues.toAtomGroup()
     return writePDB(filename, atomsToSave)
