@@ -9,6 +9,8 @@ __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
 import numpy as np
 from scipy.sparse import lil_matrix
+import matplotlib.pyplot as plt
+
 from itertools import combinations
 from collections import deque
 from enum import Enum, auto
@@ -22,7 +24,7 @@ from prody.proteins import writePDB
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
-           'calcWaterBridgesStatistics', 'calcWaterBridgingResidues', 'savePDBWaterBridges']
+           'calcWaterBridgesStatistics', 'calcWaterBridgingResidues', 'savePDBWaterBridges', 'getBridgingResiduesHistogram']
 
 
 class ResType(Enum):
@@ -239,30 +241,23 @@ def getBridgeForResidue_BFS(observedNode, relationsList, maxDepth, maxNumResidue
     return waterBridges
 
 
-def getInfoOutput(waterBridges, relations):
+def getInfoOutput(waterBridgesAtomic):
     output = []
-    for bridge in waterBridges:
+    for bridge in waterBridgesAtomic:
         bridgeOutput = []
-        proteinAtoms, waterAtoms = [], []
 
-        for atomIndex in bridge:
-            if relations[atomIndex].type == ResType.PROTEIN:
-                proteinAtoms.append(relations[atomIndex].atom)
-            else:
-                waterAtoms.append(relations[atomIndex].atom)
-
-        for atom in proteinAtoms:
+        for atom in bridge.proteins:
             residueInfo = f"{atom.getResname()}{atom.getResnum()}"
             atomInfo = f"{atom.getName()}_{atom.getIndex()}"
             chainInfo = atom.getChid()
             bridgeOutput += [residueInfo, atomInfo, chainInfo]
 
-        for atom_1, atom_2 in combinations(proteinAtoms, r=2):
+        for atom_1, atom_2 in combinations(bridge.proteins, r=2):
             bridgeOutput += [calcDistance(atom_1, atom_2)]
 
-        bridgeOutput += [len(waterAtoms)]
+        bridgeOutput += [len(bridge.waters)]
         bridgeOutput += [
-            list(map(lambda w: f"{w.getChid()}_{w.getIndex()}", waterAtoms))]
+            list(map(lambda w: f"{w.getChid()}_{w.getIndex()}", bridge.waters))]
 
         output.append(bridgeOutput)
 
@@ -341,7 +336,7 @@ def calcWaterBridges(atoms, **kwargs):
     :type acceptors: list
 
     :arg output: return information arrays, (protein atoms, water atoms), or just atom indices per bridge
-        default is 'info'
+        default is 'atomic'
     :type output: 'info' | 'atomic' | 'indices'
     """
 
@@ -355,7 +350,7 @@ def calcWaterBridges(atoms, **kwargs):
     maxNumResidues = kwargs.pop('maxNumRes', None)
     donors = kwargs.pop('donors', ['N', 'O', 'S', 'F'])
     acceptors = kwargs.pop('acceptors', ['N', 'O', 'S', 'F'])
-    outputType = kwargs.pop('output', 'info')
+    outputType = kwargs.pop('output', 'atomic')
     DIST_COVALENT_H = 1.4
 
     if method not in ['chain', 'cluster']:
@@ -412,20 +407,26 @@ def calcWaterBridges(atoms, **kwargs):
 
     relations.removeUnbonded()
 
-    waterBridges = calcBridges(
+    waterBridgesWithIndices = calcBridges(
         relations, proteinHydrophilic, method, maxDepth, maxNumResidues)
     if method == 'chain':
-        waterBridges = getUniqueElements(waterBridges, getChainBridgeTuple)
+        waterBridgesWithIndices = getUniqueElements(
+            waterBridgesWithIndices, getChainBridgeTuple)
+
+    LOGGER.info(
+        f'{len(waterBridgesWithIndices)} water bridges detected. Call getInfoOutput to convert atomic to info output.')
+
+    atomicOutput = getAtomicOutput(waterBridgesWithIndices, relations)
+    infoOutput = getInfoOutput(atomicOutput)
+    for bridge in infoOutput:
+        LOGGER.info(' '.join(map(str, bridge)))
 
     if outputType == 'info':
-        output = getInfoOutput(waterBridges, relations)
-    elif outputType == 'atomic':
-        output = getAtomicOutput(waterBridges, relations)
-    else:
-        output = waterBridges
+        return infoOutput
+    if outputType == 'atomic':
+        return atomicOutput
 
-    LOGGER.info(f'{len(waterBridges)} water bridges detected.')
-    return output
+    return waterBridgesWithIndices
 
 
 # took from interactions.py
@@ -578,15 +579,16 @@ def calcWaterBridgingResidues(frames, atoms, **kwargs):
         lambda i: waterAtoms[i] >= waterThreshold, range(len(atoms))))
 
     bridgingWaterResidues = atoms.select(
-        f'same residue as water within 1.6 of index {" ".join(map(str, bridgingWaterIndices))}') # ProDy bug?
+        f'same residue as water within 1.6 of index {" ".join(map(str, bridgingWaterIndices))}')  # ProDy bug?
     bridgingProteinResidues = []
 
     for atomIndex in bridgingProteinIndices:
         residueAtoms = atoms.select(
             f'same residue as index {atomIndex}')
         occupancy = proteinAtoms[atomIndex]/len(frames)
-        bridgingProteinResidues += list(map(lambda a: (a,
-                                        occupancy), residueAtoms))
+
+        residueAtoms.setOccupancies(occupancy)
+        bridgingProteinResidues += list(residueAtoms)
 
     if len(bridgingProteinIndices) == 0:
         bridgingProteinResidues = []
@@ -594,6 +596,39 @@ def calcWaterBridgingResidues(frames, atoms, **kwargs):
         bridgingWaterResidues = []
 
     return bridgingProteinResidues, bridgingWaterResidues
+
+
+def getBridgingResiduesHistogram(frames, **kwargs):
+    clip = kwargs.pop('clip', None)
+
+    residuesWithCount = {}
+    for frame in frames:
+        def getResidueInfo(a): return f"{a.getResname()}{a.getResnum()}"
+        frameResidues = set(reduceTo1D(
+            frame, getResidueInfo, lambda wb: wb.proteins))
+
+        for res in frameResidues:
+            residuesWithCount[res] = residuesWithCount.get(res, 0) + 1
+
+    sortedResidues = sorted(residuesWithCount.items(),
+                            key=lambda r: r[1])
+    if clip:
+        sortedResidues = sortedResidues[-clip:]
+
+    labels, values = zip(*sortedResidues)
+
+    plt.figure(figsize=(5, 3 + 0.11 * len(labels)))
+    plt.barh(labels, values)
+    plt.xlabel('Number of frame appearances')
+    plt.ylabel('Residue')
+    plt.title('Water bridging residues')
+    plt.tight_layout()
+    plt.margins(y=0.01)
+    plt.gca().xaxis.set_label_position('top')
+    plt.gca().xaxis.tick_top()
+    plt.show()
+
+    return sortedResidues
 
 
 def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
@@ -605,7 +640,7 @@ def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
 
     atoms.setOccupancies(0)
     for atom in proteinResidues:
-        atoms[atom[0].getIndex()].setOccupancy(atom[1])
+        atoms[atom.getIndex()].setOccupancy(atom.getOccupancy())
 
     atomsToSave = atoms.select(
         'protein').toAtomGroup() + waterResidues.toAtomGroup()
