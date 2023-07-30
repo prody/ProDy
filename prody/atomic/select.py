@@ -836,7 +836,8 @@ class Select(object):
             'x': self._generic, 'y': self._generic, 'z': self._generic,
             'chid': self._generic, 'secstr': self._generic,
             'fragment': self._generic, 'fragindex': self._generic,
-            'segment': self._generic, 'sequence': self._sequence, }
+            'segment': self._generic, 'segname': self._generic,
+            'sequence': self._sequence, }
 
 
     def _reset(self):
