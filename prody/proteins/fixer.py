@@ -51,6 +51,8 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     Open Babel: An open chemical toolbox *Journal of cheminformatics* **2011** 3:1-14. """
     
     model_residues = kwargs.get("model_residues", False)
+    remove_heterogens = kwargs.get("remove_heterogens", False)
+    keep_water = kwargs.get("keep_water", True)
 
     import os
 
@@ -95,7 +97,9 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
             else:
                 fixer.missingResidues = {}
 
-            fixer.removeHeterogens(True)
+            if remove_heterogens:
+                fixer.removeHeterogens(keepWater=keep_water)
+
             fixer.findMissingAtoms()
             fixer.addMissingAtoms()
             fixer.addMissingHydrogens(pH)
@@ -109,4 +113,5 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
         raise TypeError('Method should be openbabel or pdbfixer')
     
     return outfile
+
 
