@@ -24,7 +24,9 @@ from prody.proteins import writePDB
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
-           'calcWaterBridgesStatistics', 'calcWaterBridgingResidues', 'savePDBWaterBridges', 'getBridgingResiduesHistogram']
+           'calcWaterBridgesStatistics', 'calcWaterBridgingResidues',
+           'savePDBWaterBridges', 'calcBridgingResiduesHistogram',
+           'calcWaterBridgesDistribution']
 
 
 class ResType(Enum):
@@ -598,14 +600,13 @@ def calcWaterBridgingResidues(frames, atoms, **kwargs):
     return bridgingProteinResidues, bridgingWaterResidues
 
 
-def getBridgingResiduesHistogram(frames, **kwargs):
+def calcBridgingResiduesHistogram(frames, **kwargs):
     clip = kwargs.pop('clip', None)
 
     residuesWithCount = {}
     for frame in frames:
-        def getResidueInfo(a): return f"{a.getResname()}{a.getResnum()}"
         frameResidues = set(reduceTo1D(
-            frame, getResidueInfo, lambda wb: wb.proteins))
+            frame, getResidueName, lambda wb: wb.proteins))
 
         for res in frameResidues:
             residuesWithCount[res] = residuesWithCount.get(res, 0) + 1
@@ -629,6 +630,72 @@ def getBridgingResiduesHistogram(frames, **kwargs):
     plt.show()
 
     return sortedResidues
+
+
+def getBridgingResidues(frames, residue):
+    residuesWithCount = {}
+
+    for frame in frames:
+        frameResidues = []
+        for bridge in frame:
+            resNames = list(map(getResidueName, bridge.proteins))
+            if residue in resNames:
+                frameResidues += resNames
+
+        if not frameResidues:
+            continue
+
+        frameResidues = set(frameResidues)
+        frameResidues.remove(residue)
+        for res in frameResidues:
+            residuesWithCount[res] = residuesWithCount.get(res, 0) + 1
+
+    sortedResidues = sorted(residuesWithCount.items(),
+                            key=lambda r: r[1], reverse=True)
+    return sortedResidues
+
+
+def getWaterCountDistribution(frames, res_a, res_b):
+    waters = {}
+
+    for frame in frames:
+        for bridge in frame:
+            resNames = list(map(getResidueName, bridge.proteins))
+            if not (res_a in resNames and res_b in resNames):
+                continue
+
+            waterInvolvedCount = len(bridge.waters)
+            waters[waterInvolvedCount] = waters.get(waterInvolvedCount, 0) + 1
+
+    return waters
+
+
+def getDistanceDistribution(frames, res_a, res_b):
+    distances = {}
+    for frame in frames:
+        for bridge in frame:
+            resNames = list(map(getResidueName, bridge.proteins))
+            if not (res_a in resNames and res_b in resNames):
+                continue
+
+            for atom_1, atom_2 in combinations(bridge.proteins, r=2):
+                dist = calcDistance(atom_1, atom_2)
+                print(dist)
+                distances[dist] = distances.get(dist, 0) + 1
+
+    return distances
+
+
+def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
+    metric = kwargs.pop('metric', 'residues')
+
+    methods = {
+        'residues': lambda: getBridgingResidues(frames, res_a),
+        'waters': lambda: getWaterCountDistribution(frames, res_a, res_b),
+        'distance': lambda: getDistanceDistribution(frames, res_a, res_b)
+    }
+
+    return methods[metric]()
 
 
 def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
