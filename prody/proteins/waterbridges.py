@@ -24,8 +24,7 @@ from prody.proteins import writePDB
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
-           'calcWaterBridgesStatistics', 'calcWaterBridgingResidues',
-           'savePDBWaterBridges', 'calcBridgingResiduesHistogram',
+           'calcWaterBridgesStatistics', 'savePDBWaterBridges', 'calcBridgingResiduesHistogram',
            'calcWaterBridgesDistribution', 'savePDBWaterBridgesTrajectory']
 
 
@@ -421,7 +420,9 @@ def calcWaterBridges(atoms, **kwargs):
             waterBridgesWithIndices, getChainBridgeTuple)
 
     LOGGER.info(
-        f'{len(waterBridgesWithIndices)} water bridges detected. Call getInfoOutput to convert atomic to info output.')
+        f'{len(waterBridgesWithIndices)} water bridges detected.')
+    if method == 'atomic':
+        LOGGER.info('Call getInfoOutput to convert atomic to info output.')
 
     atomicOutput = getAtomicOutput(waterBridgesWithIndices, relations)
     infoOutput = getInfoOutput(atomicOutput)
@@ -612,7 +613,19 @@ def calcWaterBridgingResidues(frames, atoms, **kwargs):
 
 
 def calcBridgingResiduesHistogram(frames, **kwargs):
-    clip = kwargs.pop('clip', None)
+    """Calculates, plots and returns number of frames that each residue is involved in making water bridges, sorted by value. 
+
+    :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
+    :type frames: list
+
+    :arg clip: maximal number of residues on graph; to represent all set None
+        default is 20
+    :type clip: int
+    """
+
+    clip = kwargs.pop('clip', 20)
+    if clip == None:
+        clip = 0
 
     residuesWithCount = {}
     for frame in frames:
@@ -624,10 +637,8 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
 
     sortedResidues = sorted(residuesWithCount.items(),
                             key=lambda r: r[1])
-    if clip:
-        sortedResidues = sortedResidues[-clip:]
 
-    labels, values = zip(*sortedResidues)
+    labels, values = zip(*sortedResidues[-clip:])
 
     plt.figure(figsize=(5, 3 + 0.11 * len(labels)))
     plt.barh(labels, values)
@@ -727,8 +738,33 @@ def getResidueLocationDistrubtion(frames, res_a, res_b):
 
 
 def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
+    """Returns distribution for certain metric and plots if possible.
+
+    :arg res_a: name of first residue
+    :type frames: str
+
+    :arg res_b: name of second residue
+        default is None
+    :type frames: str
+
+    :arg metric: 'residues' returns names and frame count of residues interacting with res_a,
+                'waters' returns water count for each bridge between res_a and res_b
+                'distance' returns distance between each pair of protein atoms involved in bridge between res_a and res_b
+                'location' returns dictionary with backbone/sidechain count information
+    :type metric: 'residues' | 'waters' | 'distance' | 'location'
+
+    :trajectory: DCD file - necessary for distance distribution
+
+    :arg output: return 2D matrices or dictionary where key is residue info
+        default is 'dict'
+    :type output: 'dict' | 'indices'
+    """
     metric = kwargs.pop('metric', 'residues')
     trajectory = kwargs.pop('trajectory', None)
+
+    if metric == 'distance' and not trajectory:
+        raise TypeError(
+            'Distance distribution measurement needs trajectory argument!')
 
     methods = {
         'residues': lambda: getBridgingResidues(frames, res_a),
@@ -750,7 +786,27 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
 
 
 def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
-    if not isinstance(bridges, list):
+    """Saves single PDB with occupancy on protein atoms and waters involved bridges.
+
+    :arg bridges: atomic output from calcWaterBridges or calcWaterBridgesTrajectory
+    :type bridges: list
+
+    :arg atoms: Atomic object from which atoms are considered
+    :type atoms: :class:`.Atomic`
+
+    :arg filename: name of file to be saved
+    :type filename: string
+
+    :proteinThreshold: minimum number of residue appearances in bridges per frame (from 0 to 1)
+        default is 0.7
+    :type proteinThreshold: int
+
+    :waterThreshold: minimum number of water appearances in bridges per frame (from 0 to 1)
+        default is 0.7
+    :type waterThreshold: int
+    """
+    isSingleFrame = isinstance(bridges[0], AtomicOutput)
+    if isSingleFrame:
         bridges = [bridges]
 
     proteinResidues, waterResidues = calcWaterBridgingResidues(
@@ -765,15 +821,34 @@ def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
     return writePDB(filename, atomsToSave)
 
 
-def savePDBWaterBridgesTrajectory(bridgesFrames, atoms, trajectory, filename, **kwargs):
+def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, trajectory, filename, **kwargs):
+    """Saves one PDB per frame with occupancy on protein atoms and waters forming bridges in frame.
+
+    :arg bridgeFrames: atomic output from calcWaterBridgesTrajectory
+    :type bridgeFrames: list
+
+    :arg atoms: Atomic object from which atoms are considered
+    :type atoms: :class:`.Atomic`
+
+    :arg trajectory: DCD trajectory
+
+    :arg filename: name of file to be saved; must end in .pdb
+    :type filename: string
+
+    :proteinThreshold: minimum number of residue appearances in bridges per frame (from 0 to 1)
+        default is 0.7
+    :type proteinThreshold: int
+    """
+
+    filename = filename[:filename.rfind('.')]
     proteinResidues, _ = calcWaterBridgingResidues(
-        bridgesFrames, atoms, **kwargs)
+        bridgeFrames, atoms, **kwargs)
 
     atoms.setOccupancies(0)
     for atom in proteinResidues:
         atoms[atom.getIndex()].setOccupancy(atom.getOccupancy())
 
-    for frameIndex, frame in enumerate(bridgesFrames):
+    for frameIndex, frame in enumerate(bridgeFrames):
         coords = trajectory[frameIndex].getCoords()
         atoms.setCoords(coords)
         waterAtoms = reduceTo1D(frame, sublistSel=lambda b: b.waters)
