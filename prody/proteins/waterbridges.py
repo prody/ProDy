@@ -26,7 +26,7 @@ from prody.proteins import writePDB
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
            'calcWaterBridgesStatistics', 'calcWaterBridgingResidues',
            'savePDBWaterBridges', 'calcBridgingResiduesHistogram',
-           'calcWaterBridgesDistribution']
+           'calcWaterBridgesDistribution', 'savePDBWaterBridgesTrajectory']
 
 
 class ResType(Enum):
@@ -340,6 +340,10 @@ def calcWaterBridges(atoms, **kwargs):
     :arg output: return information arrays, (protein atoms, water atoms), or just atom indices per bridge
         default is 'atomic'
     :type output: 'info' | 'atomic' | 'indices'
+
+    :arg isInfoLog: should log information
+        default is True
+    :type output: bool
     """
 
     method = kwargs.pop('method', 'chain')
@@ -353,6 +357,7 @@ def calcWaterBridges(atoms, **kwargs):
     donors = kwargs.pop('donors', ['N', 'O', 'S', 'F'])
     acceptors = kwargs.pop('acceptors', ['N', 'O', 'S', 'F'])
     outputType = kwargs.pop('output', 'atomic')
+    isInfoLog = kwargs.pop('isInfoLog', True)
     DIST_COVALENT_H = 1.4
 
     if method not in ['chain', 'cluster']:
@@ -420,8 +425,10 @@ def calcWaterBridges(atoms, **kwargs):
 
     atomicOutput = getAtomicOutput(waterBridgesWithIndices, relations)
     infoOutput = getInfoOutput(atomicOutput)
-    for bridge in infoOutput:
-        LOGGER.info(' '.join(map(str, bridge)))
+
+    if isInfoLog:
+        for bridge in infoOutput:
+            LOGGER.info(' '.join(map(str, bridge)))
 
     if outputType == 'info':
         return infoOutput
@@ -457,7 +464,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
         for j0, frame0 in enumerate(traj, start=start_frame):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
-            interactions = calcWaterBridges(atoms_copy, **kwargs)
+            interactions = calcWaterBridges(
+                atoms_copy, isInfoLog=False, **kwargs)
             interactions_all.append(interactions)
         # trajectory._nfi = nfi
 
@@ -732,7 +740,7 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
     result = methods[metric]()
 
     if metric in ['waters', 'distance']:
-        plt.hist(result, bins=30, density=True)
+        plt.hist(result, rwidth=0.95, density=True)
         plt.xlabel('Value')
         plt.ylabel('Probability')
         plt.title(f'Distribution: {metric}')
@@ -755,3 +763,23 @@ def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
     atomsToSave = atoms.select(
         'protein').toAtomGroup() + waterResidues.toAtomGroup()
     return writePDB(filename, atomsToSave)
+
+
+def savePDBWaterBridgesTrajectory(bridgesFrames, atoms, trajectory, filename, **kwargs):
+    proteinResidues, _ = calcWaterBridgingResidues(
+        bridgesFrames, atoms, **kwargs)
+
+    atoms.setOccupancies(0)
+    for atom in proteinResidues:
+        atoms[atom.getIndex()].setOccupancy(atom.getOccupancy())
+
+    for frameIndex, frame in enumerate(bridgesFrames):
+        coords = trajectory[frameIndex].getCoords()
+        atoms.setCoords(coords)
+        waterAtoms = reduceTo1D(frame, sublistSel=lambda b: b.waters)
+        waterResidues = atoms.select(
+            f'same residue as water within 1.6 of index {" ".join(map(lambda a: str(a.getIndex()), waterAtoms))}')
+
+        atomsToSave = atoms.select(
+            'protein').toAtomGroup() + waterResidues.toAtomGroup()
+        writePDB(f'{filename}_{frameIndex}.pdb', atomsToSave)
