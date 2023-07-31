@@ -478,7 +478,7 @@ def getResidueName(atom):
     return f'{atom.getResname()}{atom.getIndex()}{atom.getChid()}'
 
 
-def calcWaterBridgesStatistics(frames, atoms, **kwargs):
+def calcWaterBridgesStatistics(frames, atoms, trajectory, **kwargs):
     """Returns statistics - either dictionary or lil_matrix where indices are atom indices. Value is percentage of bridge appearance of frames for each residue.
 
     :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
@@ -493,11 +493,12 @@ def calcWaterBridgesStatistics(frames, atoms, **kwargs):
     """
     outputType = kwargs.pop('output', 'dict')
 
+    allCoordinates = trajectory.getCoordsets()
     numAtoms = len(atoms)
     interactionCount = lil_matrix((numAtoms, numAtoms))
     distanceSum = lil_matrix((numAtoms, numAtoms), dtype=float)
 
-    for frame in frames:
+    for frameIndex, frame in enumerate(frames):
         for bridge in frame:
             proteinAtoms = bridge.proteins
             for atom_1, atom_2 in combinations(proteinAtoms, r=2):
@@ -506,7 +507,9 @@ def calcWaterBridgesStatistics(frames, atoms, **kwargs):
                 interactionCount[ind_1, ind_2] += 1
                 interactionCount[ind_2, ind_1] += 1
 
-                distance = calcDistance(atom_1, atom_2)
+                coords = allCoordinates[frameIndex]
+                atom_1_coords, atom_2_coords = coords[ind_1], coords[ind_2]
+                distance = calcDistance(atom_1_coords, atom_2_coords)
                 distanceSum[ind_1, ind_2] += distance
                 distanceSum[ind_2, ind_1] += distance
 
@@ -656,7 +659,7 @@ def getBridgingResidues(frames, residue):
 
 
 def getWaterCountDistribution(frames, res_a, res_b):
-    waters = {}
+    waters = []
 
     for frame in frames:
         for bridge in frame:
@@ -665,35 +668,75 @@ def getWaterCountDistribution(frames, res_a, res_b):
                 continue
 
             waterInvolvedCount = len(bridge.waters)
-            waters[waterInvolvedCount] = waters.get(waterInvolvedCount, 0) + 1
+            waters.append(waterInvolvedCount)
 
     return waters
 
 
-def getDistanceDistribution(frames, res_a, res_b):
-    distances = {}
-    for frame in frames:
+def getDistanceDistribution(frames, res_a, res_b, trajectory):
+    distances = []
+    allCoordinates = trajectory.getCoordsets()
+
+    for frameIndex, frame in enumerate(frames):
         for bridge in frame:
             resNames = list(map(getResidueName, bridge.proteins))
             if not (res_a in resNames and res_b in resNames):
                 continue
 
             for atom_1, atom_2 in combinations(bridge.proteins, r=2):
-                dist = calcDistance(atom_1, atom_2)
-                print(dist)
-                distances[dist] = distances.get(dist, 0) + 1
+                coords = allCoordinates[frameIndex]
+                atom_1_coords, atom_2_coords = coords[atom_1.getIndex(
+                )], coords[atom_2.getIndex()]
+
+                dist = calcDistance(atom_1_coords, atom_2_coords)
+                distances.append(dist)
 
     return distances
 
 
+def getResidueLocationDistrubtion(frames, res_a, res_b):
+    locationInfo = {"backbone": 0, "side": 0}
+    result = {res_a: locationInfo.copy(), res_b: locationInfo.copy()}
+
+    for frame in frames:
+        for bridge in frame:
+            atoms_a = filter(lambda a: getResidueName(a)
+                             == res_a, bridge.proteins)
+            atoms_b = filter(lambda a: getResidueName(a)
+                             == res_b, bridge.proteins)
+
+            if not atoms_a or not atoms_b:
+                continue
+
+            def atomType(a): return 'backbone' if a.getName() in [
+                'CA', 'C', 'N', 'O'] else 'side'
+            for atom in atoms_a:
+                result[res_a][atomType(atom)] += 1
+            for atom in atoms_b:
+                result[res_b][atomType(atom)] += 1
+
+    return result
+
+
 def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
     metric = kwargs.pop('metric', 'residues')
+    trajectory = kwargs.pop('trajectory', None)
 
     methods = {
         'residues': lambda: getBridgingResidues(frames, res_a),
         'waters': lambda: getWaterCountDistribution(frames, res_a, res_b),
-        'distance': lambda: getDistanceDistribution(frames, res_a, res_b)
+        'distance': lambda: getDistanceDistribution(frames, res_a, res_b, trajectory),
+        'location': lambda: getResidueLocationDistrubtion(frames, res_a, res_b)
     }
+
+    result = methods[metric]()
+
+    if metric in ['waters', 'distance']:
+        plt.hist(result, bins=30, density=True)
+        plt.xlabel('Value')
+        plt.ylabel('Probability')
+        plt.title(f'Distribution: {metric}')
+        plt.show()
 
     return methods[metric]()
 
