@@ -599,62 +599,22 @@ def reduceTo1D(list, elementSel=lambda x: x, sublistSel=lambda x: x):
     return [elementSel(element) for sublist in list for element in sublistSel(sublist)]
 
 
-def calcWaterBridgingResidues(frames, atoms, **kwargs):
-    """Returns proteins and waters residues participating in water bridges. Modifies protein occupancy.
+def mofifyBeta(bridgeFrames, atoms):
+    residueOccurances = {}
 
-    :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
-    :type frames: list
+    for frame in bridgeFrames:
+        frameResnums = set(reduceTo1D(
+            frame, lambda a: a.getResnum(), lambda b: b.proteins))
+        for res in frameResnums:
+            residueOccurances[res] = residueOccurances.get(res, 0) + 1
 
-    :arg atoms: Atomic object from which atoms are considered
-    :type atoms: :class:`.Atomic`
-
-    :proteinThreshold: minimum number of residue appearances in bridges per frame (from 0 to 1)
-        default is 0.7
-    :type proteinThreshold: int
-
-    :waterThreshold: minimum number of water appearances in bridges per frame (from 0 to 1)
-        default is 0.7
-    :type waterThreshold: int
-    """
-    proteinThreshold = kwargs.pop('proteinThreshold', 0.7) * len(frames)
-    waterThreshold = kwargs.pop('waterThreshold', 0.7) * len(frames)
-
-    proteinAtoms, waterAtoms = np.zeros(len(atoms)), np.zeros(len(atoms))
-    for frame in frames:
-        frameProteins = set(reduceTo1D(
-            frame, lambda p: p.getIndex(), lambda wb: wb.proteins))
-        frameWaters = set(reduceTo1D(
-            frame, lambda w: w.getIndex(), lambda wb: wb.waters))
-
-        for atomIndex in frameProteins:
-            proteinAtoms[atomIndex] += 1
-        for atomIndex in frameWaters:
-            waterAtoms[atomIndex] += 1
-
-    bridgingProteinIndices = list(filter(
-        lambda i: proteinAtoms[i] >= proteinThreshold, range(len(atoms))))
-    bridgingWaterIndices = list(filter(
-        lambda i: waterAtoms[i] >= waterThreshold, range(len(atoms))))
-
-    bridgingWaterResidues = atoms.select(
-        f'same residue as water within 1.6 of index {" ".join(map(str, bridgingWaterIndices))}')  # ProDy bug?
-    bridgingProteinResidues = []
-
-    atoms.setOccupancies(0)
-    for atomIndex in bridgingProteinIndices:
+    atoms.setBetas(0)
+    for resnum, value in residueOccurances.items():
         residueAtoms = atoms.select(
-            f'same residue as index {atomIndex}')
-        occupancy = proteinAtoms[atomIndex]/len(frames)
+            f'resnum {resnum}')
+        beta = value/len(bridgeFrames)
 
-        residueAtoms.setOccupancies(occupancy)
-        bridgingProteinResidues += list(residueAtoms)
-
-    if len(bridgingProteinIndices) == 0:
-        bridgingProteinResidues = []
-    if len(bridgingWaterIndices) == 0:
-        bridgingWaterResidues = []
-
-    return bridgingProteinResidues, bridgingWaterResidues
+        residueAtoms.setBetas(beta)
 
 
 def calcBridgingResiduesHistogram(frames, **kwargs):
@@ -830,10 +790,10 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
     return methods[metric]()
 
 
-def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
+def savePDBWaterBridges(bridges, atoms, filename):
     """Saves single PDB with occupancy on protein atoms and waters involved bridges.
 
-    :arg bridges: atomic output from calcWaterBridges or calcWaterBridgesTrajectory
+    :arg bridges: atomic output from calcWaterBridges
     :type bridges: list
 
     :arg atoms: Atomic object from which atoms are considered
@@ -841,31 +801,25 @@ def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
 
     :arg filename: name of file to be saved
     :type filename: string
-
-    :proteinThreshold: minimum number of residue appearances in bridges per frame (from 0 to 1)
-        default is 0.7
-    :type proteinThreshold: int
-
-    :waterThreshold: minimum number of water appearances in bridges per frame (from 0 to 1)
-        default is 0.7
-    :type waterThreshold: int
     """
     atoms = atoms.copy()
 
-    isSingleFrame = isinstance(bridges[0], AtomicOutput)
-    if isSingleFrame:
-        bridges = [bridges]
+    mofifyBeta([bridges], atoms)
+    atoms.setOccupancies(0)
+    atoms.select('beta = 1').setOccupancies(1)
 
-    _, waterResidues = calcWaterBridgingResidues(
-        bridges, atoms, **kwargs)
+    proteinAtoms = atoms.select('protein')
+    waterOxygens = reduceTo1D(
+        bridges, lambda w: w.getIndex(), lambda b: b.waters)
+    waterAtoms = atoms.select(
+        f'same residue as water within 1.6 of index {" ".join(map(str, waterOxygens))}')
 
-    atomsToSave = atoms.select(
-        'protein').toAtomGroup() + waterResidues.toAtomGroup()
+    atomsToSave = proteinAtoms.toAtomGroup() + waterAtoms.toAtomGroup()
     return writePDB(filename, atomsToSave)
 
 
-def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, trajectory, filename, **kwargs):
-    """Saves one PDB per frame with occupancy on protein atoms and waters forming bridges in frame.
+def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, trajectory, filename):
+    """Saves one PDB per frame with occupancy and beta on protein atoms and waters forming bridges in frame.
 
     :arg bridgeFrames: atomic output from calcWaterBridgesTrajectory
     :type bridgeFrames: list
@@ -877,22 +831,25 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, trajectory, filename, **k
 
     :arg filename: name of file to be saved; must end in .pdb
     :type filename: string
-
-    :proteinThreshold: minimum number of residue appearances in bridges per frame (from 0 to 1)
-        default is 0.7
-    :type proteinThreshold: int
     """
     filename = filename[:filename.rfind('.')]
 
     atoms = atoms.copy()
-    calcWaterBridgingResidues(bridgeFrames, atoms, **kwargs)
+    mofifyBeta(bridgeFrames, atoms)
 
     for frameIndex, frame in enumerate(bridgeFrames):
         coords = trajectory[frameIndex].getCoords()
         atoms.setCoords(coords)
+
         waterAtoms = reduceTo1D(frame, sublistSel=lambda b: b.waters)
         waterResidues = atoms.select(
             f'same residue as water within 1.6 of index {" ".join(map(lambda a: str(a.getIndex()), waterAtoms))}')
+
+        bridgeProteinAtoms = reduceTo1D(
+            frame, lambda p: p.getResnum(), lambda b: b.proteins)
+        atoms.setOccupancies(0)
+        atoms.select(
+            f'resid {" ".join(map(str, bridgeProteinAtoms))}').setOccupancies(1)
 
         atomsToSave = atoms.select(
             'protein').toAtomGroup() + waterResidues.toAtomGroup()
