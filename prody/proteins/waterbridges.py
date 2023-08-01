@@ -26,7 +26,7 @@ from prody.proteins import writePDB
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
-           'calcWaterBridgesStatistics', 'savePDBWaterBridges', 'calcBridgingResiduesHistogram',
+           'calcWaterBridgesStatistics', 'showWaterBridgeMatrix', 'savePDBWaterBridges', 'calcBridgingResiduesHistogram',
            'calcWaterBridgesDistribution', 'savePDBWaterBridgesTrajectory']
 
 
@@ -507,18 +507,21 @@ class DictionaryList:
         return self.values.keys()
 
 
-def calcWaterBridgesStatistics(frames, atoms, trajectory, **kwargs):
+def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     """Returns statistics. Value is percentage of bridge appearance of frames for each residue.
 
     :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
     :type frames: list
 
-    :arg atoms: atoms in PDB struct
-    :type atoms:
+    :arg output: return dictorinary whose keys are tuples of resnames or resids
+        default is 'resname'
+    :type output: 'resname' | 'resid'
     """
+    output = kwargs.pop('output', 'resname')
     allCoordinates = trajectory.getCoordsets()
     interactionCount = DictionaryList(0)
     distances = DictionaryList([])
+    resNames = {}
 
     for frameIndex, frame in enumerate(frames):
         frameCombinations = []
@@ -527,7 +530,7 @@ def calcWaterBridgesStatistics(frames, atoms, trajectory, **kwargs):
             proteinAtoms = bridge.proteins
             for atom_1, atom_2 in combinations(proteinAtoms, r=2):
                 ind_1, ind_2 = atom_1.getIndex(), atom_2.getIndex()
-                res_1, res_2 = getResidueName(atom_1),  getResidueName(atom_2)
+                res_1, res_2 = atom_1.getResnum(), atom_2.getResnum()
 
                 if res_1 == res_2:
                     continue
@@ -543,6 +546,11 @@ def calcWaterBridgesStatistics(frames, atoms, trajectory, **kwargs):
                 distances[(res_1, res_2)] += [distance]
                 distances[(res_2, res_1)] += [distance]
 
+                res_1_name, res_2_name = getResidueName(
+                    atom_1),  getResidueName(atom_2)
+                resNames[res_1] = res_1_name
+                resNames[res_2] = res_2_name
+
     info = {}
     for key in interactionCount.keys():
         percentage = 100 * interactionCount[key]/len(frames)
@@ -551,9 +559,40 @@ def calcWaterBridgesStatistics(frames, atoms, trajectory, **kwargs):
         pairInfo = {"percentage": percentage,
                     "distAvg": distAvg, "distStd": distStd}
 
-        info[key] = pairInfo
+        outputKey = key
+        if output == 'resname':
+            x, y = key
+            outputKey = (resNames[x], resNames[y])
+
+        info[outputKey] = pairInfo
 
     return info
+
+
+def showWaterBridgeMatrix(data, **kwargs):
+    """Shows matrix which has percentage/avg distance as value and residue ids as ax indices.
+
+    :arg data: dictionary returned by calcWaterBridgesStatistics, output='resid' 
+    :type data: dict
+
+    :arg kwargs: kwargs for matplotlib imshow
+    """
+
+    N = max(max(key) for key in data.keys()) + 1
+    percMatrix = np.zeros((N, N), dtype=float)
+    distMatrix = np.zeros((N, N), dtype=float)
+
+    for key, value in data.items():
+        percMatrix[key] = value['percentage']
+        distMatrix[key] = value['distAvg']
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    axes[0].imshow(percMatrix,  cmap='seismic', **kwargs)
+    axes[0].set(xlabel='Resid', ylabel='Resid', title='Percentage')
+    axes[1].imshow(distMatrix,  cmap='seismic', **kwargs)
+    axes[1].set(xlabel='Resid', ylabel='Resid', title='Average dist')
+
+    plt.show()
 
 
 def reduceTo1D(list, elementSel=lambda x: x, sublistSel=lambda x: x):
@@ -561,7 +600,7 @@ def reduceTo1D(list, elementSel=lambda x: x, sublistSel=lambda x: x):
 
 
 def calcWaterBridgingResidues(frames, atoms, **kwargs):
-    """Returns proteins and waters residues participating in water bridges (proteins are tuples with occupancy).
+    """Returns proteins and waters residues participating in water bridges. Modifies protein occupancy.
 
     :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
     :type frames: list
@@ -601,6 +640,7 @@ def calcWaterBridgingResidues(frames, atoms, **kwargs):
         f'same residue as water within 1.6 of index {" ".join(map(str, bridgingWaterIndices))}')  # ProDy bug?
     bridgingProteinResidues = []
 
+    atoms.setOccupancies(0)
     for atomIndex in bridgingProteinIndices:
         residueAtoms = atoms.select(
             f'same residue as index {atomIndex}')
@@ -810,16 +850,14 @@ def savePDBWaterBridges(bridges, atoms, filename, **kwargs):
         default is 0.7
     :type waterThreshold: int
     """
+    atoms = atoms.copy()
+
     isSingleFrame = isinstance(bridges[0], AtomicOutput)
     if isSingleFrame:
         bridges = [bridges]
 
-    proteinResidues, waterResidues = calcWaterBridgingResidues(
+    _, waterResidues = calcWaterBridgingResidues(
         bridges, atoms, **kwargs)
-
-    atoms.setOccupancies(0)
-    for atom in proteinResidues:
-        atoms[atom.getIndex()].setOccupancy(atom.getOccupancy())
 
     atomsToSave = atoms.select(
         'protein').toAtomGroup() + waterResidues.toAtomGroup()
@@ -844,14 +882,10 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, trajectory, filename, **k
         default is 0.7
     :type proteinThreshold: int
     """
-
     filename = filename[:filename.rfind('.')]
-    proteinResidues, _ = calcWaterBridgingResidues(
-        bridgeFrames, atoms, **kwargs)
 
-    atoms.setOccupancies(0)
-    for atom in proteinResidues:
-        atoms[atom.getIndex()].setOccupancy(atom.getOccupancy())
+    atoms = atoms.copy()
+    calcWaterBridgingResidues(bridgeFrames, atoms, **kwargs)
 
     for frameIndex, frame in enumerate(bridgeFrames):
         coords = trajectory[frameIndex].getCoords()
