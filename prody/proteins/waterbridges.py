@@ -7,6 +7,7 @@ __author__ = 'Karolina Mikulska-Ruminska'
 __credits__ = ['Frane Doljanin', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
+from typing import Any
 import numpy as np
 from scipy.sparse import lil_matrix
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ import matplotlib.pyplot as plt
 from itertools import combinations
 from collections import deque
 from enum import Enum, auto
+from copy import copy
 
 from prody import LOGGER
 from prody.atomic import Atom, Atomic, AtomGroup
@@ -484,71 +486,74 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
 
 
 def getResidueName(atom):
-    return f'{atom.getResname()}{atom.getIndex()}{atom.getChid()}'
+    return f'{atom.getResname()}{atom.getResnum()}{atom.getChid()}'
+
+
+class DictionaryList:
+    def __init__(self, initialValue):
+        self.values = {}
+        self.initialValue = initialValue
+
+    def __getitem__(self, key):
+        if key in self.values:
+            return self.values[key]
+
+        return copy(self.initialValue)
+
+    def __setitem__(self, key, value):
+        self.values[key] = value
+
+    def keys(self):
+        return self.values.keys()
 
 
 def calcWaterBridgesStatistics(frames, atoms, trajectory, **kwargs):
-    """Returns statistics - either dictionary or lil_matrix where indices are atom indices. Value is percentage of bridge appearance of frames for each residue.
+    """Returns statistics. Value is percentage of bridge appearance of frames for each residue.
 
     :arg frames: list of water bridges from calcWaterBridgesTrajectory(), output='atomic'
     :type frames: list
 
     :arg atoms: atoms in PDB struct
     :type atoms:
-
-    :arg output: return 2D matrices or dictionary where key is residue info
-        default is 'dict'
-    :type output: 'dict' | 'indices'
     """
-    outputType = kwargs.pop('output', 'dict')
-
     allCoordinates = trajectory.getCoordsets()
-    numAtoms = len(atoms)
-    interactionCount = lil_matrix((numAtoms, numAtoms))
-    distanceSum = lil_matrix((numAtoms, numAtoms), dtype=float)
+    interactionCount = DictionaryList(0)
+    distances = DictionaryList([])
 
     for frameIndex, frame in enumerate(frames):
+        frameCombinations = []
+
         for bridge in frame:
             proteinAtoms = bridge.proteins
             for atom_1, atom_2 in combinations(proteinAtoms, r=2):
                 ind_1, ind_2 = atom_1.getIndex(), atom_2.getIndex()
+                res_1, res_2 = getResidueName(atom_1),  getResidueName(atom_2)
 
-                interactionCount[ind_1, ind_2] += 1
-                interactionCount[ind_2, ind_1] += 1
+                if res_1 == res_2:
+                    continue
+
+                if (res_1, res_2) not in frameCombinations:
+                    interactionCount[(res_1, res_2)] += 1
+                    interactionCount[(res_2, res_1)] += 1
+                    frameCombinations += [(res_1, res_2), (res_2, res_1)]
 
                 coords = allCoordinates[frameIndex]
                 atom_1_coords, atom_2_coords = coords[ind_1], coords[ind_2]
                 distance = calcDistance(atom_1_coords, atom_2_coords)
-                distanceSum[ind_1, ind_2] += distance
-                distanceSum[ind_2, ind_1] += distance
+                distances[(res_1, res_2)] += [distance]
+                distances[(res_2, res_1)] += [distance]
 
-    interactionPerc, distanceAvg = None, None
-    if outputType == 'dict':
-        interactionPerc, distanceAvg = {}, {}
-    else:
-        interactionPerc = lil_matrix((numAtoms, numAtoms), dtype=float)
-        distanceAvg = lil_matrix((numAtoms, numAtoms), dtype=float)
+    info = {}
+    for key in interactionCount.keys():
+        percentage = 100 * interactionCount[key]/len(frames)
+        distAvg = np.average(distances[key])
+        distStd = np.std(distances[key])
+        pairInfo = {"percentage": percentage,
+                    "distAvg": distAvg, "distStd": distStd}
 
-    for x, y in zip(*interactionCount.nonzero()):
-        if not interactionCount[x, y]:
-            continue
+        info[key] = pairInfo
 
-        percentage = 100 * interactionCount[x, y]/len(frames)
-        average = distanceSum[x, y]/interactionCount[x, y]
-
-        if outputType == 'dict':
-            x_resname, y_resname = getResidueName(
-                atoms[x]), getResidueName(atoms[y])
-            interactionPerc[(x_resname, y_resname)] = percentage
-            distanceAvg[(x_resname, y_resname)] = average
-        else:
-            interactionPerc[x, y] = percentage
-            distanceAvg[x, y] = average
-
-    return {
-        "interactionPercentage": interactionPerc,
-        "distanceAverage": distanceAvg,
-    }
+    return info
 
 
 def reduceTo1D(list, elementSel=lambda x: x, sublistSel=lambda x: x):
