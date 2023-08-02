@@ -516,10 +516,10 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     :type frames: list
 
     :arg output: return dictorinary whose keys are tuples of resnames or resids
-        default is 'resname'
+        default is 'resid'
     :type output: 'resname' | 'resid'
     """
-    output = kwargs.pop('output', 'resname')
+    output = kwargs.pop('output', 'resid')
     allCoordinates = trajectory.getCoordsets()
     interactionCount = DictionaryList(0)
     distances = DictionaryList([])
@@ -580,10 +580,6 @@ def calcWaterBridgeMatrix(data, metric):
     :arg metric: dict key from data
     :type metric: 'percentage' | 'distAvg' | 'distStd'
     """
-    if not all(isinstance(ind, np.int32) for key in data.keys() for ind in key):
-        raise TypeError(
-            'Data output from calcWaterBridgesStatistics should be resid!')
-
     maxResnum = max(max(key) for key in data.keys()) + 1
     resMatrix = np.zeros((maxResnum, maxResnum), dtype=float)
 
