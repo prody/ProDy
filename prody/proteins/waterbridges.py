@@ -19,6 +19,7 @@ from copy import copy
 
 from prody import LOGGER
 from prody.atomic import Atom, Atomic, AtomGroup
+from prody.dynamics.plotting import showAtomicMatrix
 from prody.ensemble import Ensemble
 from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
@@ -26,8 +27,9 @@ from prody.proteins import writePDB
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
-           'calcWaterBridgesStatistics', 'showWaterBridgeMatrix', 'savePDBWaterBridges', 'calcBridgingResiduesHistogram',
-           'calcWaterBridgesDistribution', 'savePDBWaterBridgesTrajectory']
+           'calcWaterBridgesStatistics', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
+           'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
+           'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory']
 
 
 class ResType(Enum):
@@ -569,30 +571,46 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     return info
 
 
-def showWaterBridgeMatrix(data, **kwargs):
+def calcWaterBridgeMatrix(data, metric):
+    """Returns matrix which has metric as value and residue ids as ax indices.
+
+    :arg data: dictionary returned by calcWaterBridgesStatistics, output='resid' 
+    :type data: dict
+
+    :arg metric: dict key from data
+    :type metric: 'percentage' | 'distAvg' | 'distStd'
+    """
+    if not all(isinstance(ind, np.int32) for key in data.keys() for ind in key):
+        raise TypeError(
+            'Data output from calcWaterBridgesStatistics should be resid!')
+
+    maxResnum = max(max(key) for key in data.keys()) + 1
+    resMatrix = np.zeros((maxResnum, maxResnum), dtype=float)
+
+    for key, value in data.items():
+        resMatrix[key] = value[metric]
+
+    return resMatrix
+
+
+def showWaterBridgeMatrix(data, metric):
     """Shows matrix which has percentage/avg distance as value and residue ids as ax indices.
 
     :arg data: dictionary returned by calcWaterBridgesStatistics, output='resid' 
     :type data: dict
 
-    :arg kwargs: kwargs for matplotlib imshow
+    :arg metric: dict key from data
+    :type metric: 'percentage' | 'distAvg' | 'distStd'
     """
+    matrix = calcWaterBridgeMatrix(data, metric)
+    titles = {
+        'percentage': 'Interaction percentage',
+        'distAvg': 'Average distance',
+        'distStd': 'Distance standard deviation'
+    }
 
-    N = max(max(key) for key in data.keys()) + 1
-    percMatrix = np.zeros((N, N), dtype=float)
-    distMatrix = np.zeros((N, N), dtype=float)
-
-    for key, value in data.items():
-        percMatrix[key] = value['percentage']
-        distMatrix[key] = value['distAvg']
-
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-    axes[0].imshow(percMatrix,  cmap='seismic', **kwargs)
-    axes[0].set(xlabel='Resid', ylabel='Resid', title='Percentage')
-    axes[1].imshow(distMatrix,  cmap='seismic', **kwargs)
-    axes[1].set(xlabel='Resid', ylabel='Resid', title='Average dist')
-
-    plt.show()
+    showAtomicMatrix(matrix)
+    plt.title(titles[metric])
 
 
 def reduceTo1D(list, elementSel=lambda x: x, sublistSel=lambda x: x):
@@ -818,7 +836,7 @@ def savePDBWaterBridges(bridges, atoms, filename):
     return writePDB(filename, atomsToSave)
 
 
-def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, trajectory, filename):
+def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None):
     """Saves one PDB per frame with occupancy and beta on protein atoms and waters forming bridges in frame.
 
     :arg bridgeFrames: atomic output from calcWaterBridgesTrajectory
@@ -827,19 +845,25 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, trajectory, filename):
     :arg atoms: Atomic object from which atoms are considered
     :type atoms: :class:`.Atomic`
 
-    :arg trajectory: DCD trajectory
-
     :arg filename: name of file to be saved; must end in .pdb
     :type filename: string
+
+    :arg trajectory: DCD trajectory (not needed for multimodal PDB)
     """
+    if not trajectory and atoms.numCoordsets() < len(bridgeFrames):
+        raise TypeError('Provide parsed trajectory!')
+
     filename = filename[:filename.rfind('.')]
 
     atoms = atoms.copy()
     mofifyBeta(bridgeFrames, atoms)
 
     for frameIndex, frame in enumerate(bridgeFrames):
-        coords = trajectory[frameIndex].getCoords()
-        atoms.setCoords(coords)
+        if trajectory:
+            coords = trajectory[frameIndex].getCoords()
+            atoms.setCoords(coords)
+        else:
+            atoms.setACSIndex(frameIndex)
 
         waterAtoms = reduceTo1D(frame, sublistSel=lambda b: b.waters)
         waterResidues = atoms.select(
@@ -853,4 +877,9 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, trajectory, filename):
 
         atomsToSave = atoms.select(
             'protein').toAtomGroup() + waterResidues.toAtomGroup()
-        writePDB(f'{filename}_{frameIndex}.pdb', atomsToSave)
+
+        if trajectory:
+            writePDB(f'{filename}_{frameIndex}.pdb', atomsToSave)
+        else:
+            writePDB(f'{filename}_{frameIndex}.pdb',
+                     atomsToSave, csets=frameIndex)
