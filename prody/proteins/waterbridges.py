@@ -520,6 +520,9 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     :type output: 'resname' | 'resid'
     """
     output = kwargs.pop('output', 'resid')
+    if output not in ['resid', 'resname']:
+        raise TypeError('Output should be resname or resid!')
+
     allCoordinates = trajectory.getCoordsets()
     interactionCount = DictionaryList(0)
     distances = DictionaryList([])
@@ -554,6 +557,7 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
                 resNames[res_2] = res_2_name
 
     info = {}
+    LOGGER.info(f'{"RES1":<{15}}{"RES2":<{15}}\tPERC\tDIST_AVG\tDIST_STD')
     for key in interactionCount.keys():
         percentage = 100 * interactionCount[key]/len(frames)
         distAvg = np.average(distances[key])
@@ -562,9 +566,12 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
                     "distAvg": distAvg, "distStd": distStd}
 
         outputKey = key
+        x, y = key
         if output == 'resname':
-            x, y = key
             outputKey = (resNames[x], resNames[y])
+
+        logMessage = f'{resNames[x]:<{15}}{resNames[y]:<{15}}\t{percentage:.2f}\t{distAvg:.4f}\t\t{distStd:.4f}'
+        LOGGER.info(logMessage)
 
         info[outputKey] = pairInfo
 
