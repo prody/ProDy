@@ -7,9 +7,7 @@ __author__ = 'Karolina Mikulska-Ruminska'
 __credits__ = ['Frane Doljanin', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
-from typing import Any
 import numpy as np
-from scipy.sparse import lil_matrix
 import matplotlib.pyplot as plt
 
 from itertools import combinations
@@ -29,7 +27,8 @@ from prody.proteins import writePDB
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInfoOutput',
            'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
-           'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory']
+           'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory',
+           'saveWaterBridges', 'parseWaterBridges']
 
 
 class ResType(Enum):
@@ -952,3 +951,84 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
         else:
             writePDB(f'{filename}_{frameIndex}.pdb',
                      atomsToSave, csets=frameIndex)
+
+
+def getBridgeIndicesString(bridge):
+    return ' '.join(map(lambda a: str(a.getIndex()), bridge.proteins))\
+        + '|'\
+        + ' '.join(map(lambda a: str(a.getIndex()), bridge.waters))
+
+
+def saveWaterBridges(atomicBridges, filename):
+    """Save water bridges as information (.txt) or WaterBridges (.wb) parsable file.
+
+    :arg atomicBridges: atomic output from calcWaterBridges/Trajectory
+    :type atomicBridges: list
+
+    :arg filename: path where file should be saved
+    :type filename: string
+    """
+    isSingleBridge = isinstance(atomicBridges[0], AtomicOutput)
+    isInfoOutput = filename.split('.')[-1] == 'txt'
+    file = open(filename, 'w')
+
+    if isSingleBridge:
+        atomicBridges = [atomicBridges]
+
+    if isInfoOutput:
+        info = getWaterBridgesInfoOutput(atomicBridges)
+        for frameIndex, frame in enumerate(info):
+            file.write(f'FRAME {frameIndex}\n')
+            for bridge in frame:
+                file.write(' '.join(map(str, bridge)) + '\n')
+
+        return file.close()
+
+    for frame in atomicBridges:
+        for bridge in frame:
+            line = getBridgeIndicesString(bridge)
+            file.write(line + '\n')
+        file.write('ENDFRAME\n')
+
+    return file.close()
+
+
+def getBridgeFromIndices(proteinIndices, waterIndices, atoms):
+    proteins = list(map(lambda i: atoms[i], proteinIndices))
+    waters = list(map(lambda i: atoms[i], waterIndices))
+    atomicBridge = AtomicOutput(proteins, waters)
+
+    return atomicBridge
+
+
+def parseWaterBridges(filename, atoms):
+    """Parse water bridges from .wb file saved by saveWaterBridges, returns atomic type.
+
+    :arg filename: path of file where bridges are stored
+    :type filename: string
+
+    :arg atoms: Atomic object on which calcWaterBridges was performed
+    :type atoms: :class:`.Atomic`
+    """
+    bridgesFrames = []
+    currentBridges = []
+
+    with open(filename, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if line == 'ENDFRAME':
+                bridgesFrames.append(currentBridges)
+                currentBridges = []
+                continue
+
+            proteinString, waterString = line.split('|')
+            proteinIndices = map(int, proteinString.split())
+            waterIndices = map(int, waterString.split())
+
+            bridge = getBridgeFromIndices(proteinIndices, waterIndices, atoms)
+            currentBridges.append(bridge)
+
+    if len(bridgesFrames) == 1:
+        bridgesFrames = bridgesFrames[0]
+
+    return bridgesFrames
