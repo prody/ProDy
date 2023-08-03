@@ -26,8 +26,8 @@ from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB
 
 
-__all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory',
-           'calcWaterBridgesStatistics', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
+__all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInfoOutput',
+           'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
            'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory']
 
@@ -246,6 +246,12 @@ def getBridgeForResidue_BFS(observedNode, relationsList, maxDepth, maxNumResidue
     return waterBridges
 
 
+class AtomicOutput:
+    def __init__(self, proteins, waters):
+        self.proteins = proteins
+        self.waters = waters
+
+
 def getInfoOutput(waterBridgesAtomic):
     output = []
     for bridge in waterBridgesAtomic:
@@ -269,10 +275,22 @@ def getInfoOutput(waterBridgesAtomic):
     return output
 
 
-class AtomicOutput:
-    def __init__(self, proteins, waters):
-        self.proteins = proteins
-        self.waters = waters
+def getWaterBridgesInfoOutput(waterBridgesAtomic):
+    """Coverts single frame/trajectory atomic output from calcWaterBridges/Trajectory to info output.
+
+    :arg waterBridgesAtomic: water bridges from calcWaterBridges/Trajectory
+    :type waterBridgesAtomic: list
+    """
+    isSingleFrame = isinstance(waterBridgesAtomic[0], AtomicOutput)
+    if isSingleFrame:
+        return getInfoOutput(waterBridgesAtomic)
+
+    output = []
+    for frame in waterBridgesAtomic:
+        currentFrameInfo = getInfoOutput(frame)
+        output.append(currentFrameInfo)
+
+    return output
 
 
 def getAtomicOutput(waterBridges, relations):
@@ -509,6 +527,39 @@ class DictionaryList:
         return self.values.keys()
 
 
+def getResInfo(atoms):
+    dict = {}
+    nums = atoms.select('protein').getResnums()
+    names = atoms.select('protein').getResnames()
+    chids = atoms.select('protein').getChids()
+
+    for i, num in enumerate(nums):
+        dict[num] = f"{names[i]}{num}{chids[i]}"
+
+    return dict
+
+
+def getWaterBridgeStatInfo(stats, atoms):
+    """Converts calcWaterBridgesStatistic indices output to info output from stat.
+
+    :arg stats: statistics returned by calcWaterBridgesStatistics, output='indices'
+    :type stats: dictionary
+
+    :arg atoms: Atomic object from which atoms are considered
+    :type atoms: :class:`.Atomic`
+    """
+    residueInfo = getResInfo(atoms)
+    infoOutput = {}
+    for key, value in stats.items():
+        x_id, y_id = key
+        x_info, y_info = residueInfo[x_id], residueInfo[y_id]
+        newKey = (x_info, y_info)
+
+        infoOutput[newKey] = value
+
+    return infoOutput
+
+
 def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     """Returns statistics. Value is percentage of bridge appearance of frames for each residue.
 
@@ -517,11 +568,16 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
 
     :arg output: return dictorinary whose keys are tuples of resnames or resids
         default is 'resid'
-    :type output: 'resname' | 'resid'
+    :type output: 'info' | 'indices'
+
+    :arg filename: name of file to save statistic information if wanted
+        default is None
+    :type filename: string
     """
-    output = kwargs.pop('output', 'resid')
-    if output not in ['resid', 'resname']:
-        raise TypeError('Output should be resname or resid!')
+    output = kwargs.pop('output', 'indices')
+    filename = kwargs.pop('filename', None)
+    if output not in ['info', 'indices']:
+        raise TypeError('Output should be info or indices!')
 
     allCoordinates = trajectory.getCoordsets()
     interactionCount = DictionaryList(0)
@@ -556,8 +612,13 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
                 resNames[res_1] = res_1_name
                 resNames[res_2] = res_2_name
 
+    tableHeader = f'{"RES1":<15}{"RES2":<15}{"PERC":<10}{"DIST_AVG":<10}{"DIST_STD":<10}'
+    LOGGER.info(tableHeader)
     info = {}
-    LOGGER.info(f'{"RES1":<{15}}{"RES2":<{15}}\tPERC\tDIST_AVG\tDIST_STD')
+    file = open(filename, 'w') if filename else None
+    if file:
+        file.write(tableHeader + '\n')
+
     for key in interactionCount.keys():
         percentage = 100 * interactionCount[key]/len(frames)
         distAvg = np.average(distances[key])
@@ -570,10 +631,15 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
         if output == 'resname':
             outputKey = (resNames[x], resNames[y])
 
-        logMessage = f'{resNames[x]:<{15}}{resNames[y]:<{15}}\t{percentage:.2f}\t{distAvg:.4f}\t\t{distStd:.4f}'
-        LOGGER.info(logMessage)
-
         info[outputKey] = pairInfo
+
+        tableRow = f'{resNames[x]:<15}{resNames[y]:<15}{percentage:<10.3f}{distAvg:<10.3f}{distStd:<10.3f}'
+        LOGGER.info(tableRow)
+        if file:
+            file.write(tableRow + '\n')
+
+    if file:
+        file.close()
 
     return info
 
@@ -581,7 +647,7 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
 def calcWaterBridgeMatrix(data, metric):
     """Returns matrix which has metric as value and residue ids as ax indices.
 
-    :arg data: dictionary returned by calcWaterBridgesStatistics, output='resid' 
+    :arg data: dictionary returned by calcWaterBridgesStatistics, output='indices' 
     :type data: dict
 
     :arg metric: dict key from data
@@ -599,7 +665,7 @@ def calcWaterBridgeMatrix(data, metric):
 def showWaterBridgeMatrix(data, metric):
     """Shows matrix which has percentage/avg distance as value and residue ids as ax indices.
 
-    :arg data: dictionary returned by calcWaterBridgesStatistics, output='resid' 
+    :arg data: dictionary returned by calcWaterBridgesStatistics, output='indices' 
     :type data: dict
 
     :arg metric: dict key from data
