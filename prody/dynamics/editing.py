@@ -124,10 +124,14 @@ def sliceVector(vector, atoms, select):
 
     which, sel = sliceAtoms(atoms, select)
 
-    vec = Vector(vector.getArrayNx3()[
-                 which, :].flatten(),
-                 '{0} slice {1}'.format(str(vector), select),
-                 vector.is3d())
+    if vector.is3d():
+        vec = Vector(vector.getArrayNx3()[which, :].flatten(),
+                    '{0} slice {1}'.format(str(vector), select),
+                    vector.is3d())
+    else:
+        vec = Vector(vector.getArray()[which].flatten(),
+                    '{0} slice {1}'.format(str(vector), select),
+                    vector.is3d())
     return (vec, sel)
 
 def trimModel(model, atoms, select):
@@ -262,9 +266,14 @@ def sliceMode(mode, atoms, select):
 
     which, sel = sliceAtoms(atoms, select)
 
-    vec = Vector(mode.getArrayNx3()[which, :].flatten() *
-                 mode.getVariance()**0.5,
-                 '{0} slice {1}'.format(str(mode), select), mode.is3d())
+    if mode.is3d():
+        vec = Vector(mode.getArrayNx3()[which, :].flatten() *
+                     mode.getVariance()**0.5,
+                    '{0} slice {1}'.format(str(mode), select), mode.is3d())
+    else:
+        vec = Vector(mode.getArray()[which].flatten() *
+                     mode.getVariance()**0.5,
+                    '{0} slice {1}'.format(str(mode), select), mode.is3d())
     return (vec, sel)
 
 
