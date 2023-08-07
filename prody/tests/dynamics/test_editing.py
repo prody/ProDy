@@ -124,4 +124,3 @@ class TestInterpolating(unittest.TestCase):
         interp, atoms = interpolateModel(ANM, NODES, ATOMS)
         assert_equal(interp._getArray().shape, ANM._getArray()[EXT3D, :].shape)
         assert_equal(atoms.numAtoms(), NODES_AA.numAtoms())
-        
