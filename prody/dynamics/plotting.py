@@ -301,6 +301,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
     kwargs['linestyle'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
 
     texts = kwargs.pop('text', None)
+    adjust = kwargs.pop('adjust', True)
     if texts:
         if not isinstance(texts, list):
             raise TypeError('text must be a list')
@@ -377,7 +378,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         except ImportError:
             pass
         else:
-            if len(modes) == 2 and len(texts) < 15:
+            if len(modes) == 2 and adjust == True:
                 adjust_text(ts)
 
     if len(modes) == 2:

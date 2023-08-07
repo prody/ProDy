@@ -6,7 +6,7 @@ import numpy as np
 from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset
 from prody.atomic import Selection, SELECT, sliceAtoms, extendAtoms
 from prody.measure import calcDistance
-from prody.utilities import importLA, isListLike
+from prody.utilities import importLA, isListLike, getCoords
 from prody import _PY3K, LOGGER
 
 from .nma import NMA
@@ -489,11 +489,19 @@ def _reduceModel(matrix, system):
     return matrix
 
 
-def interpolateModel(model, nodes, atoms, norm=False, **kwargs):
-    """Interpolate a coarse grained *model* built for *nodes* to *atoms*.  
+def interpolateModel(model, nodes, coords, norm=False, **kwargs):
+    """Interpolate a coarse grained *model* built for *nodes* to *coords*.  
     
     *model* may be :class:`.ANM`, :class:`.PCA`, or :class:`.NMA`
-    instance. *model* should have all modes calculated.
+    instance
+
+    :arg nodes: the coordinate set or object with :meth:`getCoords` method
+        that corresponds to the model
+    :type nodes: :class:`.Atomic`, :class:`~numpy.ndarray`
+
+    :arg coords: a coordinate set or an object with :meth:`getCoords` method
+        onto which the model should be interpolated
+    :type coords: :class:`.Atomic`, :class:`~numpy.ndarray`
     
     This function will take the part of the normal modes for each node
     (i.e. Cα atoms) and extend it to nearby atoms. 
@@ -547,8 +555,8 @@ def interpolateModel(model, nodes, atoms, norm=False, **kwargs):
     cg_coords = nodes.getCoords()
     len_cg = nodes.numAtoms()
 
-    fg_coords = atoms.getCoords()
-    len_fg = atoms.numAtoms()
+    fg_coords = getCoords(coords)
+    len_fg = fg_coords.shape[0]
 
     n_modes = model.numModes()
 
@@ -626,4 +634,4 @@ def interpolateModel(model, nodes, atoms, norm=False, **kwargs):
             
     interpolated = NMA('Interpolated ' + str(model))
     interpolated.setEigens(eigvecs_fg, eigvals)
-    return interpolated, atoms
+    return interpolated, coords
