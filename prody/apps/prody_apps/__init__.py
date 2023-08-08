@@ -19,7 +19,8 @@ path_apps = imp.find_module('apps', [path_prody])[1]
 path_apps = imp.find_module('prody_apps', [path_apps])[1]
 
 PRODY_APPS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol',
-                  'catdcd', 'contacts', 'fetch', 'select', 'energy']
+                  'catdcd', 'contacts', 'fetch', 'select', 'energy', 
+                  'clustenm']
 
 __all__ = ['prody_main']
 

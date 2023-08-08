@@ -60,6 +60,10 @@ def addNMAParameters(parser):
         default=DEFAULTS['select'], metavar='STR',
         help=HELPTEXT['select'] + ' (default: "%(default)s")')
 
+    parser.add_argument('-P', '--number-of-processors', dest='nproc', type=int,
+        default=DEFAULTS['nproc'], metavar='INT',
+        help=HELPTEXT['nproc'] + ' (default: %(default)s meaning use all)')
+
     return parser
 
 
@@ -106,10 +110,6 @@ def addNMAOutput(parser):
     parser.add_argument('-t', '--extend', dest='extend', type=str,
         metavar='STR', choices=set(['bb', 'all', 'backbone']),
         help=HELPTEXT['extend'])
-
-    parser.add_argument('-P', '--number-of-processors', dest='nproc', type=int,
-        default=DEFAULTS['nproc'], metavar='INT',
-        help=HELPTEXT['nproc'] + ' (default: %(default)s meaning use all)')        
 
     return parser
 
