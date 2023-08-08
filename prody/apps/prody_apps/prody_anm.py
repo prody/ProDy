@@ -13,7 +13,7 @@ HELPTEXT = {}
 for key, txt, val in [
     ('model', 'index of model that will be used in the calculations', 1),
     ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
-    ('cutoff', 'cutoff distance (A)', 15.),
+    ('cutoff', 'cutoff distance (A)', '15.'),
     ('gamma', 'spring constant', '1.'),
     ('sparse', 'use sparse matrices', False),
     ('kdtree', 'use kdtree for Hessian', False),    
@@ -57,7 +57,6 @@ def prody_anm(pdb, **kwargs):
 
     selstr = kwargs.get('select')
     prefix = kwargs.get('prefix')
-    cutoff = kwargs.get('cutoff')
     sparse = kwargs.get('sparse')
     kdtree = kwargs.get('kdtree')
     nmodes = kwargs.get('nmodes')
@@ -91,6 +90,19 @@ def prody_anm(pdb, **kwargs):
             raise NameError("Please provide gamma as a float or ProDy Gamma class")
         except TypeError:
             raise TypeError("Please provide gamma as a float or ProDy Gamma class")
+        
+    try:
+        cutoff = float(kwargs.get('cutoff'))
+        LOGGER.info("Using cutoff {0}".format(cutoff))
+    except ValueError:
+        try:
+            import math
+            cutoff = eval(kwargs.get('cutoff'))
+            LOGGER.info("Using cutoff {0}".format(cutoff))
+        except NameError:
+            raise NameError("Please provide cutoff as a float or equation using math")
+        except TypeError:
+            raise TypeError("Please provide cutoff as a float or equation using math")
 
     anm = prody.ANM(pdb.getTitle())
 
@@ -276,7 +288,7 @@ graphical output files:
 
     group = addNMAParameters(subparser)
 
-    group.add_argument('-c', '--cutoff', dest='cutoff', type=float,
+    group.add_argument('-c', '--cutoff', dest='cutoff', type=str,
         default=DEFAULTS['cutoff'], metavar='FLOAT',
         help=HELPTEXT['cutoff'] + ' (default: %(default)s)')
 
