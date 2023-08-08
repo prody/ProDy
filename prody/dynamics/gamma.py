@@ -6,7 +6,7 @@ import numpy as np
 
 from prody.atomic import Atomic
 
-__all__ = ['Gamma', 'GammaStructureBased', 'GammaVariableCutoff', 'GammaGOdMD']
+__all__ = ['Gamma', 'GammaStructureBased', 'GammaVariableCutoff', 'GammaED', 'GammaGOdMD']
 
 
 class Gamma(object):
