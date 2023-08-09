@@ -20,7 +20,7 @@ for key, txt, val in [
     ('zeros', 'calculate zero modes', False),
     ('turbo', 'use memory-intensive turbo option for modes', False),
 
-    ('outbeta', 'write beta-factors calculated from GNM modes', False),
+    ('outbeta', 'write beta-factors calculated from ANM modes', False),
     ('hessian', 'write Hessian matrix', False),
     ('kirchhoff', 'write Kirchhoff matrix', False),
     ('figcmap', 'save contact map (Kirchhoff matrix) figure', False),
@@ -43,7 +43,7 @@ def prody_anm(pdb, **kwargs):
     """
 
     for key in DEFAULTS:
-        if not key in kwargs:
+        if key not in kwargs:
             kwargs[key] = DEFAULTS[key]
 
     from os.path import isdir, join
@@ -61,7 +61,6 @@ def prody_anm(pdb, **kwargs):
     sparse = kwargs.get('sparse')
     kdtree = kwargs.get('kdtree')
     nmodes = kwargs.get('nmodes')
-    selstr = kwargs.get('select')
     model = kwargs.get('model')
     altloc = kwargs.get('altloc')
     zeros = kwargs.get('zeros')
@@ -84,9 +83,9 @@ def prody_anm(pdb, **kwargs):
         LOGGER.info("Using gamma {0}".format(gamma))
     except ValueError:
         try:
-            Gamma = eval('prody.' + kwargs.get('gamma'))
-            gamma = Gamma(select)
-            LOGGER.info("Using gamma {0}".format(Gamma))
+            gamma = eval('prody.' + kwargs.get('gamma'))
+            gamma = gamma(select)
+            LOGGER.info("Using gamma {0}".format(gamma))
         except NameError:
             raise NameError("Please provide gamma as a float or ProDy Gamma class")
         except TypeError:
