@@ -132,7 +132,6 @@ def prody_clustenm(pdb, **kwargs):
             raise TypeError("Please provide cutoff as a float or equation using math")
 
     ens = prody.ClustENM(pdb.getTitle())
-    ens.setAtoms(select)
 
     nproc = kwargs.pop('nproc')
     if nproc:
@@ -142,6 +141,7 @@ def prody_clustenm(pdb, **kwargs):
             raise ImportError('Please install threadpoolctl to control threads')
 
         with threadpool_limits(limits=nproc, user_api="blas"):
+            ens.setAtoms(select)
             ens.run(n_gens=ngens, n_modes=nmodes,
                     n_confs=nconfs, rmsd=eval(rmsd),
                     cutoff=cutoff, gamma=gamma,
@@ -153,6 +153,7 @@ def prody_clustenm(pdb, **kwargs):
                     sparse=sparse, kdtree=kdtree, turbo=turbo,
                     parallel=parallel, **kwargs)
     else:
+        ens.setAtoms(select)
         ens.run(n_gens=ngens, n_modes=nmodes,
                 n_confs=nconfs, rmsd=eval(rmsd),
                 cutoff=cutoff, gamma=gamma,
