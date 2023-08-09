@@ -29,7 +29,7 @@ for key, txt, val in [
     ('no_sim', 'whether a short MD simulation is not performed after energy minimization (otherwise it is)', False),
     ('parallel', 'whether conformer generation will be parallelized', False),
     ('v1', 'whether to use original sampling method with complete enumeration of ANM modes', False),
-    ('outlier', 'whether to exclude conformers detected as outliers in each generation when using explicit solvent', True),
+    ('no_outlier', 'whether to not exclude conformers detected as outliers in each generation when using explicit solvent', False),
     ('mzscore', 'modified z-score threshold to label conformers as outliers', 3.5),
     ('tolerance', 'energy tolerance to which the system should be minimized in kJ/mole', 10.),
     ('maxIterations', 'maximum number of iterations of energy minimization, 0 means until convergence', 0),
@@ -40,7 +40,8 @@ for key, txt, val in [
     ('forcefield', 'Alternative force field pair tuple for protein then solvent from openmm', 'None'),
     ('t_steps_i', 'number of 2.0 fs MD time steps for initial structure', 1000),
     ('t_steps_g', 'number of 2.0 fs MD time steps in each generation, can be tuple of floats', '7500'),
-    ('multiple', 'whether each conformer will be saved as a separate PDB file', True)]:
+    ('multiple', 'whether each conformer will be saved as a separate PDB file', False),
+    ('write_params', 'whether to write parameters', False)]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
@@ -83,12 +84,13 @@ def prody_clustenm(pdb, **kwargs):
     sim = not kwargs.pop('no_sim')
     temp = kwargs.pop('temp')
     parallel = kwargs.pop('parallel')
+    write_params = kwargs.pop("write_params")
 
     solvent = kwargs.pop('solvent')
     forcefield = kwargs.pop('forcefield')
     t_steps_i = kwargs.pop('t_steps_i')
     t_steps_g = kwargs.pop('t_steps_g')
-    outlier = kwargs.pop('outlier')
+    outlier = not kwargs.pop('no_outlier')
     mzscore = kwargs.pop('mzscore')
 
     pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
@@ -167,6 +169,9 @@ def prody_clustenm(pdb, **kwargs):
     ens.writePDB(outname, single=single)
 
     prody.saveEnsemble(ens, outname)
+
+    if write_params:
+        ens.writeParameters(outname + '.txt')
 
 _ = list(HELPTEXT)
 _.sort()
@@ -259,7 +264,10 @@ graphical output files:
         action='store_true',
         default=DEFAULTS['parallel'], help=HELPTEXT['parallel'])
     
-
+    group.add_argument('-E', '--write_params', dest='write_params',
+        action='store_true',
+        default=DEFAULTS['write_params'], help=HELPTEXT['write_params'])
+    
     group.add_argument('-S', '--solvent', dest='solvent', type=str,
         default=DEFAULTS['solvent'], metavar='STR',
         help=HELPTEXT['solvent'] + ' (default: %(default)s)')
@@ -296,9 +304,9 @@ graphical output files:
         default=DEFAULTS['t_steps_g'], metavar='INT',
         help=HELPTEXT['t_steps_g'] + ' (default: %(default)s)')
     
-    group.add_argument('-a', '--outlier', dest='outlier',
+    group.add_argument('-a', '--no-outlier', dest='no_outlier',
         action='store_true',
-        default=DEFAULTS['outlier'], help=HELPTEXT['outlier'])
+        default=DEFAULTS['no_outlier'], help=HELPTEXT['no_outlier'])
     
     group.add_argument('-w', '--v1', dest='v1',
         action='store_true',
