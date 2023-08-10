@@ -1113,9 +1113,6 @@ ANISOULINE_H36 = ('%-6s%5s %-4s%1s%-3s%2s%4s%1s '
                   '%7d%7d%7d%7d%7d%7d  '
                   '%4s%2s%2s\n')
 
-TERLINE = ('TER   %5d      %3s%2s%4s%1s                  '
-           '                                  \n')
-
 _writePDBdoc = """
 
     :arg atoms: an object with atom and coordinate data
