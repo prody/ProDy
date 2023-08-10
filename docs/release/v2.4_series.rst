@@ -17,6 +17,8 @@ ProDy 2.4 Series
 * Added unite_chains option to parseMMCIF to handle splitting over segments
 * New function interpolateModel based on SITUS ModeHunter
 * New ClustENM app
+* New module for analysing water bridges (only for Python 3)
+* New option nproc as a number of processors limit for solveEig, ANM, GNM and PCA calcModes
 
 **Bug Fixes and Improvements**:
 
