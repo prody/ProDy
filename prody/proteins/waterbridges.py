@@ -8,7 +8,6 @@ __credits__ = ['Frane Doljanin', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from itertools import combinations
 from collections import deque
@@ -681,6 +680,7 @@ def showWaterBridgeMatrix(data, metric):
     :arg metric: dict key from data
     :type metric: 'percentage' | 'distAvg' | 'distStd'
     """
+    import matplotlib.pyplot as plt
     matrix = calcWaterBridgeMatrix(data, metric)
     titles = {
         'percentage': 'Interaction percentage',
@@ -724,6 +724,7 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
         default is 20
     :type clip: int
     """
+    import matplotlib.pyplot as plt
 
     clip = kwargs.pop('clip', 20)
     if clip == None:
@@ -861,6 +862,8 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
         default is 'dict'
     :type output: 'dict' | 'indices'
     """
+    import matplotlib.pyplot as plt
+    
     metric = kwargs.pop('metric', 'residues')
     trajectory = kwargs.pop('trajectory', None)
 
