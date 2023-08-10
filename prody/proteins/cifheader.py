@@ -1210,8 +1210,9 @@ def _getModelType(lines):
 
     model_type = ''
 
-    model_type += [line.split()[1] for line in lines
-                  if line.find("_struct.pdbx_model_type_details") != -1][0]
+    model_type += [line.split()[1]
+                  if line.find("_struct.pdbx_model_type_details") != -1 else ''
+                  for line in lines][0]
 
     if model_type == '?':
         model_type = None
