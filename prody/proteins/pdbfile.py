@@ -1453,14 +1453,14 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     anisouline = ANISOULINE_GE100K_GE10K
                     LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used for indices and resnums')
 
+            serial += num_ter_lines
+
             if hybrid36:
                 serial = decToHybrid36(serials[i])
                 resnum = decToHybrid36(resnums[i], resnum=True)
             else:
                 serial = serials[i]
                 resnum = resnums[i]
-
-            serial += num_ter_lines
 
             if pdbline == PDBLINE_LT100K or hybrid36:
                 if len(str(resnum)) == 5:
