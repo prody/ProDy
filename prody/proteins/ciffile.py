@@ -419,7 +419,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         except KeyError:
             icodes[acount] = ''
 
-        if icodes[acount] == '?': 
+        if icodes[acount] == '?' or icodes[acount] == '.':
             icodes[acount] = ''
 
         serials[acount] = line.split()[fields['id']]
