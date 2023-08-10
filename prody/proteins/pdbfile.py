@@ -1113,6 +1113,9 @@ ANISOULINE_H36 = ('%-6s%5s %-4s%1s%-3s%2s%4s%1s '
                   '%7d%7d%7d%7d%7d%7d  '
                   '%4s%2s%2s\n')
 
+TERLINE = ('TER   %5d      %3s%2s%4s%1s                  '
+           '                                  \n')
+
 _writePDBdoc = """
 
     :arg atoms: an object with atom and coordinate data
@@ -1399,6 +1402,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     # write atoms
     multi = len(coordsets) > 1
     write = stream.write
+    num_ter_lines = 0
     for m, coords in enumerate(coordsets):
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
@@ -1455,6 +1459,8 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             else:
                 serial = serials[i]
                 resnum = resnums[i]
+
+            serial += num_ter_lines
 
             if pdbline == PDBLINE_LT100K or hybrid36:
                 if len(str(resnum)) == 5:
@@ -1522,10 +1528,12 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
             if isinstance(atoms, AtomGroup):
                 if atoms._getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
-                    write('TER\n')
+                    write(TERLINE % (serial+1, resnames[i], chainids[i], resnum, icodes[i]))
+                    num_ter_lines += 1
             else:
                 if atoms._getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
-                    write('TER\n')
+                    write(TERLINE % (serial+1, resnames[i], chainids[i], resnum, icodes[i]))
+                    num_ter_lines += 1
 
         if multi:
             write('ENDMDL\n')
