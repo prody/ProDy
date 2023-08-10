@@ -106,18 +106,9 @@ def prody_anm(pdb, **kwargs):
     anm = prody.ANM(pdb.getTitle())
 
     nproc = kwargs.get('nproc')
-    if nproc:
-        try:
-            from threadpoolctl import threadpool_limits
-        except ImportError:
-            raise ImportError('Please install threadpoolctl to control threads')
-
-        with threadpool_limits(limits=nproc, user_api="blas"):
-            anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)
-            anm.calcModes(nmodes, zeros=zeros, turbo=turbo)
-    else:
-        anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)
-        anm.calcModes(nmodes, zeros=zeros, turbo=turbo)
+    anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)
+    anm.calcModes(nmodes, zeros=zeros, turbo=turbo, nproc=nproc)
+    
     LOGGER.info('Writing numerical output.')
 
     if kwargs.get('outnpz'):
