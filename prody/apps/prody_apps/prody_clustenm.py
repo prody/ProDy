@@ -132,38 +132,17 @@ def prody_clustenm(pdb, **kwargs):
             raise TypeError("Please provide cutoff as a float or equation using math")
 
     ens = prody.ClustENM(pdb.getTitle())
-
-    nproc = kwargs.pop('nproc')
-    if nproc:
-        try:
-            from threadpoolctl import threadpool_limits
-        except ImportError:
-            raise ImportError('Please install threadpoolctl to control threads')
-
-        with threadpool_limits(limits=nproc, user_api="blas"):
-            ens.setAtoms(select)
-            ens.run(n_gens=ngens, n_modes=nmodes,
-                    n_confs=nconfs, rmsd=eval(rmsd),
-                    cutoff=cutoff, gamma=gamma,
-                    maxclust=eval(maxclust), threshold=eval(threshold),
-                    solvent=solvent, force_field=eval(forcefield),
-                    sim=sim, temp=temp, t_steps_i=t_steps_i, 
-                    t_steps_g=eval(t_steps_g),
-                    outlier=outlier, mzscore=mzscore,
-                    sparse=sparse, kdtree=kdtree, turbo=turbo,
-                    parallel=parallel, **kwargs)
-    else:
-        ens.setAtoms(select)
-        ens.run(n_gens=ngens, n_modes=nmodes,
-                n_confs=nconfs, rmsd=eval(rmsd),
-                cutoff=cutoff, gamma=gamma,
-                maxclust=eval(maxclust), threshold=eval(threshold),
-                solvent=solvent, force_field=eval(forcefield),
-                sim=sim, temp=temp, t_steps_i=t_steps_i, 
-                t_steps_g=eval(t_steps_g),
-                outlier=outlier, mzscore=mzscore,
-                sparse=sparse, kdtree=kdtree, turbo=turbo,
-                parallel=parallel, **kwargs)
+    ens.setAtoms(select)
+    ens.run(n_gens=ngens, n_modes=nmodes,
+            n_confs=nconfs, rmsd=eval(rmsd),
+            cutoff=cutoff, gamma=gamma,
+            maxclust=eval(maxclust), threshold=eval(threshold),
+            solvent=solvent, force_field=eval(forcefield),
+            sim=sim, temp=temp, t_steps_i=t_steps_i,
+            t_steps_g=eval(t_steps_g),
+            outlier=outlier, mzscore=mzscore,
+            sparse=sparse, kdtree=kdtree, turbo=turbo,
+            parallel=parallel, **kwargs)
 
     single = not kwargs.pop('multiple')
     outname = join(outdir, prefix)
