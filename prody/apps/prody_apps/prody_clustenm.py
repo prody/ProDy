@@ -188,7 +188,7 @@ graphical output files:
   $ prody clustenm 1aar -s "calpha and chain A and resnum < 70" -A""",
   test_examples=[0, 1])
 
-    group = addNMAParameters(subparser)
+    group = addNMAParameters(subparser, include_nproc=False)
 
     group.add_argument('-c', '--cutoff', dest='cutoff', type=str,
         default=DEFAULTS['cutoff'], metavar='FLOAT',

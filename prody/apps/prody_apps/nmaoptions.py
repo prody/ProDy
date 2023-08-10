@@ -48,7 +48,7 @@ __all__ = ['addNMAParameters', 'addNMAOutput', 'addNMAOutputOptions',
            'addNMAFigures', 'addNMAFigureOptions']
 
 
-def addNMAParameters(parser):
+def addNMAParameters(parser, include_nproc=True):
 
     parser = parser.add_argument_group('parameters')
 
@@ -59,10 +59,11 @@ def addNMAParameters(parser):
     parser.add_argument('-s', '--select', dest='select', type=str,
         default=DEFAULTS['select'], metavar='STR',
         help=HELPTEXT['select'] + ' (default: "%(default)s")')
-
-    parser.add_argument('-P', '--number-of-processors', dest='nproc', type=int,
-        default=DEFAULTS['nproc'], metavar='INT',
-        help=HELPTEXT['nproc'] + ' (default: %(default)s meaning use all)')
+    
+    if include_nproc:
+        parser.add_argument('-P', '--number-of-processors', dest='nproc', type=int,
+            default=DEFAULTS['nproc'], metavar='INT',
+            help=HELPTEXT['nproc'] + ' (default: %(default)s meaning use all)')
 
     return parser
 
