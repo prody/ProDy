@@ -1539,7 +1539,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
             
-    write('END\n')
+    write('END   \n')
 
 writePDBStream.__doc__ += _writePDBdoc
 
