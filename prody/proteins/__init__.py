@@ -216,6 +216,10 @@ from . import starfile
 from .starfile import *
 __all__.extend(starfile.__all__)
 
+from . import waterbridges
+from .waterbridges import *
+__all__.extend(waterbridges.__all__)
+
 from . import fixer
 from .fixer import *
 __all__.extend(fixer.__all__)
