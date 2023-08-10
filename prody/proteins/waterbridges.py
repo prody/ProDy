@@ -275,7 +275,7 @@ def getInfoOutput(waterBridgesAtomic):
 
 
 def getWaterBridgesInfoOutput(waterBridgesAtomic):
-    """Coverts single frame/trajectory atomic output from calcWaterBridges/Trajectory to info output.
+    """Converts single frame/trajectory atomic output from calcWaterBridges/Trajectory to info output.
 
     :arg waterBridgesAtomic: water bridges from calcWaterBridges/Trajectory
     :type waterBridgesAtomic: list
@@ -462,8 +462,19 @@ def calcWaterBridges(atoms, **kwargs):
 
 # took from interactions.py
 def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
-    """Compute selected type interactions for DCD trajectory or multi-model PDB 
-    using default parameters."""
+    """Computes water bridges for a given trajectory. Kwargs for options are the same as in calcWaterBridges.
+
+    :arg atoms: Atomic object from which atoms are considered
+    :type atoms: :class:`.Atomic`
+
+    :arg trajectory: trajectory object, DCD or multimodal PDB
+
+    :arg start_frame: frame to start from
+    :type start_frame: int
+
+    :arg stop_frame: frame to stop
+    :type stop_frame: int
+    """
 
     interactions_all = []
     start_frame = kwargs.pop('start_frame', 0)
