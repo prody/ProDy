@@ -256,7 +256,7 @@ graphical output files:
         default=DEFAULTS['ionicStrength'], metavar='FLOAT',
         help=HELPTEXT['ionicStrength'] + ' (default: %(default)s)')
     
-    group.add_argument('-Q', '--padding', dest='padding', type=float,
+    group.add_argument('-P', '--padding', dest='padding', type=float,
         default=DEFAULTS['padding'], metavar='FLOAT',
         help=HELPTEXT['padding'] + ' (default: %(default)s)')
 
