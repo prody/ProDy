@@ -760,7 +760,7 @@ def _getReference(lines):
 def _getPolymers(lines):
     """Returns list of polymers (macromolecules)."""
 
-    pdbid = lines[0].split("_")[1].strip()
+    pdbid = _PDB_HEADER_MAP['identifier'](lines)
     polymers = dict()
 
     entities = defaultdict(list)
@@ -1208,8 +1208,9 @@ def _getModelType(lines):
 
     model_type = ''
 
-    model_type += [line.split()[1] for line in lines
-                  if line.find("_struct.pdbx_model_type_details") != -1][0]
+    model_type += [line.split()[1]
+                  if line.find("_struct.pdbx_model_type_details") != -1 else ''
+                  for line in lines][0]
 
     if model_type == '?':
         model_type = None
@@ -1300,7 +1301,9 @@ _PDB_HEADER_MAP = {
     'classification': lambda lines: [line.split()[1]
                                      if line.find("_struct_keywords.pdbx_keywords") != -1 else None
                                      for line in lines][0],
-    'identifier': lambda lines: lines[0].split("_")[1].strip() if len(lines[0].split("_")) else '',
+    'identifier': lambda lines: [line.split('_')[1]
+                                 if line.find("data") == 0 else ''
+                                 for line in lines][0],
     'title': _getTitle,
     'experiment': lambda lines: [line.split()[1]
                                  if line.find("_exptl.method") != -1 else None

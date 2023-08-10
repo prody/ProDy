@@ -216,9 +216,15 @@ from . import starfile
 from .starfile import *
 __all__.extend(starfile.__all__)
 
-from . import waterbridges
-from .waterbridges import *
-__all__.extend(waterbridges.__all__)
+try:
+    from . import waterbridges
+    from .waterbridges import *
+except SyntaxError:
+    import logging
+    logger = logging.getLogger()
+    logger.warn("Cannot import waterbridges in python 2")
+else:
+    __all__.extend(waterbridges.__all__)
 
 from . import fixer
 from .fixer import *
