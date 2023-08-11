@@ -209,6 +209,8 @@ class TestWritePDB(unittest.TestCase):
         self.ag = parsePDB(self.pdb['path'])
         self.tmp = os.path.join(TEMPDIR, 'test.pdb')
 
+        self.ubi = parsePDB(DATA_FILES['1ubi']['path'], secondary=True)
+
         self.hex = parsePDB(DATA_FILES['hex']['path'])
         self.h36 = parsePDB(DATA_FILES['h36']['path'])
 
@@ -279,11 +281,20 @@ class TestWritePDB(unittest.TestCase):
 
         serial_99999_line = lines[99999]
         self.assertEqual(serial_99999_line[6:11], '99999',
-            'writePDB failed to write correct pre-h36 serial')        
+            'writePDB failed to write correct pre-h36 serial')
 
         serial_A0000_line = lines[100000]
         self.assertEqual(serial_A0000_line[6:11], 'A0000',
-            'writePDB failed to write correct h36 serial') 
+            'writePDB failed to write correct h36 serial')
+        
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingSecstrs(self):
+        """Test if output from writing secstrs is as expected."""
+
+        out = writePDB(self.tmp, self.ubi)
+        ubi_new = parsePDB(out, secondary=True)
+        self.assertListEqual(list(self.ubi.getSecstrs()), list(ubi_new.getSecstrs()))
 
     @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
@@ -298,13 +309,6 @@ class TestWritePDB(unittest.TestCase):
                 'failed to write correct number of models')
             assert_equal(out.getCoords(), self.ag.getCoordsets(i),
                  'failed to write model {0} coordinates correctly'.format(i+1))
-
-    @dec.slow
-    def tearDown(self):
-        """Remove test file."""
-
-        if os.path.isfile(self.tmp):
-            os.remove(self.tmp)
 
     @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
@@ -365,6 +369,13 @@ class TestWritePDB(unittest.TestCase):
         serial_A0000_line = lines[100000]
         self.assertEqual(serial_A0000_line[6:11], 'A0000',
             'writePDB failed to write correct h36 serial') 
+
+    @dec.slow
+    def tearDown(self):
+        """Remove test file."""
+
+        if os.path.isfile(self.tmp):
+            os.remove(self.tmp)
 
 
 class TestParsePDBHeaderAndAllModels(unittest.TestCase):
