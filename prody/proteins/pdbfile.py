@@ -1558,10 +1558,10 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     num_ter_lines += 1
 
         if multi:
-            write('ENDMDL\n')
+            write('ENDMDL' + " "*74 + '\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
             
-    write('END   \n')
+    write('END   ' + " "*74 + '\n')
 
 writePDBStream.__doc__ += _writePDBdoc
 
