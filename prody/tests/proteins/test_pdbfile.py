@@ -209,7 +209,7 @@ class TestWritePDB(unittest.TestCase):
         self.ag = parsePDB(self.pdb['path'])
         self.tmp = os.path.join(TEMPDIR, 'test.pdb')
 
-        self.ubi = parsePDB(DATA_FILES['1ubi']['path'])
+        self.ubi = parsePDB(DATA_FILES['1ubi']['path'], secondary=True)
 
         self.hex = parsePDB(DATA_FILES['hex']['path'])
         self.h36 = parsePDB(DATA_FILES['h36']['path'])
@@ -293,7 +293,7 @@ class TestWritePDB(unittest.TestCase):
         """Test if output from writing secstrs is as expected."""
 
         out = writePDB(self.tmp, self.ubi)
-        ubi_new = parsePDB(out)
+        ubi_new = parsePDB(out, secondary=True)
         self.assertListEqual(list(self.ubi.getSecstrs()), list(ubi_new.getSecstrs()))
 
     @dec.slow
