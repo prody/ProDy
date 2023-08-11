@@ -847,7 +847,7 @@ class ClustENM(Ensemble):
 
         :arg single: If it is True (default), then the conformers will be saved into a single PDB file with
             each conformer as a model. Otherwise, a directory will be created with the filename,
-            and each conformer will be saved as a separate PDB fle.
+            and each conformer will be saved as a separate PDB file.
         :type single: bool
         '''
 
