@@ -158,6 +158,12 @@ DATA_FILES = {
     'h36': {
         'file': 'pdb1tw7_step3_charmm2namd_doubled_h36.pdb'
     },
+    'hex_ter': {
+        'file': 'pdb4v8r_hex.pdb'
+    },
+    'h36_ter': {
+        'file': 'pdb4v8r_h36.pdb'
+    },
     'multi_model_cif': {
         'pdb': '6yfy',
         'file': 'mmcif_6yfy.cif',
