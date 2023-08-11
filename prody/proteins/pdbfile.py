@@ -11,7 +11,7 @@ from numbers import Integral
 import numpy as np
 
 from prody.atomic import AtomGroup, Atom, Selection
-from prody.atomic import flags
+from prody.atomic import flags, AAMAP
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, isListLike
 from prody.utilities.misctools import decToHybrid36, hybrid36ToDec, packmolRenumChains
@@ -1057,13 +1057,13 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
 #             '                               %5d\n')
 
 HELIXLINE = ('HELIX  {serNum:3d} {helixID:>3s} '
-             '{initResName:<3s} {initChainID:1s} {initSeqNum:4d}{initICode:1s} '
-             '{endResName:<3s} {endChainID:1s} {endSeqNum:4d}{endICode:1s}'
+             '{initResName:<3s}{initChainID:2s} {initSeqNum:4d}{initICode:1s} '
+             '{endResName:<3s}{endChainID:2s} {endSeqNum:4d}{endICode:1s}'
              '{helixClass:2d}                               {length:5d}\n')
 
 SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
-             '{initResName:3s} {initChainID:1s}{initSeqNum:4d}{initICode:1s} '
-             '{endResName:3s} {endChainID:1s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
+             '{initResName:3s}{initChainID:2s}{initSeqNum:4d}{initICode:1s} '
+             '{endResName:3s}{endChainID:2s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
 
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-3s%2s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
@@ -1399,6 +1399,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     # write atoms
     multi = len(coordsets) > 1
     write = stream.write
+    num_ter_lines = 0
     for m, coords in enumerate(coordsets):
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
@@ -1416,6 +1417,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         warned_5_digit = False
 
         for i, xyz in enumerate(coords):
+
+            serial = serials[i] + num_ter_lines
+
             if hybrid36:
                 pdbline = PDBLINE_H36
                 anisouline = ANISOULINE_H36
@@ -1425,7 +1429,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     warned_hybrid36 = True
 
             else:
-                if not (reached_max_n_atom or reached_max_n_res) and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                if not (reached_max_n_atom or reached_max_n_res) and (i == MAX_N_ATOM or serial > MAX_N_ATOM):
                     reached_max_n_atom = True
                     pdbline = PDBLINE_GE100K
                     anisouline = ANISOULINE_GE100K
@@ -1443,17 +1447,17 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     anisouline = ANISOULINE_GE100K_GE10K
                     LOGGER.warn('Resnums are exceeding 9999 and hexadecimal format is being used for indices and resnums')
 
-                elif reached_max_n_res and not reached_max_n_atom and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                elif reached_max_n_res and not reached_max_n_atom and (i == MAX_N_ATOM or serial > MAX_N_ATOM):
                     reached_max_n_atom = True
                     pdbline = PDBLINE_GE100K_GE10K
                     anisouline = ANISOULINE_GE100K_GE10K
                     LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used for indices and resnums')
 
             if hybrid36:
-                serial = decToHybrid36(serials[i])
+                serial = decToHybrid36(serial)
                 resnum = decToHybrid36(resnums[i], resnum=True)
             else:
-                serial = serials[i]
+                serial = serial
                 resnum = resnums[i]
 
             if pdbline == PDBLINE_LT100K or hybrid36:
@@ -1521,17 +1525,43 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                                     segments[i], elements[i], charges2[i]))
 
             if isinstance(atoms, AtomGroup):
-                if atoms._getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
-                    write('TER\n')
+                if resnames[i] in AAMAP and atoms._getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
+                    if hybrid36:
+                        serial = decToHybrid36(hybrid36ToDec(serial) + 1)
+                    else:
+                        serial += 1
+
+                    false_pdbline = pdbline % ("TER   ", serial,
+                                               "", "",
+                                               resnames[i], chainids[i], resnum,
+                                               icodes[i],
+                                               xyz[0], xyz[1], xyz[2],
+                                               occupancies[i], bfactors[i],
+                                               segments[i], elements[i], charges2[i])
+                    write(false_pdbline[:26] + " "*54 + '\n')
+                    num_ter_lines += 1
             else:
-                if atoms._getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
-                    write('TER\n')
+                if resnames[i] in AAMAP and atoms._getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
+                    if hybrid36:
+                        serial = decToHybrid36(hybrid36ToDec(serial) + 1)
+                    else:
+                        serial += 1
+
+                    false_pdbline = pdbline % ("TER   ", serial,
+                                               "", "",
+                                               resnames[i], chainids[i], resnum,
+                                               icodes[i],
+                                               xyz[0], xyz[1], xyz[2],
+                                               occupancies[i], bfactors[i],
+                                               segments[i], elements[i], charges2[i])
+                    write(false_pdbline[:26] + " "*54 + '\n')
+                    num_ter_lines += 1
 
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
             
-    write('END\n')
+    write('END   \n')
 
 writePDBStream.__doc__ += _writePDBdoc
 
