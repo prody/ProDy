@@ -29,7 +29,7 @@ for key, txt, val in [
     ('no_sim', 'whether a short MD simulation is not performed after energy minimization (otherwise it is)', False),
     ('parallel', 'whether conformer generation will be parallelized', False),
     ('v1', 'whether to use original sampling method with complete enumeration of ANM modes', False),
-    ('no_outlier', 'whether to not exclude conformers detected as outliers in each generation when using explicit solvent', False),
+    ('no_outlier', 'whether to not exclude outliers in each generation when using implicit solvent (always False for explicit)', False),
     ('mzscore', 'modified z-score threshold to label conformers as outliers', 3.5),
     ('tolerance', 'energy tolerance to which the system should be minimized in kJ/mole', 10.),
     ('maxIterations', 'maximum number of iterations of energy minimization, 0 means until convergence', 0),
