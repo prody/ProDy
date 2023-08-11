@@ -1057,13 +1057,13 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
 #             '                               %5d\n')
 
 HELIXLINE = ('HELIX  {serNum:3d} {helixID:>3s} '
-             '{initResName:<3s}{initChainID:2s} {initSeqNum:4d}{initICode:1s} '
-             '{endResName:<3s}{endChainID:2s} {endSeqNum:4d}{endICode:1s}'
-             '{helixClass:2d}                               {length:5d}\n')
+             '{initResName:<3s}{initChainID:>2s} {initSeqNum:4d}{initICode:1s} '
+             '{endResName:<3s}{endChainID:>2s} {endSeqNum:4d}{endICode:1s}'
+             '{helixClass:2d}                               {length:5d}    \n')
 
 SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
-             '{initResName:3s}{initChainID:2s}{initSeqNum:4d}{initICode:1s} '
-             '{endResName:3s}{endChainID:2s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
+             '{initResName:3s}{initChainID:>2s}{initSeqNum:4d}{initICode:1s} '
+             '{endResName:3s}{endChainID:>2s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
 
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-3s%2s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
