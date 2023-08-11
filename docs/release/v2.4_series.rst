@@ -10,7 +10,7 @@ ProDy 2.4 Series
 
 **New Features**:
 
-* New function writeBILD to write modes in BILD format for viewing in Chimera/ChimeraX\
+* New function writeBILD to write modes in BILD format for viewing in Chimera/ChimeraX
 * New function addMissingAtoms based on PDBFixer or OpenBabel
 * Added Seaborn kernel density estimator (KDE) options to showProjection like Kaynak et al., 2022
 * Added options to control adjust_text for showProjection
