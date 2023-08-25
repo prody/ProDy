@@ -145,7 +145,7 @@ CONTRIBUTED = [
               [join('prody', 'proteins', 'hpbmodule', 'hpbmodule.cpp')],
               include_dirs=[hpbDir], language='c++',
               extra_compile_args=['-O3', '-g', '-fPIC'],
-              extra_link_args=['-lgfortran'],
+              #extra_link_args=['-lgfortran'],
               extra_objects=[join('prody', 'proteins', 'hpbmodule', 'reg_tet.o')]
               )
 ]
