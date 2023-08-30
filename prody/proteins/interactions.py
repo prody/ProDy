@@ -172,9 +172,19 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     :type cumulative_values: 'pairs' or 'single_residues'
     """
     
-    try:
-        import hpb
+    imported_hpb = False
 
+    try:
+        import prody.proteins.hpb as hpb
+        imported_hpb = True
+    except ImportError:
+        try:
+            import hpb
+            imported_hpb = True
+        except ImportError:
+            LOGGER.info('Please provide hpb.so file into the directory.')
+
+    if imported_hpb:
         selection = kwargs.pop('selection', 'protein and noh')
         hpb_cutoff = kwargs.pop('hpb_cutoff', 0.0)
         cumulative_values = kwargs.pop('cumulative_values', None)
@@ -214,9 +224,6 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
                 sums[k] = sums.get(k, 0) + w
             return sums
     
-    except: 
-        LOGGER.info('Please provide hpb.so file into the directory.')
-    
 
 def calcSASA(atoms, **kwargs):
     """Provide information about solvent accessible surface area (SASA) based on 
@@ -238,9 +245,19 @@ def calcSASA(atoms, **kwargs):
     :type resnames: bool    
     """
     
+    imported_hpb = False
+
     try:
-        import hpb
-        
+        import prody.proteins.hpb as hpb
+        imported_hpb = True
+    except ImportError:
+        try:
+            import hpb
+            imported_hpb = True
+        except ImportError:
+            LOGGER.info('Please provide hpb.so file into the directory.')
+
+    if imported_hpb:
         selection = kwargs.pop('selection', 'protein and noh')
         resnames = kwargs.pop('resnames', False)
         sasa_cutoff = kwargs.pop('sasa_cutoff', 0.0)
@@ -264,9 +281,6 @@ def calcSASA(atoms, **kwargs):
             return output_final
         else:
             return [ float(i[-1]) for i in output_final ]
-
-    except: 
-        LOGGER.info('Please provide hpb.so file into the directory.')
 
 def calcVolume(atoms, **kwargs):
     """Provide information about volume for each residue/molecule/chain
@@ -294,9 +308,19 @@ def calcVolume(atoms, **kwargs):
     :type resnames: bool
     """
     
-    try:
-        import hpb
+    imported_hpb = False
 
+    try:
+        import prody.proteins.hpb as hpb
+        imported_hpb = True
+    except ImportError:
+        try:
+            import hpb
+            imported_hpb = True
+        except ImportError:
+            LOGGER.info('Please provide hpb.so file into the directory.')
+
+    if imported_hpb:
         selection = kwargs.pop('selection', 'protein and noh')
         resnames = kwargs.pop('resnames', False)
         volume_cutoff = kwargs.pop('volume_cutoff', 0.0)
@@ -325,9 +349,6 @@ def calcVolume(atoms, **kwargs):
             
         else:
             return sum( [float(i[-1]) for i in output_final] )
-
-    except: 
-        LOGGER.info('Please provide hpb.so file into the directory.')
 
 
 def calcHydrogenBonds(atoms, **kwargs):
