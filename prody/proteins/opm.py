@@ -26,7 +26,7 @@ def fetchPDBfromOPM(pdb):
             if output_folder is None:
                 output_folder = getcwd()
 
-            filename = join(output_folder, pdb + '.pdb')
+            filename = join(output_folder, pdb + '-opm.pdb')
 
             with open(filename, 'w+b') as pdbfile:
                 pdbfile.write(data)
