@@ -61,7 +61,7 @@ def addNMAParameters(parser, include_nproc=True):
         default=DEFAULTS['select'], metavar='STR',
         help=HELPTEXT['select'] + ' (default: "%(default)s")')
     
-    parser.add_argument('-i', '--membrane', dest='membrane', action='store_true',
+    parser.add_argument('-M', '--membrane', dest='membrane', action='store_true',
         default=DEFAULTS['membrane'], help=HELPTEXT['membrane'])
     
     if include_nproc:
