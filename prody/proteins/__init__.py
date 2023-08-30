@@ -232,3 +232,7 @@ __all__.extend(fixer.__all__)
 
 from .pdbfile import PDBParseError
 from .ciffile import MMCIFParseError
+
+from . import opm
+from .opm import *
+__all__.extend(opm.__all__)

@@ -64,6 +64,10 @@ def prody_anm(pdb, **kwargs):
     altloc = kwargs.get('altloc')
     zeros = kwargs.get('zeros')
     turbo = kwargs.get('turbo')
+    membrane = kwargs.get('membrane')
+
+    if membrane:
+        pdb = prody.fetchPDBfromOPM(pdb)
 
     pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
     if prefix == '_anm':
@@ -77,6 +81,10 @@ def prody_anm(pdb, **kwargs):
     LOGGER.info('{0} atoms will be used for ANM calculations.'
                 .format(len(select)))
 
+    if membrane:
+        anm = prody.exANM(pdb.getTitle())
+    else:
+        anm = prody.ANM(pdb.getTitle())
     try:
         gamma = float(kwargs.get('gamma'))
         LOGGER.info("Using gamma {0}".format(gamma))
@@ -102,8 +110,6 @@ def prody_anm(pdb, **kwargs):
             raise NameError("Please provide cutoff as a float or equation using math")
         except TypeError:
             raise TypeError("Please provide cutoff as a float or equation using math")
-
-    anm = prody.ANM(pdb.getTitle())
 
     nproc = kwargs.get('nproc')
     anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)

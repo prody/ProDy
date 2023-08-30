@@ -12,6 +12,7 @@ for key, txt, val in [
     ('select', 'atom selection',
          "protein and name CA or nucleic and name P C4' C2"),
     ('nmodes', 'number of non-zero eigenvectors (modes) to calculate', 10),
+    ('membrane', 'whether to include the explicit membrane model', False),
 
     ('outall', 'write all outputs', False),
     ('outeig', 'write eigenvalues/vectors', False),
@@ -59,6 +60,9 @@ def addNMAParameters(parser, include_nproc=True):
     parser.add_argument('-s', '--select', dest='select', type=str,
         default=DEFAULTS['select'], metavar='STR',
         help=HELPTEXT['select'] + ' (default: "%(default)s")')
+    
+    parser.add_argument('-N', '--membrane', dest='membrane', action='store_true',
+        default=DEFAULTS['membrane'], help=HELPTEXT['membrane'])
     
     if include_nproc:
         parser.add_argument('-P', '--number-of-processors', dest='nproc', type=int,

@@ -57,6 +57,10 @@ def prody_gnm(pdb, **kwargs):
     model = kwargs.get('model')
     altloc = kwargs.get('altloc')
     zeros = kwargs.get('zeros')
+    membrane = kwargs.get('membrane')
+
+    if membrane:
+        pdb = prody.fetchPDBfromOPM(pdb)
 
     pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
     if prefix == '_gnm':
@@ -69,6 +73,10 @@ def prody_gnm(pdb, **kwargs):
     LOGGER.info('{0} atoms will be used for GNM calculations.'
                 .format(len(select)))
 
+    if membrane:
+        gnm = prody.exGNM(pdb.getTitle())
+    else:
+        gnm = prody.GNM(pdb.getTitle())
     try:
         gamma = float(kwargs.get('gamma'))
         LOGGER.info("Using gamma {0}".format(gamma))
@@ -81,8 +89,6 @@ def prody_gnm(pdb, **kwargs):
             raise NameError("Please provide gamma as a float or ProDy Gamma class")
         except TypeError:
             raise TypeError("Please provide gamma as a float or ProDy Gamma class")
-
-    gnm = prody.GNM(pdb.getTitle())
 
     nproc = kwargs.get('nproc')
     gnm.buildKirchhoff(select, cutoff, gamma)
