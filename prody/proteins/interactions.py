@@ -1128,9 +1128,19 @@ def calcHydrophobic(atoms, **kwargs):
     selection2 = kwargs.get('selection2', None) 
     sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
         
-    try: 
-        import hpb                
-    
+    imported_hpb = False
+
+    try:
+        import prody.proteins.hpb as hpb
+        imported_hpb = True
+    except ImportError:
+        try:
+            import hpb
+            imported_hpb = True
+        except ImportError:
+            LOGGER.info('Please provide hpb.so file into the directory.')
+
+    if imported_hpb:
         Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-2])
         Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
         Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, atoms, **sel_kwargs)
@@ -1147,7 +1157,7 @@ def calcHydrophobic(atoms, **kwargs):
         
         return Hydrophobic_calculations_final3
 
-    except:                    
+    else:
         Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-1])
         Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
         Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, atoms, **sel_kwargs)
