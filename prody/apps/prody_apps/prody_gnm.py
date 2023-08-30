@@ -57,6 +57,10 @@ def prody_gnm(pdb, **kwargs):
     model = kwargs.get('model')
     altloc = kwargs.get('altloc')
     zeros = kwargs.get('zeros')
+    membrane = kwargs.get('membrane')
+
+    if membrane:
+        pdb = prody.fetchPDBfromOPM(pdb)
 
     pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
     if prefix == '_gnm':
@@ -69,7 +73,7 @@ def prody_gnm(pdb, **kwargs):
     LOGGER.info('{0} atoms will be used for GNM calculations.'
                 .format(len(select)))
 
-    if kwargs.get('membrane'):
+    if membrane:
         gnm = prody.exGNM(pdb.getTitle())
     else:
         gnm = prody.GNM(pdb.getTitle())

@@ -64,6 +64,10 @@ def prody_anm(pdb, **kwargs):
     altloc = kwargs.get('altloc')
     zeros = kwargs.get('zeros')
     turbo = kwargs.get('turbo')
+    membrane = kwargs.get('membrane')
+
+    if membrane:
+        pdb = prody.fetchPDBfromOPM(pdb)
 
     pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
     if prefix == '_anm':
@@ -77,7 +81,7 @@ def prody_anm(pdb, **kwargs):
     LOGGER.info('{0} atoms will be used for ANM calculations.'
                 .format(len(select)))
 
-    if kwargs.get('membrane'):
+    if membrane:
         anm = prody.exANM(pdb.getTitle())
     else:
         anm = prody.ANM(pdb.getTitle())
