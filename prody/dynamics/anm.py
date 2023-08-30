@@ -197,7 +197,7 @@ class ANMBase(NMA):
         self._n_atoms = n_atoms
         self._dof = dof
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, **kwargs):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Hessian matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
@@ -211,6 +211,10 @@ class ANMBase(NMA):
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is **True**
+
+        :arg nproc: number of processors for thread pool limit,
+            default is **0**, meaning don't impose limit
+        :type nproc: int
         """
 
         if self._hessian is None:
@@ -224,7 +228,7 @@ class ANMBase(NMA):
         self._clear()
         LOGGER.timeit('_anm_calc_modes')
         values, vectors, vars = solveEig(self._hessian, n_modes=n_modes, zeros=zeros, 
-                                         turbo=turbo, expct_n_zeros=6)
+                                         turbo=turbo, expct_n_zeros=6, **kwargs)
         self._eigvals = values
         self._array = vectors
         self._vars = vars

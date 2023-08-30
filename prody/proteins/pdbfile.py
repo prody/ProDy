@@ -11,7 +11,7 @@ from numbers import Integral
 import numpy as np
 
 from prody.atomic import AtomGroup, Atom, Selection
-from prody.atomic import flags
+from prody.atomic import flags, AAMAP
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, isListLike
 from prody.utilities.misctools import decToHybrid36, hybrid36ToDec, packmolRenumChains
@@ -108,6 +108,9 @@ def parsePDB(*pdb, **kwargs):
         Default value is False to reproduce previous behaviour.
         This value is ignored when result is not a list (header=True or model=0).
     :type extend_biomol: bool 
+
+    Please note that resnames are only taken as 3 characters and chids can be 2.
+    Hence, TIP3S is split into resname TIP and chid 3S.
     """
     extend_biomol = kwargs.pop('extend_biomol', False)
 
@@ -522,6 +525,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     i = start
     END = False
     warned_5_digit = False
+    warned_long_chid = False
     dec = True
     while i < stop:
         line = lines[i]
@@ -554,6 +558,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
 
             if isPDB:
                 chid = line[20:22].strip()
+                if len(chid) > 1 and not warned_long_chid:
+                    LOGGER.warn('Parsed 2-character chid {0} continuous with resnum {1} from {2}. Please check if this was intended.'.format(
+                        chid, line[17:20], line[17:22]
+                    ))
+                    warned_long_chid = True
             else:
                 chid = fields[4]
 
@@ -1057,13 +1066,13 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
 #             '                               %5d\n')
 
 HELIXLINE = ('HELIX  {serNum:3d} {helixID:>3s} '
-             '{initResName:<3s} {initChainID:1s} {initSeqNum:4d}{initICode:1s} '
-             '{endResName:<3s} {endChainID:1s} {endSeqNum:4d}{endICode:1s}'
-             '{helixClass:2d}                               {length:5d}\n')
+             '{initResName:<3s}{initChainID:>2s} {initSeqNum:4d}{initICode:1s} '
+             '{endResName:<3s}{endChainID:>2s} {endSeqNum:4d}{endICode:1s}'
+             '{helixClass:2d}                               {length:5d}    \n')
 
 SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
-             '{initResName:3s} {initChainID:1s}{initSeqNum:4d}{initICode:1s} '
-             '{endResName:3s} {endChainID:1s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
+             '{initResName:3s}{initChainID:>2s}{initSeqNum:4d}{initICode:1s} '
+             '{endResName:3s}{endChainID:>2s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
 
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-3s%2s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
@@ -1363,9 +1372,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 L = helix_resnums[-1] - helix_resnums[0] + 1
 
                 stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0], 
-                            initResName=helix_resnames[0], initChainID=helix_chainids[0], 
+                            initResName=helix_resnames[0][:3], initChainID=helix_chainids[0], 
                             initSeqNum=helix_resnums[0], initICode=helix_icodes[0],
-                            endResName=helix_resnames[-1], endChainID=helix_chainids[-1], 
+                            endResName=helix_resnames[-1][:3], endChainID=helix_chainids[-1], 
                             endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
                             helixClass=helix_secclasses[0], length=L))
 
@@ -1389,9 +1398,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 strand_icodes = icodes[torf_strand]
 
                 stream.write(SHEETLINE.format(strand=i, sheetID=sheet_id, numStrands=numStrands,
-                            initResName=strand_resnames[0], initChainID=strand_chainids[0], 
+                            initResName=strand_resnames[0][:3], initChainID=strand_chainids[0], 
                             initSeqNum=strand_resnums[0], initICode=strand_icodes[0],
-                            endResName=strand_resnames[-1], endChainID=strand_chainids[-1], 
+                            endResName=strand_resnames[-1][:3], endChainID=strand_chainids[-1], 
                             endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
                             sense=strand_secclasses[0]))
         pass
@@ -1399,6 +1408,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     # write atoms
     multi = len(coordsets) > 1
     write = stream.write
+    num_ter_lines = 0
     for m, coords in enumerate(coordsets):
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
@@ -1414,8 +1424,12 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             warned_hybrid36 = False
 
         warned_5_digit = False
+        warned_long_resname = False
 
         for i, xyz in enumerate(coords):
+
+            serial = serials[i] + num_ter_lines
+
             if hybrid36:
                 pdbline = PDBLINE_H36
                 anisouline = ANISOULINE_H36
@@ -1425,7 +1439,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     warned_hybrid36 = True
 
             else:
-                if not (reached_max_n_atom or reached_max_n_res) and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                if not (reached_max_n_atom or reached_max_n_res) and (i == MAX_N_ATOM or serial > MAX_N_ATOM):
                     reached_max_n_atom = True
                     pdbline = PDBLINE_GE100K
                     anisouline = ANISOULINE_GE100K
@@ -1443,18 +1457,26 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     anisouline = ANISOULINE_GE100K_GE10K
                     LOGGER.warn('Resnums are exceeding 9999 and hexadecimal format is being used for indices and resnums')
 
-                elif reached_max_n_res and not reached_max_n_atom and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                elif reached_max_n_res and not reached_max_n_atom and (i == MAX_N_ATOM or serial > MAX_N_ATOM):
                     reached_max_n_atom = True
                     pdbline = PDBLINE_GE100K_GE10K
                     anisouline = ANISOULINE_GE100K_GE10K
                     LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used for indices and resnums')
 
             if hybrid36:
-                serial = decToHybrid36(serials[i])
+                serial = decToHybrid36(serial)
                 resnum = decToHybrid36(resnums[i], resnum=True)
             else:
-                serial = serials[i]
                 resnum = resnums[i]
+
+            resname = resnames[i]
+            if len(resnames[i]) > 3:
+                resname = resname[:3]
+                if not warned_long_resname:
+                    LOGGER.warn('Resname {0} too long, cutting resname to 3 characters as {1}'.format(
+                        resnames[i], resname
+                    ))
+                    warned_long_resname = True
 
             if pdbline == PDBLINE_LT100K or hybrid36:
                 if len(str(resnum)) == 5:
@@ -1503,7 +1525,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
-                             resnames[i], chainids[i], resnum,
+                             resname, chainids[i], resnum,
                              icodes[i],
                              xyz[0], xyz[1], xyz[2],
                              occupancies[i], bfactors[i],
@@ -1514,24 +1536,50 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
                 write(anisouline % ("ANISOU", serial,
                                     atomnames[i], altlocs[i],
-                                    resnames[i], chainids[i], resnum,
+                                    resname, chainids[i], resnum,
                                     icodes[i],
                                     anisou[0], anisou[1], anisou[2],
                                     anisou[3], anisou[4], anisou[5],
                                     segments[i], elements[i], charges2[i]))
 
             if isinstance(atoms, AtomGroup):
-                if atoms._getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
-                    write('TER\n')
+                if resnames[i] in AAMAP and atoms._getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
+                    if hybrid36:
+                        serial = decToHybrid36(hybrid36ToDec(serial) + 1)
+                    else:
+                        serial += 1
+
+                    false_pdbline = pdbline % ("TER   ", serial,
+                                               "", "",
+                                               resname, chainids[i], resnum,
+                                               icodes[i],
+                                               xyz[0], xyz[1], xyz[2],
+                                               occupancies[i], bfactors[i],
+                                               segments[i], elements[i], charges2[i])
+                    write(false_pdbline[:26] + " "*54 + '\n')
+                    num_ter_lines += 1
             else:
-                if atoms._getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
-                    write('TER\n')
+                if resnames[i] in AAMAP and atoms._getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
+                    if hybrid36:
+                        serial = decToHybrid36(hybrid36ToDec(serial) + 1)
+                    else:
+                        serial += 1
+
+                    false_pdbline = pdbline % ("TER   ", serial,
+                                               "", "",
+                                               resname, chainids[i], resnum,
+                                               icodes[i],
+                                               xyz[0], xyz[1], xyz[2],
+                                               occupancies[i], bfactors[i],
+                                               segments[i], elements[i], charges2[i])
+                    write(false_pdbline[:26] + " "*54 + '\n')
+                    num_ter_lines += 1
 
         if multi:
-            write('ENDMDL\n')
+            write('ENDMDL' + " "*74 + '\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
             
-    write('END\n')
+    write('END   ' + " "*74 + '\n')
 
 writePDBStream.__doc__ += _writePDBdoc
 
@@ -1548,6 +1596,8 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
         Default is **False**, which means using hexadecimal instead.
         NB: ChimeraX seems to prefer hybrid36 and may have problems with hexadecimal.
     :type hybrid36: bool
+
+    Please note that resnames longer than 3 characters will be trimmed.
     """
 
     if not (filename.lower().endswith('.pdb') or filename.lower().endswith('.pdb.gz') or

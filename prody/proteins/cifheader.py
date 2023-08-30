@@ -4,21 +4,15 @@
 from collections import defaultdict, OrderedDict
 import os.path
 
-import numpy as np
-
 from prody import LOGGER
-from prody.atomic import ATOMIC_FIELDS
-from prody.atomic import Atomic, AtomGroup
-from prody.atomic import getSequence
-from prody.atomic import flags
-from prody.measure import Transformation
-from prody.utilities import openFile, split
+from prody.atomic import flags, AAMAP
+from prody.utilities import openFile, alignBioPairwise, GAP_PENALTY, GAP_EXT_PENALTY
 
 from .localpdb import fetchPDB
 from .header import (Chemical, Polymer, DBRef, _PDB_DBREF,
                      cleanString)
 
-from .starfile import parseSTARLines, parseSTARSection
+from .starfile import parseSTARSection
 
 __all__ = ['parseCIFHeader', 'getCIFHeaderDict']
 
@@ -147,8 +141,12 @@ def getCIFHeaderDict(stream, *keys):
                 value = _PDB_HEADER_MAP[key](lines)
                 keys[k] = value
             else:
-                raise KeyError('{0} is not a valid header data identifier'
-                               .format(repr(key)))
+                try:
+                    value = _PDB_HEADER_MAP['others'](lines, key)
+                    keys[k] = value
+                except:
+                    raise KeyError('{0} is not a valid header data identifier'
+                                .format(repr(key)))
             if key in ('chemicals', 'polymers'):
                 for component in value:
                     component.pdbentry = pdbid
@@ -762,7 +760,7 @@ def _getReference(lines):
 def _getPolymers(lines):
     """Returns list of polymers (macromolecules)."""
 
-    pdbid = lines[0].split("_")[1].strip()
+    pdbid = _PDB_HEADER_MAP['identifier'](lines)
     polymers = dict()
 
     entities = defaultdict(list)
@@ -1090,7 +1088,11 @@ def _getChemicals(lines):
 
         chem_names[resname] += data["_chem_comp.name"].upper()
 
-        synonym = data["_chem_comp.pdbx_synonyms"]
+        if "_chem_comp.pdbx_synonyms" in data.keys():
+            synonym = data["_chem_comp.pdbx_synonyms"]
+        else:
+            synonym = '?'
+
         if synonym == '?':
             synonym = ' '
         synonym = synonym.rstrip()
@@ -1206,13 +1208,79 @@ def _getModelType(lines):
 
     model_type = ''
 
-    model_type += [line.split()[1] for line in lines
-                  if line.find("_struct.pdbx_model_type_details") != -1][0]
+    model_type += [line.split()[1]
+                  if line.find("_struct.pdbx_model_type_details") != -1 else ''
+                  for line in lines][0]
 
     if model_type == '?':
         model_type = None
 
     return model_type
+
+
+def _getOther(lines, key=None):
+
+    if key is None:
+        return None
+
+    data = []
+
+    try:
+        data = parseSTARSection(lines, key)
+    except:
+        pass
+
+    if len(data) == 0:
+        data = None
+
+    return data
+
+
+def _getUnobservedSeq(lines):
+
+    key_unobs = '_pdbx_unobs_or_zero_occ_residues'
+
+    try:
+        unobs = parseSTARSection(lines, key_unobs)
+        polymers = _getPolymers(lines)
+    except:
+        pass
+
+    if len(unobs) == 0:
+        return None
+
+    unobs_seqs = OrderedDict()
+    for item in unobs:
+        chid = item['_pdbx_unobs_or_zero_occ_residues.label_asym_id']
+        if not chid in unobs_seqs.keys():
+            unobs_seqs[chid] = ''
+        unobs_seqs[chid] += AAMAP[item['_pdbx_unobs_or_zero_occ_residues.label_comp_id']]
+
+    if len(unobs_seqs) == 0:
+        return None
+
+    if len(polymers) == 0:
+        return None
+
+    full_seqs = OrderedDict()
+    for item in polymers:
+        chid = item.chid
+        full_seqs[chid] = item.sequence
+
+    if len(full_seqs) == 0:
+        return None
+
+    alns = OrderedDict()
+    for key, seq in full_seqs.items():
+        if key in unobs_seqs.keys():
+            unobs_seq = unobs_seqs[key]
+            alns[key] = alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
+                                         MISMATCH_SCORE=-1000,
+                                         ALIGNMENT_METHOD='global',
+                                         GAP_PENALTY=GAP_PENALTY,
+                                         GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2]
+
+    return alns
 
 
 # Make sure that lambda functions defined below won't raise exceptions
@@ -1233,7 +1301,9 @@ _PDB_HEADER_MAP = {
     'classification': lambda lines: [line.split()[1]
                                      if line.find("_struct_keywords.pdbx_keywords") != -1 else None
                                      for line in lines][0],
-    'identifier': lambda lines: lines[0].split("_")[1].strip() if len(lines[0].split("_")) else '',
+    'identifier': lambda lines: [line.split('_')[1]
+                                 if line.find("data") == 0 else ''
+                                 for line in lines][0],
     'title': _getTitle,
     'experiment': lambda lines: [line.split()[1]
                                  if line.find("_exptl.method") != -1 else None
@@ -1244,4 +1314,6 @@ _PDB_HEADER_MAP = {
     'n_models': _getNumModels,
     'space_group': _getSpaceGroup,
     'related_entries': _getRelatedEntries,
+    'others': _getOther,
+    'unobserved': _getUnobservedSeq
 }

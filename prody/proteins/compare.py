@@ -782,14 +782,14 @@ def getAlignedMatch(ach, bch):
                                      "local",
                                      MATCH_SCORE, MISMATCH_SCORE,
                                      GAP_PENALTY, GAP_EXT_PENALTY,
-                                     one_alignment_only=1)
+                                     max_alignments=1)
     else:
         alignment = alignBioPairwise(ach.getSequence(),
                                      bch.getSequence(),
                                      "global",
                                      MATCH_SCORE, MISMATCH_SCORE,
                                      GAP_PENALTY, GAP_EXT_PENALTY,
-                                     one_alignment_only=1)
+                                     max_alignments=1)
 
     amatch = []
     bmatch = []
@@ -923,12 +923,12 @@ def mapChainOntoChain(mobile, target, **kwargs):
     :type overlap: float
 
     :keyword mapping: what method will be used if the trivial mapping based on residue numbers 
-        fails. If ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
+        fails. If ``"ce"`` or ``"cealign"``, then the CE structural alignment [IS98]_ will be
         performed. It can also be a list of prealigned sequences, a :class:`.MSA` instance,
         or a dict of indices such as that derived from a :class:`.DaliRecord`.
         If set to **True** then the sequence alignment from Biopython 
         will be used. If set to **False**, only the trivial mapping will be performed. 
-        Default is **"auto"**
+        Default is **"auto"**, which means try sequence alignment then CE.
     :type mapping: list, str, bool
 
     :keyword pwalign: if **True**, then pairwise sequence alignment will 
@@ -1342,14 +1342,14 @@ def getAlignedMapping(target, chain, alignment=None):
                                           "local",
                                           MATCH_SCORE, MISMATCH_SCORE,
                                           GAP_PENALTY,  GAP_EXT_PENALTY,
-                                          one_alignment_only=1)
+                                          max_alignments=1)
         else:
             alignments = alignBioPairwise(target.getSequence(),
                                           chain.getSequence(),
                                           "global",
                                           MATCH_SCORE, MISMATCH_SCORE,
                                           GAP_PENALTY, GAP_EXT_PENALTY,
-                                          one_alignment_only=1)
+                                          max_alignments=1)
         alignment = alignments[0]
         this, that = alignment[:2]
     else:

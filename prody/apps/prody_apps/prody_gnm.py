@@ -87,23 +87,14 @@ def prody_gnm(pdb, **kwargs):
             raise TypeError("Please provide gamma as a float or ProDy Gamma class")
 
     nproc = kwargs.get('nproc')
-    if nproc:
-        try:
-            from threadpoolctl import threadpool_limits
-        except ImportError:
-            raise ImportError('Please install threadpoolctl to control threads')
-
-        with threadpool_limits(limits=nproc, user_api="blas"):
-            gnm.buildKirchhoff(select, cutoff, gamma)
-            gnm.calcModes(nmodes, zeros=zeros)
-    else:
-        gnm.buildKirchhoff(select, cutoff, gamma)
-        gnm.calcModes(nmodes, zeros=zeros)
+    gnm.buildKirchhoff(select, cutoff, gamma)
+    gnm.calcModes(nmodes, zeros=zeros, nproc=nproc)
 
     LOGGER.info('Writing numerical output.')
 
     if kwargs.get('outnpz'):
-        prody.saveModel(gnm, join(outdir, prefix))
+        prody.saveModel(gnm, join(outdir, prefix), 
+                        matrices=kwargs.get('npzmatrices'))
 
     if kwargs.get('outscipion'):
         prody.writeScipionModes(outdir, gnm)
