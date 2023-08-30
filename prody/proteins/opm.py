@@ -11,7 +11,7 @@ from .localpdb import pathPDBFolder
 
 __all__ = ['fetchPDBfromOPM']
 
-def fetchPDBfromOPM(pdb):
+def fetchPDBfromOPM(pdb, filename=None):
     url = 'https://opm-assets.storage.googleapis.com/pdb/%s.pdb' % pdb.lower()
 
     try:
@@ -22,11 +22,13 @@ def fetchPDBfromOPM(pdb):
     else:
         data = handle.read()
         if len(data):
-            output_folder = pathPDBFolder()
-            if output_folder is None:
-                output_folder = getcwd()
 
-            filename = join(output_folder, pdb + '-opm.pdb')
+            if filename is None:
+                output_folder = pathPDBFolder()
+                if output_folder is None:
+                    output_folder = getcwd()
+
+                filename = join(output_folder, pdb + '-opm.pdb')
 
             with open(filename, 'w+b') as pdbfile:
                 pdbfile.write(data)
