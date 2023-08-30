@@ -40,7 +40,7 @@ def prody_gnm(pdb, **kwargs):
         if not key in kwargs:
             kwargs[key] = DEFAULTS[key]
 
-    from os.path import isdir, splitext, join
+    from os.path import isdir, join, exists
     outdir = kwargs.get('outdir')
     if not isdir(outdir):
         raise IOError('{0} is not a valid path'.format(repr(outdir)))
@@ -59,7 +59,7 @@ def prody_gnm(pdb, **kwargs):
     zeros = kwargs.get('zeros')
     membrane = kwargs.get('membrane')
 
-    if membrane:
+    if membrane and not exists(pdb):
         pdb = prody.fetchPDBfromOPM(pdb)
 
     pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
