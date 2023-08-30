@@ -13,14 +13,14 @@ HELPTEXT = {}
 for key, txt, val in [
     ('model', 'index of model that will be used in the calculations', 1),
     ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
-    ('cutoff', 'cutoff distance (A)', 15.),
+    ('cutoff', 'cutoff distance (A)', '15.'),
     ('gamma', 'spring constant', '1.'),
     ('sparse', 'use sparse matrices', False),
     ('kdtree', 'use kdtree for Hessian', False),    
     ('zeros', 'calculate zero modes', False),
     ('turbo', 'use memory-intensive turbo option for modes', False),
 
-    ('outbeta', 'write beta-factors calculated from GNM modes', False),
+    ('outbeta', 'write beta-factors calculated from ANM modes', False),
     ('hessian', 'write Hessian matrix', False),
     ('kirchhoff', 'write Kirchhoff matrix', False),
     ('figcmap', 'save contact map (Kirchhoff matrix) figure', False),
@@ -43,7 +43,7 @@ def prody_anm(pdb, **kwargs):
     """
 
     for key in DEFAULTS:
-        if not key in kwargs:
+        if key not in kwargs:
             kwargs[key] = DEFAULTS[key]
 
     from os.path import isdir, join
@@ -57,11 +57,9 @@ def prody_anm(pdb, **kwargs):
 
     selstr = kwargs.get('select')
     prefix = kwargs.get('prefix')
-    cutoff = kwargs.get('cutoff')
     sparse = kwargs.get('sparse')
     kdtree = kwargs.get('kdtree')
     nmodes = kwargs.get('nmodes')
-    selstr = kwargs.get('select')
     model = kwargs.get('model')
     altloc = kwargs.get('altloc')
     zeros = kwargs.get('zeros')
@@ -84,29 +82,33 @@ def prody_anm(pdb, **kwargs):
         LOGGER.info("Using gamma {0}".format(gamma))
     except ValueError:
         try:
-            Gamma = eval('prody.' + kwargs.get('gamma'))
-            gamma = Gamma(select)
-            LOGGER.info("Using gamma {0}".format(Gamma))
+            gamma = eval('prody.' + kwargs.get('gamma'))
+            gamma = gamma(select)
+            LOGGER.info("Using gamma {0}".format(gamma))
         except NameError:
             raise NameError("Please provide gamma as a float or ProDy Gamma class")
         except TypeError:
             raise TypeError("Please provide gamma as a float or ProDy Gamma class")
+        
+    try:
+        cutoff = float(kwargs.get('cutoff'))
+        LOGGER.info("Using cutoff {0}".format(cutoff))
+    except ValueError:
+        try:
+            import math
+            cutoff = eval(kwargs.get('cutoff'))
+            LOGGER.info("Using cutoff {0}".format(cutoff))
+        except NameError:
+            raise NameError("Please provide cutoff as a float or equation using math")
+        except TypeError:
+            raise TypeError("Please provide cutoff as a float or equation using math")
 
     anm = prody.ANM(pdb.getTitle())
 
     nproc = kwargs.get('nproc')
-    if nproc:
-        try:
-            from threadpoolctl import threadpool_limits
-        except ImportError:
-            raise ImportError('Please install threadpoolctl to control threads')
-
-        with threadpool_limits(limits=nproc, user_api="blas"):
-            anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)
-            anm.calcModes(nmodes, zeros=zeros, turbo=turbo)
-    else:
-        anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)
-        anm.calcModes(nmodes, zeros=zeros, turbo=turbo)
+    anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)
+    anm.calcModes(nmodes, zeros=zeros, turbo=turbo, nproc=nproc)
+    
     LOGGER.info('Writing numerical output.')
 
     if kwargs.get('outnpz'):
@@ -276,7 +278,7 @@ graphical output files:
 
     group = addNMAParameters(subparser)
 
-    group.add_argument('-c', '--cutoff', dest='cutoff', type=float,
+    group.add_argument('-c', '--cutoff', dest='cutoff', type=str,
         default=DEFAULTS['cutoff'], metavar='FLOAT',
         help=HELPTEXT['cutoff'] + ' (default: %(default)s)')
 
