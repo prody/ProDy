@@ -141,12 +141,12 @@ CONTRIBUTED = [
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
               include_dirs=[tntDir], language='c++'),
-    Extension('prody.proteins.hpb',
-              [join('prody', 'proteins', 'hpbmodule', 'reg_tet.c')],
-              include_dirs=[hpbDir], language='c++',
-              extra_compile_args=['-O3', '-fPIC'],
-              extra_objects=[join(hpbDir, 'libf2c', 'libf2c.a')]
-              )
+    #Extension('prody.proteins.hpb',
+    #          [join('prody', 'proteins', 'hpbmodule', 'reg_tet.c')],
+    #          include_dirs=[hpbDir], language='c++',
+    #          extra_compile_args=['-O3', '-fPIC'],
+    #          extra_objects=[join(hpbDir, 'libf2c', 'libf2c.a')]
+    #          )
 ]
 
 for ext in CONTRIBUTED:

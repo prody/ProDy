@@ -171,48 +171,52 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
         default is None
     :type cumulative_values: 'pairs' or 'single_residues'
     """
-
-    from .hpb import hpb
-
-    selection = kwargs.pop('selection', 'protein and noh')
-    hpb_cutoff = kwargs.pop('hpb_cutoff', 0.0)
-    cumulative_values = kwargs.pop('cumulative_values', None)
-    sele = atoms.select(selection)
-    lB = sele.getCoords().tolist()
     
-    x = sele.getResnames()
-    y = sele.getResnums()
-    z = sele.getNames()
-    w = sele.getIndices()
-    ch = sele.getChids()
-    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
-        
-    output = hpb.hpb((lB,lA))
-    LOGGER.info("Hydrophobic Overlaping Areas are computed.")
-    output_final = [i for i in output if i[-1] >= hpb_cutoff]
-    
-    if cumulative_values == None:            
-        return output_final
-        
-    if cumulative_values == 'pairs':
-        sums = {}
-        for item in output_final:
-            k = (item[0]+item[2], item[3]+item[5])
-            v = item[-1]
-            if k in sums:
-                sums[k] += v
-            else:
-                sums[k] = v
-        return sums 
-           
-    if cumulative_values == 'single_residues':
-        sums = {}
-        for j in output_final:
-            k = j[0]+j[2]
-            w = j[-1]
-            sums[k] = sums.get(k, 0) + w
-        return sums
+    try:
+        import hpb
 
+        selection = kwargs.pop('selection', 'protein and noh')
+        hpb_cutoff = kwargs.pop('hpb_cutoff', 0.0)
+        cumulative_values = kwargs.pop('cumulative_values', None)
+        sele = atoms.select(selection)
+        lB = sele.getCoords().tolist()
+        
+        x = sele.getResnames()
+        y = sele.getResnums()
+        z = sele.getNames()
+        w = sele.getIndices()
+        ch = sele.getChids()
+        lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
+            
+        output = hpb.hpb((lB,lA))
+        LOGGER.info("Hydrophobic Overlaping Areas are computed.")
+        output_final = [i for i in output if i[-1] >= hpb_cutoff]
+        
+        if cumulative_values == None:            
+            return output_final
+            
+        if cumulative_values == 'pairs':
+            sums = {}
+            for item in output_final:
+                k = (item[0]+item[2], item[3]+item[5])
+                v = item[-1]
+                if k in sums:
+                    sums[k] += v
+                else:
+                    sums[k] = v
+            return sums 
+            
+        if cumulative_values == 'single_residues':
+            sums = {}
+            for j in output_final:
+                k = j[0]+j[2]
+                w = j[-1]
+                sums[k] = sums.get(k, 0) + w
+            return sums
+    
+    except: 
+        LOGGER.info('Please provide hpb.so file into the directory.')
+    
 
 def calcSASA(atoms, **kwargs):
     """Provide information about solvent accessible surface area (SASA) based on 
@@ -234,35 +238,35 @@ def calcSASA(atoms, **kwargs):
     :type resnames: bool    
     """
     
-    if PY3K:
+    try:
         import hpb
-    else:
-        import hpb_py27
-
-    selection = kwargs.pop('selection', 'protein and noh')
-    resnames = kwargs.pop('resnames', False)
-    sasa_cutoff = kwargs.pop('sasa_cutoff', 0.0)
-    
-    sele = atoms.select(selection)
-    lB = sele.getCoords().tolist()
-    
-    x = sele.getResnames()
-    y = sele.getResnums()
-    z = sele.getNames()
-    w = sele.getIndices()
-    
-    ch = sele.getChids()
-    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
         
-    output = hpb.sasa((lB,lA))
-    LOGGER.info("Solvent Accessible Surface Area (SASA) is computed.")
-    output_final = [i for i in output if i[-1] >= sasa_cutoff]
-    
-    if resnames == True:            
-        return output_final
-    else:
-        return [ float(i[-1]) for i in output_final ]
+        selection = kwargs.pop('selection', 'protein and noh')
+        resnames = kwargs.pop('resnames', False)
+        sasa_cutoff = kwargs.pop('sasa_cutoff', 0.0)
+        
+        sele = atoms.select(selection)
+        lB = sele.getCoords().tolist()
+        
+        x = sele.getResnames()
+        y = sele.getResnums()
+        z = sele.getNames()
+        w = sele.getIndices()
+        
+        ch = sele.getChids()
+        lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
+            
+        output = hpb.sasa((lB,lA))
+        LOGGER.info("Solvent Accessible Surface Area (SASA) is computed.")
+        output_final = [i for i in output if i[-1] >= sasa_cutoff]
+        
+        if resnames == True:            
+            return output_final
+        else:
+            return [ float(i[-1]) for i in output_final ]
 
+    except: 
+        LOGGER.info('Please provide hpb.so file into the directory.')
 
 def calcVolume(atoms, **kwargs):
     """Provide information about volume for each residue/molecule/chain
@@ -290,39 +294,40 @@ def calcVolume(atoms, **kwargs):
     :type resnames: bool
     """
     
-    if PY3K:
+    try:
         import hpb
-    else:
-        import hpb_py27
 
-    selection = kwargs.pop('selection', 'protein and noh')
-    resnames = kwargs.pop('resnames', False)
-    volume_cutoff = kwargs.pop('volume_cutoff', 0.0)
-    split_residues = kwargs.pop('split_residues', False)
-    
-    sele = atoms.select(selection)
-    lB = sele.getCoords().tolist()
-    
-    x = sele.getResnames()
-    y = sele.getResnums()
-    z = sele.getNames()
-    w = sele.getIndices()
-    
-    ch = sele.getChids()
-    lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
+        selection = kwargs.pop('selection', 'protein and noh')
+        resnames = kwargs.pop('resnames', False)
+        volume_cutoff = kwargs.pop('volume_cutoff', 0.0)
+        split_residues = kwargs.pop('split_residues', False)
         
-    output = hpb.volume((lB,lA))
-    LOGGER.info("Volume is computed.")
-    output_final = [i for i in output if i[-1] >= volume_cutoff]
-    
-    if resnames == True:            
-        return output_final
+        sele = atoms.select(selection)
+        lB = sele.getCoords().tolist()
+        
+        x = sele.getResnames()
+        y = sele.getResnums()
+        z = sele.getNames()
+        w = sele.getIndices()
+        
+        ch = sele.getChids()
+        lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
+            
+        output = hpb.volume((lB,lA))
+        LOGGER.info("Volume is computed.")
+        output_final = [i for i in output if i[-1] >= volume_cutoff]
+        
+        if resnames == True:            
+            return output_final
 
-    if split_residues == True and resnames == False:
-        return [ float(i[-1]) for i in output_final ]
-        
-    else:
-        return sum( [float(i[-1]) for i in output_final] )
+        if split_residues == True and resnames == False:
+            return [ float(i[-1]) for i in output_final ]
+            
+        else:
+            return sum( [float(i[-1]) for i in output_final] )
+
+    except: 
+        LOGGER.info('Please provide hpb.so file into the directory.')
 
 
 def calcHydrogenBonds(atoms, **kwargs):
@@ -1038,7 +1043,10 @@ def calcHydrophobic(atoms, **kwargs):
     aromatic = list(set(atoms.aromatic.getResnames()))
     
     # Computing hydrophobic overlaping areas for pairs of residues:
-    hpb_overlaping_results = calcHydrophobicOverlapingAreas(atoms_hydrophobic, cumulative_values='pairs')
+    try:
+        hpb_overlaping_results = calcHydrophobicOverlapingAreas(atoms_hydrophobic, cumulative_values='pairs')
+    except: 
+        LOGGER.info('Please provide hpb.so file into the directory to obtain additional data.')
     
     LOGGER.info('Calculating hydrophobic interactions.')
     Hydrophobic_calculations = []
@@ -1080,34 +1088,56 @@ def calcHydrophobic(atoms, **kwargs):
                     sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
                     residue1 = sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]) 
                     residue2 = sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0])
-                    Hydrophobic_calculations.append([residue1, 
+                    try:
+                        Hydrophobic_calculations.append([residue1, 
                                                     minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
                                                     residue2, 
                                                     minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
                                                     round(minDistancePair[-1],4),
                                                     round(get_permutation_from_dic(hpb_overlaping_results,(residue1+sele1_new.getChids()[0],
-                                                    residue2+sele2_new.getChids()[0])),4)]) 
-                    
-    Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-2])
-    Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
+                                                    residue2+sele2_new.getChids()[0])),4)])
+                    except:
+                        Hydrophobic_calculations.append([residue1, 
+                                                    minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
+                                                    residue2, 
+                                                    minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
+                                                    round(minDistancePair[-1],4)])                         
     
     selection = kwargs.get('selection', None)
-    selection2 = kwargs.get('selection2', None)    
+    selection2 = kwargs.get('selection2', None) 
     sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
-    Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, atoms, **sel_kwargs)
-    
-    if zerosHPh == False:
-        Hydrophobic_calculations_final3 = [ i for i in Hydrophobic_calculations_final2 if i[-1] != 0 ]
-    else:
-        Hydrophobic_calculations_final3 = Hydrophobic_calculations_final2
-    
-    for kk in Hydrophobic_calculations_final3:
-        LOGGER.info("%10s%5s%14s14s  <---> %10s%5s%14s%8.1f%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6], kk[7]))
         
-    LOGGER.info("Number of detected hydrophobic interactions: {0}.".format(len(Hydrophobic_calculations_final3)))
+    try: 
+        import hpb                
     
-    return Hydrophobic_calculations_final3
+        Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-2])
+        Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
+        Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, atoms, **sel_kwargs)
+        
+        if zerosHPh == False:
+            Hydrophobic_calculations_final3 = [ i for i in Hydrophobic_calculations_final2 if i[-1] != 0 ]
+        else:
+            Hydrophobic_calculations_final3 = Hydrophobic_calculations_final2
+        
+        for kk in Hydrophobic_calculations_final3:
+            LOGGER.info("%10s%5s%14s14s  <---> %10s%5s%14s%8.1f%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6], kk[7]))
+            
+        LOGGER.info("Number of detected hydrophobic interactions: {0}.".format(len(Hydrophobic_calculations_final3)))
+        
+        return Hydrophobic_calculations_final3
 
+    except:                    
+        Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-1])
+        Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
+        Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, atoms, **sel_kwargs)
+        
+        for kk in Hydrophobic_calculations_final2:
+            LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
+            
+        LOGGER.info("Number of detected hydrophobic interactions: {0}.".format(len(Hydrophobic_calculations_final2)))
+        
+        return Hydrophobic_calculations_final2
+    
 
 def calcDisulfideBonds(atoms, **kwargs):
     """Prediction of disulfide bonds.
