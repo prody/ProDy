@@ -273,6 +273,8 @@ def parsePDBStream(stream, **kwargs):
     auto_bonds = SETTINGS.get('auto_bonds')
     get_bonds = kwargs.get('bonds', auto_bonds)
 
+    long_resname = kwargs.get('long_resname')
+
     if model is not None:
         if isinstance(model, Integral):
             if model < 0:
@@ -324,7 +326,7 @@ def parsePDBStream(stream, **kwargs):
         if header or biomol or secondary:
             hd, split = getHeaderDict(lines)
         bonds = [] if get_bonds else None
-        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds)
+        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds, long_resname=long_resname)
         if bonds:
             try:
                 ag.setBonds(bonds)
@@ -383,6 +385,7 @@ def parsePQR(filename, **kwargs):
     title = kwargs.get('title', kwargs.get('name'))
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
+    long_resname = kwargs.get('long_resname')
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
     if title is None:
@@ -420,7 +423,8 @@ def parsePQR(filename, **kwargs):
     pqr.close()
     LOGGER.timeit()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain,
-                        subset=subset, altloc_torf=False, format='pqr')
+                        subset=subset, altloc_torf=False, format='pqr', 
+                        long_resname=long_resname)
     if ag.numAtoms() > 0:
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -432,7 +436,7 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
-                   altloc_torf, format='PDB', bonds=None):
+                   altloc_torf, format='PDB', bonds=None, long_resname=False):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -546,7 +550,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         if startswith == 'ATOM' or startswith == 'HETATM':
             if isPDB:
                 atomname = line[12:16].strip()
-                resname = line[17:20].strip()
+
+                if long_resname:
+                    resname = line[17:21].strip()
+                else:
+                    resname = line[17:20].strip()
             else:
                 atomname= fields[2]
                 resname = fields[3]
@@ -557,12 +565,15 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     continue
 
             if isPDB:
-                chid = line[20:22].strip()
-                if len(chid) > 1 and not warned_long_chid:
-                    LOGGER.warn('Parsed 2-character chid {0} continuous with resnum {1} from {2}. Please check if this was intended.'.format(
-                        chid, line[17:20], line[17:22]
-                    ))
-                    warned_long_chid = True
+                if long_resname:
+                    chid = line[21].strip()
+                else:
+                    chid = line[20:22].strip()
+                    if len(chid) > 1 and not warned_long_chid:
+                        LOGGER.warn('Parsed 2-character chid {0} continuous with resnum {1} from {2}. Please check if this was intended.'.format(
+                            chid, line[17:20], line[17:22]
+                        ))
+                        warned_long_chid = True
             else:
                 chid = fields[4]
 
