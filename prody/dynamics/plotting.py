@@ -206,6 +206,16 @@ def showProjection(ensemble, modes, *args, **kwargs):
         Default is **True** for 1D and **False** for 2D to maintain old behaviour.
     :type show_density: bool
 
+    :keyword use_weights: whether to use weights in a density histogram or kernel density estimate
+        or for the size of points in 2D scatter of points or a 1D projection by time (number of steps) 
+        on the x-axis. This option is not valid for 3D projections.
+        Default is **False** to maintain old behaviour.
+    :type use_weights: bool
+
+    :keyword weights: weights for histograms or point sizes
+        Default is to use ensemble.getData('size')
+    :type weights: int, list, :class:`~numpy.ndarray`
+    
     :keyword color: a color name or a list of color names or values, 
         default is ``'blue'``
     :type color: str, list
@@ -245,15 +255,24 @@ def showProjection(ensemble, modes, *args, **kwargs):
     projection = calcProjection(ensemble, modes, 
                                 kwargs.pop('rmsd', True), 
                                 kwargs.pop('norm', False))
+    
+    use_weights = kwargs.pop('use_weights', False)
+    weights = kwargs.pop('weights', ensemble.getData('size'))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         by_time = not kwargs.pop('show_density', True)
         by_time = kwargs.pop('by_time', by_time)
+        
         if by_time:
             show = plt.plot(range(len(projection)), projection.flatten(), *args, **kwargs)
+            if use_weights:
+                kwargs['s'] = weights
+                plt.scatter(range(len(projection)), projection.flatten(), *args, **kwargs)
             plt.ylabel('Mode {0} coordinate'.format(str(modes)))
             plt.xlabel('Conformation number')  
         else:
+            if weights is not None and use_weights:
+                kwargs['weights'] = weights
             show = plt.hist(projection.flatten(), *args, **kwargs)
             plt.xlabel('Mode {0} coordinate'.format(str(modes)))
             plt.ylabel('Number of conformations')
@@ -324,7 +343,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             except ImportError:
                 raise ImportError('Please install seaborn to plot kernel density estimates')
         else:
-            plot = plt.plot
+            plot = plt.scatter
         show = plt.gcf()
         text = plt.text
     else: 
@@ -333,6 +352,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
         if show_density:
             LOGGER.warn("show_density is not supported yet for 3D projections")
             show_density = False
+
+        if use_weights:
+            LOGGER.warn("use_weights is not supported yet for 3D projections")
+            use_weights = False
+
         cf = plt.gcf()
         show = None
         for child in cf.get_children():
@@ -361,8 +385,12 @@ def showProjection(ensemble, modes, *args, **kwargs):
             kwargs.pop('label', None)
 
         if not show_density:
+            if use_weights:
+                kwargs['s'] = weights
             plot(*(list(projection[indices].T) + args), **kwargs)
         else:
+            if weights is not None and use_weights:
+                kwargs['weights'] = weights
             plot(x=list(projection[indices,0]), y=list(projection[indices,1]), **kwargs)
 
     if texts:
