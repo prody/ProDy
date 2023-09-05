@@ -271,6 +271,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             plt.ylabel('Mode {0} coordinate'.format(str(modes)))
             plt.xlabel('Conformation number')  
         else:
+            color = kwargs.pop('c', 'b')
             if weights is not None and use_weights:
                 kwargs['weights'] = weights
             show = plt.hist(projection.flatten(), *args, **kwargs)
