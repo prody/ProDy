@@ -274,6 +274,7 @@ def parsePDBStream(stream, **kwargs):
     get_bonds = kwargs.get('bonds', auto_bonds)
 
     long_resname = kwargs.get('long_resname')
+    long_chid = kwargs.get('long_chid')
 
     if model is not None:
         if isinstance(model, Integral):
@@ -326,7 +327,8 @@ def parsePDBStream(stream, **kwargs):
         if header or biomol or secondary:
             hd, split = getHeaderDict(lines)
         bonds = [] if get_bonds else None
-        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds, long_resname=long_resname)
+        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds, 
+                       long_resname=long_resname, long_chid=long_chid)
         if bonds:
             try:
                 ag.setBonds(bonds)
@@ -386,6 +388,7 @@ def parsePQR(filename, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     long_resname = kwargs.get('long_resname')
+    long_chid = kwargs.get('long_chid')
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
     if title is None:
@@ -424,7 +427,7 @@ def parsePQR(filename, **kwargs):
     LOGGER.timeit()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain,
                         subset=subset, altloc_torf=False, format='pqr', 
-                        long_resname=long_resname)
+                        long_resname=long_resname, long_chid=long_chid)
     if ag.numAtoms() > 0:
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -436,7 +439,8 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
-                   altloc_torf, format='PDB', bonds=None, long_resname=False):
+                   altloc_torf, format='PDB', bonds=None, 
+                   long_resname=False, long_chid=False):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -565,15 +569,15 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     continue
 
             if isPDB:
-                if long_resname:
-                    chid = line[21].strip()
-                else:
+                if long_chid:
                     chid = line[20:22].strip()
                     if len(chid) > 1 and not warned_long_chid:
                         LOGGER.warn('Parsed 2-character chid {0} continuous with resnum {1} from {2}. Please check if this was intended.'.format(
                             chid, line[17:20], line[17:22]
                         ))
                         warned_long_chid = True
+                else:
+                    chid = line[21].strip()
             else:
                 chid = fields[4]
 
