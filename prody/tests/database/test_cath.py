@@ -12,7 +12,7 @@ RTOL = 0
 
 try:
     cath = CATHDB()
-except TimeoutError:
+except:
     cath = CATHDB(pathDatafile('cath'))
 
 class TestCATH(unittest.TestCase):
