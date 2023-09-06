@@ -247,7 +247,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
     import matplotlib.pyplot as plt
     import matplotlib
 
-    cmap = kwargs.pop('cmap', plt.cm.jet)
+    cmap = kwargs.pop('cmap', None)
 
     if SETTINGS['auto_show']:
         fig = plt.figure()
@@ -340,7 +340,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
             try:
                 import seaborn as sns
                 plot = sns.kdeplot
-                kwargs["cmap"] = cmap
+                if cmap is not None:
+                    kwargs["cmap"] = cmap
             except ImportError:
                 raise ImportError('Please install seaborn to plot kernel density estimates')
         else:
@@ -378,7 +379,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 color = cmap.colors[color_norm(color)]
             except:
                 color = cmap(color_norm(color))
-        kwargs['c'] = color
 
         if label:
             kwargs['label'] = label
@@ -386,10 +386,12 @@ def showProjection(ensemble, modes, *args, **kwargs):
             kwargs.pop('label', None)
 
         if not show_density:
-            if use_weights:
+            kwargs['c'] = color
+            if weights is not None and use_weights:
                 kwargs['s'] = weights
             plot(*(list(projection[indices].T) + args), **kwargs)
         else:
+            kwargs['color'] = color
             if weights is not None and use_weights:
                 kwargs['weights'] = weights
             plot(x=list(projection[indices,0]), y=list(projection[indices,1]), **kwargs)
