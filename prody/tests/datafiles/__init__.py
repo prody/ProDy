@@ -212,6 +212,9 @@ DATA_FILES = {
         'biomols': 1,
         'protein': 12194
     },
+    'cath': {
+        'file': 'cath.xml',
+    },    
 }
 
 
