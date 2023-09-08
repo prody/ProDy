@@ -2,6 +2,7 @@
 
 from prody import LOGGER
 from prody.database.cath import CATHDB, CATHCollection, CATHElement
+from prody.tests.datafiles import *
 from prody.tests import unittest
 
 LOGGER.verbosity = 'none'
@@ -9,9 +10,12 @@ LOGGER.verbosity = 'none'
 ATOL = 1e-5
 RTOL = 0
 
-cath = CATHDB()
+try:
+    cath = CATHDB()
+except:
+    cath = CATHDB(pathDatafile('cath'))
 
-class testCATH(unittest.TestCase):
+class TestCATH(unittest.TestCase):
 
     def setUp(self):
 
