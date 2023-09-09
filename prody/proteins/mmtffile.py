@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""This module defines functions for parsing MMTF files and structure objects.
+
+.. MMTF files: https://mmtf.rcsb.org"""
+
 from numbers import Number
 import os.path
 from collections import OrderedDict
@@ -18,7 +23,6 @@ try:
 except:
     print("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
 
-#function to parse mmtf files or mmtf structure objects
 def parseMMTF(mmtf_struc, **kwargs):
 
     chain = kwargs.pop('chain', None)
