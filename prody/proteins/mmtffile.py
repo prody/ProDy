@@ -20,7 +20,7 @@ import numpy as np
 try:
     from mmtf import fetch, parse
     import mmtf
-except:
+except ImportError:
     print("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
 
 def parseMMTF(mmtf_struc, **kwargs):
