@@ -535,6 +535,12 @@ class DictionaryList:
     def keys(self):
         return self.values.keys()
 
+    def removeDuplicateKeys(self, criterion):
+        keysCopy = list(self.values.keys())
+        for key in keysCopy:
+            if criterion(self.values.keys(), key):
+                del self.values[key]
+
 
 def getResInfo(atoms):
     dict = {}
@@ -576,7 +582,7 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     :type frames: list
 
     :arg output: return dictorinary whose keys are tuples of resnames or resids
-        default is 'resid'
+        default is 'indices'
     :type output: 'info' | 'indices'
 
     :arg filename: name of file to save statistic information if wanted
@@ -621,6 +627,9 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
                 resNames[res_1] = res_1_name
                 resNames[res_2] = res_2_name
 
+    interactionCount.removeDuplicateKeys(
+        lambda keys, key: (key[1], key[0]) in keys)
+
     tableHeader = f'{"RES1":<15}{"RES2":<15}{"PERC":<10}{"DIST_AVG":<10}{"DIST_STD":<10}'
     LOGGER.info(tableHeader)
     info = {}
@@ -637,10 +646,12 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
 
         outputKey = key
         x, y = key
-        if output == 'resname':
+        if output == 'info':
             outputKey = (resNames[x], resNames[y])
-
-        info[outputKey] = pairInfo
+            info[outputKey] = pairInfo
+        elif output == 'indices':
+            key1, key2 = (x, y), (y, x)
+            info[key1], info[key2] = pairInfo, pairInfo
 
         tableRow = f'{resNames[x]:<15}{resNames[y]:<15}{percentage:<10.3f}{distAvg:<10.3f}{distStd:<10.3f}'
         LOGGER.info(tableRow)
@@ -863,7 +874,7 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
     :type output: 'dict' | 'indices'
     """
     import matplotlib.pyplot as plt
-    
+
     metric = kwargs.pop('metric', 'residues')
     trajectory = kwargs.pop('trajectory', None)
 
