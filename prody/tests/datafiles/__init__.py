@@ -10,7 +10,7 @@ from prody.tests import TestCase
 from numpy import array
 import numpy as np
 
-from prody import parsePDB, parseDCD, parseMMCIF
+from prody import parsePDB, parseDCD, parseMMCIF, parseMMTF
 from prody import parseSparseMatrix, parseArray, loadModel
 from prody.tests import TEMPDIR, TESTDIR
 
@@ -51,9 +51,16 @@ DATA_FILES = {
     '1ubi': {
         'pdb': '1ubi',
         'file': 'pdb1ubi.pdb',
+        'mmtf': '1ubi.mmtf',        
         'n_atoms': 683,
         'models': 1
     },
+    '1ubi_mmtf': {
+        'pdb': '1UBI',
+        'file': '1ubi.mmtf',
+        'n_atoms': 683,
+        'models': 1
+    },    
     '2nwl': {
         'pdb': '2nwl',
         'file': 'pdb2nwl-opm.pdb',
@@ -66,6 +73,36 @@ DATA_FILES = {
         'n_atoms': 76,
         'models': 116
     },
+    '2k39_mmtf': {
+        'pdb': '2K39',
+        'file': '2k39.mmtf',
+        'n_atoms': 1231,
+        'models': 116
+    },    
+    '3enl_pdb': {
+        'pdb': '3enl',
+        'file': 'pdb3enl.pdb',
+        'n_atoms': 7294,
+        'models': 1
+    },    
+    '3enl_mmtf': {
+        'pdb': '3ENL',
+        'file': 'mmtf3enl.mmtf',
+        'n_atoms': 7294,
+        'models': 1
+    },   
+    '1pwc_pdb': {
+        'pdb': '1pwc',
+        'file': '1pwc.pdb',
+        'n_atoms': 3129,
+        'models': 1
+    },    
+    '1pwc_mmtf': {
+        'pdb': '1PWC',
+        'file': '1pwc.mmtf',
+        'n_atoms': 3129,
+        'models': 1
+    },       
     '1ubi_ca': {
         'pdb': '1ubi',
         'file': 'pdb1ubi_ca.pdb',
@@ -220,6 +257,7 @@ DATA_FILES = {
 
 PARSERS = {
     '.dcd': parseDCD, '.pdb': parsePDB, '.cif': parseMMCIF,
+    '.mmtf': parseMMTF,
     '.coo': parseSparseMatrix, '.dat': parseArray,
     '.txt': np.loadtxt,
     '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)
