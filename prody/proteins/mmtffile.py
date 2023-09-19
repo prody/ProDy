@@ -13,6 +13,8 @@ from prody.atomic import ATOMIC_FIELDS
 
 from prody.utilities import openFile, isListLike, copy
 from prody import LOGGER
+from prody.utilities.misctools import getMasses
+from .header import getHeaderDict, buildBiomolecules
 
 import struct as st
 import numpy as np
@@ -23,6 +25,8 @@ try:
 except ImportError:
     print("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
 
+__all__ = ['parseMMTF']
+           
 def parseMMTF(mmtf_struc, **kwargs):
 
     chain = kwargs.pop('chain', None)
@@ -71,13 +75,15 @@ def parseMMTF(mmtf_struc, **kwargs):
     return result
 
 def _parseMMTF(mmtf_struc, **kwargs):
-
+    LOGGER.timeit()
     ag = AtomGroup()
     model = kwargs.get('model')
     subset = kwargs.get('subset')
     chain = kwargs.get('chain')
     altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
+    get_bonds = kwargs.get('bonds',False) 
+    
     assert isinstance(header, bool), 'header must be a boolean'
 
     if model is not None:
@@ -91,7 +97,7 @@ def _parseMMTF(mmtf_struc, **kwargs):
 
     biomol = kwargs.get('biomol', False)
     hd = set_header(mmtf_struc)
-    ag = set_info(ag, mmtf_struc)
+    ag = set_info(ag, mmtf_struc, get_bonds)
 
     if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -158,7 +164,7 @@ def bio_transform(input_data, chain_list):
       
     return output_dict
 
-def set_info(atomgroup, mmtf_data):
+def set_info(atomgroup, mmtf_data,get_bonds=False):
 
     mmtfHETATMtypes = set([
         "D-SACCHARIDE",
@@ -245,7 +251,6 @@ def set_info(atomgroup, mmtf_data):
     atomgroup.setResnames(resnames)
     atomgroup.setChids(chainids)
     atomgroup.setElements(elements)
-    from prody.utilities.misctools import getMasses
     atomgroup.setMasses(getMasses(elements))
     atomgroup.setBetas(bfactors)
     atomgroup.setAltlocs(altlocs)
@@ -256,5 +261,15 @@ def set_info(atomgroup, mmtf_data):
     atomgroup.setSerials(serials)
     atomgroup.setIcodes(icodes)
     atomgroup.setSegnames(segnames)
+    atomgroup.setTitle(mmtf_data.structure_id)
+    
+    if get_bonds and hasattr(mmtf_data,'bond_atom_list'):
+        allbonds = np.array(mmtf_data.bond_atom_list).reshape(-1,2)
+        nonpeptide = []
+        #irgnore bonds between C and N in adjacent residues
+        for a,b in allbonds:
+            if atom_names[a] != 'N' or atom_names[b] != 'C' or resnums[a]-resnums[b] != 1:
+                nonpeptide.append((a,b))
+        atomgroup.setBonds(nonpeptide)
 
     return atomgroup
