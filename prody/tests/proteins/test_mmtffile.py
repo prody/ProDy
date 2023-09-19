@@ -24,6 +24,8 @@ class TestParseMMTF(unittest.TestCase):
         self.nmr_mmtf = DATA_FILES['2k39_mmtf']
         self.biomol_pdb = DATA_FILES['3enl_pdb']
         self.biomol_mmtf = DATA_FILES['3enl_mmtf']
+        self.altloc_pdb = DATA_FILES['1pwc_pdb']
+        self.altloc_mmtf = DATA_FILES['1pwc_mmtf']
         
 
     def testUsualCase(self):
@@ -60,6 +62,37 @@ class TestParseMMTF(unittest.TestCase):
             '(models)')        
         self.assertEqual(prody.calcRMSD(ag,mag),0,'parseMMTF has non-zero RMSD to parsePDB')        
         
+        # altlocs
+        ag = parseDatafile(self.altloc_pdb['file'],bonds=True)
+        mag = parseDatafile(self.altloc_mmtf['file'],bonds=True)
+
+        self.assertIsInstance(mag, prody.AtomGroup,
+            'parseMMTF failed to return an AtomGroup instance')
+
+        self.assertEqual(mag.numAtoms(), self.altloc_mmtf['n_atoms'],
+            'parseMMTF failed to parse correct number of atoms')
+
+        self.assertEqual(mag.numCoordsets(), self.altloc_mmtf['models'],
+            'parseMMTF failed to parse correct number of coordinate sets '
+            '(models)')        
+        self.assertEqual(prody.calcRMSD(ag,mag),0,'parseMMTF has non-zero RMSD to parsePDB')       
+        self.assertEqual(mag.numBonds(), 2, "parseMMTF has wrong number of bonds")
+
+        ag = parseDatafile(self.altloc_pdb['file'],altloc='all',bonds=True)
+        mag = parseDatafile(self.altloc_mmtf['file'],altloc='all',bonds=True)
+        
+        self.assertEqual(mag.numAtoms(), 3191, "parseMMTF failed to parse correct number of atoms with altloc='any'")
+        # mmtf does not interleave altlocs, so can't do all atom rmsd (they don't match up)
+        self.assertEqual(prody.calcRMSD(ag.name_C,mag.name_C),0,'parseMMTF has non-zero RMSD to parsePDB')       
+        self.assertEqual(mag.numBonds(), 2, "parseMMTF has wrong number of bonds")
+        
+        ag = parseDatafile(self.altloc_pdb['file'],altloc='B',bonds=True)
+        mag = parseDatafile(self.altloc_mmtf['file'],altloc='B',bonds=True)
+        
+        #the whole ligand is altloc A and is covalently bound
+        self.assertEqual(mag.numAtoms(), 3109, "parseMMTF failed to parse correct number of atoms with altloc='any'")
+        self.assertEqual(prody.calcRMSD(ag.name_C,mag.name_C),0,'parseMMTF has non-zero RMSD to parsePDB')       
+        self.assertEqual(mag.numBonds(), 1, "parseMMTF has wrong number of bonds with altloc='B'")        
         
         # multi-model file (currently fails)
         mag = parseDatafile(self.nmr_mmtf['file'])

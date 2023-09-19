@@ -91,6 +91,18 @@ DATA_FILES = {
         'n_atoms': 7294,
         'models': 1
     },   
+    '1pwc_pdb': {
+        'pdb': '1pwc',
+        'file': '1pwc.pdb',
+        'n_atoms': 3129,
+        'models': 1
+    },    
+    '1pwc_mmtf': {
+        'pdb': '1PWC',
+        'file': '1pwc.mmtf',
+        'n_atoms': 3129,
+        'models': 1
+    },       
     '1ubi_ca': {
         'pdb': '1ubi',
         'file': 'pdb1ubi_ca.pdb',

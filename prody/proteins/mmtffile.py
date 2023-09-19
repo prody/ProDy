@@ -80,9 +80,9 @@ def _parseMMTF(mmtf_struc, **kwargs):
     model = kwargs.get('model')
     subset = kwargs.get('subset')
     chain = kwargs.get('chain')
-    altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
     get_bonds = kwargs.get('bonds',False) 
+    altloc_sel = kwargs.get('altloc', 'A')
     
     assert isinstance(header, bool), 'header must be a boolean'
 
@@ -97,7 +97,7 @@ def _parseMMTF(mmtf_struc, **kwargs):
 
     biomol = kwargs.get('biomol', False)
     hd = set_header(mmtf_struc)
-    ag = set_info(ag, mmtf_struc, get_bonds)
+    ag = set_info(ag, mmtf_struc, get_bonds, altloc_sel)
 
     if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -164,7 +164,7 @@ def bio_transform(input_data, chain_list):
       
     return output_dict
 
-def set_info(atomgroup, mmtf_data,get_bonds=False):
+def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
 
     mmtfHETATMtypes = set([
         "D-SACCHARIDE",
@@ -245,31 +245,41 @@ def set_info(atomgroup, mmtf_data,get_bonds=False):
     termini[:-1] = chainids[1:] != chainids[:-1]
     termini[-1] = True  #the last atom is always a terminus
 
-    atomgroup.setCoords(coords)
-    atomgroup.setNames(atom_names)
-    atomgroup.setResnums(resnums)
-    atomgroup.setResnames(resnames)
-    atomgroup.setChids(chainids)
-    atomgroup.setElements(elements)
-    atomgroup.setMasses(getMasses(elements))
-    atomgroup.setBetas(bfactors)
-    atomgroup.setAltlocs(altlocs)
-    atomgroup.setOccupancies(occupancies)
-    atomgroup.setFlags('hetatm', hetero)
-    atomgroup.setFlags('pdbter', termini)
-    atomgroup.setFlags('selpdbter', termini)
-    atomgroup.setSerials(serials)
-    atomgroup.setIcodes(icodes)
-    atomgroup.setSegnames(segnames)
+    mask = np.full(asize, True, dtype=bool)
+    if altloc_sel != 'all':
+        #mask out any unwanted alternative locations
+        mask = (altlocs == '') | (altlocs == altloc_sel)
+        
+    atomgroup.setCoords(coords[mask])
+    atomgroup.setNames(atom_names[mask])
+    atomgroup.setResnums(resnums[mask])
+    atomgroup.setResnames(resnames[mask])
+    atomgroup.setChids(chainids[mask])
+    atomgroup.setElements(elements[mask])
+    atomgroup.setMasses(getMasses(elements[mask]))
+    atomgroup.setBetas(bfactors[mask])
+    atomgroup.setAltlocs(altlocs[mask])
+    atomgroup.setOccupancies(occupancies[mask])
+    atomgroup.setFlags('hetatm', hetero[mask])
+    atomgroup.setFlags('pdbter', termini[mask])
+    atomgroup.setFlags('selpdbter', termini[mask])
+    atomgroup.setSerials(serials[mask])
+    atomgroup.setIcodes(icodes[mask])
+    atomgroup.setSegnames(segnames[mask])
     atomgroup.setTitle(mmtf_data.structure_id)
     
     if get_bonds and hasattr(mmtf_data,'bond_atom_list'):
+        #have to remap any masked out atoms
+        remaining = np.arange(asize)[mask]
+        remap = np.full(asize,-1)
+        remap[remaining] = np.arange(len(remaining))
         allbonds = np.array(mmtf_data.bond_atom_list).reshape(-1,2)
         nonpeptide = []
         #irgnore bonds between C and N in adjacent residues
         for a,b in allbonds:
-            if atom_names[a] != 'N' or atom_names[b] != 'C' or resnums[a]-resnums[b] != 1:
-                nonpeptide.append((a,b))
+            if mask[a] and mask[b]:
+                if atom_names[a] != 'N' or atom_names[b] != 'C' or resnums[a]-resnums[b] != 1:
+                    nonpeptide.append((remap[a],remap[b]))
         atomgroup.setBonds(nonpeptide)
 
     return atomgroup
