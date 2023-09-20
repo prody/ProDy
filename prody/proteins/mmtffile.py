@@ -179,12 +179,30 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
         "SACCHARIDE"])
 
     asize = mmtf_data.num_atoms
+
+    if len(mmtf_data.chains_per_model) > 1:
+        # get number of atoms in first model
+        asize = 0
+        groupIndex = 0
+        modelChainCount = mmtf_data.chains_per_model[0]
+        for chainGroupCount in mmtf_data.groups_per_chain[:modelChainCount]:
+            #traverse groups
+            for _ in range(chainGroupCount):
+                group = mmtf_data.group_list[mmtf_data.group_type_list[groupIndex]]        
+                asize += len(group['atomNameList'])
+                groupIndex += 1
+
     fields = OrderedDict()
 
     x = mmtf_data.x_coord_list
     y = mmtf_data.y_coord_list
     z = mmtf_data.z_coord_list
-    coords = np.array([x, y, z]).T
+
+    if len(x) != mmtf_data.num_models*asize:
+        LOGGER.warn('Multi-model MMTF files with different molecules not supported.  Keeping only first model')
+        coords = np.array([x, y, z]).T.reshape(mmtf_data.num_models, -1, 3)[0]
+    else:     
+        coords = np.array([x, y, z]).T.reshape(mmtf_data.num_models, asize, 3)
 
     # Initialize arrays for atom properties
     atom_names = np.empty(asize, dtype=ATOMIC_FIELDS['name'].dtype)
@@ -240,6 +258,7 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
                 groupIndex += 1
             chainIndex += 1
         modelIndex += 1
+        break
 
     #detect termini based on chain changes
     termini[:-1] = chainids[1:] != chainids[:-1]
@@ -250,7 +269,7 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
         #mask out any unwanted alternative locations
         mask = (altlocs == '') | (altlocs == altloc_sel)
         
-    atomgroup.setCoords(coords[mask])
+    atomgroup.setCoords(coords[:,mask])
     atomgroup.setNames(atom_names[mask])
     atomgroup.setResnums(resnums[mask])
     atomgroup.setResnames(resnames[mask])
@@ -277,7 +296,7 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
         nonpeptide = []
         #irgnore bonds between C and N in adjacent residues
         for a,b in allbonds:
-            if mask[a] and mask[b]:
+            if mask[a] and mask[b] and a < asize and b < asize:
                 if atom_names[a] != 'N' or atom_names[b] != 'C' or resnums[a]-resnums[b] != 1:
                     nonpeptide.append((remap[a],remap[b]))
         atomgroup.setBonds(nonpeptide)
