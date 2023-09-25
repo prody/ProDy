@@ -29,7 +29,7 @@ jobs:
         if [[ ${{ matrix.python-version }} == "3.11" ]]; then conda config --add channels conda-forge; fi
         conda create --yes -n test python=${{ matrix.python-version }}
         source activate test
-        conda install --yes numpy scipy nose pyparsing requests mmtf-python
+        conda install --yes numpy scipy nose pyparsing requests
         if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; fi
         pip install .
         python setup.py build_ext --inplace --force
