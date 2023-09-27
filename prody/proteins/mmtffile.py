@@ -201,6 +201,7 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
     if len(x) != mmtf_data.num_models*asize:
         LOGGER.warn('Multi-model MMTF files with different molecules not supported.  Keeping only first model')
         coords = np.array([x, y, z]).T.reshape(mmtf_data.num_models, -1, 3)[0]
+        coords = np.array([x, y, z]).T[:asize].reshape(1, asize, 3)
     else:     
         coords = np.array([x, y, z]).T.reshape(mmtf_data.num_models, asize, 3)
 
@@ -296,7 +297,7 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
         nonpeptide = []
         #irgnore bonds between C and N in adjacent residues
         for a,b in allbonds:
-            if mask[a] and mask[b] and a < asize and b < asize:
+            if a < asize and b < asize and mask[a] and mask[b] :
                 if atom_names[a] != 'N' or atom_names[b] != 'C' or resnums[a]-resnums[b] != 1:
                     nonpeptide.append((remap[a],remap[b]))
         atomgroup.setBonds(nonpeptide)
