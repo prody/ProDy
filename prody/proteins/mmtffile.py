@@ -26,8 +26,62 @@ except ImportError:
     print("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
 
 __all__ = ['parseMMTF']
-           
+
+_parseMMTFdoc = """
+    :arg mmtf_struc: The MMTF structure to parse. It can be provided in one of the following ways:
+        - A string representing a PDB ID (e.g., '1abc').
+        - The filename of an MMTF file (ending with '.mmtf' or '.mmtf.gz').
+        - An MMTF structure object (file parsed through mmtf-python).
+    :type mmtf_struc: str or MMTF Structure object
+
+    :arg chain: Chain identifier(s) to parse (e.g., 'A' for chain A). If not provided,
+        all chains are parsed. If a PDB ID is used, chain can also be specified as part
+        of the ID (e.g., '1abcA' to parse chain A).
+    :type chain: str, optional
+
+    :arg title: Title to assign to the resulting AtomGroup. If not provided, the
+        title is extracted from the MMTF structure or set to the PDB ID.
+    :type title: str, optional
+
+    :arg subset: a predefined keyword to parse subset of atoms, valid keywords
+        are ``'calpha'`` (``'ca'``), ``'backbone'`` (``'bb'``), or **None**
+        (read all atoms), e.g. ``subset='bb'``
+    :type subset: str
+
+    :arg model: model index or None (read all models), e.g. ``model=10``
+    :type model: int, list
+
+    :arg altloc: if a location indicator is passed, such as ``'A'`` or ``'B'``,
+         only indicated alternate locations will be parsed as the single
+         coordinate set of the AtomGroup, if *altloc* is set **True** all
+         alternate locations will be parsed and each will be appended as a
+         distinct coordinate set, default is ``"A"``
+    :type altloc: str
+    """
+
 def parseMMTF(mmtf_struc, **kwargs):
+    """
+    Parse an MMTF (Macromolecular Transmission Format) structure or fetch it from the PDB,
+    and return an AtomGroup containing the parsed data.
+
+    :param mmtf_struc: The MMTF structure to parse. It can be provided in one of the following ways:
+        - A string representing a PDB ID (e.g., '1abc').
+        - The filename of an MMTF file (ending with '.mmtf' or '.mmtf.gz').
+        - An MMTF structure object (file parsed through mmtf-python).
+    :type mmtf_struc: str or MMTF Structure object
+
+    :param chain: Chain identifier(s) to parse (e.g., 'A' for chain A). If not provided,
+        all chains are parsed. If a PDB ID is used, chain can also be specified as part
+        of the ID (e.g., '1abcA' to parse chain A).
+    :type chain: str, optional
+
+    :param title: Title to assign to the resulting AtomGroup. If not provided, the
+        title is extracted from the MMTF structure or set to the PDB ID.
+    :type title: str, optional
+
+    :return: An AtomGroup containing the parsed atomic data.
+    :rtype: AtomGroup
+    """
 
     chain = kwargs.pop('chain', None)
     title = kwargs.get('title', None)
@@ -66,13 +120,15 @@ def parseMMTF(mmtf_struc, **kwargs):
             title = mmtf_struc.structure_id  
 
     #if none of the above loops are entered, user should have passed a mmtf structure object
-
     if title is None:
         title = mmtf_struc.structure_id
 
     result = _parseMMTF(mmtf_struc, chain=chain, **kwargs)
 
     return result
+
+parseMMTF.__doc__ += _parseMMTFdoc
+
 
 def _parseMMTF(mmtf_struc, **kwargs):
     LOGGER.timeit()
@@ -200,7 +256,6 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
 
     if len(x) != mmtf_data.num_models*asize:
         LOGGER.warn('Multi-model MMTF files with different molecules not supported.  Keeping only first model')
-        coords = np.array([x, y, z]).T.reshape(mmtf_data.num_models, -1, 3)[0]
         coords = np.array([x, y, z]).T[:asize].reshape(1, asize, 3)
     else:     
         coords = np.array([x, y, z]).T.reshape(mmtf_data.num_models, asize, 3)
