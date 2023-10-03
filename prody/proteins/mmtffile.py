@@ -19,21 +19,9 @@ from .header import getHeaderDict, buildBiomolecules
 import struct as st
 import numpy as np
 
-try:
-    from mmtf import fetch, parse
-    import mmtf
-except ImportError:
-    print("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
-
 __all__ = ['parseMMTF']
 
 _parseMMTFdoc = """
-    :arg mmtf_struc: The MMTF structure to parse. It can be provided in one of the following ways:
-        - A string representing a PDB ID (e.g., '1abc').
-        - The filename of an MMTF file (ending with '.mmtf' or '.mmtf.gz').
-        - An MMTF structure object (file parsed through mmtf-python).
-    :type mmtf_struc: str or MMTF Structure object
-
     :arg chain: Chain identifier(s) to parse (e.g., 'A' for chain A). If not provided,
         all chains are parsed. If a PDB ID is used, chain can also be specified as part
         of the ID (e.g., '1abcA' to parse chain A).
@@ -75,13 +63,14 @@ def parseMMTF(mmtf_struc, **kwargs):
         of the ID (e.g., '1abcA' to parse chain A).
     :type chain: str, optional
 
-    :param title: Title to assign to the resulting AtomGroup. If not provided, the
-        title is extracted from the MMTF structure or set to the PDB ID.
-    :type title: str, optional
-
     :return: An AtomGroup containing the parsed atomic data.
     :rtype: AtomGroup
     """
+    try:
+        from mmtf import fetch, parse
+        import mmtf
+    except ImportError:
+        print("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
 
     chain = kwargs.pop('chain', None)
     title = kwargs.get('title', None)
