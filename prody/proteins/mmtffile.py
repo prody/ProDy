@@ -70,7 +70,7 @@ def parseMMTF(mmtf_struc, **kwargs):
         from mmtf import fetch, parse
         import mmtf
     except ImportError:
-        print("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
+        raise ImportError("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
 
     chain = kwargs.pop('chain', None)
     title = kwargs.get('title', None)
