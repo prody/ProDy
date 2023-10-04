@@ -1525,7 +1525,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
-                             resname, chainids[i][0], resnum,
+                             resname, chainids[i][:1], resnum,
                              icodes[i],
                              xyz[0], xyz[1], xyz[2],
                              occupancies[i], bfactors[i],
