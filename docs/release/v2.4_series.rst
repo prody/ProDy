@@ -5,6 +5,32 @@ ProDy 2.4 Series
    :local:
 
 
+2.4.1 (Aug 11, 2023)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+* New function writeBILD to write modes in BILD format for viewing in Chimera/ChimeraX
+* New function addMissingAtoms based on PDBFixer or OpenBabel
+* Added Seaborn kernel density estimator (KDE) options to showProjection like Kaynak et al., 2022
+* Added options to control adjust_text for showProjection
+* Added unite_chains option to parseMMCIF to handle splitting over segments
+* New function interpolateModel based on SITUS ModeHunter
+* New ClustENM app
+* New module for analysing water bridges (only for Python 3)
+* New option nproc as a number of processors limit for solveEig, ANM, GNM and PCA calcModes
+
+**Bug Fixes and Improvements**:
+
+* Fixed Trajectory next frame overwriting with atoms linked
+* Important fixes to alignBioPairwise
+* Update to blastpdb to account for changes to on the NCBI side
+* Improvements to apps including writing matrices
+* Improved handling of mmCIF files including those from PDB-REDO
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.4.0...v2.4.1
+
+
 2.4.0 (Feb 2, 2023)
 ------------------------------------------------------------------------------
 

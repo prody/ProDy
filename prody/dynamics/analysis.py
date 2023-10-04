@@ -407,12 +407,12 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
             import multiprocessing
             n_cpu = min(multiprocessing.cpu_count(), n_cpu)
             queue = multiprocessing.Queue()
-            size = n_modes / n_cpu
+            size = n_modes // n_cpu
             for i in range(n_cpu):
                 if n_cpu - i == 1:
-                    indices = modes.indices[i*size:]
+                    indices = modes.getIndices()[i*size:]
                 else:
-                    indices = modes.indices[i*size:(i+1)*size]
+                    indices = modes.getIndices()[i*size:(i+1)*size]
                 process = multiprocessing.Process(
                     target=_crossCorrelations,
                     args=(queue, n_atoms, array, variances, indices))

@@ -148,6 +148,14 @@ Use the following to parse and access header data in EMD files:
   * :class:`.EMDMAP` - access structural data from :file:`.emd` files
   * :class:`.TRNET` - fit pseudoatoms to EM density maps using the TRN algorithm
 
+Add missing atoms including hydrogens
+===========
+
+Use the following to add missing atoms
+
+  * :func:`.addMissingAtoms` - add missing atoms with separately installed OpenBabel or PDBFixer
+
+Missing residues can also be added if a PDB or mmCIF file with SEQRES entries is provided.
 """
 
 __all__ = []
@@ -208,5 +216,23 @@ from . import starfile
 from .starfile import *
 __all__.extend(starfile.__all__)
 
+try:
+    from . import waterbridges
+    from .waterbridges import *
+except SyntaxError:
+    import logging
+    logger = logging.getLogger()
+    logger.warn("Cannot import waterbridges in python 2")
+else:
+    __all__.extend(waterbridges.__all__)
+
+from . import fixer
+from .fixer import *
+__all__.extend(fixer.__all__)
+
 from .pdbfile import PDBParseError
 from .ciffile import MMCIFParseError
+
+from . import opm
+from .opm import *
+__all__.extend(opm.__all__)

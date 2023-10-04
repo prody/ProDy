@@ -209,8 +209,13 @@ class TestWritePDB(unittest.TestCase):
         self.ag = parsePDB(self.pdb['path'])
         self.tmp = os.path.join(TEMPDIR, 'test.pdb')
 
+        self.ubi = parsePDB(DATA_FILES['1ubi']['path'], secondary=True)
+
         self.hex = parsePDB(DATA_FILES['hex']['path'])
         self.h36 = parsePDB(DATA_FILES['h36']['path'])
+
+        self.hex_ter = parsePDB(DATA_FILES['hex_ter']['path'])
+        self.h36_ter = parsePDB(DATA_FILES['h36_ter']['path'])
 
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR)
 
@@ -248,11 +253,11 @@ class TestWritePDB(unittest.TestCase):
         self.assertEqual(resnum_2710_line[22:26], '2710',
             'writePDB failed to write correct hex resnum')
 
-        serial_99999_line = lines[100000]
+        serial_99999_line = lines[99999]
         self.assertEqual(serial_99999_line[6:11], '99999',
             'writePDB failed to write correct pre-hex serial')        
 
-        serial_186a0_line = lines[100001]
+        serial_186a0_line = lines[100000]
         self.assertEqual(serial_186a0_line[6:11], '186a0',
             'writePDB failed to write correct hex serial')  
 
@@ -274,13 +279,22 @@ class TestWritePDB(unittest.TestCase):
         self.assertEqual(resnum_A000_line[22:26], 'A000',
             'writePDB failed to write correct h36 resnum')
 
-        serial_99999_line = lines[100000]
+        serial_99999_line = lines[99999]
         self.assertEqual(serial_99999_line[6:11], '99999',
-            'writePDB failed to write correct pre-h36 serial')        
+            'writePDB failed to write correct pre-h36 serial')
 
-        serial_A0000_line = lines[100001]
+        serial_A0000_line = lines[100000]
         self.assertEqual(serial_A0000_line[6:11], 'A0000',
-            'writePDB failed to write correct h36 serial') 
+            'writePDB failed to write correct h36 serial')
+        
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingSecstrs(self):
+        """Test if output from writing secstrs is as expected."""
+
+        out = writePDB(self.tmp, self.ubi)
+        ubi_new = parsePDB(out, secondary=True)
+        self.assertListEqual(list(self.ubi.getSecstrs()), list(ubi_new.getSecstrs()))
 
     @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
@@ -295,6 +309,66 @@ class TestWritePDB(unittest.TestCase):
                 'failed to write correct number of models')
             assert_equal(out.getCoords(), self.ag.getCoordsets(i),
                  'failed to write model {0} coordinates correctly'.format(i+1))
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingHexTer(self):
+        """Test if output from writing hexadecimal with TER lines is as expected."""
+
+        out = writePDB(self.tmp, self.hex_ter)
+        fi = open(out, 'r')
+        lines = fi.readlines()
+        fi.close()
+
+        pre_ter_line = lines[4060]
+        self.assertEqual(pre_ter_line[22:26], ' 550',
+            'writePDB failed to write correct pre-ter resnum')
+        self.assertEqual(pre_ter_line[6:11], ' 4060',
+            'writePDB failed to write correct pre-ter serial')
+
+        post_ter_line = lines[4062]
+        self.assertEqual(post_ter_line[22:26], '   4',
+            'writePDB failed to write correct post-ter resnum')
+        self.assertEqual(post_ter_line[6:11], ' 4062',
+            'writePDB failed to write correct post-ter serial')
+        
+        serial_99999_line = lines[99999]
+        self.assertEqual(serial_99999_line[6:11], '99999',
+            'writePDB failed to write correct pre-hex serial')
+
+        serial_186a0_line = lines[100000]
+        self.assertEqual(serial_186a0_line[6:11], '186a0',
+            'writePDB failed to write correct hex serial')
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingHybrid36Ter(self):
+        """Test if output from writing Hybrid36 with TER lines is as expected."""
+
+        out = writePDB(self.tmp, self.h36_ter, hybrid36=True)
+        fi = open(out, 'r')
+        lines = fi.readlines()
+        fi.close()
+
+        pre_ter_line = lines[4060]
+        self.assertEqual(pre_ter_line[22:26], ' 550',
+            'writePDB failed to write correct pre-ter resnum')
+        self.assertEqual(pre_ter_line[6:11], ' 4060',
+            'writePDB failed to write correct pre-ter serial')
+
+        post_ter_line = lines[4062]
+        self.assertEqual(post_ter_line[22:26], '   4',
+            'writePDB failed to write correct post-ter resnum')
+        self.assertEqual(post_ter_line[6:11], ' 4062',
+            'writePDB failed to write correct post-ter serial')
+
+        serial_99999_line = lines[99999]
+        self.assertEqual(serial_99999_line[6:11], '99999',
+            'writePDB failed to write correct pre-h36 serial')        
+
+        serial_A0000_line = lines[100000]
+        self.assertEqual(serial_A0000_line[6:11], 'A0000',
+            'writePDB failed to write correct h36 serial') 
 
     @dec.slow
     def tearDown(self):
