@@ -204,6 +204,10 @@ from . import pdbfile
 from .pdbfile import *
 __all__.extend(pdbfile.__all__)
 
+from . import mmtffile
+from .mmtffile import *
+__all__.extend(mmtffile.__all__)
+
 from . import emdfile
 from .emdfile import *
 __all__.extend(emdfile.__all__)
