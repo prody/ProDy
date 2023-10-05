@@ -31,7 +31,8 @@ jobs:
         source activate test
         conda install --yes numpy scipy nose pyparsing requests
         if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; fi
-        pip install -e .
+        pip install mmtf-python
+        pip install .
         python setup.py build_ext --inplace --force
     - name: Test with pytest
       run: |
