@@ -4,13 +4,9 @@ from os.path import isfile, join, split, splitext
 from prody.tests import TestCase, skipIf, skipUnless
 
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    try:
-        from numpy.testing import dec
-    except ImportError:
-        from pytest import mark as dec
+
+from prody.utilities import importDec
+dec = importDec()
 
 from prody.tests.datafiles import TEMPDIR, pathDatafile
 

@@ -3,13 +3,9 @@
 import numpy as np
 from numpy import arange
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    try:
-        from numpy.testing import dec
-    except ImportError:
-        from pytest import mark as dec
+
+from prody.utilities import importDec
+dec = importDec()
 
 from prody import *
 from prody import LOGGER
