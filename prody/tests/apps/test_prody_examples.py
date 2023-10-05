@@ -9,7 +9,10 @@ from numpy.testing import *
 try:
     import numpy.testing.decorators as dec
 except ImportError:
-    from numpy.testing import dec
+    try:
+        from numpy.testing import dec
+    except ImportError:
+        from pytest import mark as dec
 
 from prody import LOGGER
 LOGGER.verbosity = None
