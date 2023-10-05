@@ -796,6 +796,9 @@ def importDec():
         try:
             from numpy.testing import dec
         except ImportError:
-            import numpy.testing._private.decorators as dec
+            try:
+                import numpy.testing._private.decorators as dec
+            except ImportError:
+                from pytest import mark as dec    
 
     return dec
