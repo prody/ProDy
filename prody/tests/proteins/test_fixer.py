@@ -8,8 +8,7 @@ except ImportError:
 
 from prody import *
 from prody import LOGGER
-from prody.utilities import which
-from prody.tests import TEMPDIR, unittest
+from prody.tests import unittest
 from prody.tests.datafiles import *
 
 import os
