@@ -91,7 +91,14 @@ DATA_FILES = {
         'file': 'pdb3enl.pdb',
         'n_atoms': 7294,
         'models': 1
-    },    
+    },
+    '3enl_addH': {
+        'pdb': '3enl',
+        'file': 'addH_pdb3enl.pdb',   
+        'n_atoms': 7641,
+        'models': 1,
+        'n_h': 3999
+    }, 
     '3enl_mmtf': {
         'pdb': '3ENL',
         'file': 'mmtf3enl.mmtf',
