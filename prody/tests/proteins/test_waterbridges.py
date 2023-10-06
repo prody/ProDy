@@ -139,6 +139,6 @@ class TestWaterBridges(unittest.TestCase):
             self.assertEqual(self.clustInfoMultiWater[7], len(self.clustMultiWater.waters),
                              'item 7 from selected info should be number of waters in the cluster')
             self.assertEqual(self.clustInfoMultiWater[8], 
-                             list(map(lambda w: f"{w.getChid()}_{w.getIndex()}", self.clustMultiWater.waters)),
+                             list(map(lambda w: w.getChid() + "_" + str(w.getIndex()), self.clustMultiWater.waters)),
                              'item 8 from selected info should be chid and index for 2 water atoms')
            
