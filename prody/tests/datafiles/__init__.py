@@ -55,6 +55,13 @@ DATA_FILES = {
         'n_atoms': 683,
         'models': 1
     },
+    '1ubi_addH': {
+        'pdb': '1ubi',
+        'file': 'pdb_addH_1ubi.pdb',   
+        'n_atoms': 1474,
+        'models': 1,
+        'n_h': 791
+    },
     '1ubi_mmtf': {
         'pdb': '1UBI',
         'file': '1ubi.mmtf',
