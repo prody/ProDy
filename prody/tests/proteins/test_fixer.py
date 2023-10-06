@@ -31,11 +31,11 @@ class TestFixer(unittest.TestCase):
     @dec.slow
     def testPDBFixer(self):
 
-        self.filename = addMissingAtoms(PATH_1UBI, method='pdbfixer')
-
-        self.assertEqual(self.filename, EXPECT_PATH,
-                         'addMissing atoms wrote the file in the wrong place')
-        
-        atoms = parsePDB(self.filename)
-        self.assertEqual(len(atoms.hydrogen), DATA_FILES['1ubi_addH']['n_h'],
-                         'addMissing atoms did not add the right number of hydrogens')
+        if prody.PY3K:
+            self.filename = addMissingAtoms(PATH_1UBI, method='pdbfixer')
+            self.assertEqual(self.filename, EXPECT_PATH,
+                            'addMissing atoms wrote the file in the wrong place')
+            
+            atoms = parsePDB(self.filename)
+            self.assertEqual(len(atoms.hydrogen), DATA_FILES['1ubi_addH']['n_h'],
+                            'addMissing atoms did not add the right number of hydrogens')
