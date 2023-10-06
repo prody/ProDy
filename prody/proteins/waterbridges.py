@@ -440,7 +440,7 @@ def calcWaterBridges(atoms, **kwargs):
             waterBridgesWithIndices, getChainBridgeTuple)
 
     LOGGER.info(
-        f'{len(waterBridgesWithIndices)} water bridges detected.')
+        f'{len(waterBridgesWithIndices)} water bridges detected using method {method}.')
     if method == 'atomic':
         LOGGER.info('Call getInfoOutput to convert atomic to info output.')
 
