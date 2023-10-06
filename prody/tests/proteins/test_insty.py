@@ -54,69 +54,79 @@ class TestInteractions(unittest.TestCase):
     
     def testAllInsteractions(self):
         """Test for all types of interactions."""
-        
-        data_test = np.load('test_2k39_all.npy', allow_pickle=True)
-        
-        try:
-            assert_equal(data_test, ALL_INTERACTIONS2,
-                     'failed to get correct interactions without hpb.so')
-        except:
-            assert_equal(data_test, ALL_INTERACTIONS,
-                     'failed to get correct interactions with hpb.so')                
+
+        if prody.PY3K:        
+            data_test = np.load('test_2k39_all.npy', allow_pickle=True)
+
+            try:
+                assert_equal(data_test, ALL_INTERACTIONS2,
+                         'failed to get correct interactions without hpb.so')
+            except:
+                assert_equal(data_test, ALL_INTERACTIONS,
+                         'failed to get correct interactions with hpb.so')
     
     def testHydrogenBonds(self):
         """Test for hydrogen bonds.
         Last column is compared becasue pairs of residues can be reversed and
         order can be also different in the interactions"""
-        
-        data_test = np.load('test_2k39_hbs.npy', allow_pickle=True)
-        assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in HBS_INTERACTIONS]),
-                     'failed to get correct hydrogen bonds')        
+
+        if prody.PY3K:                
+            data_test = np.load('test_2k39_hbs.npy', allow_pickle=True)
+            assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in HBS_INTERACTIONS]),
+                         'failed to get correct hydrogen bonds')        
                      
     def testSaltBridges(self):
         """Test for salt bridges."""
-        
-        data_test = np.load('test_2k39_sbs.npy', allow_pickle=True)
-        assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in SBS_INTERACTIONS]),
-                     'failed to get correct salt bridges')                             
+
+        if prody.PY3K:                
+            data_test = np.load('test_2k39_sbs.npy', allow_pickle=True)
+            assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in SBS_INTERACTIONS]),
+                         'failed to get correct salt bridges')                             
 
     def testRepulsiveIonicBonding(self):
         """Test for repulsive ionic bonding."""
-        
-        data_test = np.load('test_2k39_rib.npy', allow_pickle=True)
-        assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in RIB_INTERACTIONS if i]),
-                     'failed to get correct repulsive ionic bonding')                             
+
+        if prody.PY3K:                
+            data_test = np.load('test_2k39_rib.npy', allow_pickle=True)
+            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in RIB_INTERACTIONS if i]),
+                         'failed to get correct repulsive ionic bonding')                             
 
     def testPiStacking(self):
         """Test for pi-stacking interactions."""
-        
-        data_test = np.load('test_2k39_PiStack.npy', allow_pickle=True)
-        assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in PISTACK_INTERACTIONS if i]),
-                     'failed to get correct pi-stacking interactions')                             
+
+        if prody.PY3K:                
+            data_test = np.load('test_2k39_PiStack.npy', allow_pickle=True)
+            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in PISTACK_INTERACTIONS if i]),
+                         'failed to get correct pi-stacking interactions')                             
                      
     def testPiCation(self):
         """Test for pi-stacking interactions."""
-        
-        data_test = np.load('test_2k39_PiCat.npy', allow_pickle=True)
-        assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in PICAT_INTERACTIONS if i]),
-                     'failed to get correct pi-cation interactions')                             
+
+        if prody.PY3K:                
+            data_test = np.load('test_2k39_PiCat.npy', allow_pickle=True)
+            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in PICAT_INTERACTIONS if i]),
+                         'failed to get correct pi-cation interactions')
+
 
     def testHydrophobicInteractions(self):
         """Test for hydrophobic interactions."""
-        
-        data_test = np.load('test_2k39_hph.npy', allow_pickle=True)
 
-        try:
-            assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in HPH_INTERACTIONS2]),
-                     'failed to get correct hydrophobic interactions without hpb.so')
-        except:
-            assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in HPH_INTERACTIONS]),
-                     'failed to get correct hydrophobic interactions with hpb.so')                             
+        if prody.PY3K:        
+            data_test = np.load('test_2k39_hph.npy', allow_pickle=True)                                                        
+            try:
+                assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in HPH_INTERACTIONS2]),
+                         'failed to get correct hydrophobic interactions without hpb.so')
+            except:
+                assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in HPH_INTERACTIONS]),
+                         'failed to get correct hydrophobic interactions with hpb.so')
+        
 
     def testDisulfideBonds(self):
         """Test for disulfide bonds interactions."""
+
+        if prody.PY3K:               
+             data_test = np.load('test_2k39_disu.npy', allow_pickle=True)
+             assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in DISU_INTERACTIONS if i]),
+                          'failed to get correct disulfide bonds')
         
-        data_test = np.load('test_2k39_disu.npy', allow_pickle=True)
-        assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in DISU_INTERACTIONS if i]),
-                     'failed to get correct disulfide bonds')                                                  
                      
