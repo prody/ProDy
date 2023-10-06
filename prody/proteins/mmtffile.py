@@ -68,6 +68,7 @@ def parseMMTF(mmtf_struc, **kwargs):
     """
     try:
         from mmtf import fetch, parse
+        import gzip, msgpack
         import mmtf
     except ImportError:
         raise ImportError("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
@@ -107,6 +108,13 @@ def parseMMTF(mmtf_struc, **kwargs):
                                 .format(mmtf_struc))
             mmtf_struc = structure
             title = mmtf_struc.structure_id  
+    elif type(mmtf_struc)==bytearray:
+        data = gzip.decompress(mmtf_struc)
+        unpack = msgpack.unpackb(data)
+        dec = mmtf.MMTFDecoder()
+        dec.decode_data(unpack)
+        mmtf_struc = dec
+
 
     #if none of the above loops are entered, user should have passed a mmtf structure object
     if title is None:
