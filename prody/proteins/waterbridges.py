@@ -14,13 +14,14 @@ from collections import deque
 from enum import Enum, auto
 from copy import copy
 
-from prody import LOGGER
+from prody import LOGGER, SETTINGS
 from prody.atomic import Atom, Atomic, AtomGroup
-from prody.dynamics.plotting import showAtomicMatrix
 from prody.ensemble import Ensemble
 from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB
+
+from prody.utilities import showFigure, showMatrix
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInfoOutput',
@@ -699,7 +700,7 @@ def showWaterBridgeMatrix(data, metric):
         'distStd': 'Distance standard deviation'
     }
 
-    showAtomicMatrix(matrix)
+    showMatrix(matrix)
     plt.title(titles[metric])
 
 
@@ -735,7 +736,8 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
         default is 20
     :type clip: int
     """
-    import matplotlib.pyplot as plt
+
+    show_plot = kwargs.pop('show_plot', False)
 
     clip = kwargs.pop('clip', 20)
     if clip == None:
@@ -754,18 +756,25 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
 
     labels, values = zip(*sortedResidues[-clip:])
 
-    plt.figure(figsize=(5, 3 + 0.11 * len(labels)))
-    plt.barh(labels, values)
-    plt.xlabel('Number of frame appearances')
-    plt.ylabel('Residue')
-    plt.title('Water bridging residues')
-    plt.tight_layout()
-    plt.margins(y=0.01)
-    plt.gca().xaxis.set_label_position('top')
-    plt.gca().xaxis.tick_top()
-    plt.show()
+    if show_plot:
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(5, 3 + 0.11 * len(labels)))
+        plt.barh(labels, values)
+        plt.xlabel('Number of frame appearances')
+        plt.ylabel('Residue')
+        plt.title('Water bridging residues')
+        plt.tight_layout()
+        plt.margins(y=0.01)
+        plt.gca().xaxis.set_label_position('top')
+        plt.gca().xaxis.tick_top()
+        if SETTINGS['auto_show']:
+            showFigure()
 
     return sortedResidues
+
+def showBridgingResiduesHistogram(frames, **kwargs):
+    kwargs['show_plot'] = True
+    return calcBridgingResiduesHistogram(frames, **kwargs)
 
 
 def getBridgingResidues(frames, residue):
@@ -873,8 +882,7 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
         default is 'dict'
     :type output: 'dict' | 'indices'
     """
-    import matplotlib.pyplot as plt
-
+    show_plot = kwargs.pop('show_plot', False)
     metric = kwargs.pop('metric', 'residues')
     trajectory = kwargs.pop('trajectory', None)
 
@@ -891,14 +899,20 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
 
     result = methods[metric]()
 
-    if metric in ['waters', 'distance']:
+    if metric in ['waters', 'distance'] and show_plot:
+        import matplotlib.pyplot as plt
         plt.hist(result, rwidth=0.95, density=True)
         plt.xlabel('Value')
         plt.ylabel('Probability')
         plt.title(f'Distribution: {metric}')
-        plt.show()
+        if SETTINGS['auto_show']:
+            showFigure()
 
-    return methods[metric]()
+    return result
+
+def showWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
+    kwargs['show_plot'] = True
+    return calcWaterBridgesDistribution(frames, res_a, res_b, **kwargs)
 
 
 def savePDBWaterBridges(bridges, atoms, filename):
