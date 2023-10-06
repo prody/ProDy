@@ -213,7 +213,7 @@ DATA_FILES = {
         'protein': 12194
     },
     '2k39_insty': {
-        'file': '2k39-insty.pdb'
+        'file': '2k39_insty.pdb'
     },
     '2k39_hbs': {
         'file': '2k39_hbs.npy'
