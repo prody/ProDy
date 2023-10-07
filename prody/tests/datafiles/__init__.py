@@ -266,6 +266,39 @@ DATA_FILES = {
     'cath': {
         'file': 'cath.xml',
     },    
+    '2k39_insty': {
+        'file': '2k39_insty.pdb'
+    },
+    '2k39_hbs': {
+        'file': '2k39_hbs.npy'
+    },    
+    '2k39_sbs': {
+        'file': '2k39_sbs.npy'
+    },    
+    '2k39_rib': {
+        'file': '2k39_rib.npy'
+    },    
+    '2k39_PiStack': {
+        'file': '2k39_PiStack.npy'
+    },
+    '2k39_PiCat': {
+        'file': '2k39_PiCat.npy'
+    },
+    '2k39_hph': {
+        'file': '2k39_hph.npy'
+    },
+    '2k39_disu': {
+        'file': '2k39_disu.npy'
+    },    
+    '2k39_all': {
+        'file': '2k39_all.npy'
+    },
+    '2k39_hph2': {
+        'file': '2k39_hph2.npy'
+    },    
+    '2k39_all2': {
+        'file': '2k39_all2.npy'
+    },
 }
 
 
@@ -274,6 +307,7 @@ PARSERS = {
     '.mmtf': parseMMTF,
     '.coo': parseSparseMatrix, '.dat': parseArray,
     '.txt': np.loadtxt,
+    '.npy': lambda fn, **kwargs: np.load(fn, allow_pickle=True),
     '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)
 }
 

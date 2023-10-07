@@ -19,7 +19,7 @@ from prody.atomic import Atom, Atomic, AtomGroup
 from prody.ensemble import Ensemble
 from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
-from prody.proteins import writePDB
+from prody.proteins import writePDB, parsePDB
 
 from prody.utilities import showFigure, showMatrix
 
@@ -28,7 +28,7 @@ __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInf
            'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
            'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory',
-           'saveWaterBridges', 'parseWaterBridges']
+           'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters']
 
 
 class ResType(Enum):
@@ -1071,3 +1071,69 @@ def parseWaterBridges(filename, atoms):
         bridgesFrames = bridgesFrames[0]
 
     return bridgesFrames
+
+
+def findClusterCenters(file_pattern, **kwargs):
+    """ Find molecules that are forming cluster in 3D space.
+    
+    :arg file_pattern: file pattern for anlaysis
+        it can include '*'
+        example:'file_*.pdb' will analyze file_1.pdb, file_2.pdb, etc.
+    :type file_pattern: str
+    
+    :arg selection: selection string
+        by default water and name OH2 is used
+    :type selection: str
+    
+    :arg distC: distance to other molecules
+    :type distC: int, float
+        default is 0.3
+        
+    :arg numC: min number of molecules in a cluster
+        default is 3
+    :type numC: int
+    """
+    
+    import glob
+    import numpy as np
+
+    selection = kwargs.pop('selection', 'water and name OH2')
+    distC = kwargs.pop('distC', 0.3)
+    numC = kwargs.pop('numC', 3)
+    
+    matching_files = glob.glob(file_pattern)
+    matching_files.sort()
+    coords_all = parsePDB(matching_files[0]).select(selection).toAtomGroup()
+
+    for i in matching_files[1:]:
+        coords = parsePDB(i).select('water').toAtomGroup()
+        coords_all += coords
+
+    removeResid = []
+    removeCoords = []
+    for ii in range(len(coords_all)):
+        sel = coords_all.select('water within '+str(distC)+' of center', 
+                    center=coords_all.getCoords()[ii])
+        if len(sel) <= int(numC):
+            removeResid.append(coords_all.getResnums()[ii])
+            removeCoords.append(list(coords_all.getCoords()[ii]))
+
+    selectedWaters = AtomGroup()
+    sel_waters = [] 
+
+    for j in coords_all.getCoordsets()[0].tolist():
+        if j not in removeCoords:
+            sel_waters.append(j)
+
+    coords_wat = np.array([sel_waters], dtype=float)
+    selectedWaters.setCoords(coords_wat)
+    selectedWaters.setNames(['DUM']*len(selectedWaters))
+    selectedWaters.setResnums(range(1, len(selectedWaters)+1))
+    selectedWaters.setResnames(['DUM']*len(selectedWaters))
+
+    try:
+        filename = 'clusters_'+file_pattern.split("*")[0]+'.pdb'
+    except:
+        filename = 'clusters.pdb'
+    writePDB(filename, selectedWaters)
+    LOGGER.info("Results are saved in {0}.".format(filename))
