@@ -12,46 +12,49 @@ from prody.proteins.interactions import calcRepulsiveIonicBondingTrajectory, cal
 from prody.proteins.interactions import calcPiCationTrajectory, calcHydrophobicTrajectory
 from prody.proteins.interactions import calcDisulfideBondsTrajectory, calcProteinInteractions
 
-ATOMS = parseDatafile('2k39_insty')
-ALL_INTERACTIONS = parseDatafile('2k39_all')
-ALL_INTERACTIONS2 = parseDatafile('2k39_all2')
-HBS_INTERACTIONS = parseDatafile('2k39_hbs')
-SBS_INTERACTIONS = parseDatafile('2k39_sbs')
-RIB_INTERACTIONS = parseDatafile('2k39_rib')
-PISTACK_INTERACTIONS = parseDatafile('2k39_PiStack')
-PICAT_INTERACTIONS = parseDatafile('2k39_PiCat')
-HPH_INTERACTIONS = parseDatafile('2k39_hph')
-HPH_INTERACTIONS2 = parseDatafile('2k39_hph2')
-DISU_INTERACTIONS = parseDatafile('2k39_disu')
-
-# Generating new data to compare it with the existing one:
-INTERACTIONS_ALL = InteractionsTrajectory()
-data_all = INTERACTIONS_ALL.calcProteinInteractionsTrajectory(ATOMS)
-np.save('test_2k39_all.npy', data_all, allow_pickle=True)
-
-data_hbs = calcHydrogenBondsTrajectory(ATOMS)
-np.save('test_2k39_hbs.npy', data_hbs, allow_pickle=True)
-
-data_sbs = calcSaltBridgesTrajectory(ATOMS)
-np.save('test_2k39_sbs.npy', data_sbs, allow_pickle=True)
-
-data_rib = calcRepulsiveIonicBondingTrajectory(ATOMS)
-np.save('test_2k39_rib.npy', data_rib, allow_pickle=True)
-
-data_PiStack = calcPiStackingTrajectory(ATOMS)
-np.save('test_2k39_PiStack.npy', data_PiStack, allow_pickle=True)
-
-data_PiCat = calcPiCationTrajectory(ATOMS)
-np.save('test_2k39_PiCat.npy', data_PiCat, allow_pickle=True)
-
-data_hph = calcHydrophobicTrajectory(ATOMS)
-np.save('test_2k39_hph.npy', data_hph, allow_pickle=True)
-
-data_disu = calcDisulfideBondsTrajectory(ATOMS)
-np.save('test_2k39_disu.npy', data_disu, allow_pickle=True)
-
 class TestInteractions(unittest.TestCase):
-    
+
+    def setUp(self):
+        """Generating new data to compare it with the existing one"""
+        
+        if prody.PY3K:
+            self.ATOMS = parseDatafile('2k39_insty')
+            self.ALL_INTERACTIONS = parseDatafile('2k39_all')
+            self.ALL_INTERACTIONS2 = parseDatafile('2k39_all2')
+            self.HBS_INTERACTIONS = parseDatafile('2k39_hbs')
+            self.SBS_INTERACTIONS = parseDatafile('2k39_sbs')
+            self.RIB_INTERACTIONS = parseDatafile('2k39_rib')
+            self.PISTACK_INTERACTIONS = parseDatafile('2k39_PiStack')
+            self.PICAT_INTERACTIONS = parseDatafile('2k39_PiCat')
+            self.HPH_INTERACTIONS = parseDatafile('2k39_hph')
+            self.HPH_INTERACTIONS2 = parseDatafile('2k39_hph2')
+            self.DISU_INTERACTIONS = parseDatafile('2k39_disu')
+            
+            self.INTERACTIONS_ALL = InteractionsTrajectory()
+            self.data_all = self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS)
+            np.save('test_2k39_all.npy', data_all, allow_pickle=True)
+
+            self.data_hbs = calcHydrogenBondsTrajectory(ATOMS)
+            np.save('test_2k39_hbs.npy', data_hbs, allow_pickle=True)
+
+            self.data_sbs = calcSaltBridgesTrajectory(ATOMS)
+            np.save('test_2k39_sbs.npy', data_sbs, allow_pickle=True)
+
+            self.data_rib = calcRepulsiveIonicBondingTrajectory(ATOMS)
+            np.save('test_2k39_rib.npy', data_rib, allow_pickle=True)
+
+            self.data_PiStack = calcPiStackingTrajectory(ATOMS)
+            np.save('test_2k39_PiStack.npy', data_PiStack, allow_pickle=True)
+
+            self.data_PiCat = calcPiCationTrajectory(ATOMS)
+            np.save('test_2k39_PiCat.npy', data_PiCat, allow_pickle=True)
+
+            self.data_hph = calcHydrophobicTrajectory(ATOMS)
+            np.save('test_2k39_hph.npy', data_hph, allow_pickle=True)
+
+            self.data_disu = calcDisulfideBondsTrajectory(ATOMS)
+            np.save('test_2k39_disu.npy', data_disu, allow_pickle=True)
+
     def testAllInsteractions(self):
         """Test for all types of interactions."""
 
@@ -59,10 +62,10 @@ class TestInteractions(unittest.TestCase):
             data_test = np.load('test_2k39_all.npy', allow_pickle=True)
 
             try:
-                assert_equal(data_test, ALL_INTERACTIONS2,
+                assert_equal(data_test, self.ALL_INTERACTIONS2,
                          'failed to get correct interactions without hpb.so')
             except:
-                assert_equal(data_test, ALL_INTERACTIONS,
+                assert_equal(data_test, self.ALL_INTERACTIONS,
                          'failed to get correct interactions with hpb.so')
     
     def testHydrogenBonds(self):
@@ -72,7 +75,7 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:                
             data_test = np.load('test_2k39_hbs.npy', allow_pickle=True)
-            assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in HBS_INTERACTIONS]),
+            assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HBS_INTERACTIONS]),
                          'failed to get correct hydrogen bonds')        
                      
     def testSaltBridges(self):
@@ -80,7 +83,7 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:                
             data_test = np.load('test_2k39_sbs.npy', allow_pickle=True)
-            assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in SBS_INTERACTIONS]),
+            assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.SBS_INTERACTIONS]),
                          'failed to get correct salt bridges')                             
 
     def testRepulsiveIonicBonding(self):
@@ -88,7 +91,7 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:                
             data_test = np.load('test_2k39_rib.npy', allow_pickle=True)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in RIB_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.RIB_INTERACTIONS if i]),
                          'failed to get correct repulsive ionic bonding')                             
 
     def testPiStacking(self):
@@ -96,7 +99,7 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:                
             data_test = np.load('test_2k39_PiStack.npy', allow_pickle=True)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in PISTACK_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.PISTACK_INTERACTIONS if i]),
                          'failed to get correct pi-stacking interactions')                             
                      
     def testPiCation(self):
@@ -104,7 +107,7 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:                
             data_test = np.load('test_2k39_PiCat.npy', allow_pickle=True)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in PICAT_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if i]),
                          'failed to get correct pi-cation interactions')
 
 
@@ -114,10 +117,10 @@ class TestInteractions(unittest.TestCase):
         if prody.PY3K:        
             data_test = np.load('test_2k39_hph.npy', allow_pickle=True)                                                        
             try:
-                assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in HPH_INTERACTIONS2]),
+                assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HPH_INTERACTIONS2]),
                          'failed to get correct hydrophobic interactions without hpb.so')
             except:
-                assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in HPH_INTERACTIONS]),
+                assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HPH_INTERACTIONS]),
                          'failed to get correct hydrophobic interactions with hpb.so')
         
 
@@ -126,7 +129,7 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:               
              data_test = np.load('test_2k39_disu.npy', allow_pickle=True)
-             assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in DISU_INTERACTIONS if i]),
+             assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if i]),
                           'failed to get correct disulfide bonds')
         
                      
