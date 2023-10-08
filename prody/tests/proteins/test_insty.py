@@ -32,28 +32,28 @@ class TestInteractions(unittest.TestCase):
             
             self.INTERACTIONS_ALL = InteractionsTrajectory()
             self.data_all = self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS)
-            np.save('test_2k39_all.npy', data_all, allow_pickle=True)
+            np.save('test_2k39_all.npy', self.data_all, allow_pickle=True)
 
             self.data_hbs = calcHydrogenBondsTrajectory(ATOMS)
-            np.save('test_2k39_hbs.npy', data_hbs, allow_pickle=True)
+            np.save('test_2k39_hbs.npy', self.data_hbs, allow_pickle=True)
 
             self.data_sbs = calcSaltBridgesTrajectory(ATOMS)
-            np.save('test_2k39_sbs.npy', data_sbs, allow_pickle=True)
+            np.save('test_2k39_sbs.npy', self.data_sbs, allow_pickle=True)
 
             self.data_rib = calcRepulsiveIonicBondingTrajectory(ATOMS)
-            np.save('test_2k39_rib.npy', data_rib, allow_pickle=True)
+            np.save('test_2k39_rib.npy', self.data_rib, allow_pickle=True)
 
             self.data_PiStack = calcPiStackingTrajectory(ATOMS)
-            np.save('test_2k39_PiStack.npy', data_PiStack, allow_pickle=True)
+            np.save('test_2k39_PiStack.npy', self.data_PiStack, allow_pickle=True)
 
             self.data_PiCat = calcPiCationTrajectory(ATOMS)
-            np.save('test_2k39_PiCat.npy', data_PiCat, allow_pickle=True)
+            np.save('test_2k39_PiCat.npy', self.data_PiCat, allow_pickle=True)
 
             self.data_hph = calcHydrophobicTrajectory(ATOMS)
-            np.save('test_2k39_hph.npy', data_hph, allow_pickle=True)
+            np.save('test_2k39_hph.npy', self.data_hph, allow_pickle=True)
 
             self.data_disu = calcDisulfideBondsTrajectory(ATOMS)
-            np.save('test_2k39_disu.npy', data_disu, allow_pickle=True)
+            np.save('test_2k39_disu.npy', self.data_disu, allow_pickle=True)
 
     def testAllInsteractions(self):
         """Test for all types of interactions."""
