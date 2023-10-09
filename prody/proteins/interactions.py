@@ -154,7 +154,7 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
 
 def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     """Provide information about hydrophobic contacts between pairs of residues based on 
-    the regsurf program.
+    the regsurf program. To use this function compiled hpb.so is needed.
 
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -182,7 +182,7 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
             import hpb
             imported_hpb = True
         except ImportError:
-            LOGGER.info('Please provide hpb.so file into the directory.')
+            raise ImportError('Please provide hpb.so file into the directory.')
 
     if imported_hpb:
         selection = kwargs.pop('selection', 'protein and noh')
@@ -227,7 +227,7 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
 
 def calcSASA(atoms, **kwargs):
     """Provide information about solvent accessible surface area (SASA) based on 
-    the sasa program.
+    the sasa program. To use this function compiled hpb.so is needed.
 
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -255,7 +255,7 @@ def calcSASA(atoms, **kwargs):
             import hpb
             imported_hpb = True
         except ImportError:
-            LOGGER.info('Please provide hpb.so file into the directory.')
+            raise ImportError('Please provide hpb.so file into the directory.')
 
     if imported_hpb:
         selection = kwargs.pop('selection', 'protein and noh')
@@ -284,7 +284,7 @@ def calcSASA(atoms, **kwargs):
 
 def calcVolume(atoms, **kwargs):
     """Provide information about volume for each residue/molecule/chain
-    or other selection".
+    or other selection". To use this function compiled hpb.so is needed.
 
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -318,7 +318,7 @@ def calcVolume(atoms, **kwargs):
             import hpb
             imported_hpb = True
         except ImportError:
-            LOGGER.info('Please provide hpb.so file into the directory.')
+            raise ImportError('Please provide hpb.so file into the directory.')
 
     if imported_hpb:
         selection = kwargs.pop('selection', 'protein and noh')

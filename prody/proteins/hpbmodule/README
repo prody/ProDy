@@ -3,24 +3,25 @@ hpb is a python module written for calculating the hydrophobic interactions and 
 accessible surface area using geometric method. The original program is in C++, so the
 module is an interface to call functions in C++.
 
-Follow the stpes to compile the C++ code into the *.so file of module (note that the directory to include python may need change):
+Follow the stpes to compile the C++ code into the *.so file of module (note that the 
+directory to include python may need change):
 
-cd libf2c
-make -f makefile.l hadd
-make -f makefile.l
+Step 1:
+gfortran -O3 -fPIC -c reg_tet.f
 
-cd ..
+Step 2:
+g++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/usr/include/python2.7/
+or to compile the program for python 3.X use:
+g++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/usr/include/python3.X/ 
+instead
 
-to compile the program for python 3.8 use:
-g++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/usr/include/python3.8/
+Step 3:
+g++ -shared -Wl,-soname,hpb.so -o hpb.so hpbmodule.o reg_tet.o -lgfortran
 
-and further:
-g++ -shared -Wl,-soname,hpb.so -o hpb.so hpbmodule.o reg_tet.o ./libf2c/libf2c.a -lm
-
+Note: You will need C++ compiler and Fortran compiler.
 
 ############################
-After compiling the code, the module 'hpbmodule.so' file is created and user can import the module in python.
-Try one example program 'testh.py' to use the functions in it.
-Two functions hpb.hpb and hpb.sasa are writtein in the same module. The inputs to call them are the same.
-The outputs are now in lists, with every element contains the information for one hydrophobic interaction or SASA value of one residue.
+After compiling the code, the module 'hpb.so' file is created and user can import 
+the module to ProDy or copy the file in the local directory to use it with calcSASA(), 
+calcVolume(), calcHydrophobicOverlapingAreas(), or calcHydrophobic().
 
