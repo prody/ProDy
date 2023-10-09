@@ -181,7 +181,7 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
             import hpb
             imported_hpb = True
         except ImportError:
-            raise ImportError('Please provide hpb.so file into the directory.')
+            raise ImportError('Please provide hpb.so file.')
 
     if imported_hpb:
         selection = kwargs.pop('selection', 'protein and noh')
@@ -254,7 +254,7 @@ def calcSASA(atoms, **kwargs):
             import hpb
             imported_hpb = True
         except ImportError:
-            raise ImportError('Please provide hpb.so file into the directory.')
+            raise ImportError('Please provide hpb.so file.')
 
     if imported_hpb:
         selection = kwargs.pop('selection', 'protein and noh')
@@ -317,7 +317,7 @@ def calcVolume(atoms, **kwargs):
             import hpb
             imported_hpb = True
         except ImportError:
-            raise ImportError('Please provide hpb.so file into the directory.')
+            raise ImportError('Please provide hpb.so file.')
 
     if imported_hpb:
         selection = kwargs.pop('selection', 'protein and noh')
@@ -1066,7 +1066,7 @@ def calcHydrophobic(atoms, **kwargs):
     try:
         hpb_overlaping_results = calcHydrophobicOverlapingAreas(atoms_hydrophobic, cumulative_values='pairs')
     except: 
-        LOGGER.info('Please provide hpb.so file into the directory to obtain additional data.')
+        LOGGER.info('Please provide hpb.so file to obtain additional data.')
     
     LOGGER.info('Calculating hydrophobic interactions.')
     Hydrophobic_calculations = []
@@ -1137,7 +1137,7 @@ def calcHydrophobic(atoms, **kwargs):
             import hpb
             imported_hpb = True
         except ImportError:
-            LOGGER.info('Please provide hpb.so file into the directory.')
+            LOGGER.info('Please provide hpb.so file.')
 
     if imported_hpb:
         Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-2])
