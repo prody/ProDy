@@ -15,6 +15,11 @@ or to compile the program for python 3.X use:
 g++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/usr/include/python3.X/ 
 instead
 
+If we ae using Anaconda we might have such pathway to python:
+g++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/home/user_name/anaconda3/envs/name_of_environment/include/python3.9/
+
+user_name, name_of_environment - need to be replaced
+
 Step 3:
 g++ -shared -Wl,-soname,hpb.so -o hpb.so hpbmodule.o reg_tet.o -lgfortran
 
