@@ -10,8 +10,6 @@ The following interactions are available for protein interactions:
         (5) Pi-cation interactions
         (6) Hydrophobic interactions
         (7) Disulfide Bonds
-
-For protein-ligand interactions (3) is replaced by water bridges.
 """
 
 __author__ = 'Karolina Mikulska-Ruminska'
@@ -93,6 +91,7 @@ def calcAngleBetweenPlanes(a1, b1, c1, a2, b2, c2):
     
     
 def removeDuplicates(list_of_interactions):
+    """Remove duplicates from interactions."""
     ls=[]
     newList = []
     for no, i in enumerate(list_of_interactions):
