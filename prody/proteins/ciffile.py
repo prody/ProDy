@@ -176,6 +176,7 @@ def parseMMCIFStream(stream, **kwargs):
             raise TypeError('model must be an integer, {0} is invalid'
                             .format(str(model)))
     title_suffix = ''
+
     if subset:
         try:
             subset = _PDBSubsets[subset.lower()]
@@ -185,12 +186,20 @@ def parseMMCIFStream(stream, **kwargs):
             raise ValueError('{0} is not a valid subset'
                              .format(repr(subset)))
         title_suffix = '_' + subset
+
     if chain is not None:
         if not isinstance(chain, str):
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
         title_suffix = '_' + chain + title_suffix
+
+    if segment is not None:
+        if not isinstance(segment, str):
+            raise TypeError('segment must be a string')
+        elif len(chain) == 0:
+            raise ValueError('segment must not be an empty string')
+        title_suffix = '_' + segment + title_suffix
 
     ag = None
     if 'ag' in kwargs:
