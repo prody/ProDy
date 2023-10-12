@@ -194,7 +194,7 @@ def parseMMCIFStream(stream, **kwargs):
     if segment is not None:
         if not isinstance(segment, str):
             raise TypeError('segment must be a string')
-        elif len(chain) == 0:
+        elif len(segment) == 0:
             raise ValueError('segment must not be an empty string')
         title_suffix = '_' + segment + title_suffix
 

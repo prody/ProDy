@@ -159,7 +159,7 @@ class TestParseMMCIF(unittest.TestCase):
                         'parseMMCIF failed to parse correct numbers of chains '
                         'with biomol True and unite_chain False')
         
-        bm_header = parseMMCIF(path, biomol=True)[0]
+        bm_header = parseMMCIF(path, biomol=True, header=True)[0]
         self.assertEqual(bm_header[0].numAtoms(), 
                         self.biomols['bm0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
