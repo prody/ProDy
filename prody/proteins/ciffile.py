@@ -36,6 +36,11 @@ _parseMMCIFdoc = """
         chains are parsed
     :type chain: str
 
+    :arg segment: segment identifiers for parsing specific chains, e.g.
+        ``segment='A'``, ``segment='B'``, ``segment='DE'``, by default all
+        segment are parsed
+    :type segment: str
+
     :arg subset: a predefined keyword to parse subset of atoms, valid keywords
         are ``'calpha'`` (``'ca'``), ``'backbone'`` (``'bb'``), or **None**
         (read all atoms), e.g. ``subset='bb'``
@@ -158,6 +163,7 @@ def parseMMCIFStream(stream, **kwargs):
     subset = kwargs.get('subset')
     chain = kwargs.get('chain')
     segment = kwargs.get('segment')
+    unite_chains = kwargs.get('unite_chains')
     altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
@@ -214,7 +220,8 @@ def parseMMCIFStream(stream, **kwargs):
         if header or biomol or secondary:
             hd = getCIFHeaderDict(lines)
 
-        _parseMMCIFLines(ag, lines, model, chain, subset, altloc, segment)
+        _parseMMCIFLines(ag, lines, model, chain, subset, altloc, 
+                         segment, unite_chains)
 
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -259,7 +266,7 @@ parseMMCIFStream.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
-                     altloc_torf, segment):
+                     altloc_torf, segment, unite_chains):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
@@ -396,13 +403,17 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 continue
 
         chID = line.split()[fields['label_asym_id']]
+        segID = line.split()[fields['auth_asym_id']]
+
         if chain is not None:
             if isinstance(chain, str):
                 chain = chain.split(',')
             if not chID in chain:
-                continue
+                if not unite_chains:
+                    continue
+                if not segID in chain:
+                    continue
 
-        segID = line.split()[fields['auth_asym_id']]
         if segment is not None:
             if isinstance(segment, str):
                 segment = segment.split(',')
