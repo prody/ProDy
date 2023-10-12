@@ -55,6 +55,10 @@ _parseMMCIFdoc = """
          alternate locations will be parsed and each will be appended as a
          distinct coordinate set, default is ``"A"``
     :type altloc: str
+
+    :arg unite_chains: unite chains with the same segment name
+        Default is *False*
+    :type unite_chains: bool
     """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
@@ -71,13 +75,6 @@ def parseMMCIF(pdb, **kwargs):
     :arg pdb: a PDB identifier or a filename
         If needed, mmCIF files are downloaded using :func:`.fetchPDB()` function.
     :type pdb: str
-
-    :arg chain: comma separated string or list-like of chain IDs
-    :type chain: str, tuple, list, :class:`~numpy.ndarray`
-
-    :arg unite_chains: unite chains with the same segment name
-        Default is *False*
-    :type unite_chains: bool
     """
     chain = kwargs.pop('chain', None)
     segment = kwargs.pop('segment', None)
@@ -163,7 +160,7 @@ def parseMMCIFStream(stream, **kwargs):
     subset = kwargs.get('subset')
     chain = kwargs.get('chain')
     segment = kwargs.get('segment')
-    unite_chains = kwargs.get('unite_chains')
+    unite_chains = kwargs.get('unite_chains', True)
     altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
