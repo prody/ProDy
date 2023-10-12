@@ -229,6 +229,7 @@ DATA_FILES = {
         'file': 'mmcif_3o21.cif',
         'atoms': 12793,
         'bm0_atoms': 6281,
+        'num_chains_united': 4,
         'bm_chains_united': [2, 2],
         'bm_chains_alone': [9, 10],
         'chainA_atoms_united': 3170,
@@ -236,6 +237,7 @@ DATA_FILES = {
         'ca_atoms': 1489,
         'bb_atoms': 5956,
         'models': 1,
+        'unobs_B_start': 'G-------------------------------NQNTTEK-'
     },
     'long_chid_cif': {
         'pdb': '6zu5',

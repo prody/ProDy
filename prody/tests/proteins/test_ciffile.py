@@ -1,5 +1,6 @@
 """This module contains unit tests for :mod:`~prody.proteins`."""
 
+from collections import OrderedDict
 import os
 
 import numpy as np
@@ -203,6 +204,29 @@ class TestParseMMCIF(unittest.TestCase):
         ag = parseMMCIF(path, ag=ag)
         self.assertEqual(ag.numCoordsets(), ncsets*2,
             'parseMMCIF failed to append coordinate sets to given ag')
-        assert_equal(coords, ag.getCoordsets(np.arange(ncsets, ncsets*2)))
+        self.assertEqual(coords, ag.getCoordsets(np.arange(ncsets, ncsets*2)),
+                         'parseMMCIF failed to have the right coordinates')
 
+    def testUnobsHeaderArgument(self):
+        """Test outcome of valid and invalid *subset* arguments."""
 
+        path = pathDatafile(self.biomols['file'])
+        header = parseCIFHeader(path)
+        self.assertIsInstance(header, dict,
+            'parseCIFHeader failed to return an dict instance')
+        self.assertTrue('unobserved' in header,
+                        'parseCIFHeader failed to return a header containing '
+                        'unobserved')     
+
+        unobs_header = parseCIFHeader(path, 'unobserved')
+        self.assertIsInstance(unobs_header, OrderedDict,
+            'parseCIFHeader failed to return an OrderedDict instance when '
+            'providing a key')
+        self.assertEqual(len(unobs_header), 
+                        self.biomols['num_chains_united'],
+                        'failed to parse unobserved for correct number of chains')
+        self.assertEqual(unobs_header['B'][0][:39], 
+                        self.biomols['unobs_B_start'],
+                        'failed to parse unobserved alignment correctly')
+
+        unobs_header_B = unobs_header[1]        
