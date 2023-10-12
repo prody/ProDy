@@ -224,11 +224,21 @@ DATA_FILES = {
         'bb_atoms': 144,
         'models': 26,
     },
+    'biomols_cif': {
+        'pdb': '3o21',
+        'file': 'mmcif_3o21.cif',
+        'atoms': 1460,
+        'chainA_atoms_united': 187,
+        'chainA_atoms_alone': 187,
+        'ca_atoms': 36,
+        'bb_atoms': 144,
+        'models': 1,
+    },
     'long_chid_cif': {
         'pdb': '6zu5',
         'file': 'mmcif_6zu5.cif',
         'atoms': 165175,
-        'chain_SX0_atoms': 1089,
+        'segment_SX0_atoms': 1089,
     },
     '3hsy': {
         'pdb': '3hsy',

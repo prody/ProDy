@@ -75,6 +75,7 @@ def parseMMCIF(pdb, **kwargs):
     :type unite_chains: bool
     """
     chain = kwargs.pop('chain', None)
+    segment = kwargs.pop('segment', None)
     title = kwargs.get('title', None)
     unite_chains = kwargs.get('unite_chains', True)
     auto_bonds = SETTINGS.get('auto_bonds')
@@ -119,7 +120,7 @@ def parseMMCIF(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
     cif = openFile(pdb, 'rt')
-    result = parseMMCIFStream(cif, chain=chain, **kwargs)
+    result = parseMMCIFStream(cif, chain=chain, segment=segment, **kwargs)
     cif.close()
     if unite_chains:
         if isinstance(result, AtomGroup):
@@ -156,6 +157,7 @@ def parseMMCIFStream(stream, **kwargs):
     model = kwargs.get('model')
     subset = kwargs.get('subset')
     chain = kwargs.get('chain')
+    segment = kwargs.get('segment')
     altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
@@ -212,7 +214,7 @@ def parseMMCIFStream(stream, **kwargs):
         if header or biomol or secondary:
             hd = getCIFHeaderDict(lines)
 
-        _parseMMCIFLines(ag, lines, model, chain, subset, altloc)
+        _parseMMCIFLines(ag, lines, model, chain, subset, altloc, segment)
 
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -257,7 +259,7 @@ parseMMCIFStream.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
-                     altloc_torf):
+                     altloc_torf, segment):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
@@ -401,6 +403,11 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 continue
 
         segID = line.split()[fields['auth_asym_id']]
+        if segment is not None:
+            if isinstance(segment, str):
+                segment = segment.split(',')
+            if not segID in segment:
+                continue
 
         alt = line.split()[fields['label_alt_id']]
         if alt not in which_altlocs and which_altlocs != 'all':
