@@ -76,7 +76,7 @@ def parseMMCIF(pdb, **kwargs):
     """
     chain = kwargs.pop('chain', None)
     title = kwargs.get('title', None)
-    unite_chains = kwargs.get('unite_chains', False)
+    unite_chains = kwargs.get('unite_chains', True)
     auto_bonds = SETTINGS.get('auto_bonds')
     get_bonds = kwargs.get('bonds', auto_bonds)
     if get_bonds:
