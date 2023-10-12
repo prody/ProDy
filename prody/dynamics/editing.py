@@ -279,7 +279,7 @@ def sliceMode(mode, atoms, select):
 
 def sliceModel(model, atoms, select, norm=False):
     """Returns a part of the *model* (modes calculated) for *atoms* matching *select*. 
-    Note that normal modes are sliced instead the connectivity matrix. Sliced normal 
+    Note that normal modes are sliced instead of the connectivity matrix. Sliced normal 
     modes (eigenvectors) are not normalized unless *norm* is **True**.
 
     :arg mode: NMA model instance to be sliced
