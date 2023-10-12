@@ -204,8 +204,7 @@ class TestParseMMCIF(unittest.TestCase):
         ag = parseMMCIF(path, ag=ag)
         self.assertEqual(ag.numCoordsets(), ncsets*2,
             'parseMMCIF failed to append coordinate sets to given ag')
-        self.assertEqual(coords, ag.getCoordsets(np.arange(ncsets, ncsets*2)),
-                         'parseMMCIF failed to have the right coordinates')
+        assert_equal(coords, ag.getCoordsets(np.arange(ncsets, ncsets*2)))
 
     def testUnobsHeaderArgument(self):
         """Test outcome of valid and invalid *subset* arguments."""
@@ -225,8 +224,7 @@ class TestParseMMCIF(unittest.TestCase):
         self.assertEqual(len(unobs_header), 
                         self.biomols['num_chains_united'],
                         'failed to parse unobserved for correct number of chains')
-        self.assertEqual(unobs_header['B'][0][:39], 
+        self.assertEqual(unobs_header['B'][0][:40], 
                         self.biomols['unobs_B_start'],
                         'failed to parse unobserved alignment correctly')
 
-        unobs_header_B = unobs_header[1]        
