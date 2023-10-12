@@ -138,7 +138,7 @@ def parseMMCIF(pdb, **kwargs):
                 # e.g. multiple biomol assemblies
                 [r.setChids(r.getSegnames()) for r in result[0] if isinstance(r, AtomGroup)]
 
-        else:
+        elif result is not None:
             raise TypeError('result from parseMMCIFStream should be a tuple, AtomGroup or list')
     return result
 
