@@ -19,7 +19,7 @@ from .starfile import parseSTARLines, StarDict, parseSTARSection
 from .cifheader import getCIFHeaderDict
 from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
 
-__all__ = ['parseMMCIFStream', 'parseMMCIF']
+__all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF']
 
 
 class MMCIFParseError(Exception):
@@ -122,9 +122,27 @@ def parseMMCIF(pdb, **kwargs):
     result = parseMMCIFStream(cif, chain=chain, **kwargs)
     cif.close()
     if unite_chains:
-        result.setSegnames(result.getChids())
+        if isinstance(result, AtomGroup):
+            result.setChids(result.getSegnames())
+
+        elif isinstance(result, list):
+            # e.g. multiple biomol assemblies
+            [r.setChids(r.getSegnames()) for r in result if isinstance(r, AtomGroup)]
+
+        elif isinstance(result, tuple):
+            # atoms, header
+            if isinstance(result[0], AtomGroup):
+                result[0].setChids(result[0].getSegnames())
+
+            elif isinstance(result[0], list):
+                # e.g. multiple biomol assemblies
+                [r.setChids(r.getSegnames()) for r in result[0] if isinstance(r, AtomGroup)]
+
+        else:
+            raise TypeError('result from parseMMCIFStream should be a tuple, AtomGroup or list')
     return result
 
+parseCIF = parseMMCIF
 
 def parseMMCIFStream(stream, **kwargs):
     """Returns an :class:`.AtomGroup` and/or a class:`.StarDict` 
@@ -375,14 +393,14 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if not (atomname in subset and resname in protein_resnames):
                 continue
 
-        chID = line.split()[fields['auth_asym_id']]
+        chID = line.split()[fields['label_asym_id']]
         if chain is not None:
             if isinstance(chain, str):
                 chain = chain.split(',')
             if not chID in chain:
                 continue
 
-        segID = line.split()[fields['label_asym_id']]
+        segID = line.split()[fields['auth_asym_id']]
 
         alt = line.split()[fields['label_alt_id']]
         if alt not in which_altlocs and which_altlocs != 'all':

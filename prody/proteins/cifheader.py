@@ -185,7 +185,7 @@ def _getBiomoltrans(lines):
         currentBiomolecule = item1["_pdbx_struct_assembly_gen.assembly_id"]
         applyToChains = []
 
-        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].split(',')
+        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].replace(';','').strip().split(',')
         applyToChains.extend(chains)
 
         biomt = biomolecule[currentBiomolecule]
