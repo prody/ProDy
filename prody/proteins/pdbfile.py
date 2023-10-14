@@ -1387,9 +1387,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 L = helix_resnums[-1] - helix_resnums[0] + 1
 
                 stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0], 
-                            initResName=helix_resnames[0][:3], initChainID=helix_chainids[0], 
+                            initResName=helix_resnames[0][:3], initChainID=helix_chainids[0][:1], 
                             initSeqNum=helix_resnums[0], initICode=helix_icodes[0],
-                            endResName=helix_resnames[-1][:3], endChainID=helix_chainids[-1], 
+                            endResName=helix_resnames[-1][:3], endChainID=helix_chainids[-1][:1], 
                             endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
                             helixClass=helix_secclasses[0], length=L))
 
@@ -1413,9 +1413,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 strand_icodes = icodes[torf_strand]
 
                 stream.write(SHEETLINE.format(strand=i, sheetID=sheet_id, numStrands=numStrands,
-                            initResName=strand_resnames[0][:3], initChainID=strand_chainids[0], 
+                            initResName=strand_resnames[0][:3], initChainID=strand_chainids[0][:1], 
                             initSeqNum=strand_resnums[0], initICode=strand_icodes[0],
-                            endResName=strand_resnames[-1][:3], endChainID=strand_chainids[-1], 
+                            endResName=strand_resnames[-1][:3], endChainID=strand_chainids[-1][:1], 
                             endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
                             sense=strand_secclasses[0]))
         pass
@@ -1551,7 +1551,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
                 write(anisouline % ("ANISOU", serial,
                                     atomnames[i], altlocs[i],
-                                    resname, chainids[i], resnum,
+                                    resname, chainids[i][:1], resnum,
                                     icodes[i],
                                     anisou[0], anisou[1], anisou[2],
                                     anisou[3], anisou[4], anisou[5],
@@ -1566,7 +1566,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
                     false_pdbline = pdbline % ("TER   ", serial,
                                                "", "",
-                                               resname, chainids[i], resnum,
+                                               resname, chainids[i][:1], resnum,
                                                icodes[i],
                                                xyz[0], xyz[1], xyz[2],
                                                occupancies[i], bfactors[i],
@@ -1582,7 +1582,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
                     false_pdbline = pdbline % ("TER   ", serial,
                                                "", "",
-                                               resname, chainids[i], resnum,
+                                               resname, chainids[i][:1], resnum,
                                                icodes[i],
                                                xyz[0], xyz[1], xyz[2],
                                                occupancies[i], bfactors[i],
