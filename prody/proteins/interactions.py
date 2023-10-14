@@ -2021,9 +2021,9 @@ def calcLigandInteractions(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg select: a selection string for residues of interest
+    :arg sele: a selection string for residues of interest
             default is 'all not (water or protein or ion)'
-    :type select: str
+    :type sele: str
     
     :arg ignore_ligs: List of ligands which will be excluded from the analysis.
     :type ignore_ligs: list
@@ -2056,34 +2056,33 @@ def calcLigandInteractions(atoms, **kwargs):
                             'with `getCoords` method')
     try:
         from plip.structure.preparation import PDBComplex   
-        
-        pdb_name = atoms.getTitle()+'_sele.pdb'
-        LOGGER.info("Writing PDB file with selection in the local directory.")
-        writePDB(pdb_name, atoms)
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file:
+            writePDB(temp_pdb_file.name, atoms)
+            temp_pdb_file_name = temp_pdb_file.name
+
+        #pdb_name = atoms.getTitle()+'_sele.pdb'
+        #LOGGER.info("Writing PDB file with selection in the local directory.")
+        #writePDB(pdb_name, atoms)
 
         try:
             if atoms.hydrogen == None or atoms.hydrogen.numAtoms() < 30: # if there is no hydrogens in PDB structure
-                addMissingAtoms(pdb_name)
-                pdb_name = pdb_name[:-4]+'_addH.pdb'
-                atoms = parsePDB(pdb_name)
-                LOGGER.info("Lack of hydrogens in the structure. Hydrogens have been added.")
+                LOGGER.info("Lack of hydrogens in the structure. Use addMissingAtoms to add them.")
         except: 
-            raise ValueError("Missing atoms from the side chains of the structure. Use addMissingAtoms.")
-    
+            pass
+
         Ligands = [] # Ligands can be more than one
         my_mol = PDBComplex()
-        my_mol.load_pdb(pdb_name) # Load the PDB file into PLIP class
+        my_mol.load_pdb(temp_pdb_file_name) # Load the PDB file into PLIP class
         
-        if 'select' in kwargs:
-            select = kwargs['select']
-            LOGGER.info('Selection will be replaced.')
+        if 'sele' in kwargs:
+            sele = kwargs['sele']
         else:
             select='all not (water or protein or ion)'
-            LOGGER.info('Default selection will be used.')
 
         if 'ignore_ligs' in kwargs:
             ignore_ligs = kwargs['ignore_ligs']
-            LOGGER.info('Ignoring list of ligands is uploaded.')
         else:
             ignore_ligs=['NAG','BMA','MAN']
             LOGGER.info('Three molecules will be ignored from analysis: NAG, BMA and MAN.')
@@ -2109,8 +2108,8 @@ def calcLigandInteractions(atoms, **kwargs):
 
         return Ligands, analyzedLigand
 
-    except:
-        LOGGER.info("Install Openbabel and PLIP.")
+    except ImportError:
+        raise ImportError("Install Openbabel and PLIP.")
 
 
 def listLigandInteractions(PLIP_output):
