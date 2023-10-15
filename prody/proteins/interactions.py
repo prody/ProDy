@@ -2029,41 +2029,41 @@ def showLigandInteractions(PLIP_output):
         param_inter = [method for method in dir(i) if method.startswith('_') is False]
         
         if str(type(i)).split('.')[-1].strip("'>") == 'hbond':
-            Inter_list = ['hbond',i.restype+str(i.resnr), i[0].type+'_'+str(i.d_orig_idx), i.reschain,
-                          i.restype+str(i.resnr_l), i[2].type+'_'+str(i.a_orig_idx), i.reschain_l, 
+            Inter_list = ['HBs',i.restype+str(i.resnr), i[0].type+'_'+str(i.d_orig_idx), i.reschain,
+                          i.restype_l+str(i.resnr_l), i[2].type+'_'+str(i.a_orig_idx), i.reschain_l, 
                           i.distance_ad, i.angle, i[0].coords, i[2].coords]
      
         if str(type(i)).split('.')[-1].strip("'>") == 'saltbridge':
-            Inter_list = ['saltbridge',i.restype+str(i.resnr), '_'.join(map(str,i.negative.atoms_orig_idx)), i.reschain,
-                          i.restype+str(i.resnr_l), '_'.join(map(str,i.positive.atoms_orig_idx)), i.reschain_l, 
+            Inter_list = ['SBs',i.restype+str(i.resnr), '_'.join(map(str,i.negative.atoms_orig_idx)), i.reschain,
+                          i.restype_l+str(i.resnr_l), '_'.join(map(str,i.positive.atoms_orig_idx)), i.reschain_l, 
                           i.distance, None, i.negative.center, i.positive.center]
                  
         if str(type(i)).split('.')[-1].strip("'>") == 'pistack':
-             Inter_list = ['pistack',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
-                          i.restype+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
+             Inter_list = ['PiStack',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
+                          i.restype_l+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
                           i.distance, i.angle, i[0].center, i[1].center]           
         
         if str(type(i)).split('.')[-1].strip("'>") == 'pication':
-             Inter_list = ['pication',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
-                          i.restype+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
+             Inter_list = ['PiCat',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
+                          i.restype_l+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
                           i.distance, None, i[0].center, i[1].center]                       
         
         if str(type(i)).split('.')[-1].strip("'>") == 'hydroph_interaction':
-            Inter_list = ['hydroph_interaction',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
-                          i.restype+str(i.resnr_l), i[2].type+'_'+str(i[2].idx), i.reschain_l, 
+            Inter_list = ['HPh',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
+                          i.restype_l+str(i.resnr_l), i[2].type+'_'+str(i[2].idx), i.reschain_l, 
                           i.distance, None, i[0].coords, i[2].coords]           
              
         if str(type(i)).split('.')[-1].strip("'>") == 'waterbridge':
             water = i.water
-            Inter_list = ['waterbridge',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
-                          i.restype+str(i.resnr_l), i[3].type+'_'+str(i[3].idx), i.reschain_l, 
+            Inter_list = ['watBridge',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
+                          i.restype_l+str(i.resnr_l), i[3].type+'_'+str(i[3].idx), i.reschain_l, 
                           [i.distance_aw, i.distance_dw], [i.d_angle, i.w_angle], i[0].coords, i[3].coords, 
                           i.water.coords, i[7].residue.name+'_'+str(i[7].residue.idx)]
                       
         Inter_list_all.append(Inter_list)               
     
     for nr_k,k in enumerate(Inter_list_all):
-        LOGGER.info("%3i%22s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
+        LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
     
     return Inter_list_all
 
@@ -2130,15 +2130,15 @@ def calcLigandInteractions(atoms, **kwargs):
         if 'sele' in kwargs:
             sele = kwargs['sele']
         else:
-            select='all not (water or protein or ion)'
+            sele='all not (water or protein or ion)'
 
         if 'ignore_ligs' in kwargs:
             ignore_ligs = kwargs['ignore_ligs']
         else:
             ignore_ligs=['MAN']
         
-        select = select+' and not (resname '+' '.join(ignore_ligs)+')'
-        ligand_select = atoms.select(select)
+        sele = sele+' and not (resname '+' '.join(ignore_ligs)+')'
+        ligand_select = atoms.select(sele)
         analyzedLigand = []
         LOGGER.info("Detected ligands: ")
         for i in range(len(ligand_select.getResnums())): # It has to be done by each atom
@@ -2155,7 +2155,8 @@ def calcLigandInteractions(atoms, **kwargs):
                     Ligands.append(my_interactions)
                     showLigandInteractions(my_interactions)
             except: 
-                LOGGER.info(my_bsid+" not analyzed")
+                pass
+                #LOGGER.info(my_bsid+" not analyzed")
 
         return Ligands, analyzedLigand
 
