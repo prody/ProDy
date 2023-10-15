@@ -68,6 +68,7 @@ def parseMMTF(mmtf_struc, **kwargs):
     """
     try:
         from mmtf import fetch, parse
+        import gzip, msgpack
         import mmtf
     except ImportError:
         raise ImportError("Install mmtf to read in mmtf structure objects (e.g. pip install mmtf-python)")
@@ -107,6 +108,13 @@ def parseMMTF(mmtf_struc, **kwargs):
                                 .format(mmtf_struc))
             mmtf_struc = structure
             title = mmtf_struc.structure_id  
+    elif type(mmtf_struc)==bytearray:
+        data = gzip.decompress(mmtf_struc)
+        unpack = msgpack.unpackb(data)
+        dec = mmtf.MMTFDecoder()
+        dec.decode_data(unpack)
+        mmtf_struc = dec
+
 
     #if none of the above loops are entered, user should have passed a mmtf structure object
     if title is None:
@@ -118,7 +126,15 @@ def parseMMTF(mmtf_struc, **kwargs):
 
 parseMMTF.__doc__ += _parseMMTFdoc
 
-
+def _has_biomol(hd):
+    '''Return true if header actually has multiple transformations'''
+    if 'biomoltrans' not in hd:
+        return False
+    for v in hd['biomoltrans'].values():
+        if len(v) > 4:
+            return True
+    return False
+    
 def _parseMMTF(mmtf_struc, **kwargs):
     LOGGER.timeit()
     ag = AtomGroup()
@@ -156,7 +172,7 @@ def _parseMMTF(mmtf_struc, **kwargs):
     
         
     if ag is not None and isinstance(hd, dict):
-        if biomol:
+        if biomol and _has_biomol(hd):
             ag = buildBiomolecules(hd, ag)
             if isinstance(ag, list):
                 LOGGER.info('Biomolecular transformations were applied, {0} '
@@ -176,8 +192,7 @@ def set_header(data_api):
     #get the transform here and convert it to the format that prody wants
     assembly = data_api.bio_assembly[0]
     chain_list = data_api.chain_name_list
-    assembly = bio_transform(assembly, chain_list)
-    
+    assembly = _bio_transform(data_api)
     header = {
     'r_work': data_api.r_work,
     'r_free': data_api.r_free,
@@ -191,23 +206,20 @@ def set_header(data_api):
 
     return header
 
-def bio_transform(input_data, chain_list):
-
-    output_dict = {}
-    index = input_data['name']
-    transforms=[]
-
-    for item in input_data['transformList']:
-        chains = list(set([chain_list[i] for i in item['chainIndexList']]))[::-1]
-        transforms.append(chains)
-        for i in range(0, len(item['matrix'])-4, 4):
-            string_slice = item['matrix'][i:i+4]
-            formatted_string = ' '.join(map(str, string_slice))
-            transforms.append(formatted_string)
-
-    output_dict[index]=transforms
-      
-    return output_dict
+def _bio_transform(dec):
+    ret = {}
+    for t in dec.bio_assembly:
+        name = t['name']
+        L = []
+        for trans in t['transformList']:
+            chis = trans['chainIndexList']
+            chains = sorted(set([dec.chain_name_list[c] for c in chis]))
+            m = trans['matrix']
+            L += [chains, '%f %f %f %f'%tuple(m[:4]), 
+                      '%f %f %f %f'%tuple(m[4:8]), 
+                      '%f %f %f %f'%tuple(m[8:12])]
+        ret[t['name']] = L
+    return ret
 
 def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
 
@@ -255,14 +267,17 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
     resnums = np.empty(asize, dtype=ATOMIC_FIELDS['resnum'].dtype)
     chainids = np.empty(asize, dtype=ATOMIC_FIELDS['chain'].dtype)
     segnames = np.empty(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
+    segnames[:] = ''
+    elements = np.empty(asize, dtype=ATOMIC_FIELDS['element'].dtype)
+    icodes = np.empty(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
+
     hetero = np.zeros(asize, dtype=bool)
     termini = np.zeros(asize, dtype=bool)
-    altlocs = np.empty(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
-    icodes = np.empty(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
-    serials = np.empty(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
-    elements = np.empty(asize, dtype=ATOMIC_FIELDS['element'].dtype)
-    bfactors = np.empty(asize, dtype=ATOMIC_FIELDS['beta'].dtype)
-    occupancies = np.empty(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
+
+    altlocs = np.array(mmtf_data.alt_loc_list[:asize], dtype=ATOMIC_FIELDS['altloc'].dtype)
+    serials = np.array(mmtf_data.atom_id_list[:asize], dtype=ATOMIC_FIELDS['serial'].dtype)
+    bfactors = np.array(mmtf_data.b_factor_list[:asize], dtype=ATOMIC_FIELDS['beta'].dtype)
+    occupancies = np.array(mmtf_data.occupancy_list[:asize], dtype=ATOMIC_FIELDS['occupancy'].dtype)
 
     modelIndex = 0
     chainIndex = 0
@@ -284,9 +299,6 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
 
                 #traverse atoms
                 for i in range(groupAtomCount):
-                    bfactors[atomIndex] = mmtf_data.b_factor_list[atomIndex]
-                    altlocs[atomIndex] = mmtf_data.alt_loc_list[atomIndex]
-                    occupancies[atomIndex] = mmtf_data.occupancy_list[atomIndex]
                     atom_names[atomIndex] = group.get('atomNameList')[i]
                     elements[atomIndex] = group.get('elementList')[i]
                     resnames[atomIndex] = group.get('groupName')
@@ -295,8 +307,6 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
                     chainids[atomIndex] = chain_name_list[k]
                     if group.get('chemCompType') in mmtfHETATMtypes:
                         hetero[atomIndex] = True
-                    serials[atomIndex] = atomIndex + 1
-                    segnames[atomIndex]=''
 
                     atomIndex += 1
 
