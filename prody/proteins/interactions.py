@@ -41,7 +41,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcPiCationTrajectory', 'calcHydrophobicTrajectory', 'calcDisulfideBondsTrajectory',
            'calcProteinInteractions', 'calcStatisticsInteractions', 'calcDistribution',
            'calcSASA', 'calcVolume','compareInteractions', 'showInteractionsGraph',
-           'calcLigandInteractions', 'listLigandInteractions', 
+           'calcLigandInteractions', 'showLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory']
@@ -2013,6 +2013,61 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
             for i in additional_residues:
                 LOGGER.info(i)
 
+
+def showLigandInteractions(PLIP_output):
+    """Create a list of interactions from PLIP output created using calcLigandInteractions().
+    Results can be displayed in VMD. 
+    
+    :arg PLIP_output: Results from PLIP for protein-ligand interactions.
+    :type PLIP_output: PLIP object obtained from calcLigandInteractions() 
+    
+    Note that five types of interactions are considered: hydrogen bonds, salt bridges, 
+    pi-stacking, cation-pi, hydrophobic and water bridges."""
+    
+    Inter_list_all = []
+    for i in PLIP_output.all_itypes:
+        param_inter = [method for method in dir(i) if method.startswith('_') is False]
+        
+        if str(type(i)).split('.')[-1].strip("'>") == 'hbond':
+            Inter_list = ['hbond',i.restype+str(i.resnr), i[0].type+'_'+str(i.d_orig_idx), i.reschain,
+                          i.restype+str(i.resnr_l), i[2].type+'_'+str(i.a_orig_idx), i.reschain_l, 
+                          i.distance_ad, i.angle, i[0].coords, i[2].coords]
+     
+        if str(type(i)).split('.')[-1].strip("'>") == 'saltbridge':
+            Inter_list = ['saltbridge',i.restype+str(i.resnr), '_'.join(map(str,i.negative.atoms_orig_idx)), i.reschain,
+                          i.restype+str(i.resnr_l), '_'.join(map(str,i.positive.atoms_orig_idx)), i.reschain_l, 
+                          i.distance, None, i.negative.center, i.positive.center]
+                 
+        if str(type(i)).split('.')[-1].strip("'>") == 'pistack':
+             Inter_list = ['pistack',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
+                          i.restype+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
+                          i.distance, i.angle, i[0].center, i[1].center]           
+        
+        if str(type(i)).split('.')[-1].strip("'>") == 'pication':
+             Inter_list = ['pication',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
+                          i.restype+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
+                          i.distance, None, i[0].center, i[1].center]                       
+        
+        if str(type(i)).split('.')[-1].strip("'>") == 'hydroph_interaction':
+            Inter_list = ['hydroph_interaction',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
+                          i.restype+str(i.resnr_l), i[2].type+'_'+str(i[2].idx), i.reschain_l, 
+                          i.distance, None, i[0].coords, i[2].coords]           
+             
+        if str(type(i)).split('.')[-1].strip("'>") == 'waterbridge':
+            water = i.water
+            Inter_list = ['waterbridge',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
+                          i.restype+str(i.resnr_l), i[3].type+'_'+str(i[3].idx), i.reschain_l, 
+                          [i.distance_aw, i.distance_dw], [i.d_angle, i.w_angle], i[0].coords, i[3].coords, 
+                          i.water.coords, i[7].residue.name+'_'+str(i[7].residue.idx)]
+                      
+        Inter_list_all.append(Inter_list)               
+    
+    for nr_k,k in enumerate(Inter_list_all):
+        LOGGER.info("%3i%22s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
+    
+    return Inter_list_all
+
+
 def calcLigandInteractions(atoms, **kwargs):
     """Provide ligand interactions with other elements of the system including protein, 
     water and ions. Results are computed by PLIP [SS15]_ which should be installed.
@@ -2098,6 +2153,7 @@ def calcLigandInteractions(atoms, **kwargs):
                     my_mol.analyze()
                     my_interactions = my_mol.interaction_sets[my_bsid] # Contains all interaction data      
                     Ligands.append(my_interactions)
+                    showLigandInteractions(my_interactions)
             except: 
                 LOGGER.info(my_bsid+" not analyzed")
 
@@ -2105,60 +2161,6 @@ def calcLigandInteractions(atoms, **kwargs):
 
     except ImportError:
         raise ImportError("Install Openbabel and PLIP.")
-
-
-def listLigandInteractions(PLIP_output):
-    """Create a list of interactions from PLIP output created using calcLigandInteractions().
-    Results can be displayed in VMD. 
-    
-    :arg PLIP_output: Results from PLIP for protein-ligand interactions.
-    :type PLIP_output: PLIP object obtained from calcLigandInteractions() 
-    
-    Note that five types of interactions are considered: hydrogen bonds, salt bridges, 
-    pi-stacking, cation-pi, hydrophobic and water bridges."""
-    
-    Inter_list_all = []
-    for i in PLIP_output.all_itypes:
-        param_inter = [method for method in dir(i) if method.startswith('_') is False]
-        
-        if str(type(i)).split('.')[-1].strip("'>") == 'hbond':
-            Inter_list = ['hbond',i.restype+str(i.resnr), i[0].type+'_'+str(i.d_orig_idx), i.reschain,
-                          i.restype+str(i.resnr_l), i[2].type+'_'+str(i.a_orig_idx), i.reschain_l, 
-                          i.distance_ad, i.angle, i[0].coords, i[2].coords]
-     
-        if str(type(i)).split('.')[-1].strip("'>") == 'saltbridge':
-            Inter_list = ['saltbridge',i.restype+str(i.resnr), '_'.join(map(str,i.negative.atoms_orig_idx)), i.reschain,
-                          i.restype+str(i.resnr_l), '_'.join(map(str,i.positive.atoms_orig_idx)), i.reschain_l, 
-                          i.distance, None, i.negative.center, i.positive.center]
-                 
-        if str(type(i)).split('.')[-1].strip("'>") == 'pistack':
-             Inter_list = ['pistack',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
-                          i.restype+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
-                          i.distance, i.angle, i[0].center, i[1].center]           
-        
-        if str(type(i)).split('.')[-1].strip("'>") == 'pication':
-             Inter_list = ['pication',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
-                          i.restype+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
-                          i.distance, None, i[0].center, i[1].center]                       
-        
-        if str(type(i)).split('.')[-1].strip("'>") == 'hydroph_interaction':
-            Inter_list = ['hydroph_interaction',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
-                          i.restype+str(i.resnr_l), i[2].type+'_'+str(i[2].idx), i.reschain_l, 
-                          i.distance, None, i[0].coords, i[2].coords]           
-             
-        if str(type(i)).split('.')[-1].strip("'>") == 'waterbridge':
-            water = i.water
-            Inter_list = ['waterbridge',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
-                          i.restype+str(i.resnr_l), i[3].type+'_'+str(i[3].idx), i.reschain_l, 
-                          [i.distance_aw, i.distance_dw], [i.d_angle, i.w_angle], i[0].coords, i[3].coords, 
-                          i.water.coords, i[7].residue.name+'_'+str(i[7].residue.idx)]
-                      
-        Inter_list_all.append(Inter_list)               
-    
-    for nr_k,k in enumerate(Inter_list_all):
-        LOGGER.info("%3i%22s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
-    
-    return Inter_list_all
 
 
 def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
