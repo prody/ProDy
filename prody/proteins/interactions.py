@@ -2062,10 +2062,6 @@ def calcLigandInteractions(atoms, **kwargs):
             writePDB(temp_pdb_file.name, atoms)
             temp_pdb_file_name = temp_pdb_file.name
 
-        #pdb_name = atoms.getTitle()+'_sele.pdb'
-        #LOGGER.info("Writing PDB file with selection in the local directory.")
-        #writePDB(pdb_name, atoms)
-
         try:
             if atoms.hydrogen == None or atoms.hydrogen.numAtoms() < 30: # if there is no hydrogens in PDB structure
                 LOGGER.info("Lack of hydrogens in the structure. Use addMissingAtoms to add them.")
@@ -2084,8 +2080,7 @@ def calcLigandInteractions(atoms, **kwargs):
         if 'ignore_ligs' in kwargs:
             ignore_ligs = kwargs['ignore_ligs']
         else:
-            ignore_ligs=['NAG','BMA','MAN']
-            LOGGER.info('Three molecules will be ignored from analysis: NAG, BMA and MAN.')
+            ignore_ligs=['MAN']
         
         select = select+' and not (resname '+' '.join(ignore_ligs)+')'
         ligand_select = atoms.select(select)
