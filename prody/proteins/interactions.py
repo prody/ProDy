@@ -3690,18 +3690,22 @@ class LigandInteractionsTrajectory(object):
                 traj = trajectory[start_frame:stop_frame+1]
 
             atoms_copy = atoms.copy()
-
+            
             for j0, frame0 in enumerate(traj, start=start_frame):
                 LOGGER.info(' ')
                 LOGGER.info('Frame: {0}'.format(j0))
                 atoms_copy.setCoords(frame0.getCoords())
 
                 ligand_interactions, ligand = calcLigandInteractions(atoms_copy)
-                for ligs in range(len(ligand_interactions)-1):
-                    interactions = showLigandInteractions(ligand_interactions[ligs])
-                    interactions_all.append(interactions)
-                    interactions_all_nb.append(len(interactions))
-      
+                
+                ligs_per_frame_interactions = []
+                for ligs in ligand_interactions:
+                    LP_interactions = showLigandInteractions(ligs) 
+                    ligs_per_frame_interactions.extend(LP_interactions)
+                
+                interactions_all.append(ligs_per_frame_interactions)
+                interactions_all_nb.append(len(ligs_per_frame_interactions))
+
         else:
             if atoms.numCoordsets() > 1:
                 for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
@@ -3710,11 +3714,15 @@ class LigandInteractionsTrajectory(object):
                     atoms.setACSIndex(i+start_frame) 
 
                     ligand_interactions, ligand = calcLigandInteractions(atoms)
-                    for ligs in range(len(ligand_interactions)-1):
-                        interactions = showLigandInteractions(ligand_interactions[ligs])
-                        interactions_all.append(interactions)
-                        interactions_all_nb.append(len(interactions))
                     
+                    ligs_per_frame_interactions = []
+                    for ligs in ligand_interactions:
+                        LP_interactions = showLigandInteractions(ligs) 
+                        ligs_per_frame_interactions.extend(LP_interactions)
+                    
+                    interactions_all.append(ligs_per_frame_interactions)
+                    interactions_all_nb.append(len(ligs_per_frame_interactions))
+
             else:
                 LOGGER.info('Include trajectory or use multi-model PDB file.') 
         
@@ -3732,3 +3740,20 @@ class LigandInteractionsTrajectory(object):
         return interactions_all
 
 
+    def getLigandInteractions(self, **kwargs):
+        """Return the list of protein-ligand interactions."""
+
+        return self._interactions_traj
+
+
+    def getAtoms(self):
+        """Returns associated atoms."""
+
+        return self._atoms
+
+    
+    def getInteractionsNumber(self):
+        """Return the number of interactions in each frame."""
+        
+        return self._interactions_nb_traj 
+    
