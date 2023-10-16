@@ -1403,6 +1403,7 @@ class Select(object):
                 elif token in UNARY:
                     unary.append([])
                     append = unary[-1].append
+                    wasdata = False
 
                     if token == 'not':
                         append((token,))
