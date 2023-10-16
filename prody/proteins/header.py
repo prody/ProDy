@@ -1115,6 +1115,9 @@ def buildBiomolecules(header, atoms, biomol=None):
             if newag is None:
                 continue
             newag = newag.copy()
+            segnames = newag.all.getSegnames()
+            newag.all.setSegnames(np.array([segname + decToHybrid36(times+1, resnum=True) 
+                                            for segname in segnames]))
             for acsi in range(newag.numCoordsets()):
                 newag.setACSIndex(acsi)
                 newag = t.apply(newag)
