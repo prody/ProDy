@@ -56,8 +56,11 @@ _parseMMCIFdoc = """
          distinct coordinate set, default is ``"A"``
     :type altloc: str
 
-    :arg unite_chains: unite chains with the same segment name
-        Default is *True*
+    :arg unite_chains: unite chains with the same segment name (auth_asym_id), making chain ids be 
+        auth_asym_id instead of label_asym_id. This can be helpful in some cases e.g. alignments, but can 
+        cause some problems too. For example, using :meth:`.buildBiomolecules` afterwards requires original 
+        chain id (label_asym_id).
+        Default is *False*
     :type unite_chains: bool
     """
 
@@ -79,7 +82,7 @@ def parseMMCIF(pdb, **kwargs):
     chain = kwargs.pop('chain', None)
     segment = kwargs.pop('segment', None)
     title = kwargs.get('title', None)
-    unite_chains = kwargs.get('unite_chains', True)
+    unite_chains = kwargs.get('unite_chains', False)
     auto_bonds = SETTINGS.get('auto_bonds')
     get_bonds = kwargs.get('bonds', auto_bonds)
     if get_bonds:
@@ -160,7 +163,7 @@ def parseMMCIFStream(stream, **kwargs):
     subset = kwargs.get('subset')
     chain = kwargs.get('chain')
     segment = kwargs.get('segment')
-    unite_chains = kwargs.get('unite_chains', True)
+    unite_chains = kwargs.get('unite_chains', False)
     altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
