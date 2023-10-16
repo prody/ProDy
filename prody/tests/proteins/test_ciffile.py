@@ -121,18 +121,23 @@ class TestParseMMCIF(unittest.TestCase):
 
         path = pathDatafile(self.biomols['file'])
         self.assertEqual(parseMMCIF(path, chain='A').numAtoms(), 
-                        self.biomols['chainA_atoms_united'],
-                        'parseMMCIF failed to parse correct number of atoms '
-                        'when chain A is specified with unite_chain default (True)')
-        self.assertEqual(parseMMCIF(path, chain='A', unite_chains=False).numAtoms(), 
                         self.biomols['chainA_atoms_alone'],
                         'parseMMCIF failed to parse correct number of atoms '
-                        'when chain A is specified with unite_chain False')
-        self.assertEqual(parseMMCIF(path, chain='A', header=True)[0].numAtoms(), 
+                        'when chain A is specified with unite_chain default (False)')
+        self.assertEqual(parseMMCIF(path, chain='A', unite_chains=True).numAtoms(), 
                         self.biomols['chainA_atoms_united'],
                         'parseMMCIF failed to parse correct number of atoms '
-                        'when chain A is specified with unite_chain default (True) '
-                        'with header True')        
+                        'when chain A is specified with unite_chain True')
+        self.assertEqual(parseMMCIF(path, chain='A', header=True)[0].numAtoms(), 
+                        self.biomols['chainA_atoms_alone'],
+                        'parseMMCIF failed to parse correct number of atoms '
+                        'when chain A is specified with unite_chain default (False) '
+                        'with header True')
+        self.assertEqual(parseMMCIF(path, chain='A', header=True, unite_chains=True)[0].numAtoms(), 
+                        self.biomols['chainA_atoms_united'],
+                        'parseMMCIF failed to parse correct number of atoms '
+                        'when chain A is specified with unite_chain True '
+                        'with header True')
         
     def testUniteChainsAndBiomolArguments(self):
         """Test outcome of valid and invalid *segment* arguments."""
