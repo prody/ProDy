@@ -2062,6 +2062,7 @@ def showLigandInteractions(PLIP_output):
                       
         Inter_list_all.append(Inter_list)               
     
+    LOGGER.info("%3s%12s%10s%20s%8s  <---> %6s%10s%6s%10s%16s" % ('#','Type','Residue','Atoms','Chain','','Ligand','Atoms','Chain','Distance/Angle'))
     for nr_k,k in enumerate(Inter_list_all):
         if k[0] == 'watBridge':
             LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%12s%14s" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6], 
@@ -2161,7 +2162,7 @@ def calcLigandInteractions(atoms, **kwargs):
         
             return Ligands, analyzedLigand
         
-        except: 
+        except:
             LOGGER.info("Ligand not found.")
 
     except ImportError:
