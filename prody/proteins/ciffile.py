@@ -59,7 +59,7 @@ _parseMMCIFdoc = """
     :arg unite_chains: unite chains with the same segment name (auth_asym_id), making chain ids be 
         auth_asym_id instead of label_asym_id. This can be helpful in some cases e.g. alignments, but can 
         cause some problems too. For example, using :meth:`.buildBiomolecules` afterwards requires original 
-        chain id (label_asym_id).
+        chain id (label_asym_id). Using biomol=True, inside parseMMCIF is fine.
         Default is *False*
     :type unite_chains: bool
     """
