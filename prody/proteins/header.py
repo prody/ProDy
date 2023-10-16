@@ -1111,7 +1111,7 @@ def buildBiomolecules(header, atoms, biomol=None):
             translation[2] = line2[3]
             t = Transformation(rotation, translation)
 
-            newag = atoms.select('chain ' + ' '.join(mt[times*4+0])).copy()
+            newag = atoms.select('chain ' + ' or chain '.join(mt[times*4+0])).copy()
             if newag is None:
                 continue
             newag.all.setSegnames(decToHybrid36(times+1,resnum=True))
