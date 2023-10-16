@@ -57,7 +57,7 @@ _parseMMCIFdoc = """
     :type altloc: str
 
     :arg unite_chains: unite chains with the same segment name
-        Default is *False*
+        Default is *True*
     :type unite_chains: bool
     """
 
