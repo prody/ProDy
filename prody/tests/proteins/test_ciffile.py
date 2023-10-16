@@ -144,35 +144,35 @@ class TestParseMMCIF(unittest.TestCase):
 
         path = pathDatafile(self.biomols['file'])
 
-        bm_united = parseMMCIF(path, biomol=True)
+        bm_united = parseMMCIF(path, biomol=True, unite_chains=True)
         self.assertEqual(bm_united[0].numAtoms(), 
                         self.biomols['bm0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
-                        'with biomol True and unite_chain default (True)')
+                        'with biomol True and unite_chain True')
         self.assertEqual([b.numChains() for b in bm_united], 
                         self.biomols['bm_chains_united'],
                         'parseMMCIF failed to parse correct numbers of chains '
-                        'with biomol True and unite_chain default (True)')
+                        'with biomol True and unite_chain True')
         
-        bm_non_united = parseMMCIF(path, biomol=True, unite_chains=False)
+        bm_non_united = parseMMCIF(path, biomol=True)
         self.assertEqual(bm_non_united[0].numAtoms(), 
                         self.biomols['bm0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
-                        'when chain A is specified with unite_chain False')
+                        'when chain A is specified with unite_chain default (False)')
         self.assertEqual([b.numChains() for b in bm_non_united], 
                         self.biomols['bm_chains_alone'],
                         'parseMMCIF failed to parse correct numbers of chains '
-                        'with biomol True and unite_chain False')
+                        'with biomol True and unite_chain default (False)')
         
-        bm_header = parseMMCIF(path, biomol=True, header=True)[0]
+        bm_header = parseMMCIF(path, biomol=True, header=True, unite_chains=True)[0]
         self.assertEqual(bm_header[0].numAtoms(), 
                         self.biomols['bm0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
-                        'with biomol True and unite_chain default (True)')
+                        'with biomol True and unite_chain True')
         self.assertEqual([b.numChains() for b in bm_header], 
                         self.biomols['bm_chains_united'],
                         'parseMMCIF failed to parse correct numbers of chains '
-                        'with biomol True and unite_chain default (True)')
+                        'with biomol True and unite_chain True')
 
     def testSubsetArgument(self):
         """Test outcome of valid and invalid *subset* arguments."""
