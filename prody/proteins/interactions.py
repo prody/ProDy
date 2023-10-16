@@ -44,7 +44,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcLigandInteractions', 'showLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
-           'Interactions', 'InteractionsTrajectory']
+           'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory']
 
 
 def cleanNumbers(listContacts):
@@ -3627,4 +3627,108 @@ class InteractionsTrajectory(object):
 
         return HBs, SBs, HPh, PiStack, PiCat, HPh, DiBs
 
+
+
  
+class LigandInteractionsTrajectory(object):
+
+    """Class for protein-ligand interaction analysis of DCD trajectory or multi-model PDB (Ensemble PDB)."""
+
+    def __init__(self, name='Unknown'):
+        
+        self._atoms = None
+        self._traj = None
+        self._interactions_traj = None
+
+    def calcLigandInteractionsTrajectory(self, atoms, trajectory=None, filename=None, **kwargs):
+        """Compute protein-ligand interactions for DCD trajectory or multi-model PDB 
+            using PLIP library.
+        
+        :arg atoms: an Atomic object from which residues are selected
+        :type atoms: :class:`.Atomic`
+        
+        :arg trajectory: trajectory file
+        :type trajectory: class:`.Trajectory`
+
+        :arg filename: Name of pkl filename in which interactions will be storage
+        :type filename: pkl 
+        
+        :arg start_frame: index of first frame to read
+        :type start_frame: int
+
+        :arg stop_frame: index of last frame to read
+        :type stop_frame: int """
+    
+
+        try:
+            coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                        atoms.getCoords())
+        except AttributeError:
+            try:
+                checkCoords(coords)
+            except TypeError:
+                raise TypeError('coords must be an object '
+                                'with `getCoords` method')
+        
+        interactions_all = []
+        interactions_all_nb = []
+
+        start_frame = kwargs.pop('start_frame', 0)
+        stop_frame = kwargs.pop('stop_frame', -1)
+
+        if trajectory is not None:
+            if isinstance(trajectory, Atomic):
+                trajectory = Ensemble(trajectory)
+        
+            nfi = trajectory._nfi
+            trajectory.reset()
+            numFrames = trajectory._n_csets
+
+            if stop_frame == -1:
+                traj = trajectory[start_frame:]
+            else:
+                traj = trajectory[start_frame:stop_frame+1]
+
+            atoms_copy = atoms.copy()
+
+            for j0, frame0 in enumerate(traj, start=start_frame):
+                LOGGER.info(' ')
+                LOGGER.info('Frame: {0}'.format(j0))
+                atoms_copy.setCoords(frame0.getCoords())
+
+                ligand_interactions, ligand = calcLigandInteractions(atoms_copy)
+                for ligs in range(len(ligand_interactions)-1):
+                    interactions = showLigandInteractions(ligand_interactions[ligs])
+                    interactions_all.append(interactions)
+                    interactions_all_nb.append(len(interactions))
+      
+        else:
+            if atoms.numCoordsets() > 1:
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                    LOGGER.info(' ')
+                    LOGGER.info('Model: {0}'.format(i+start_frame))
+                    atoms.setACSIndex(i+start_frame) 
+
+                    ligand_interactions, ligand = calcLigandInteractions(atoms)
+                    for ligs in range(len(ligand_interactions)-1):
+                        interactions = showLigandInteractions(ligand_interactions[ligs])
+                        interactions_all.append(interactions)
+                        interactions_all_nb.append(len(interactions))
+                    
+            else:
+                LOGGER.info('Include trajectory or use multi-model PDB file.') 
+        
+        self._atoms = atoms
+        self._traj = trajectory
+        self._interactions_traj = interactions_all
+        self._interactions_nb_traj = interactions_all_nb
+        
+        if filename is not None:
+            import pickle
+            with open(str(filename)+'.pkl', 'wb') as f:
+                pickle.dump(self._interactions_traj, f)  
+            LOGGER.info('File with interactions saved.')
+            
+        return interactions_all
+
+
