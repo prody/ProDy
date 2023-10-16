@@ -2063,7 +2063,11 @@ def showLigandInteractions(PLIP_output):
         Inter_list_all.append(Inter_list)               
     
     for nr_k,k in enumerate(Inter_list_all):
-        LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
+        if k[0] == 'watBridge':
+            LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%12s%14s" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6], 
+                                ' '.join(str(np.round(x, 2)) for x in k[7]), ' '.join(str(np.round(x, 2)) for x in k[8])))
+        else:
+            LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
     
     return Inter_list_all
 
@@ -2135,30 +2139,30 @@ def calcLigandInteractions(atoms, **kwargs):
         if 'ignore_ligs' in kwargs:
             ignore_ligs = kwargs['ignore_ligs']
         else:
-            ignore_ligs=['MAN']
+            ignore_ligs=['MAN', 'SOD', 'CLA']
         
         sele = sele+' and not (resname '+' '.join(ignore_ligs)+')'
         ligand_select = atoms.select(sele)
         analyzedLigand = []
-        LOGGER.info("Detected ligands: ")
-        for i in range(len(ligand_select.getResnums())): # It has to be done by each atom
-            try:
+        
+        try:
+            for i in range(len(ligand_select.getResnums())):
                 ResID = ligand_select.getResnames()[i]
                 ChainID = ligand_select.getChids()[i]
                 ResNames = ligand_select.getResnums()[i]
                 my_bsid = str(ResID)+':'+str(ChainID)+':'+str(ResNames)
-                if my_bsid not in analyzedLigand: 
-                    LOGGER.info(my_bsid)
+                if my_bsid not in analyzedLigand:
+                    LOGGER.info("LIGAND:  {0}".format(my_bsid))
                     analyzedLigand.append(my_bsid)
                     my_mol.analyze()
                     my_interactions = my_mol.interaction_sets[my_bsid] # Contains all interaction data      
                     Ligands.append(my_interactions)
                     showLigandInteractions(my_interactions)
-            except: 
-                pass
-                #LOGGER.info(my_bsid+" not analyzed")
-
-        return Ligands, analyzedLigand
+        
+            return Ligands, analyzedLigand
+        
+        except: 
+            LOGGER.info("Ligand not found.")
 
     except ImportError:
         raise ImportError("Install Openbabel and PLIP.")
@@ -2306,11 +2310,14 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     except:
         filename = atoms.getTitle()+'_interaction.tcl'
     
+    pdb_name = atoms.getTitle()+'_sele.pdb'
+    writePDB(pdb_name, atoms)
+    
     tcl_file = open(filename, 'w') 
     
     if len(interactions[0]) >= 10: 
-        dic_color = {'hbond':'blue','pistack':'green','saltbridge':'yellow','pication':'orange',
-                     'hydroph_interaction':'silver','waterbridge':'cyan'}
+        dic_color = {'HBs':'blue','PiStack':'green','SBs':'yellow','PiCat':'orange',
+                     'HPh':'silver','watBridge':'cyan'}
         
         for i in interactions:
             tcl_file.write('draw color '+dic_color[i[0]]+'\n')
