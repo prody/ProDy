@@ -177,7 +177,7 @@ def showCumulFractVars(modes, *args, **kwargs):
     fracts = calcFractVariance(modes).cumsum()
     show = plt.plot(indices, fracts, *args, **kwargs)
     axis = list(plt.axis())
-    axis[0] = 0.5
+    axis[0] = -0.5
     axis[2] = 0
     axis[3] = 1
     plt.axis(axis)
