@@ -183,7 +183,7 @@ class exANM(ANM):
 
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set. 
-        **kwargs** are passed to :method:`.buildMembrane`.
+        **kwargs** are passed to :meth:`.buildMembrane`.
 
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
