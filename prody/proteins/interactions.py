@@ -3631,7 +3631,20 @@ class InteractionsTrajectory(object):
  
 class LigandInteractionsTrajectory(object):
 
-    """Class for protein-ligand interaction analysis of DCD trajectory or multi-model PDB (Ensemble PDB)."""
+    """Class for protein-ligand interaction analysis of DCD trajectory or multi-model PDB (Ensemble PDB).
+    This class is using PLIP to provide the interactions. Install PLIP before using it.
+
+    ## Instalation of PLIP using conda:
+    >>> conda install -c conda-forge plip
+    ## https://anaconda.org/conda-forge/plip
+    # https://github.com/pharmai/plip/blob/master/DOCUMENTATION.md
+    
+    ## Instalation using PIP:
+    >>> pip install plip
+
+    .. [SS15] Salentin S., Schreiber S., Haupt V. J., Adasme M. F., Schroeder M.  
+    PLIP: fully automated protein–ligand interaction profiler 
+    *Nucl. Acids Res.* **2015** 43:W443-W447.     """
 
     def __init__(self, name='Unknown'):
         
@@ -3657,7 +3670,6 @@ class LigandInteractionsTrajectory(object):
 
         :arg stop_frame: index of last frame to read
         :type stop_frame: int """
-    
 
         try:
             coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -3772,3 +3784,4 @@ class LigandInteractionsTrajectory(object):
         self._interactions_nb_traj = [[len(sublist) if sublist else 0 for sublist in sublist] for sublist in data]
         
         return data
+
