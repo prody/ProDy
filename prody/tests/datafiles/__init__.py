@@ -224,11 +224,26 @@ DATA_FILES = {
         'bb_atoms': 144,
         'models': 26,
     },
+    'biomols_cif': {
+        'pdb': '3o21',
+        'file': 'mmcif_3o21.cif',
+        'atoms': 12793,
+        'bm0_atoms': 6281,
+        'num_chains_united': 4,
+        'bm_chains_united': [2, 2],
+        'bm_chains_alone': [9, 10],
+        'chainA_atoms_united': 3170,
+        'chainA_atoms_alone': 3025,
+        'ca_atoms': 1489,
+        'bb_atoms': 5956,
+        'models': 1,
+        'unobs_B_start': 'G-------------------------------NQNTTEK-'
+    },
     'long_chid_cif': {
         'pdb': '6zu5',
         'file': 'mmcif_6zu5.cif',
         'atoms': 165175,
-        'chain_SX0_atoms': 1089,
+        'segment_SX0_atoms': 1089,
     },
     '3hsy': {
         'pdb': '3hsy',
@@ -242,6 +257,7 @@ DATA_FILES = {
         'pdb': '3o21',
         'file': 'pdb3o21.pdb',
         'atoms': 12793,
+        'chainA_atoms': 3170,
         'ca_atoms': 1489,
         'models': 1,
         'biomols': 2
