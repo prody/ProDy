@@ -3628,7 +3628,6 @@ class InteractionsTrajectory(object):
         return HBs, SBs, HPh, PiStack, PiCat, HPh, DiBs
 
 
-
  
 class LigandInteractionsTrajectory(object):
 
@@ -3752,8 +3751,24 @@ class LigandInteractionsTrajectory(object):
         return self._atoms
 
     
-    def getInteractionsNumber(self):
+    def getLigandInteractionsNumber(self):
         """Return the number of interactions in each frame."""
         
         return self._interactions_nb_traj 
+
     
+    def parseLigandInteractions(self, filename):
+        """Import interactions from analysis of trajectory which was saved via
+        calcLigandInteractionsTrajectory().
+        
+        :arg filename: Name of pkl file in which interactions will be storage
+        :type filename: pkl """
+        
+        import pickle
+        with open(filename, 'rb') as f:
+            data = pickle.load(f)
+        
+        self._interactions_traj = data
+        self._interactions_nb_traj = [[len(sublist) if sublist else 0 for sublist in sublist] for sublist in data]
+        
+        return data
