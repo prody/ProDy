@@ -315,7 +315,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def parseScipionModes(metadata_file, title=None, pdb=None):
+def parseScipionModes(metadata_file, title=None, pdb=None, parseIndices=False):
     """Returns :class:`.NMA` containing eigenvectors and eigenvalues 
     parsed from a ContinuousFlex FlexProtNMA Run directory.
 
@@ -324,6 +324,13 @@ def parseScipionModes(metadata_file, title=None, pdb=None):
     
     :arg title: title for :class:`.NMA` object
     :type title: str
+
+    :arg pdb: pdb file to help define dof
+    :type pdb: str
+
+    :arg parseIndices: whether to parse indices and output a ModeSet
+        default *False*
+    :type parseIndices: bool
     """
     run_path = os.path.split(metadata_file)[0]
     top_dirs = os.path.split(run_path)[0][:-4]
@@ -401,7 +408,10 @@ def parseScipionModes(metadata_file, title=None, pdb=None):
 
     try:
         indices.append(int(row1['_order_'])-1)
-        found_indices = True
+        if parseIndices:
+            found_indices = True
+        else:
+            found_indices = False
     except KeyError:
         found_indices = False
 
