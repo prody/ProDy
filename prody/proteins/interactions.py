@@ -44,7 +44,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
-           'Interactions', 'InteractionsTrajectory']
+           'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory']
 
 
 def cleanNumbers(listContacts):
@@ -2013,6 +2013,66 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
             for i in additional_residues:
                 LOGGER.info(i)
 
+
+def listLigandInteractions(PLIP_output):
+    """Create a list of interactions from PLIP output created using calcLigandInteractions().
+    Results can be displayed in VMD. 
+    
+    :arg PLIP_output: Results from PLIP for protein-ligand interactions.
+    :type PLIP_output: PLIP object obtained from calcLigandInteractions() 
+    
+    Note that five types of interactions are considered: hydrogen bonds, salt bridges, 
+    pi-stacking, cation-pi, hydrophobic and water bridges."""
+    
+    Inter_list_all = []
+    for i in PLIP_output.all_itypes:
+        param_inter = [method for method in dir(i) if method.startswith('_') is False]
+        
+        if str(type(i)).split('.')[-1].strip("'>") == 'hbond':
+            Inter_list = ['HBs',i.restype+str(i.resnr), i[0].type+'_'+str(i.d_orig_idx), i.reschain,
+                          i.restype_l+str(i.resnr_l), i[2].type+'_'+str(i.a_orig_idx), i.reschain_l, 
+                          i.distance_ad, i.angle, i[0].coords, i[2].coords]
+     
+        if str(type(i)).split('.')[-1].strip("'>") == 'saltbridge':
+            Inter_list = ['SBs',i.restype+str(i.resnr), '_'.join(map(str,i.negative.atoms_orig_idx)), i.reschain,
+                          i.restype_l+str(i.resnr_l), '_'.join(map(str,i.positive.atoms_orig_idx)), i.reschain_l, 
+                          i.distance, None, i.negative.center, i.positive.center]
+                 
+        if str(type(i)).split('.')[-1].strip("'>") == 'pistack':
+             Inter_list = ['PiStack',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
+                          i.restype_l+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
+                          i.distance, i.angle, i[0].center, i[1].center]           
+        
+        if str(type(i)).split('.')[-1].strip("'>") == 'pication':
+             Inter_list = ['PiCat',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
+                          i.restype_l+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
+                          i.distance, None, i[0].center, i[1].center]                       
+        
+        if str(type(i)).split('.')[-1].strip("'>") == 'hydroph_interaction':
+            Inter_list = ['HPh',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
+                          i.restype_l+str(i.resnr_l), i[2].type+'_'+str(i[2].idx), i.reschain_l, 
+                          i.distance, None, i[0].coords, i[2].coords]           
+             
+        if str(type(i)).split('.')[-1].strip("'>") == 'waterbridge':
+            water = i.water
+            Inter_list = ['watBridge',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
+                          i.restype_l+str(i.resnr_l), i[3].type+'_'+str(i[3].idx), i.reschain_l, 
+                          [i.distance_aw, i.distance_dw], [i.d_angle, i.w_angle], i[0].coords, i[3].coords, 
+                          i.water.coords, i[7].residue.name+'_'+str(i[7].residue.idx)]
+                      
+        Inter_list_all.append(Inter_list)               
+    
+    LOGGER.info("%3s%12s%10s%20s%8s  <---> %6s%10s%6s%10s%16s" % ('#','Type','Residue','Atoms','Chain','','Ligand','Atoms','Chain','Distance/Angle'))
+    for nr_k,k in enumerate(Inter_list_all):
+        if k[0] == 'watBridge':
+            LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%12s%14s" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6], 
+                                ' '.join(str(np.round(x, 2)) for x in k[7]), ' '.join(str(np.round(x, 2)) for x in k[8])))
+        else:
+            LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
+    
+    return Inter_list_all
+
+
 def calcLigandInteractions(atoms, **kwargs):
     """Provide ligand interactions with other elements of the system including protein, 
     water and ions. Results are computed by PLIP [SS15]_ which should be installed.
@@ -2021,9 +2081,9 @@ def calcLigandInteractions(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg select: a selection string for residues of interest
+    :arg sele: a selection string for residues of interest
             default is 'all not (water or protein or ion)'
-    :type select: str
+    :type sele: str
     
     :arg ignore_ligs: List of ligands which will be excluded from the analysis.
     :type ignore_ligs: list
@@ -2055,116 +2115,59 @@ def calcLigandInteractions(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     try:
-        from plip.structure.preparation import PDBComplex   
-        
-        pdb_name = atoms.getTitle()+'_sele.pdb'
-        LOGGER.info("Writing PDB file with selection in the local directory.")
-        writePDB(pdb_name, atoms)
+        from plip.structure.preparation import PDBComplex
 
-        try:
-            if atoms.hydrogen == None or atoms.hydrogen.numAtoms() < 30: # if there is no hydrogens in PDB structure
-                addMissingAtoms(pdb_name)
-                pdb_name = pdb_name[:-4]+'_addH.pdb'
-                atoms = parsePDB(pdb_name)
-                LOGGER.info("Lack of hydrogens in the structure. Hydrogens have been added.")
-        except: 
-            raise ValueError("Missing atoms from the side chains of the structure. Use addMissingAtoms.")
+    except ImportError:
+        raise ImportError("Install Openbabel and PLIP.")
+           
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file:
+        writePDB(temp_pdb_file.name, atoms)
+        temp_pdb_file_name = temp_pdb_file.name
+
+    try:
+        if atoms.hydrogen == None or atoms.hydrogen.numAtoms() < 30: # if there is no hydrogens in PDB structure
+            LOGGER.info("Lack of hydrogens in the structure. Use addMissingAtoms to add them.")
+    except: 
+        pass
+
+    Ligands = [] # Ligands can be more than one
+    my_mol = PDBComplex()
+    my_mol.load_pdb(temp_pdb_file_name) # Load the PDB file into PLIP class
     
-        Ligands = [] # Ligands can be more than one
-        my_mol = PDBComplex()
-        my_mol.load_pdb(pdb_name) # Load the PDB file into PLIP class
-        
-        if 'select' in kwargs:
-            select = kwargs['select']
-            LOGGER.info('Selection will be replaced.')
-        else:
-            select='all not (water or protein or ion)'
-            LOGGER.info('Default selection will be used.')
+    if 'sele' in kwargs:
+        sele = kwargs['sele']
+    else:
+        sele='all not (water or protein or ion)'
 
-        if 'ignore_ligs' in kwargs:
-            ignore_ligs = kwargs['ignore_ligs']
-            LOGGER.info('Ignoring list of ligands is uploaded.')
-        else:
-            ignore_ligs=['NAG','BMA','MAN']
-            LOGGER.info('Three molecules will be ignored from analysis: NAG, BMA and MAN.')
-        
-        select = select+' and not (resname '+' '.join(ignore_ligs)+')'
-        ligand_select = atoms.select(select)
-        analyzedLigand = []
-        LOGGER.info("Detected ligands: ")
-        for i in range(len(ligand_select.getResnums())): # It has to be done by each atom
-            try:
-                ResID = ligand_select.getResnames()[i]
-                ChainID = ligand_select.getChids()[i]
-                ResNames = ligand_select.getResnums()[i]
-                my_bsid = str(ResID)+':'+str(ChainID)+':'+str(ResNames)
-                if my_bsid not in analyzedLigand: 
-                    LOGGER.info(my_bsid)
-                    analyzedLigand.append(my_bsid)
-                    my_mol.analyze()
-                    my_interactions = my_mol.interaction_sets[my_bsid] # Contains all interaction data      
-                    Ligands.append(my_interactions)
-            except: 
-                LOGGER.info(my_bsid+" not analyzed")
-
+    if 'ignore_ligs' in kwargs:
+        ignore_ligs = kwargs['ignore_ligs']
+    else:
+        ignore_ligs=['MAN', 'SOD', 'CLA']
+    
+    sele = sele+' and not (resname '+' '.join(ignore_ligs)+')'
+    ligand_select = atoms.select(sele)
+    analyzedLigand = []
+    
+    try:
+        for i in range(len(ligand_select.getResnums())):
+            ResID = ligand_select.getResnames()[i]
+            ChainID = ligand_select.getChids()[i]
+            ResNames = ligand_select.getResnums()[i]
+            my_bsid = str(ResID)+':'+str(ChainID)+':'+str(ResNames)
+            if my_bsid not in analyzedLigand:
+                LOGGER.info("LIGAND:  {0}".format(my_bsid))
+                analyzedLigand.append(my_bsid)
+                my_mol.analyze()
+                my_interactions = my_mol.interaction_sets[my_bsid] # Contains all interaction data      
+                Ligands.append(my_interactions)
+                listLigandInteractions(my_interactions)
+    
         return Ligands, analyzedLigand
-
+    
     except:
-        LOGGER.info("Install Openbabel and PLIP.")
+        LOGGER.info("Ligand not found.")
 
-
-def listLigandInteractions(PLIP_output):
-    """Create a list of interactions from PLIP output created using calcLigandInteractions().
-    Results can be displayed in VMD. 
-    
-    :arg PLIP_output: Results from PLIP for protein-ligand interactions.
-    :type PLIP_output: PLIP object obtained from calcLigandInteractions() 
-    
-    Note that five types of interactions are considered: hydrogen bonds, salt bridges, 
-    pi-stacking, cation-pi, hydrophobic and water bridges."""
-    
-    Inter_list_all = []
-    for i in PLIP_output.all_itypes:
-        param_inter = [method for method in dir(i) if method.startswith('_') is False]
-        
-        if str(type(i)).split('.')[-1].strip("'>") == 'hbond':
-            Inter_list = ['hbond',i.restype+str(i.resnr), i[0].type+'_'+str(i.d_orig_idx), i.reschain,
-                          i.restype+str(i.resnr_l), i[2].type+'_'+str(i.a_orig_idx), i.reschain_l, 
-                          i.distance_ad, i.angle, i[0].coords, i[2].coords]
-     
-        if str(type(i)).split('.')[-1].strip("'>") == 'saltbridge':
-            Inter_list = ['saltbridge',i.restype+str(i.resnr), '_'.join(map(str,i.negative.atoms_orig_idx)), i.reschain,
-                          i.restype+str(i.resnr_l), '_'.join(map(str,i.positive.atoms_orig_idx)), i.reschain_l, 
-                          i.distance, None, i.negative.center, i.positive.center]
-                 
-        if str(type(i)).split('.')[-1].strip("'>") == 'pistack':
-             Inter_list = ['pistack',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
-                          i.restype+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
-                          i.distance, i.angle, i[0].center, i[1].center]           
-        
-        if str(type(i)).split('.')[-1].strip("'>") == 'pication':
-             Inter_list = ['pication',i.restype+str(i.resnr), '_'.join(map(str,i[0].atoms_orig_idx)), i.reschain,
-                          i.restype+str(i.resnr_l), '_'.join(map(str,i[1].atoms_orig_idx)), i.reschain_l, 
-                          i.distance, None, i[0].center, i[1].center]                       
-        
-        if str(type(i)).split('.')[-1].strip("'>") == 'hydroph_interaction':
-            Inter_list = ['hydroph_interaction',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
-                          i.restype+str(i.resnr_l), i[2].type+'_'+str(i[2].idx), i.reschain_l, 
-                          i.distance, None, i[0].coords, i[2].coords]           
-             
-        if str(type(i)).split('.')[-1].strip("'>") == 'waterbridge':
-            water = i.water
-            Inter_list = ['waterbridge',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
-                          i.restype+str(i.resnr_l), i[3].type+'_'+str(i[3].idx), i.reschain_l, 
-                          [i.distance_aw, i.distance_dw], [i.d_angle, i.w_angle], i[0].coords, i[3].coords, 
-                          i.water.coords, i[7].residue.name+'_'+str(i[7].residue.idx)]
-                      
-        Inter_list_all.append(Inter_list)               
-    
-    for nr_k,k in enumerate(Inter_list_all):
-        LOGGER.info("%3i%22s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
-    
-    return Inter_list_all
 
 
 def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
@@ -2309,11 +2312,14 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     except:
         filename = atoms.getTitle()+'_interaction.tcl'
     
+    pdb_name = atoms.getTitle()+'_sele.pdb'
+    writePDB(pdb_name, atoms)
+    
     tcl_file = open(filename, 'w') 
     
     if len(interactions[0]) >= 10: 
-        dic_color = {'hbond':'blue','pistack':'green','saltbridge':'yellow','pication':'orange',
-                     'hydroph_interaction':'silver','waterbridge':'cyan'}
+        dic_color = {'HBs':'blue','PiStack':'green','SBs':'yellow','PiCat':'orange',
+                     'HPh':'silver','watBridge':'cyan'}
         
         for i in interactions:
             tcl_file.write('draw color '+dic_color[i[0]]+'\n')
@@ -3622,4 +3628,161 @@ class InteractionsTrajectory(object):
 
         return HBs, SBs, HPh, PiStack, PiCat, HPh, DiBs
 
+
  
+class LigandInteractionsTrajectory(object):
+
+    """Class for protein-ligand interaction analysis of DCD trajectory or multi-model PDB (Ensemble PDB).
+    This class is using PLIP to provide the interactions. Install PLIP before using it.
+
+    ## Instalation of PLIP using conda:
+    >>> conda install -c conda-forge plip
+    ## https://anaconda.org/conda-forge/plip
+    # https://github.com/pharmai/plip/blob/master/DOCUMENTATION.md
+    
+    ## Instalation using PIP:
+    >>> pip install plip
+
+    .. [SS15] Salentin S., Schreiber S., Haupt V. J., Adasme M. F., Schroeder M.  
+    PLIP: fully automated protein–ligand interaction profiler 
+    *Nucl. Acids Res.* **2015** 43:W443-W447.     """
+
+    def __init__(self, name='Unknown'):
+        
+        self._atoms = None
+        self._traj = None
+        self._interactions_traj = None
+
+    def calcLigandInteractionsTrajectory(self, atoms, trajectory=None, filename=None, **kwargs):
+        """Compute protein-ligand interactions for DCD trajectory or multi-model PDB 
+            using PLIP library.
+        
+        :arg atoms: an Atomic object from which residues are selected
+        :type atoms: :class:`.Atomic`
+        
+        :arg trajectory: trajectory file
+        :type trajectory: class:`.Trajectory`
+
+        :arg filename: Name of pkl filename in which interactions will be storage
+        :type filename: pkl 
+        
+        :arg start_frame: index of first frame to read
+        :type start_frame: int
+
+        :arg stop_frame: index of last frame to read
+        :type stop_frame: int """
+
+        try:
+            coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                        atoms.getCoords())
+        except AttributeError:
+            try:
+                checkCoords(coords)
+            except TypeError:
+                raise TypeError('coords must be an object '
+                                'with `getCoords` method')
+        
+        interactions_all = []
+        interactions_all_nb = []
+
+        start_frame = kwargs.pop('start_frame', 0)
+        stop_frame = kwargs.pop('stop_frame', -1)
+
+        if trajectory is not None:
+            if isinstance(trajectory, Atomic):
+                trajectory = Ensemble(trajectory)
+        
+            nfi = trajectory._nfi
+            trajectory.reset()
+            numFrames = trajectory._n_csets
+
+            if stop_frame == -1:
+                traj = trajectory[start_frame:]
+            else:
+                traj = trajectory[start_frame:stop_frame+1]
+
+            atoms_copy = atoms.copy()
+            
+            for j0, frame0 in enumerate(traj, start=start_frame):
+                LOGGER.info(' ')
+                LOGGER.info('Frame: {0}'.format(j0))
+                atoms_copy.setCoords(frame0.getCoords())
+
+                ligand_interactions, ligand = calcLigandInteractions(atoms_copy)
+                
+                ligs_per_frame_interactions = []
+                for ligs in ligand_interactions:
+                    LP_interactions = listLigandInteractions(ligs) 
+                    ligs_per_frame_interactions.extend(LP_interactions)
+                
+                interactions_all.append(ligs_per_frame_interactions)
+                interactions_all_nb.append(len(ligs_per_frame_interactions))
+
+        else:
+            if atoms.numCoordsets() > 1:
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                    LOGGER.info(' ')
+                    LOGGER.info('Model: {0}'.format(i+start_frame))
+                    atoms.setACSIndex(i+start_frame) 
+
+                    ligand_interactions, ligand = calcLigandInteractions(atoms)
+                    
+                    ligs_per_frame_interactions = []
+                    for ligs in ligand_interactions:
+                        LP_interactions = listLigandInteractions(ligs) 
+                        ligs_per_frame_interactions.extend(LP_interactions)
+                    
+                    interactions_all.append(ligs_per_frame_interactions)
+                    interactions_all_nb.append(len(ligs_per_frame_interactions))
+
+            else:
+                LOGGER.info('Include trajectory or use multi-model PDB file.') 
+        
+        self._atoms = atoms
+        self._traj = trajectory
+        self._interactions_traj = interactions_all
+        self._interactions_nb_traj = interactions_all_nb
+        
+        if filename is not None:
+            import pickle
+            with open(str(filename)+'.pkl', 'wb') as f:
+                pickle.dump(self._interactions_traj, f)  
+            LOGGER.info('File with interactions saved.')
+            
+        return interactions_all
+
+
+    def getLigandInteractions(self, **kwargs):
+        """Return the list of protein-ligand interactions."""
+
+        return self._interactions_traj
+
+
+    def getAtoms(self):
+        """Returns associated atoms."""
+
+        return self._atoms
+
+    
+    def getLigandInteractionsNumber(self):
+        """Return the number of interactions in each frame."""
+        
+        return self._interactions_nb_traj 
+
+    
+    def parseLigandInteractions(self, filename):
+        """Import interactions from analysis of trajectory which was saved via
+        calcLigandInteractionsTrajectory().
+        
+        :arg filename: Name of pkl file in which interactions will be storage
+        :type filename: pkl """
+        
+        import pickle
+        with open(filename, 'rb') as f:
+            data = pickle.load(f)
+        
+        self._interactions_traj = data
+        self._interactions_nb_traj = [[len(sublist) if sublist else 0 for sublist in sublist] for sublist in data]
+        
+        return data
+
