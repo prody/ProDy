@@ -41,7 +41,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcPiCationTrajectory', 'calcHydrophobicTrajectory', 'calcDisulfideBondsTrajectory',
            'calcProteinInteractions', 'calcStatisticsInteractions', 'calcDistribution',
            'calcSASA', 'calcVolume','compareInteractions', 'showInteractionsGraph',
-           'calcLigandInteractions', 'showLigandInteractions', 
+           'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory']
@@ -2014,7 +2014,7 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
                 LOGGER.info(i)
 
 
-def showLigandInteractions(PLIP_output):
+def listLigandInteractions(PLIP_output):
     """Create a list of interactions from PLIP output created using calcLigandInteractions().
     Results can be displayed in VMD. 
     
@@ -2115,58 +2115,59 @@ def calcLigandInteractions(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     try:
-        from plip.structure.preparation import PDBComplex   
-        import tempfile
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file:
-            writePDB(temp_pdb_file.name, atoms)
-            temp_pdb_file_name = temp_pdb_file.name
-
-        try:
-            if atoms.hydrogen == None or atoms.hydrogen.numAtoms() < 30: # if there is no hydrogens in PDB structure
-                LOGGER.info("Lack of hydrogens in the structure. Use addMissingAtoms to add them.")
-        except: 
-            pass
-
-        Ligands = [] # Ligands can be more than one
-        my_mol = PDBComplex()
-        my_mol.load_pdb(temp_pdb_file_name) # Load the PDB file into PLIP class
-        
-        if 'sele' in kwargs:
-            sele = kwargs['sele']
-        else:
-            sele='all not (water or protein or ion)'
-
-        if 'ignore_ligs' in kwargs:
-            ignore_ligs = kwargs['ignore_ligs']
-        else:
-            ignore_ligs=['MAN', 'SOD', 'CLA']
-        
-        sele = sele+' and not (resname '+' '.join(ignore_ligs)+')'
-        ligand_select = atoms.select(sele)
-        analyzedLigand = []
-        
-        try:
-            for i in range(len(ligand_select.getResnums())):
-                ResID = ligand_select.getResnames()[i]
-                ChainID = ligand_select.getChids()[i]
-                ResNames = ligand_select.getResnums()[i]
-                my_bsid = str(ResID)+':'+str(ChainID)+':'+str(ResNames)
-                if my_bsid not in analyzedLigand:
-                    LOGGER.info("LIGAND:  {0}".format(my_bsid))
-                    analyzedLigand.append(my_bsid)
-                    my_mol.analyze()
-                    my_interactions = my_mol.interaction_sets[my_bsid] # Contains all interaction data      
-                    Ligands.append(my_interactions)
-                    showLigandInteractions(my_interactions)
-        
-            return Ligands, analyzedLigand
-        
-        except:
-            LOGGER.info("Ligand not found.")
+        from plip.structure.preparation import PDBComplex
 
     except ImportError:
         raise ImportError("Install Openbabel and PLIP.")
+           
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file:
+        writePDB(temp_pdb_file.name, atoms)
+        temp_pdb_file_name = temp_pdb_file.name
+
+    try:
+        if atoms.hydrogen == None or atoms.hydrogen.numAtoms() < 30: # if there is no hydrogens in PDB structure
+            LOGGER.info("Lack of hydrogens in the structure. Use addMissingAtoms to add them.")
+    except: 
+        pass
+
+    Ligands = [] # Ligands can be more than one
+    my_mol = PDBComplex()
+    my_mol.load_pdb(temp_pdb_file_name) # Load the PDB file into PLIP class
+    
+    if 'sele' in kwargs:
+        sele = kwargs['sele']
+    else:
+        sele='all not (water or protein or ion)'
+
+    if 'ignore_ligs' in kwargs:
+        ignore_ligs = kwargs['ignore_ligs']
+    else:
+        ignore_ligs=['MAN', 'SOD', 'CLA']
+    
+    sele = sele+' and not (resname '+' '.join(ignore_ligs)+')'
+    ligand_select = atoms.select(sele)
+    analyzedLigand = []
+    
+    try:
+        for i in range(len(ligand_select.getResnums())):
+            ResID = ligand_select.getResnames()[i]
+            ChainID = ligand_select.getChids()[i]
+            ResNames = ligand_select.getResnums()[i]
+            my_bsid = str(ResID)+':'+str(ChainID)+':'+str(ResNames)
+            if my_bsid not in analyzedLigand:
+                LOGGER.info("LIGAND:  {0}".format(my_bsid))
+                analyzedLigand.append(my_bsid)
+                my_mol.analyze()
+                my_interactions = my_mol.interaction_sets[my_bsid] # Contains all interaction data      
+                Ligands.append(my_interactions)
+                listLigandInteractions(my_interactions)
+    
+        return Ligands, analyzedLigand
+    
+    except:
+        LOGGER.info("Ligand not found.")
+
 
 
 def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
@@ -3711,7 +3712,7 @@ class LigandInteractionsTrajectory(object):
                 
                 ligs_per_frame_interactions = []
                 for ligs in ligand_interactions:
-                    LP_interactions = showLigandInteractions(ligs) 
+                    LP_interactions = listLigandInteractions(ligs) 
                     ligs_per_frame_interactions.extend(LP_interactions)
                 
                 interactions_all.append(ligs_per_frame_interactions)
@@ -3728,7 +3729,7 @@ class LigandInteractionsTrajectory(object):
                     
                     ligs_per_frame_interactions = []
                     for ligs in ligand_interactions:
-                        LP_interactions = showLigandInteractions(ligs) 
+                        LP_interactions = listLigandInteractions(ligs) 
                         ligs_per_frame_interactions.extend(LP_interactions)
                     
                     interactions_all.append(ligs_per_frame_interactions)
