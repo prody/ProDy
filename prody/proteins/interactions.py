@@ -3653,6 +3653,7 @@ class LigandInteractionsTrajectory(object):
         self._atoms = None
         self._traj = None
         self._interactions_traj = None
+        self._freq_interactors = None
 
     def calcLigandInteractionsTrajectory(self, atoms, trajectory=None, filename=None, **kwargs):
         """Compute protein-ligand interactions for DCD trajectory or multi-model PDB 
@@ -3813,7 +3814,6 @@ class LigandInteractionsTrajectory(object):
             for i in dictOfInteractions.items():
                 LOGGER.info('{0}: {1}'.format(i[0],i[1]))
 
-
         else:
             interactions2 = [element for group in interactions for element in group]
             ligs = {}
@@ -3847,4 +3847,41 @@ class LigandInteractionsTrajectory(object):
                         for j in aa_counter.items():
                             LOGGER.info('{0}: {1}'.format(j[0],j[1]))
         
+        self._freq_interactors = dictOfInteractions
+        
         return dictOfInteractions
+
+
+    def saveInteractionsPDB(self, **kwargs):
+        """Save the number of interactions with ligand to PDB file in occupancy column.
+        
+        :arg filename: name of the PDB file which will be saved for visualization,
+                     it will contain the results in occupancy column.
+        :type filename: str  """
+        
+        if self._freq_interactors is None:
+            raise ValueError('Please calculate frequent interactors using getFrequentInteractors.')
+
+        atoms = self._atoms     
+        dictOfInteractions = self._freq_interactors
+        
+        freq_contacts_list = np.zeros(atoms.ca.numAtoms(), dtype=int)
+        for k, v in dictOfInteractions[0].items():
+            res_index = int(k[3:-1])
+            freq_contacts_list[res_index - atoms.ca.getResnums()[0]] = v        
+        
+        from collections import Counter
+        lista_ext = []
+        atoms = atoms.select("protein and noh")
+        aa_counter = Counter(atoms.getResindices())
+        calphas = atoms.select('name CA')
+        for i in range(calphas.numAtoms()):
+            lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_list[i], 8)])
+
+        kw = {'occupancy': lista_ext}
+        if 'filename' in kwargs:
+            writePDB(kwargs['filename'], atoms, **kw)
+            LOGGER.info('PDB file saved.')
+        else:
+            writePDB('filename', atoms, **kw)
+            LOGGER.info('PDB file saved.')
