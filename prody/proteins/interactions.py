@@ -3791,6 +3791,9 @@ class LigandInteractionsTrajectory(object):
         """Provide a dictonary with residues involved in the interaction with ligand
         and their number of counts. 
 
+        :arg selection: selection string of ligand with chain id
+        :type selection: str
+
         :arg contacts_min: Minimal number of contacts which residue may form with ligand.
                             by default is 2. 
         :type contacts_min: int  """
@@ -3798,13 +3801,36 @@ class LigandInteractionsTrajectory(object):
         atoms = self._atoms   
         interactions = self._interactions_traj
         contacts_min = kwargs.pop('contacts_min', 2)
+        selection = kwargs.pop('selection', None)
         
         from collections import Counter
 
-        all_residues = [ j[1]+j[3] for i in interactions for j in i ]
-        dictOfInteractions = Counter(all_residues)
+        if selection == 'total':  # Compute all interactions without distinguishing ligands
+            all_residues = [ j[1]+j[3] for i in interactions for j in i ]
+            dictOfInteractions = Counter(all_residues)
         
-        for i in dictOfInteractions.items():
-            LOGGER.info('{0}: {1}'.format(i[0],i[1]))
+            for i in dictOfInteractions.items():
+                LOGGER.info('{0}: {1}'.format(i[0],i[1]))
+
+
+        else:
+            interactions2 = [element for group in interactions for element in group]
+            ligs = {}
+            dictOfInteractions = []
+            for i in interactions2:
+                ligs_names = i[4]+i[6]
+                if ligs_names not in ligs:
+                    ligs[ligs_names] = []
+
+                res_name = i[1]+i[3]
+                ligs[ligs_names].append(res_name)
+                
+            for i in ligs.keys():
+                LOGGER.info('LIGAND: {0}'.format(i))
+                aa_counter = Counter(ligs[i])
+                dictOfInteractions.append(aa_counter)
+                
+                for j in aa_counter.items():
+                    LOGGER.info('{0}: {1}'.format(j[0],j[1]))
         
         return dictOfInteractions
