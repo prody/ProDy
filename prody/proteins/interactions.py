@@ -3837,11 +3837,14 @@ class LigandInteractionsTrajectory(object):
                         LOGGER.info('{0}: {1}'.format(j[0],j[1]))
                     
                 else:
-                    LOGGER.info('LIGAND: {0}'.format(selection))
-                    aa_counter = Counter(ligs[selection])
-                    dictOfInteractions.append(aa_counter)                    
+                    if selection not in ligs.keys():
+                        LOGGER.info('Wrong selection. Please provide ligand name with chain ID.')
+                    else:
+                        LOGGER.info('LIGAND: {0}'.format(selection))
+                        aa_counter = Counter(ligs[selection])
+                        dictOfInteractions.append(aa_counter)                    
                 
-                    for j in aa_counter.items():
-                        LOGGER.info('{0}: {1}'.format(j[0],j[1]))
+                        for j in aa_counter.items():
+                            LOGGER.info('{0}: {1}'.format(j[0],j[1]))
         
         return dictOfInteractions
