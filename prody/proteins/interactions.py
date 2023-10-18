@@ -2223,7 +2223,7 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
         computed by any function which returns interactions.
         
         :arg interactions: List of interaction lists for protein interactions.
-        :type interactions: List
+        :type interactions: list
         
         :arg color: Name of the color which will be used for the visualization of 
                     interactions in VMD
@@ -2834,8 +2834,9 @@ class Interactions(object):
             (6) Hydrophobic interactions (hp)
             (7) Disulfide bonds (disb)
         
-        :arg contacts_min: Minimal number of contacts which residue may form with other residues. 
-        :type contacts_min: int, be default 3.  """
+        :arg contacts_min: Minimal number of contacts which residue may form with other residues, 
+                           by default 3.
+        :type contacts_min: int  """
 
         atoms = self._atoms   
         interactions = self._interactions
