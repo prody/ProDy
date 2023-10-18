@@ -3827,11 +3827,21 @@ class LigandInteractionsTrajectory(object):
                 ligs[ligs_names].append(res_name)
                 
             for i in ligs.keys():
-                LOGGER.info('LIGAND: {0}'.format(i))
-                aa_counter = Counter(ligs[i])
-                dictOfInteractions.append(aa_counter)
+
+                if selection == None:
+                    LOGGER.info('LIGAND: {0}'.format(i))
+                    aa_counter = Counter(ligs[i])
+                    dictOfInteractions.append(aa_counter)
+                    
+                    for j in aa_counter.items():
+                        LOGGER.info('{0}: {1}'.format(j[0],j[1]))
+                    
+                else:
+                    LOGGER.info('LIGAND: {0}'.format(selection))
+                    aa_counter = Counter(ligs[selection])
+                    dictOfInteractions.append(aa_counter)                    
                 
-                for j in aa_counter.items():
-                    LOGGER.info('{0}: {1}'.format(j[0],j[1]))
+                    for j in aa_counter.items():
+                        LOGGER.info('{0}: {1}'.format(j[0],j[1]))
         
         return dictOfInteractions
