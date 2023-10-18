@@ -3786,3 +3786,25 @@ class LigandInteractionsTrajectory(object):
         
         return data
 
+
+    def getFrequentInteractors(self, **kwargs):
+        """Provide a dictonary with residues involved in the interaction with ligand
+        and their number of counts. 
+
+        :arg contacts_min: Minimal number of contacts which residue may form with ligand.
+                            by default is 2. 
+        :type contacts_min: int  """
+
+        atoms = self._atoms   
+        interactions = self._interactions_traj
+        contacts_min = kwargs.pop('contacts_min', 2)
+        
+        from collections import Counter
+
+        all_residues = [ j[1]+j[3] for i in interactions for j in i ]
+        dictOfInteractions = Counter(all_residues)
+        
+        for i in dictOfInteractions.items():
+            LOGGER.info('{0}: {1}'.format(i[0],i[1]))
+        
+        return dictOfInteractions
