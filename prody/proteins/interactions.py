@@ -3655,6 +3655,7 @@ class LigandInteractionsTrajectory(object):
         self._interactions_traj = None
         self._freq_interactors = None
 
+    
     def calcLigandInteractionsTrajectory(self, atoms, trajectory=None, filename=None, **kwargs):
         """Compute protein-ligand interactions for DCD trajectory or multi-model PDB 
             using PLIP library.
@@ -3753,12 +3754,26 @@ class LigandInteractionsTrajectory(object):
             
         return interactions_all
 
-
+    
     def getLigandInteractions(self, **kwargs):
-        """Return the list of protein-ligand interactions."""
-
-        return self._interactions_traj
-
+        """Return the list of protein-ligand interactions.
+                
+        :arg filters: selection string of ligand with chain ID or interaction type
+                     e.g. 'SBs' (HBs, SBs, HPh, PiStack, PiCat, HPh, watBridge)
+        :type filters: str    """
+        
+        filters = kwargs.pop('filters', None)
+        filtered_lists = []
+        interactions = [element for group in self._interactions_traj for element in group]
+                
+        if filters != None:
+            filtered_lists = [item for item in interactions if filters in item]
+            
+            return filtered_lists
+        
+        else:
+            return self._interactions_traj
+            
 
     def getAtoms(self):
         """Returns associated atoms."""
@@ -3793,7 +3808,8 @@ class LigandInteractionsTrajectory(object):
         """Provide a dictonary with residues involved in the interaction with ligand
         and their number of counts. 
 
-        :arg selection: selection string of ligand with chain id
+        :arg selection: selection string of ligand with chain ID
+                        e.g. MESA where MES is ligand resname and A is chain ID.
         :type selection: str
 
         :arg contacts_min: Minimal number of contacts which residue may form with ligand.
