@@ -199,7 +199,7 @@ graphical output files:
   $ prody clustenm 1aar -s "calpha and chain A and resnum < 70" -A""",
   test_examples=[0, 1])
 
-    group = addNMAParameters(subparser, include_nproc=False)
+    group = addNMAParameters(subparser, include_nproc=True)
 
     group.add_argument('-c', '--cutoff', dest='cutoff', type=str,
         default=DEFAULTS['cutoff'], metavar='FLOAT',
@@ -267,7 +267,7 @@ graphical output files:
         default=DEFAULTS['ionicStrength'], metavar='FLOAT',
         help=HELPTEXT['ionicStrength'] + ' (default: %(default)s)')
     
-    group.add_argument('-P', '--padding', dest='padding', type=float,
+    group.add_argument('-Q', '--padding', dest='padding', type=float,
         default=DEFAULTS['padding'], metavar='FLOAT',
         help=HELPTEXT['padding'] + ' (default: %(default)s)')
 
