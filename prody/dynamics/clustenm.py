@@ -663,7 +663,7 @@ class ClustENM(Ensemble):
             confs_centers, wei = self._filter(confs_centers, wei)
             LOGGER.report('Filtered centroids were generated in %.2fs.',
                           label='_clustenm_gen')
-            LOGGER.info('Best CC is %f' % self._cc_prev)
+            LOGGER.info('Best CC is %f from %d' % (self._cc_prev, len(wei)))
 
         return confs_centers, wei
 
@@ -1122,6 +1122,7 @@ class ClustENM(Ensemble):
                                           self._fitmap)
             self._scorer = ScoringFunctions()
             self._cc_prev = self._scorer.CCC(self._fitmap, sim_map_start)
+            LOGGER.info('Starting CC is %f' % self._cc_prev)
 
         LOGGER.timeit('_clustenm_overall')
 
