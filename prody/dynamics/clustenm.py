@@ -629,6 +629,8 @@ class ClustENM(Ensemble):
         if ccList.max() > self._cc_prev:
             self._cc_prev = ccList.max()
 
+        self._cc.append(ccList.max())
+
         return confs, wei
 
     def _generate(self, confs, **kwargs):
@@ -1122,6 +1124,7 @@ class ClustENM(Ensemble):
                                           self._fitmap)
             self._scorer = ScoringFunctions()
             self._cc_prev = self._scorer.CCC(self._fitmap, sim_map_start)
+            self._cc = [self._cc_prev]
             LOGGER.info('Starting CC is %f' % self._cc_prev)
 
         LOGGER.timeit('_clustenm_overall')
