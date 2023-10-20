@@ -617,7 +617,7 @@ class ClustENM(Ensemble):
             sim_map = self._blurrer(ag.toTEMPyStructure(), self._fit_resolution, self._fitmap)
             cc = self._scorer.CCC(sim_map, self._fitmap)
             ccList[i] = cc
-            if cc - self._cc_prev < -0.1:
+            if cc - self._cc_prev < -0.05:
                 confs = np.delete(confs, i, 0)
                 wei = np.delete(wei, i, 0)
 
