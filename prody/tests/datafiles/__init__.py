@@ -374,6 +374,9 @@ DATA_FILES = {
     'mrc1ake': {
         'file': '1ake.mrc'
     },
+    'pdb1ake': {
+        'file': 'pdb1ake.pdb'
+    },
 }
 
 
