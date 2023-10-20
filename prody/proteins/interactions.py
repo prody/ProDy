@@ -3782,7 +3782,8 @@ class LigandInteractionsTrajectory(object):
 
     
     def getLigandInteractionsNumber(self, **kwargs):
-        """Return the number of interactions in each frame.
+        """Return the number of interactions per each frame. Number of interactions can
+        be a total number of interactions or it can be divided into interaction types.
         
         :arg types: Interaction types can be included (True) or not (False).
                     by default is True. 
