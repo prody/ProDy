@@ -621,6 +621,11 @@ class ClustENM(Ensemble):
                 confs = np.delete(confs, i, 0)
                 wei = np.delete(wei, i, 0)
 
+        if len(wei) == 0:
+            confs = args[0]
+            wei = args[1]
+            LOGGER.info('There were no closer conformers in generation %d so filtering was not performed' % self._cycle)
+
         if ccList.max() > self._cc_prev:
             self._cc_prev = ccList.max()
 
