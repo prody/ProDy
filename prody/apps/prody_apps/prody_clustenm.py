@@ -41,7 +41,10 @@ for key, txt, val in [
     ('t_steps_i', 'number of 2.0 fs MD time steps for initial structure', 1000),
     ('t_steps_g', 'number of 2.0 fs MD time steps in each generation, can be tuple of floats', '7500'),
     ('multiple', 'whether each conformer will be saved as a separate PDB file', False),
-    ('write_params', 'whether to write parameters', False)]:
+    ('write_params', 'whether to write parameters', False),
+    ('fitmap', 'map to fit by filtering conformations like MDeNMD-EMFit', None),
+    ('fit_resolution', 'resolution for blurring structures for fitting cc', 5),
+    ('map_cutoff', 'min_cutoff for passing map for fitting', 0)]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
@@ -66,6 +69,12 @@ def prody_clustenm(pdb, **kwargs):
 
     import prody
     LOGGER = prody.LOGGER
+
+    fitmap = kwargs.pop('fitmap')
+    map_cutoff = kwargs.pop('map_cutoff')
+    fitmap = prody.parseEMD(fitmap, min_cutoff=map_cutoff)
+
+    fit_resolution = kwargs.pop('fit_resolution')
 
     selstr = kwargs.pop('select')
     prefix = kwargs.pop('prefix')
@@ -142,7 +151,8 @@ def prody_clustenm(pdb, **kwargs):
             t_steps_g=eval(t_steps_g),
             outlier=outlier, mzscore=mzscore,
             sparse=sparse, kdtree=kdtree, turbo=turbo,
-            parallel=parallel, **kwargs)
+            parallel=parallel, fitmap=fitmap, 
+            fit_resolution=fit_resolution, **kwargs)
 
     single = not kwargs.pop('multiple')
     outname = join(outdir, prefix)
@@ -307,6 +317,18 @@ graphical output files:
     group.add_argument('-p', '--file-prefix', dest='prefix', type=str,
         default=DEFAULTS['prefix'], metavar='STR',
         help=HELPTEXT['prefix'] + ' (default: pdb%(default)s)')
+    
+    group.add_argument('-q', '--fitmap', dest='fitmap', type=str,
+        default=DEFAULTS['fitmap'], metavar='STR',
+        help=HELPTEXT['fitmap'] + ' (default: %(default)s)')
+    
+    group.add_argument('-r', '--fit_resolution', dest='fit_resolution', type=float,
+        default=DEFAULTS['fit_resolution'], metavar='FLOAT',
+        help=HELPTEXT['fit_resolution'] + ' (default: %(default)s)')
+    
+    group.add_argument('-u', '--map_cutoff', dest='map_cutoff', type=float,
+        default=DEFAULTS['map_cutoff'], metavar='FLOAT',
+        help=HELPTEXT['map_cutoff'] + ' (default: %(default)s)')
 
     subparser.add_argument('pdb', help='PDB identifier or filename')
 
