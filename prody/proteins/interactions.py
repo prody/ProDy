@@ -3804,6 +3804,23 @@ class LigandInteractionsTrajectory(object):
         return data
 
 
+    def getInteractionTypes(self):
+        """Show which interaction types were detected for ligands."""
+        
+        interactions = self._interactions_traj 
+        unique_keywords = set()
+
+        for sublist in interactions:
+            for sublist_item in sublist:
+                keyword = sublist_item[0]
+                unique_keywords.add(keyword)
+
+        unique_keywords_list = list(unique_keywords)
+        LOGGER.info("Interaction types: {0}".format(unique_keywords_list))
+        
+        return unique_keywords_list
+        
+
     def getFrequentInteractors(self, **kwargs):
         """Provide a dictonary with residues involved in the interaction with ligand
         and their number of counts. 
