@@ -663,7 +663,7 @@ class ClustENM(Ensemble):
             confs_centers, wei = self._filter(confs_centers, wei)
             LOGGER.report('Filtered centroids were generated in %.2fs.',
                           label='_clustenm_gen')
-            LOGGER.info('Best CC is %f from %d' % (self._cc_prev, len(wei)))
+            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(wei)))
 
         return confs_centers, wei
 
