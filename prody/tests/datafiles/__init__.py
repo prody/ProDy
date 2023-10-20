@@ -315,6 +315,12 @@ DATA_FILES = {
     '2k39_all2': {
         'file': '2k39_all2.npy'
     },
+    'pdb4ake_fixed': {
+        'file': '4akeA_alg_fixed.pdb'
+    },
+    'mrc1ake': {
+        'file': '1ake.mrc'
+    },
 }
 
 
