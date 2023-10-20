@@ -72,7 +72,8 @@ def prody_clustenm(pdb, **kwargs):
 
     fitmap = kwargs.pop('fitmap')
     map_cutoff = kwargs.pop('map_cutoff')
-    fitmap = prody.parseEMD(fitmap, min_cutoff=map_cutoff)
+    if fitmap is not None:
+        fitmap = prody.parseEMD(fitmap, min_cutoff=map_cutoff)
 
     fit_resolution = kwargs.pop('fit_resolution')
 
