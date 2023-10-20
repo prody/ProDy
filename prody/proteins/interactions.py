@@ -3940,7 +3940,8 @@ class LigandInteractionsTrajectory(object):
         aa_counter = Counter(atoms.getResindices())
         calphas = atoms.select('name CA')
         for i in range(calphas.numAtoms()):
-            lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_list[i], 8)])
+            # in PDB values are normalized to 100 (max value)
+            lista_ext.extend(list(aa_counter.values())[i]*[round((freq_contacts_list[i]/np.max(freq_contacts_list)*100), 8)])
 
         kw = {'occupancy': lista_ext}
         if 'filename' in kwargs:
@@ -3949,3 +3950,5 @@ class LigandInteractionsTrajectory(object):
         else:
             writePDB('filename', atoms, **kw)
             LOGGER.info('PDB file saved.')
+
+        return freq_contacts_list
