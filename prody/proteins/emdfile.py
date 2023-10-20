@@ -458,7 +458,7 @@ class EMDMAP(object):
             raise ImportError('TEMPy needs to be installed for this functionality')
         
         header = MapParser.readMRCHeader(self.filename)
-        newOrigin = np.array((self.ncstart, self.nrstart, self.nsstart)) * self.apix
+        newOrigin = np.array((self.x0, self.y0, self.z0))
         return Map(self.density, newOrigin, self.apix, self.filename, header)
 
     def copyMap(self):
