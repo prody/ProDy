@@ -3781,10 +3781,40 @@ class LigandInteractionsTrajectory(object):
         return self._atoms
 
     
-    def getLigandInteractionsNumber(self):
-        """Return the number of interactions in each frame."""
+    def getLigandInteractionsNumber(self, **kwargs):
+        """Return the number of interactions in each frame.
         
-        return self._interactions_nb_traj 
+        :arg types: Interaction types can be included (True) or not (False).
+                    by default is True. 
+        :type types: str
+        """
+
+        types = kwargs.pop('types', True)
+        
+        if types == True:
+            interactions = self._interactions_traj 
+            unique_keywords = set()
+
+            for sublist in interactions:
+                for sublist_item in sublist:
+                    keyword = sublist_item[0]
+                    unique_keywords.add(keyword)
+            unique_keywords_list = list(unique_keywords)
+        
+            keyword_counts = {keyword: [0] * len(interactions) for keyword in unique_keywords_list}
+
+            for i, sublist in enumerate(interactions):
+                for sublist_item in sublist:
+                    keyword = sublist_item[0]  
+                    keyword_counts[keyword][i] += 1
+
+            for keyword, counts in keyword_counts.items():
+                LOGGER.info('{0}: {1}'.format(keyword,counts))
+            
+            return keyword_counts
+        
+        else:         
+            return self._interactions_nb_traj 
 
     
     def parseLigandInteractions(self, filename):
@@ -3819,7 +3849,7 @@ class LigandInteractionsTrajectory(object):
         LOGGER.info("Interaction types: {0}".format(unique_keywords_list))
         
         return unique_keywords_list
-        
+
 
     def getFrequentInteractors(self, **kwargs):
         """Provide a dictonary with residues involved in the interaction with ligand
