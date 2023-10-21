@@ -3780,6 +3780,22 @@ class LigandInteractionsTrajectory(object):
 
         return self._atoms
 
+
+    def setLigandInteractions(self, atoms, interaction):
+        """Replace protein-ligand interactions
+        for example byb using getLigandInteractions() with filters to select particular ligand. 
+        
+        :arg atoms: an Atomic object from which residues are selected
+        :type atoms: :class:`.Atomic`
+        
+        :arg interactions: list of interactions
+        :type interactions: list
+        """
+
+        self._interactions_traj = interaction
+        self._atoms = atoms
+        LOGGER.info('Protein-ligand interactions are replaced.')
+    
     
     def getLigandInteractionsNumber(self, **kwargs):
         """Return the number of interactions per each frame. Number of interactions can
