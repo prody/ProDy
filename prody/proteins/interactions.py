@@ -3953,19 +3953,26 @@ class LigandInteractionsTrajectory(object):
         
         from collections import Counter
         lista_ext = []
+        ligands = atoms.select('all not (protein or water or ion)')
         atoms = atoms.select("protein and noh")
+        ligand_occupancy = np.zeros(len(ligands.getResnums()))
+        
         aa_counter = Counter(atoms.getResindices())
         calphas = atoms.select('name CA')
         for i in range(calphas.numAtoms()):
             # in PDB values are normalized to 100 (max value)
             lista_ext.extend(list(aa_counter.values())[i]*[round((freq_contacts_list[i]/np.max(freq_contacts_list)*100), 8)])
-
+        
+        lista_ext.extend(ligand_occupancy)
+        
         kw = {'occupancy': lista_ext}
         if 'filename' in kwargs:
-            writePDB(kwargs['filename'], atoms, **kw)
+            writePDB(kwargs['filename'], atoms+ligands, **kw)
             LOGGER.info('PDB file saved.')
         else:
-            writePDB('filename', atoms, **kw)
+            writePDB('filename', atoms+ligands, **kw)
             LOGGER.info('PDB file saved.')
 
         return freq_contacts_list
+        
+        
