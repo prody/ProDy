@@ -3938,13 +3938,19 @@ class LigandInteractionsTrajectory(object):
         
         :arg filename: name of the PDB file which will be saved for visualization,
                      it will contain the results in occupancy column.
-        :type filename: str  """
+        :type filename: str  
+        
+        :arg ligand_sele: ligand selection,
+                          by default is 'all not (protein or water or ion)'.
+        :type ligand_sele: str          
+        """
         
         if self._freq_interactors is None:
             raise ValueError('Please calculate frequent interactors using getFrequentInteractors.')
 
         atoms = self._atoms     
         dictOfInteractions = self._freq_interactors
+        ligand_sele = kwargs.pop('ligand_sele', 'all not (protein or water or ion)')
         
         freq_contacts_list = np.zeros(atoms.ca.numAtoms(), dtype=int)
         for k, v in dictOfInteractions[0].items():
@@ -3953,7 +3959,7 @@ class LigandInteractionsTrajectory(object):
         
         from collections import Counter
         lista_ext = []
-        ligands = atoms.select('all not (protein or water or ion)')
+        ligands = atoms.select(ligand_sele)
         atoms = atoms.select("protein and noh")
         ligand_occupancy = np.zeros(len(ligands.getResnums()))
         
