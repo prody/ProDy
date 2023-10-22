@@ -3760,17 +3760,32 @@ class LigandInteractionsTrajectory(object):
                 
         :arg filters: selection string of ligand with chain ID or interaction type
                      e.g. 'SBs' (HBs, SBs, HPh, PiStack, PiCat, HPh, watBridge)
-        :type filters: str    """
+        :type filters: str    
+        
+        :arg include_frames: used with filters, it will leave selected keyword in orginal 
+                    lists, if False it will collect selected interactions in one list,
+                    Use True to assign new selection using setLigandInteractions.
+                    by default True
+        :type include_frames: True or False            
+        """
         
         filters = kwargs.pop('filters', None)
+        include_frames = kwargs.pop('include_frames', True)
         filtered_lists = []
-        interactions = [element for group in self._interactions_traj for element in group]
                 
         if filters != None:
-            filtered_lists = [item for item in interactions if filters in item]
+            if include_frames == False:
+                interactions = [element for group in self._interactions_traj for element in group]
+                filtered_lists = [item for item in interactions if filters in item]
             
-            return filtered_lists
+            if include_frames == True:
+                filtered_lists = []
+                for i in self._interactions_traj:
+                    filtered_list = [item for item in i if filters in item]
+                    filtered_lists.append(filtered_list)
         
+            return filtered_lists
+            
         else:
             return self._interactions_traj
             
