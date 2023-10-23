@@ -3965,7 +3965,9 @@ class LigandInteractionsTrajectory(object):
 
 
     def saveInteractionsPDB(self, **kwargs):
-        """Save the number of interactions with ligand to PDB file in occupancy column.
+        """Save the number of interactions with ligand to PDB file in occupancy column
+        It will recognize the chains. If the system will contain one chain and many segments
+        the PDB file will not be created in a correct way.
         
         :arg filename: name of the PDB file which will be saved for visualization,
                      it will contain the results in occupancy column.
@@ -3982,12 +3984,24 @@ class LigandInteractionsTrajectory(object):
         atoms = self._atoms     
         dictOfInteractions = self._freq_interactors
         ligand_sele = kwargs.pop('ligand_sele', 'all not (protein or water or ion)')
+
+        chids_list = np.unique(atoms.getChids())
+        freq_contacts_list = []
         
-        freq_contacts_list = np.zeros(atoms.ca.numAtoms(), dtype=int)
-        for k, v in dictOfInteractions[0].items():
-            res_index = int(k[3:-1])
-            freq_contacts_list[res_index - atoms.ca.getResnums()[0]] = v        
-        
+        for nr_chid, chid in enumerate(chids_list):
+            atoms_chid = atoms.ca.select('protein and chain '+chid)
+            freq_contacts_list_chids = np.zeros(atoms_chid.ca.numAtoms(), dtype=int)
+            firstElement = atoms_chid.ca.getResnums()[0]
+            dictOfInteractions_chids = dictOfInteractions[nr_chid]
+            
+            for k, v in dictOfInteractions_chids.items():
+                res_index = int(k[3:-1])
+                freq_contacts_list_chids[res_index - firstElement] = v
+
+            freq_contacts_list.extend(freq_contacts_list_chids)
+
+        freq_contacts_list = np.array(freq_contacts_list)
+
         from collections import Counter
         lista_ext = []
         ligands = atoms.select(ligand_sele)
@@ -4011,5 +4025,4 @@ class LigandInteractionsTrajectory(object):
             LOGGER.info('PDB file saved.')
 
         return freq_contacts_list
-        
         
