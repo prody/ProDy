@@ -72,3 +72,19 @@ with ProDy. The original CE method was developed by Ilya Shindyalov and Philip
 Bourne. The Python version which is used by ProDy is developed by Jason Vertrees 
 and available under the New BSD license. 
 
+Hbp module: The calculation of hydrophobic interactions, solvent accessible surface 
+area (SASA) and volume for each residue is using geometric methods based on the 
+information of the atoms in the molecule. The methods have been programmed in C++ 
+and can be compiled as a python module “hpb.so” which is then used by ProDy.
+Files for compilation are stored at prody/proteins/hpbmodule folder and
+required C++ and Fortran compiler. After compilation hpb.so file can be
+stored in prody/proteins folder in ProDy or in the local directory which
+is used to perform calulations. The precompiled versions for Python 2.7,
+3.8, 3.9, and 3.10 are availabe in prody/proteins/hpbmodule. The user can
+choose the correct version of hpb.so and copy to the prody/proteins or
+local directory.
+C++ code of hpb.so was developed by Xin Cao and Fortran code by Xin Cao, 
+Michelle H. Hummel, Bihua Yu, and Evangelos A. Coutsias (License in 
+prody/proteins/hpbmodule folder). Details of the method can be found 
+in the Supplementary Material of InSty manuscript 
+(soon will be submitted for publication). 

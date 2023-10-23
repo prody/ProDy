@@ -14,20 +14,21 @@ from collections import deque
 from enum import Enum, auto
 from copy import copy
 
-from prody import LOGGER
+from prody import LOGGER, SETTINGS
 from prody.atomic import Atom, Atomic, AtomGroup
-from prody.dynamics.plotting import showAtomicMatrix
 from prody.ensemble import Ensemble
 from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
-from prody.proteins import writePDB
+from prody.proteins import writePDB, parsePDB
+
+from prody.utilities import showFigure, showMatrix
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInfoOutput',
            'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
            'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory',
-           'saveWaterBridges', 'parseWaterBridges']
+           'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters']
 
 
 class ResType(Enum):
@@ -440,7 +441,7 @@ def calcWaterBridges(atoms, **kwargs):
             waterBridgesWithIndices, getChainBridgeTuple)
 
     LOGGER.info(
-        f'{len(waterBridgesWithIndices)} water bridges detected.')
+        f'{len(waterBridgesWithIndices)} water bridges detected using method {method}.')
     if method == 'atomic':
         LOGGER.info('Call getInfoOutput to convert atomic to info output.')
 
@@ -699,7 +700,7 @@ def showWaterBridgeMatrix(data, metric):
         'distStd': 'Distance standard deviation'
     }
 
-    showAtomicMatrix(matrix)
+    showMatrix(matrix)
     plt.title(titles[metric])
 
 
@@ -735,7 +736,8 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
         default is 20
     :type clip: int
     """
-    import matplotlib.pyplot as plt
+
+    show_plot = kwargs.pop('show_plot', False)
 
     clip = kwargs.pop('clip', 20)
     if clip == None:
@@ -754,18 +756,25 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
 
     labels, values = zip(*sortedResidues[-clip:])
 
-    plt.figure(figsize=(5, 3 + 0.11 * len(labels)))
-    plt.barh(labels, values)
-    plt.xlabel('Number of frame appearances')
-    plt.ylabel('Residue')
-    plt.title('Water bridging residues')
-    plt.tight_layout()
-    plt.margins(y=0.01)
-    plt.gca().xaxis.set_label_position('top')
-    plt.gca().xaxis.tick_top()
-    plt.show()
+    if show_plot:
+        import matplotlib.pyplot as plt
+        plt.figure(figsize=(5, 3 + 0.11 * len(labels)))
+        plt.barh(labels, values)
+        plt.xlabel('Number of frame appearances')
+        plt.ylabel('Residue')
+        plt.title('Water bridging residues')
+        plt.tight_layout()
+        plt.margins(y=0.01)
+        plt.gca().xaxis.set_label_position('top')
+        plt.gca().xaxis.tick_top()
+        if SETTINGS['auto_show']:
+            showFigure()
 
     return sortedResidues
+
+def showBridgingResiduesHistogram(frames, **kwargs):
+    kwargs['show_plot'] = True
+    return calcBridgingResiduesHistogram(frames, **kwargs)
 
 
 def getBridgingResidues(frames, residue):
@@ -873,8 +882,7 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
         default is 'dict'
     :type output: 'dict' | 'indices'
     """
-    import matplotlib.pyplot as plt
-
+    show_plot = kwargs.pop('show_plot', False)
     metric = kwargs.pop('metric', 'residues')
     trajectory = kwargs.pop('trajectory', None)
 
@@ -891,14 +899,20 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
 
     result = methods[metric]()
 
-    if metric in ['waters', 'distance']:
+    if metric in ['waters', 'distance'] and show_plot:
+        import matplotlib.pyplot as plt
         plt.hist(result, rwidth=0.95, density=True)
         plt.xlabel('Value')
         plt.ylabel('Probability')
         plt.title(f'Distribution: {metric}')
-        plt.show()
+        if SETTINGS['auto_show']:
+            showFigure()
 
-    return methods[metric]()
+    return result
+
+def showWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
+    kwargs['show_plot'] = True
+    return calcWaterBridgesDistribution(frames, res_a, res_b, **kwargs)
 
 
 def savePDBWaterBridges(bridges, atoms, filename):
@@ -1057,3 +1071,69 @@ def parseWaterBridges(filename, atoms):
         bridgesFrames = bridgesFrames[0]
 
     return bridgesFrames
+
+
+def findClusterCenters(file_pattern, **kwargs):
+    """ Find molecules that are forming cluster in 3D space.
+    
+    :arg file_pattern: file pattern for anlaysis
+        it can include '*'
+        example:'file_*.pdb' will analyze file_1.pdb, file_2.pdb, etc.
+    :type file_pattern: str
+    
+    :arg selection: selection string
+        by default water and name OH2 is used
+    :type selection: str
+    
+    :arg distC: distance to other molecules
+    :type distC: int, float
+        default is 0.3
+        
+    :arg numC: min number of molecules in a cluster
+        default is 3
+    :type numC: int
+    """
+    
+    import glob
+    import numpy as np
+
+    selection = kwargs.pop('selection', 'water and name OH2')
+    distC = kwargs.pop('distC', 0.3)
+    numC = kwargs.pop('numC', 3)
+    
+    matching_files = glob.glob(file_pattern)
+    matching_files.sort()
+    coords_all = parsePDB(matching_files[0]).select(selection).toAtomGroup()
+
+    for i in matching_files[1:]:
+        coords = parsePDB(i).select('water').toAtomGroup()
+        coords_all += coords
+
+    removeResid = []
+    removeCoords = []
+    for ii in range(len(coords_all)):
+        sel = coords_all.select('water within '+str(distC)+' of center', 
+                    center=coords_all.getCoords()[ii])
+        if len(sel) <= int(numC):
+            removeResid.append(coords_all.getResnums()[ii])
+            removeCoords.append(list(coords_all.getCoords()[ii]))
+
+    selectedWaters = AtomGroup()
+    sel_waters = [] 
+
+    for j in coords_all.getCoordsets()[0].tolist():
+        if j not in removeCoords:
+            sel_waters.append(j)
+
+    coords_wat = np.array([sel_waters], dtype=float)
+    selectedWaters.setCoords(coords_wat)
+    selectedWaters.setNames(['DUM']*len(selectedWaters))
+    selectedWaters.setResnums(range(1, len(selectedWaters)+1))
+    selectedWaters.setResnames(['DUM']*len(selectedWaters))
+
+    try:
+        filename = 'clusters_'+file_pattern.split("*")[0]+'.pdb'
+    except:
+        filename = 'clusters.pdb'
+    writePDB(filename, selectedWaters)
+    LOGGER.info("Results are saved in {0}.".format(filename))
