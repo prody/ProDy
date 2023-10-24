@@ -2014,17 +2014,23 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
                 LOGGER.info(i)
 
 
-def listLigandInteractions(PLIP_output):
+def listLigandInteractions(PLIP_output, **kwargs):
     """Create a list of interactions from PLIP output created using calcLigandInteractions().
     Results can be displayed in VMD. 
     
     :arg PLIP_output: Results from PLIP for protein-ligand interactions.
-    :type PLIP_output: PLIP object obtained from calcLigandInteractions() 
+    :type PLIP_output: PLIP object obtained from calcLigandInteractions()
+    
+    :arg output: parameter to print the interactions on the screen
+                 while analyzing the structure
+    :type output: 'info'     
     
     Note that five types of interactions are considered: hydrogen bonds, salt bridges, 
     pi-stacking, cation-pi, hydrophobic and water bridges."""
     
     Inter_list_all = []
+    output = kwargs.pop('output', None)
+    
     for i in PLIP_output.all_itypes:
         param_inter = [method for method in dir(i) if method.startswith('_') is False]
         
@@ -2062,13 +2068,14 @@ def listLigandInteractions(PLIP_output):
                       
         Inter_list_all.append(Inter_list)               
     
-    LOGGER.info("%3s%12s%10s%20s%8s  <---> %6s%10s%6s%10s%16s" % ('#','Type','Residue','Atoms','Chain','','Ligand','Atoms','Chain','Distance/Angle'))
-    for nr_k,k in enumerate(Inter_list_all):
-        if k[0] == 'watBridge':
-            LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%12s%14s" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6], 
-                                ' '.join(str(np.round(x, 2)) for x in k[7]), ' '.join(str(np.round(x, 2)) for x in k[8])))
-        else:
-            LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
+    if output == 'info':
+        LOGGER.info("%3s%12s%10s%20s%8s  <---> %6s%10s%6s%10s%16s" % ('#','Type','Residue','Atoms','Chain','','Ligand','Atoms','Chain','Distance/Angle'))
+        for nr_k,k in enumerate(Inter_list_all):
+            if k[0] == 'watBridge':
+                LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%12s%14s" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6], 
+                                    ' '.join(str(np.round(x, 2)) for x in k[7]), ' '.join(str(np.round(x, 2)) for x in k[8])))
+            else:
+                LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
     
     return Inter_list_all
 
@@ -3632,7 +3639,6 @@ class InteractionsTrajectory(object):
 
  
 class LigandInteractionsTrajectory(object):
-
     """Class for protein-ligand interaction analysis of DCD trajectory or multi-model PDB (Ensemble PDB).
     This class is using PLIP to provide the interactions. Install PLIP before using it.
 
@@ -3673,7 +3679,12 @@ class LigandInteractionsTrajectory(object):
         :type start_frame: int
 
         :arg stop_frame: index of last frame to read
-        :type stop_frame: int """
+        :type stop_frame: int 
+        
+        :arg output: parameter to print the interactions on the screen
+                    while analyzing the structure
+        :type output: 'info'
+        """
 
         try:
             coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -3690,6 +3701,7 @@ class LigandInteractionsTrajectory(object):
 
         start_frame = kwargs.pop('start_frame', 0)
         stop_frame = kwargs.pop('stop_frame', -1)
+        output = kwargs.pop('output', None)
 
         if trajectory is not None:
             if isinstance(trajectory, Atomic):
@@ -3715,7 +3727,10 @@ class LigandInteractionsTrajectory(object):
                 
                 ligs_per_frame_interactions = []
                 for ligs in ligand_interactions:
-                    LP_interactions = listLigandInteractions(ligs) 
+                    if output == 'info':
+                        LP_interactions = listLigandInteractions(ligs, output='info') 
+                    else:    
+                        LP_interactions = listLigandInteractions(ligs) 
                     ligs_per_frame_interactions.extend(LP_interactions)
                 
                 interactions_all.append(ligs_per_frame_interactions)
@@ -3732,7 +3747,10 @@ class LigandInteractionsTrajectory(object):
                     
                     ligs_per_frame_interactions = []
                     for ligs in ligand_interactions:
-                        LP_interactions = listLigandInteractions(ligs) 
+                        if output == 'info':
+                            LP_interactions = listLigandInteractions(ligs, output='info') 
+                        else:
+                            LP_interactions = listLigandInteractions(ligs) 
                         ligs_per_frame_interactions.extend(LP_interactions)
                     
                     interactions_all.append(ligs_per_frame_interactions)
@@ -3840,9 +3858,6 @@ class LigandInteractionsTrajectory(object):
                     keyword = sublist_item[0]  
                     keyword_counts[keyword][i] += 1
 
-            for keyword, counts in keyword_counts.items():
-                LOGGER.info('{0}: {1}'.format(keyword,counts))
-            
             return keyword_counts
         
         else:         
@@ -3895,7 +3910,6 @@ class LigandInteractionsTrajectory(object):
                 ligands.add(keyword)
 
         ligands_list = list(ligands)
-        LOGGER.info("Ligands: {0}".format(ligands_list))
         
         return ligands_list
 
@@ -3923,9 +3937,6 @@ class LigandInteractionsTrajectory(object):
             all_residues = [ j[1]+j[3] for i in interactions for j in i ]
             dictOfInteractions = Counter(all_residues)
         
-            for i in dictOfInteractions.items():
-                LOGGER.info('{0}: {1}'.format(i[0],i[1]))
-
         else:
             interactions2 = [element for group in interactions for element in group]
             ligs = {}
@@ -3934,10 +3945,10 @@ class LigandInteractionsTrajectory(object):
                 ligs_names = i[4]+i[6]
                 if ligs_names not in ligs:
                     ligs[ligs_names] = []
-
+                    
                 res_name = i[1]+i[3]
                 ligs[ligs_names].append(res_name)
-                
+
             for i in ligs.keys():
 
                 if selection == None:
@@ -3945,20 +3956,14 @@ class LigandInteractionsTrajectory(object):
                     aa_counter = Counter(ligs[i])
                     dictOfInteractions.append(aa_counter)
                     
-                    for j in aa_counter.items():
-                        LOGGER.info('{0}: {1}'.format(j[0],j[1]))
-                    
                 else:
                     if selection not in ligs.keys():
                         LOGGER.info('Wrong selection. Please provide ligand name with chain ID.')
-                    else:
+                    if i == selection:
                         LOGGER.info('LIGAND: {0}'.format(selection))
                         aa_counter = Counter(ligs[selection])
                         dictOfInteractions.append(aa_counter)                    
                 
-                        for j in aa_counter.items():
-                            LOGGER.info('{0}: {1}'.format(j[0],j[1]))
-        
         self._freq_interactors = dictOfInteractions
         
         return dictOfInteractions
