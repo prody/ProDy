@@ -316,11 +316,13 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
 
 
 def parseScipionModes(metadata_file, title=None, pdb=None, parseIndices=False):
-    """Returns :class:`.NMA` containing eigenvectors and eigenvalues 
-    parsed from a ContinuousFlex FlexProtNMA Run directory.
+    """Returns :class:`.NMA` or :class:`.GNM` containing eigenvectors and eigenvalues 
+    parsed from an NMA, GNM or PCA protocol path from ContinuousFlex or Scipion-EM-ProDy.
 
-    :arg run_path: path to the Run directory
-    :type run_path: str
+    :arg metadata_file: metadata sqlite file in Scipion protocol path
+        The location of this file is currently limited to the top level of the project path
+        and not to deep directories like the extra path.
+    :type metadata_file: str
     
     :arg title: title for :class:`.NMA` object
     :type title: str
@@ -332,6 +334,9 @@ def parseScipionModes(metadata_file, title=None, pdb=None, parseIndices=False):
         default *False*
     :type parseIndices: bool
     """
+    # Fill variables about how to find files based on the assumed location
+    # It may be a good idea to make this more general somehow, 
+    # but it shouldn't be too hard to keep the sqlite in the right place.
     run_path = os.path.split(metadata_file)[0]
     top_dirs = os.path.split(run_path)[0][:-4]
     run_name = os.path.split(run_path)[-1]
