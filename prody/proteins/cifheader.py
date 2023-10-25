@@ -2,6 +2,7 @@
 """This module defines functions for parsing header data from PDB files."""
 
 from collections import defaultdict, OrderedDict
+import numpy as np
 import os.path
 
 from prody import LOGGER
@@ -185,7 +186,7 @@ def _getBiomoltrans(lines):
         currentBiomolecule = item1["_pdbx_struct_assembly_gen.assembly_id"]
         applyToChains = []
 
-        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].split(',')
+        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].replace(';','').strip().split(',')
         applyToChains.extend(chains)
 
         biomt = biomolecule[currentBiomolecule]
@@ -777,7 +778,7 @@ def _getPolymers(lines):
             poly = polymers.get(ch, Polymer(ch))
             polymers[ch] = poly
             poly.sequence += ''.join(item[
-                '_entity_poly.pdbx_seq_one_letter_code'][1:-2].split())
+                '_entity_poly.pdbx_seq_one_letter_code_can'].replace(';', '').split())
 
     # DBREF block 1
     items2 = parseSTARSection(lines, '_struct_ref')
@@ -1251,10 +1252,10 @@ def _getUnobservedSeq(lines):
 
     unobs_seqs = OrderedDict()
     for item in unobs:
-        chid = item['_pdbx_unobs_or_zero_occ_residues.label_asym_id']
+        chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
         if not chid in unobs_seqs.keys():
             unobs_seqs[chid] = ''
-        unobs_seqs[chid] += AAMAP[item['_pdbx_unobs_or_zero_occ_residues.label_comp_id']]
+        unobs_seqs[chid] += AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
 
     if len(unobs_seqs) == 0:
         return None
@@ -1271,14 +1272,44 @@ def _getUnobservedSeq(lines):
         return None
 
     alns = OrderedDict()
-    for key, seq in full_seqs.items():
+    for k, (key, seq) in enumerate(full_seqs.items()):
         if key in unobs_seqs.keys():
             unobs_seq = unobs_seqs[key]
-            alns[key] = alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
-                                         MISMATCH_SCORE=-1000,
-                                         ALIGNMENT_METHOD='global',
-                                         GAP_PENALTY=GAP_PENALTY,
-                                         GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2]
+            # initialise alignment (quite possibly incorrect)
+            aln = list(alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
+                                   MISMATCH_SCORE=-1000,
+                                   ALIGNMENT_METHOD='global',
+                                   GAP_PENALTY=GAP_PENALTY,
+                                   GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2])
+            
+            # fix it
+            prev_chid = unobs[0]['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
+            i = 0
+            for item in unobs:
+                chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
+                if chid != prev_chid:
+                    prev_chid = chid
+                    i = 0
+
+                if chid == key:
+                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
+                    good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
+
+                    row1_list = list(aln[0])
+
+                    arr_unobs_seq = np.array(list(unobs_seq))
+                    unobs_rep = np.where(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
+                    actual_pos = np.where(np.array(row1_list) == one_letter)[0][unobs_rep]
+
+                    if actual_pos != good_pos:
+                        row1_list[good_pos] = one_letter
+                        row1_list[actual_pos] = '-'
+
+                    aln[0] = ''.join(row1_list)
+
+                i += 1
+
+            alns[key] = aln
 
     return alns
 
@@ -1303,7 +1334,7 @@ _PDB_HEADER_MAP = {
                                      for line in lines][0],
     'identifier': lambda lines: [line.split('_')[1]
                                  if line.find("data") == 0 else ''
-                                 for line in lines][0],
+                                 for line in lines][0].strip(),
     'title': _getTitle,
     'experiment': lambda lines: [line.split()[1]
                                  if line.find("_exptl.method") != -1 else None
