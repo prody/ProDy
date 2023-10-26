@@ -429,6 +429,69 @@ class ClustENM(Ensemble):
             LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
 
             return np.nan, np.full_like(coords0, np.nan)
+        
+    def _excited_sim(self, coords0, coords1, tmdk=15., d_steps=100, n_max_steps=10000, ddtol=1e-3, n_conv=5):
+
+        try:
+            from openmm.unit import nanometer, kelvin, angstrom
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
+
+        coords1_ca = coords1[self._idx_cg, :]
+        pos1 = coords1 * angstrom
+        pos1_ca = pos1[self._idx_cg, :]
+
+        n_atoms = coords0.shape[0]
+        atom_indices = np.arange(n_atoms)
+        for i, atm_idx in enumerate(atom_indices):
+            vector = pos1[i, :].value_in_unit(nanometer) - pos2[i, :].value_in_unit(nanometer)
+
+        # automatic conversion into nanometer will be carried out.
+        simulation.context.setPositions(coords0 * angstrom)
+
+        dist = dist0 = calcRMSD(coords0, coords1)
+        m_conv = 0
+        n_steps = 0
+        try:
+            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole,
+                                      maxIterations=self._maxIterations)
+
+            # update parameters
+            while n_steps < n_max_steps:
+                simulation.context.setParameter('tmdk', tmdk)
+                force.updateParametersInContext(simulation.context)
+
+                simulation.step(d_steps)
+                n_steps += d_steps
+
+                # evaluate distance to destination
+                pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
+                d = calcRMSD(pos, coords1)
+                dd = np.abs(dist - d)
+
+                if dd < ddtol:
+                    m_conv += 1
+
+                if m_conv >= n_conv:
+                    break
+
+                dist = d
+
+            LOGGER.debug('RMSD: %4.2f -> %4.2f' % (dist0, dist))
+
+            simulation.context.setParameter('tmdk', 0.0)
+            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole,
+                                      maxIterations=self._maxIterations)
+
+            pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
+            pot = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
+
+            return pot, pos
+
+        except BaseException as be:
+            LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
+
+            return np.nan, np.full_like(coords0, np.nan)
 
     def _checkANM(self, anm):
 
@@ -485,7 +548,8 @@ class ClustENM(Ensemble):
 
         anm = ANM()
         anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma,
-                         sparse=self._sparse, kdtree=self._kdtree)
+                         sparse=self._sparse, kdtree=self._kdtree, 
+                         nproc=self._nproc)
 
         return anm
 
@@ -515,18 +579,55 @@ class ClustENM(Ensemble):
         tmp.setCoords(conf)
         cg = tmp[self._idx_cg]
 
+        n_confs = self._n_confs
+
         anm_cg = self._buildANM(cg)
 
         if not self._checkANM(anm_cg):
             return None
 
-        anm_cg.calcModes(self._n_modes, turbo=self._turbo)
+        anm_cg.calcModes(self._n_modes, turbo=self._turbo, 
+                         nproc=self._nproc)
 
         anm_ex = self._extendModel(anm_cg, cg, tmp)
         ens_ex = sampleModes(anm_ex, atoms=tmp,
                              n_confs=self._n_confs,
                              rmsd=self._rmsd[self._cycle])
         coordsets = ens_ex.getCoordsets()
+
+        if self._fitmap is not None:
+            LOGGER.info('Filtering for fitting in generation %d ...' % self._cycle)
+
+            kept_coordsets = []
+            if self._fitmap is not None:
+                kept_coordsets.extend(self._filter(coordsets))
+                n_confs = n_confs - len(kept_coordsets)
+
+            if len(kept_coordsets) == 0:
+                while len(kept_coordsets) == 0:
+                    anm_ex = self._extendModel(anm_cg, cg, tmp)
+                    ens_ex = sampleModes(anm_ex, atoms=tmp,
+                                        n_confs=n_confs,
+                                        rmsd=self._rmsd[self._cycle])
+                    coordsets = ens_ex.getCoordsets()
+
+                    if self._fitmap is not None:
+                        kept_coordsets.extend(self._filter(coordsets))
+                        n_confs = n_confs - len(kept_coordsets)
+
+            if self._replace_filtered:
+                while n_confs > 0: 
+                    anm_ex = self._extendModel(anm_cg, cg, tmp)
+                    ens_ex = sampleModes(anm_ex, atoms=tmp,
+                                        n_confs=n_confs,
+                                        rmsd=self._rmsd[self._cycle])
+                    coordsets = ens_ex.getCoordsets()
+
+                    if self._fitmap is not None:
+                        kept_coordsets.extend(self._filter(coordsets))
+                        n_confs = n_confs - len(kept_coordsets)
+
+            coordsets = np.array(kept_coordsets)
 
         if self._targeted:
             if self._parallel:
@@ -542,6 +643,9 @@ class ClustENM(Ensemble):
             coordsets = np.array(poses)[idx]
 
             LOGGER.debug('%d/%d sets of coordinates were moved to the target' % (len(poses), len(coordsets)))
+
+        elif self._excited:
+            LOGGER.warn('excited simulations are not implemented yet')
 
         return coordsets
 
@@ -610,8 +714,7 @@ class ClustENM(Ensemble):
 
         ag = self._atoms.copy()
         confs = args[0]
-        wei = args[1]
-        ccList = np.zeros(len(args[1]))
+        ccList = np.zeros(len(args[0]))
         for i in range(len(confs)-1,-1,-1):
             ag.setCoords(confs[i])
             sim_map = self._blurrer(ag.toTEMPyStructure(), self._fit_resolution, self._fitmap)
@@ -619,19 +722,10 @@ class ClustENM(Ensemble):
             ccList[i] = cc
             if cc - self._cc_prev < 0:
                 confs = np.delete(confs, i, 0)
-                wei = np.delete(wei, i, 0)
 
-        if len(wei) == 0:
-            confs = args[0]
-            wei = args[1]
-            LOGGER.info('There were no closer conformers in generation %d so filtering was not performed' % self._cycle)
+        self._cc.extend(ccList)
 
-        if ccList.max() > self._cc_prev:
-            self._cc_prev = ccList.max()
-
-        self._cc.append(ccList.max())
-
-        return confs, wei
+        return confs
 
     def _generate(self, confs, **kwargs):
 
@@ -652,20 +746,23 @@ class ClustENM(Ensemble):
 
         confs_cg = confs_ex[:, self._idx_cg]
 
-        LOGGER.info('Clustering in generation %d ...' % self._cycle)
-        label_cg = self._hc(confs_cg)
-        centers, wei = self._centers(confs_cg, label_cg)
-        LOGGER.report('Centroids were generated in %.2fs.',
-                      label='_clustenm_gen')
-        
-        confs_centers = confs_ex[centers]
+        LOGGER.report('Conformers were sampled in %.2fs.',
+                    label='_clustenm_gen')
         
         if self._fitmap is not None:
-            LOGGER.info('Filtering for fitting in generation %d ...' % self._cycle)
-            confs_centers, wei = self._filter(confs_centers, wei)
-            LOGGER.report('Filtered centroids were generated in %.2fs.',
-                          label='_clustenm_gen')
-            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(wei)))
+            self._cc_prev = max(self._cc)
+            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(confs_cg)))
+
+        if len(confs_cg) > 1:
+            LOGGER.info('Clustering in generation %d ...' % self._cycle)
+            label_cg = self._hc(confs_cg)
+            centers, wei = self._centers(confs_cg, label_cg)
+            LOGGER.report('Centroids were generated in %.2fs.',
+                        label='_clustenm_gen')
+        else:
+            centers, wei = confs_cg, [len(confs_cg)]
+        
+        confs_centers = confs_ex[centers]
 
         return confs_centers, wei
 
@@ -1022,6 +1119,10 @@ class ClustENM(Ensemble):
         :arg fit_resolution: Resolution for comparing to cryo-EM map for fitting
             Default 5 Angstroms
         :type fit_resolution: float
+
+        :arg replace_filtered: If it is True (default is False), conformer sampling and filtering 
+            will be repeated until the desired number of conformers have been kept.
+        :type replace_filtered: bool        
         '''
 
         if self._isBuilt():
@@ -1034,6 +1135,7 @@ class ClustENM(Ensemble):
         self._sparse = kwargs.get('sparse', False)
         self._kdtree = kwargs.get('kdtree', False)
         self._turbo = kwargs.get('turbo', False)
+        self._nproc = kwargs.pop('nproc', None)
         if kwargs.get('zeros', False):
             LOGGER.warn('ClustENM cannot use zero modes so ignoring this kwarg')
 
@@ -1043,6 +1145,7 @@ class ClustENM(Ensemble):
         self._platform = kwargs.pop('platform', None)
         self._parallel = kwargs.pop('parallel', False)
         self._targeted = kwargs.pop('targeted', False)
+        self._excited = kwargs.pop('excited', False)
         self._tmdk = kwargs.pop('tmdk', 15.)
 
         self._fitmap = kwargs.pop('fitmap', None)
@@ -1056,7 +1159,8 @@ class ClustENM(Ensemble):
         
         if self._fitmap is not None:
             self._fitmap = self._fitmap.toTEMPyMap()
-            self._fit_resolution = kwargs.get('fit_resolution', 5)
+            self._fit_resolution = kwargs.pop('fit_resolution', 5)
+            self._replace_filtered = kwargs.pop('replace_filtered', False)
 
         if maxclust is None and threshold is None and n_gens > 0:
             raise ValueError('Either maxclust or threshold should be set!')

@@ -44,7 +44,8 @@ for key, txt, val in [
     ('write_params', 'whether to write parameters', False),
     ('fitmap', 'map to fit by filtering conformations like MDeNMD-EMFit', None),
     ('fit_resolution', 'resolution for blurring structures for fitting cc', 5),
-    ('map_cutoff', 'min_cutoff for passing map for fitting', 0)]:
+    ('map_cutoff', 'min_cutoff for passing map for fitting', 0),
+    ('replace_filtered', 'whether to keep sampling again to replace filtered conformers', False)]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
@@ -143,12 +144,6 @@ def prody_clustenm(pdb, **kwargs):
 
     nproc = kwargs.get('nproc')
     if nproc:
-        try:
-            from threadpoolctl import threadpool_limits
-        except ImportError:
-            raise ImportError('Please install threadpoolctl to control threads')
-
-        with threadpool_limits(limits=nproc, user_api="blas"):
             ens = prody.ClustENM(pdb.getTitle())
             ens.setAtoms(select)
             ens.run(n_gens=ngens, n_modes=nmodes,
@@ -161,7 +156,8 @@ def prody_clustenm(pdb, **kwargs):
                     outlier=outlier, mzscore=mzscore,
                     sparse=sparse, kdtree=kdtree, turbo=turbo,
                     parallel=parallel, fitmap=fitmap,
-                    fit_resolution=fit_resolution, **kwargs)
+                    fit_resolution=fit_resolution, 
+                    n_proc=nproc, **kwargs)
     else:
         ens = prody.ClustENM(pdb.getTitle())
         ens.setAtoms(select)
@@ -352,6 +348,10 @@ graphical output files:
     group.add_argument('-u', '--map_cutoff', dest='map_cutoff', type=float,
         default=DEFAULTS['map_cutoff'], metavar='FLOAT',
         help=HELPTEXT['map_cutoff'] + ' (default: %(default)s)')
+    
+    group.add_argument('-O', '--replace_filtered', dest='replace_filtered',
+        action='store_true',
+        default=DEFAULTS['replace_filtered'], help=HELPTEXT['replace_filtered'])
 
     subparser.add_argument('pdb', help='PDB identifier or filename')
 
