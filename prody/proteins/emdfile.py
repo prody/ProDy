@@ -128,8 +128,6 @@ def parseEMDStream(stream, **kwargs):
     else:
         make_nodes = False
         map = True
-        LOGGER.info('As n_nodes is less than or equal to 0, no nodes will be'
-                    ' made and the raw map will be returned')
 
     emd = EMDMAP(stream, min_cutoff, max_cutoff)
 
