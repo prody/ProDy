@@ -2022,14 +2022,15 @@ def listLigandInteractions(PLIP_output, **kwargs):
     :type PLIP_output: PLIP object obtained from calcLigandInteractions()
     
     :arg output: parameter to print the interactions on the screen
-                 while analyzing the structure
-    :type output: 'info'     
+                 while analyzing the structure (True | False)
+                 by default is False
+    :type output: bool     
     
     Note that five types of interactions are considered: hydrogen bonds, salt bridges, 
     pi-stacking, cation-pi, hydrophobic and water bridges."""
     
     Inter_list_all = []
-    output = kwargs.pop('output', None)
+    output = kwargs.pop('output', False)
     
     for i in PLIP_output.all_itypes:
         param_inter = [method for method in dir(i) if method.startswith('_') is False]
@@ -2068,7 +2069,7 @@ def listLigandInteractions(PLIP_output, **kwargs):
                       
         Inter_list_all.append(Inter_list)               
     
-    if output == 'info':
+    if output == True:
         LOGGER.info("%3s%12s%10s%20s%8s  <---> %6s%10s%6s%10s%16s" % ('#','Type','Residue','Atoms','Chain','','Ligand','Atoms','Chain','Distance/Angle'))
         for nr_k,k in enumerate(Inter_list_all):
             if k[0] == 'watBridge':
@@ -3836,7 +3837,7 @@ class LigandInteractionsTrajectory(object):
         
         :arg types: Interaction types can be included (True) or not (False).
                     by default is True. 
-        :type types: str
+        :type types: bool
         """
 
         types = kwargs.pop('types', True)
