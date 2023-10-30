@@ -2457,6 +2457,35 @@ def calcLigandBindingAffinity(atoms, trajectory=None, **kwargs):
         trajectory._nfi = nfi
                 
     else:
+        if atoms.numCoordsets() == 1:
+            # Single PDB
+            protein = atoms.select(protein_selection)
+            ligand = atoms.select(ligand_selection)        
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file, \
+                 tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file_lig:
+                
+                writePDB(temp_pdb_file.name, protein)
+                writePDB(temp_pdb_file_lig.name, ligand)
+
+                data = {}
+                command = "smina -r {} -l {} --score_only".format(temp_pdb_file.name, temp_pdb_file_lig.name)
+                result = subprocess.check_output(command, shell=True, text=True)
+
+                result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
+
+                matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
+                for match in matches:
+                    key = match.group('key')
+                    value = float(match.group(2))
+                    data[key] = value
+
+                intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
+                if intramolecular_energy_match:
+                    data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
+
+                bindingAffinity.append(data['Affinity'])
+
         if atoms.numCoordsets() > 1:
             # Multi-model PDB
             for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
@@ -2488,6 +2517,7 @@ def calcLigandBindingAffinity(atoms, trajectory=None, **kwargs):
 
                     LOGGER.info('Model {0}: {1} kcal/mol'.format(i+start_frame, data['Affinity']))
                     bindingAffinity.append(data['Affinity'])
+
 
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.') 
