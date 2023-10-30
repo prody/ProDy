@@ -45,7 +45,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
-           'calcLigandBindingAffinity']
+           'calcSminaBindingAffinity']
 
 
 def cleanNumbers(listContacts):
@@ -2358,7 +2358,7 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     LOGGER.info("TCL file saved")
 
 
-def calcLigandBindingAffinity(atoms, trajectory=None, **kwargs):
+def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
     """Computing binding affinity of ligand toward protein structure
     usig SMINA package [DRK13]_.
     
@@ -3829,7 +3829,7 @@ class LigandInteractionsTrajectory(object):
         self._freq_interactors = None
 
     
-    def calcLigandInteractionsTrajectory(self, atoms, trajectory=None, filename=None, **kwargs):
+    def calcLigandInteractionsTrajectory(self, atoms, trajectory=None, **kwargs):
         """Compute protein-ligand interactions for DCD trajectory or multi-model PDB 
             using PLIP library.
         
@@ -3849,8 +3849,9 @@ class LigandInteractionsTrajectory(object):
         :type stop_frame: int 
         
         :arg output: parameter to print the interactions on the screen
-                    while analyzing the structure
-        :type output: 'info'
+                    while analyzing the structure,
+                    use 'info'.
+        :type output: bool
         """
 
         try:
@@ -3868,7 +3869,8 @@ class LigandInteractionsTrajectory(object):
 
         start_frame = kwargs.pop('start_frame', 0)
         stop_frame = kwargs.pop('stop_frame', -1)
-        output = kwargs.pop('output', None)
+        output = kwargs.pop('output', False)
+        filename = kwargs.pop('filename', None)
 
         if trajectory is not None:
             if isinstance(trajectory, Atomic):
@@ -3894,10 +3896,7 @@ class LigandInteractionsTrajectory(object):
                 
                 ligs_per_frame_interactions = []
                 for ligs in ligand_interactions:
-                    if output == 'info':
-                        LP_interactions = listLigandInteractions(ligs, output='info') 
-                    else:    
-                        LP_interactions = listLigandInteractions(ligs) 
+                    LP_interactions = listLigandInteractions(ligs, output=output) 
                     ligs_per_frame_interactions.extend(LP_interactions)
                 
                 interactions_all.append(ligs_per_frame_interactions)
@@ -3914,10 +3913,7 @@ class LigandInteractionsTrajectory(object):
                     
                     ligs_per_frame_interactions = []
                     for ligs in ligand_interactions:
-                        if output == 'info':
-                            LP_interactions = listLigandInteractions(ligs, output='info') 
-                        else:
-                            LP_interactions = listLigandInteractions(ligs) 
+                        LP_interactions = listLigandInteractions(ligs, output=output) 
                         ligs_per_frame_interactions.extend(LP_interactions)
                     
                     interactions_all.append(ligs_per_frame_interactions)
@@ -3951,23 +3947,21 @@ class LigandInteractionsTrajectory(object):
                     lists, if False it will collect selected interactions in one list,
                     Use True to assign new selection using setLigandInteractions.
                     by default True
-        :type include_frames: True or False            
+        :type include_frames: bool            
         """
         
         filters = kwargs.pop('filters', None)
         include_frames = kwargs.pop('include_frames', True)
         filtered_lists = []
-                
+                                 
         if filters != None:
             if include_frames == False:
-                interactions = [element for group in self._interactions_traj for element in group]
-                filtered_lists = [item for item in interactions if filters in item]
-            
+                filtered_lists = [element for group in self._interactions_traj for element in group 
+                                if filters in element]
             if include_frames == True:
                 filtered_lists = []
                 for i in self._interactions_traj:
-                    filtered_list = [item for item in i if filters in item]
-                    filtered_lists.append(filtered_list)
+                    filtered_lists.append([item for item in i if filters in item])
         
             return filtered_lists
             
@@ -4081,12 +4075,14 @@ class LigandInteractionsTrajectory(object):
         return ligands_list
 
 
-    def getFrequentInteractors(self, **kwargs):
-        """Provide a dictonary with residues involved in the interaction with ligand
+    def calcFrequentInteractors(self, **kwargs):
+        """Returns a dictonary with residues involved in the interaction with ligand
         and their number of counts. 
 
         :arg selection: selection string of ligand with chain ID
-                        e.g. MESA where MES is ligand resname and A is chain ID.
+                        e.g. "MESA" where MES is ligand resname and A is chain ID.
+                        Selection pointed as None will return all interactions together
+                        without ligands separation.
         :type selection: str
 
         :arg contacts_min: Minimal number of contacts which residue may form with ligand.
@@ -4100,7 +4096,7 @@ class LigandInteractionsTrajectory(object):
         
         from collections import Counter
 
-        if selection == 'total':  # Compute all interactions without distinguishing ligands
+        if selection == None:  # Compute all interactions without distinguishing ligands
             all_residues = [ j[1]+j[3] for i in interactions for j in i ]
             dictOfInteractions = Counter(all_residues)
         
@@ -4199,7 +4195,7 @@ class LigandInteractionsTrajectory(object):
         return freq_contacts_list
 
 
-    def getLigandBindingAffinity(self, **kwargs):
+    def calcSminaBindingAffinity(self, **kwargs):
         """Computing binding affinity of ligand toward protein structure
         usig SMINA package [DRK13]_.
         
