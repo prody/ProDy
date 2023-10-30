@@ -2179,7 +2179,6 @@ def calcLigandInteractions(atoms, **kwargs):
         LOGGER.info("Ligand not found.")
 
 
-
 def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
     """Save information about protein interactions to a TCL file (filename)
     which can be further use in VMD to display all intercations in a graphical interface
@@ -2518,12 +2517,10 @@ def calcLigandBindingAffinity(atoms, trajectory=None, **kwargs):
                     LOGGER.info('Model {0}: {1} kcal/mol'.format(i+start_frame, data['Affinity']))
                     bindingAffinity.append(data['Affinity'])
 
-
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.') 
 
     return bindingAffinity
-
 
 
 class Interactions(object):
@@ -4200,4 +4197,42 @@ class LigandInteractionsTrajectory(object):
             LOGGER.info('PDB file saved.')
 
         return freq_contacts_list
+
+
+    def getLigandBindingAffinity(self, **kwargs):
+        """Computing binding affinity of ligand toward protein structure
+        usig SMINA package [DRK13]_.
         
+        :arg atoms: an Atomic object from which residues are selected
+        :type atoms: :class:`.Atomic`
+        
+        :arg protein_selection: selection string for the protein and other compoment
+                                of the system that should be included,
+                                e.g. "protein and chain A",
+                                by default "protein" 
+        :type protein_selection: str
+        
+        :arg ligand_selection: selection string for ligand,
+                            e.g. "resname ADP",
+                            by default "all not protein"
+        :type ligand_selection: str
+
+        SMINA installation is required to compute ligand binding affinity:
+        >> conda install -c conda-forge smina       (for Anaconda)
+        
+        For more information on SMINA see https://sourceforge.net/projects/smina/.
+        If you benefited from SMINA, please consider citing [DRK13]_.
+
+        .. [DRK13] Koes D. R., Baumgartner M. P., Camacho C. J., Lessons Learned in 
+        Empirical Scoring with smina from the CSAR 2011 Benchmarking Exercise,
+        *J. Chem. Inf. Model.* **2013** 53: 1893–1904. """
+            
+        atoms = self._atoms
+        
+        if self._traj is not None:
+            trajectory = self._traj        
+            return calcLigandBindingAffinity(atoms, trajectory, **kwargs)
+        else:
+            return calcLigandBindingAffinity(atoms, **kwargs)
+        
+            
