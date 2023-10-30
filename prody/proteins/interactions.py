@@ -44,7 +44,8 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
-           'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory']
+           'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
+           'calcLigandBindingAffinity']
 
 
 def cleanNumbers(listContacts):
@@ -280,6 +281,7 @@ def calcSASA(atoms, **kwargs):
             return output_final
         else:
             return [ float(i[-1]) for i in output_final ]
+
 
 def calcVolume(atoms, **kwargs):
     """Provide information about volume for each residue/molecule/chain
@@ -2355,6 +2357,79 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     tcl_file.write('draw materials off')
     tcl_file.close()   
     LOGGER.info("TCL file saved")
+
+
+def calcLigandBindingAffinity(atoms, trajectory, **kwargs):
+    """Computing binding affinity of ligand toward protein structure
+    usig SMINA package [DRK13]_.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    
+    :arg protein_selection: selection string for the protein and other compoment
+                            of the system that should be included,
+                            e.g. "protein and chain A",
+                            by default "protein" 
+    :type protein_selection: str
+    
+    :arg ligand_selection: selection string for ligand,
+                           e.g. "resname ADP",
+                           by default "all not protein"
+    :type ligand_selection: str
+
+    SMINA installation is required to compute ligand binding affinity:
+    >> conda install -c conda-forge smina       (for Anaconda)
+    
+    For more information on SMINA see https://sourceforge.net/projects/smina/.
+    If you benefited from SMINA, please consider citing [DRK13]_.
+
+    .. [DRK13] Koes D. R., Baumgartner M. P., Camacho C. J., Lessons Learned in 
+    Empirical Scoring with smina from the CSAR 2011 Benchmarking Exercise,
+    *J. Chem. Inf. Model.* **2013** 53: 1893–1904. """
+
+    import tempfile
+    import subprocess
+    import re
+    
+    trajectory.reset()
+    atoms_copy = atoms.copy()
+    protein_selection = kwargs.pop('protein_selection', "protein")
+    ligand_selection = kwargs.pop('ligand_selection', "all not protein")
+    
+    bindingAffinity = []
+
+    for j0, frame0 in enumerate(trajectory):
+        atoms_copy.setCoords(frame0.getCoords())        
+        protein = atoms_copy.select(protein_selection)
+        ligand = atoms_copy.select(ligand_selection)        
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file, \
+             tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file_lig:
+            
+            # Files are starage in the memory
+            writePDB(temp_pdb_file.name, protein)
+            writePDB(temp_pdb_file_lig.name, ligand)
+
+            data = {}
+            command = "smina -r {} -l {} --score_only".format(temp_pdb_file.name, temp_pdb_file_lig.name)
+            result = subprocess.check_output(command, shell=True, text=True)
+
+            result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
+
+            matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
+            for match in matches:
+                key = match.group('key')
+                value = float(match.group(2))
+                data[key] = value
+
+            intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
+            if intramolecular_energy_match:
+                data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
+
+            print('Frame {0}: {1} kcal/mol'.format(j0, data['Affinity']))
+            bindingAffinity.append(data['Affinity'])
+            
+    return bindingAffinity
 
 
 class Interactions(object):
