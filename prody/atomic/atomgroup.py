@@ -240,8 +240,12 @@ class AtomGroup(Atomic):
         if self._n_csets:
             if self._n_csets == other._n_csets:
                 new.setCoords(np.concatenate((self._coords, other._coords), 1))
-                if self._anisous is not None and other._anisous is not None:
-                    new.setAnisous(np.concatenate((self._anisous, other._anisous), 1))
+                this = self._anisous
+                that = other._anisous
+                if this is not None and that is not None:
+                    if (isinstance(this, np.ndarray) and isinstance(that, np.ndarray)
+                        and len(this) > 0 and len(that) > 0):
+                        new.setAnisous(np.concatenate((self._anisous, other._anisous), 1))
                 if self._n_csets > 1:
                     LOGGER.info('All {0} coordinate sets are copied to '
                                 '{1}.'.format(self._n_csets, new.getTitle()))
