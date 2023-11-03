@@ -30,6 +30,8 @@ class TestParsePDB(unittest.TestCase):
         self.hex = DATA_FILES['hex']
         self.h36 = DATA_FILES['h36']
 
+        self.altlocs = DATA_FILES['6flr']
+
     def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""
 
@@ -186,6 +188,57 @@ class TestParsePDB(unittest.TestCase):
         serial = '100000'
         self.assertEqual(str(parsePDB(path).getSerials()[100000-1]),
              serial, 'parsePDB failed to parse Hybrid36 serial number')
+        
+    def testAltlocAllToMultiAtoms(self):
+        """Test number of coordinate sets and atoms with altloc='all'."""
+
+        path = pathDatafile(self.altlocs['file'])
+
+        ag = parsePDB(path, altloc="all")
+        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_single'],
+            'parsePDB failed to parse correct number of atoms with altloc "all"')
+        self.assertEqual(ag.numCoordsets(), 1,
+            'parsePDB failed to parse correct number of coordsets (1) with altloc "all"')
+
+        hisB234 = ag.select('resname HIS and chain B and resnum 234 and name CA')
+        self.assertEqual(hisB234.numAtoms(), self.altlocs['num_altlocs'],
+            'parsePDB failed to parse correct number of His B234 CA atoms (2) with altloc "all"')
+
+        self.assertEqual(hisB234.getAnisous().shape, (self.altlocs['num_altlocs'], 6),
+            'parsePDB failed to have right shape for His B234 CA atoms getAnisous (2, 6) with altloc "all"')
+
+        self.assertEqual(hisB234.getAnisous()[0], self.altlocs['anisousA'],
+            'parsePDB failed to have right His B234 CA atoms getAnisous A with altloc "all"')
+
+        self.assertEqual(hisB234.getAnisous()[1], self.altlocs['anisousB'],
+            'parsePDB failed to have right His B234 CA atoms getAnisous B with altloc "all"')
+        
+    def testAltlocNoneToMultiCoordets(self):
+        """Test number of coordinate sets and atoms with altloc=None."""
+
+        path = pathDatafile(self.altlocs['file'])
+
+        ag = parsePDB(path, altloc=None)
+        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_altloc'],
+            'parsePDB failed to parse correct number of atoms with altloc None')
+        self.assertEqual(ag.numCoordsets(), self.altlocs['num_altlocs'],
+            'parsePDB failed to parse correct number of coordsets (2) with altloc None')
+
+        hisB234 = ag.select('resname HIS and chain B and resnum 234 and name CA')
+        self.assertEqual(hisB234.numAtoms(), 1,
+            'parsePDB failed to parse correct number of His B234 CA atoms (1) with altloc None')
+
+        self.assertEqual(hisB234.getAnisous().shape, (1, 6),
+            'parsePDB failed to have right shape for His B234 CA atoms getAnisous (1, 6) with altloc None')
+
+        self.assertEqual(hisB234.getAnisous(), self.altlocs['anisousA'],
+            'parsePDB failed to have right His B234 CA atoms getAnisous A with altloc None')
+
+        hisB234.setACSIndex(1)
+
+        self.assertEqual(hisB234.getAnisous(), self.altlocs['anisousB'],
+            'parsePDB failed to have right His B234 CA atoms getAnisous B with altloc None')
+
 '''
     def testBiomolArgument(self):
 
