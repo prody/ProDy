@@ -1056,7 +1056,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                 LOGGER.warn("failed to parse altloc {0} at line {1}, "
                             "residue name mismatch (expected {2}, "
                             "parsed {3})".format(repr(key), i+1, repr(rn),
-                                                repr(arn)))
+                                                 repr(arn)))
                 continue
             index = ids[(ans == aan).nonzero()[0]]
             if len(index) != 1:
