@@ -252,8 +252,8 @@ class AtomGroup(Atomic):
             else:
                 new.setCoords(np.concatenate((self._getCoords(),
                                               other._getCoords())))
-                new.setAnisous(np.concatenate((self._getCoords(),
-                                              other._getCoords())))
+                new.setAnisous(np.concatenate((self.getAnisous(),
+                                               other.getAnisous())))
                 LOGGER.info('Active coordinate sets are copied to {0}.'
                             .format(new.getTitle()))
         elif other._n_csets:
