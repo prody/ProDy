@@ -1243,7 +1243,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         NB: ChimeraX seems to prefer hybrid36 and may have problems with hexadecimal.
     :type hybrid36: bool
     """
-
+    initialACSI = atoms.getACSIndex()
     renumber = kwargs.get('renumber', True)
 
     remark = str(atoms)
@@ -1375,10 +1375,6 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             if charges2[i] == '0+':
                 charges2[i] = '  '
 
-    anisous = atoms._getAnisous()
-    if anisous is not None:
-        anisous = np.array(anisous * 10000, dtype=int)
-
     # write remarks
     stream.write('REMARK {0}\n'.format(remark))
 
@@ -1441,6 +1437,12 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     write = stream.write
     num_ter_lines = 0
     for m, coords in enumerate(coordsets):
+
+        atoms.setACSIndex(m)
+        anisous = atoms._getAnisous()
+        if anisous is not None:
+            anisous = np.array(anisous * 10000, dtype=int)
+
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
 
@@ -1611,6 +1613,8 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             altlocs = np.zeros(n_atoms, s_or_u + '1')
             
     write('END   ' + " "*74 + '\n')
+
+    atoms.setACSIndex(initialACSI)
 
 writePDBStream.__doc__ += _writePDBdoc
 
