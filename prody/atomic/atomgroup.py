@@ -698,7 +698,7 @@ class AtomGroup(Atomic):
         if coords.ndim == 2:
             coords = coords.reshape((1, n_atoms, 3))
 
-        if anisous.ndim == 2:
+        if anisous is not None and anisous.ndim == 2:
             anisous = anisous.reshape((1, n_atoms, 6))
 
         diff = coords.shape[0]
