@@ -2132,7 +2132,7 @@ def calcLigandInteractions(atoms, **kwargs):
            
     import tempfile
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file:
-        writePDB(temp_pdb_file.name, atoms)
+        writePDB(temp_pdb_file.name, atoms, csets=atoms.getACSIndex())
         temp_pdb_file_name = temp_pdb_file.name
 
     try:
@@ -2501,8 +2501,8 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file, \
                      tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file_lig:
                     
-                    writePDB(temp_pdb_file.name, protein)
-                    writePDB(temp_pdb_file_lig.name, ligand)
+                    writePDB(temp_pdb_file.name, protein, csets=atoms.getACSIndex())
+                    writePDB(temp_pdb_file_lig.name, ligand, csets=atoms.getACSIndex())
 
                     data = {}
                     command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
