@@ -238,8 +238,8 @@ class AtomGroup(Atomic):
         if self._n_csets:
             if self._n_csets == other._n_csets:
                 new.setCoords(np.concatenate((self._coords, other._coords), 1))
-                this = self._data['anisous']
-                that = other._data['anisous']
+                this = self._data['anisou']
+                that = other._data['anisou']
                 if this is not None and that is not None:
                     if (isinstance(this, np.ndarray) and isinstance(that, np.ndarray)
                         and len(this) > 0 and len(that) > 0):
@@ -602,13 +602,13 @@ class AtomGroup(Atomic):
         if coords.ndim == 2:
             coords = coords.reshape((1, n_atoms, 3))
 
-        if anisous.ndim == 2:
+        if anisous.ndim == 2 and self._data['anisou'].ndim == 3:
             anisous = anisous.reshape((1, n_atoms, 6))
 
         diff = coords.shape[0]
         self._coords = np.concatenate((self._coords, coords), axis=0)
-        if anisous is not None and self._data['anisous'] is not None:
-            self._data['anisous'] = np.concatenate((self._data['anisous'], anisous), axis=0)
+        if anisous is not None and self._data['anisou'] is not None:
+            self._data['anisou'] = np.concatenate((self._data['anisou'], anisous/10000), axis=0)
         self._n_csets = self._coords.shape[0]
         timestamps = self._timestamps
         self._timestamps = np.zeros(self._n_csets)

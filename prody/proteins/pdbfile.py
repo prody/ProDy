@@ -959,7 +959,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         # this means last line was an ATOM line, so atomgroup is not decorated
         coordinates.resize((acount, 3), refcheck=False)
         if addcoords:
-            atomgroup.addCoordset(coordinates)
+            atomgroup.addCoordset(coordinates, anisous=anisou)
         else:
             atomgroup._setCoords(coordinates)
         atomnames.resize(acount, refcheck=False)
@@ -1033,38 +1033,39 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
         success = 0
         lines = altloc[key]
         for line, i in lines:
-            if line.startswith('ATOM  '):
-                aan = line[12:16].strip()
-                arn = line[17:21].strip()
-                ach = line[21]
-                ari = int(line[22:26].split()[0])
-                rn, ids, ans = indices.get((ach, ari), (None, None, None))
+            aan = line[12:16].strip()
+            arn = line[17:21].strip()
+            ach = line[21]
+            ari = int(line[22:26].split()[0])
+            rn, ids, ans = indices.get((ach, ari), (None, None, None))
+            if ids is None:
+                ids = indices.get(ach, None)
                 if ids is None:
-                    ids = indices.get(ach, None)
-                    if ids is None:
-                        ids = (chainids == ach).nonzero()[0]
-                        indices[ach] = ids
-                    ids = ids[resnums[ids] == ari]
-                    if len(ids) == 0:
-                        LOGGER.warn("failed to parse altloc {0} at line {1}, "
-                                    "residue not present for altloc 'A'".format(
-                                    repr(key), i+1))
-                        continue
-                    rn = resnames[ids[0]]
-                    ans = atomnames[ids]
-                    indices[(ach, ari)] = (rn, ids, ans)
-                if rn != arn:
+                    ids = (chainids == ach).nonzero()[0]
+                    indices[ach] = ids
+                ids = ids[resnums[ids] == ari]
+                if len(ids) == 0:
                     LOGGER.warn("failed to parse altloc {0} at line {1}, "
-                                "residue name mismatch (expected {2}, "
-                                "parsed {3})".format(repr(key), i+1, repr(rn),
-                                                    repr(arn)))
+                                "residue not present for altloc 'A'".format(
+                                repr(key), i+1))
                     continue
-                index = ids[(ans == aan).nonzero()[0]]
-                if len(index) != 1:
-                    LOGGER.warn("failed to parse altloc {0} at line {1}, atom"
-                                " {2} not found in the residue"
-                                .format(repr(key), i+1, repr(aan)))
-                    continue
+                rn = resnames[ids[0]]
+                ans = atomnames[ids]
+                indices[(ach, ari)] = (rn, ids, ans)
+            if rn != arn:
+                LOGGER.warn("failed to parse altloc {0} at line {1}, "
+                            "residue name mismatch (expected {2}, "
+                            "parsed {3})".format(repr(key), i+1, repr(rn),
+                                                repr(arn)))
+                continue
+            index = ids[(ans == aan).nonzero()[0]]
+            if len(index) != 1:
+                LOGGER.warn("failed to parse altloc {0} at line {1}, atom"
+                            " {2} not found in the residue"
+                            .format(repr(key), i+1, repr(aan)))
+                continue
+
+            if line.startswith('ATOM  '):
                 try:
                     xyz[index[0], 0] = float(line[30:38])
                     xyz[index[0], 1] = float(line[38:46])
@@ -1076,12 +1077,16 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                 success += 1
             elif line.startswith('ANISOU'):
                 try:
-                    anisou[index[0], 0] = float(line[30:38])
-                    anisou[index[0], 1] = float(line[38:46])
-                    anisou[index[0], 2] = float(line[46:54])
+                    anisou[index[0], 0] = line[28:35]
+                    anisou[index[0], 1] = line[35:42]
+                    anisou[index[0], 2] = line[43:49]
+                    anisou[index[0], 3] = line[49:56]
+                    anisou[index[0], 4] = line[56:63]
+                    anisou[index[0], 5] = line[63:70]
                 except:
                     LOGGER.warn('failed to parse altloc {0} at line {1}, could'
-                                ' not read coordinates'.format(repr(key), i+1))                
+                                ' not read anisous'.format(repr(key), i+1))
+                success += 1
         LOGGER.info('{0} out of {1} altloc {2} lines were parsed.'
                     .format(success, len(lines), repr(key)))
         if success > 0:
