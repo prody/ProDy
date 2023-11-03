@@ -9,8 +9,7 @@ import numpy as np
 
 from prody import LOGGER, PY2K
 from prody.kdtree import KDTree
-from prody.utilities import (checkCoords, checkAnisous, 
-                             rangeString, getDistance, copy)
+from prody.utilities import checkCoords, rangeString, getDistance, copy
 
 from .atomic import Atomic
 from .fields import ATOMIC_FIELDS, READONLY
