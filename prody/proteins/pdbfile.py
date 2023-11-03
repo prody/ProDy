@@ -769,8 +769,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     elements = np.concatenate((elements,
                         np.zeros(asize, ATOMIC_FIELDS['element'].dtype)))
                     if anisou is not None:
-                        anisou = np.concatenate((anisou, np.zeros((asize, 6),
-                            ATOMIC_FIELDS['anisou'].dtype)))
+                        anisou = np.concatenate((anisou, np.zeros((asize, 6), float)))
                     if siguij is not None:
                         siguij = np.concatenate((siguij, np.zeros((asize, 6),
                             ATOMIC_FIELDS['siguij'].dtype)))
@@ -845,7 +844,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         atomgroup._setCoords(coordinates)
                         if isPDB and anisou is not None:
                             anisou.resize((acount, 6), refcheck=False)
-                            atomgroup._setAnisous(anisou / 10000)
+                            atomgroup.setAnisous(anisou / 10000)
                 else:
                     coordsets = np.zeros((int(diff//acount+1), acount, 3))
                     coordsets[0] = coordinates[:acount]
@@ -908,8 +907,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         elif isPDB and startswith == 'ANISOU':
             if anisou is None:
                 anisou = True
-                anisou = np.zeros((alength, 6),
-                    dtype=ATOMIC_FIELDS['anisou'].dtype)
+                anisou = np.zeros((alength, 6), dtype=float)
 
             alt = line[16]
             if alt not in which_altlocs and which_altlocs != 'all':

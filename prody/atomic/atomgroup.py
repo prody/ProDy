@@ -615,8 +615,8 @@ class AtomGroup(Atomic):
         try:
             checkAnisous(anisous, csets=True, dtype=(float, np.float32))
         except TypeError:
-            raise TypeError('coords must be a numpy array or an '
-                            'object with `getCoords` method')
+            raise TypeError('anisous must be a numpy array or an '
+                            'object with `getAnisous` method')
 
         self._setAnisous(anisous, label=label)
 
