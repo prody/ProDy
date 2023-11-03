@@ -130,7 +130,7 @@ class AtomGroup(Atomic):
                  '_donors', '_acceptors', '_nbexclusions', '_crossterms',
                  '_cslabels', '_acsi', '_n_csets', '_data',
                  '_fragments', '_flags', '_flagsts', '_subsets',
-                 '_msa', '_sequenceMap']
+                 '_msa', '_sequenceMap', '_anisous']
 
     def __init__(self, title='Unnamed'):
 
@@ -170,6 +170,7 @@ class AtomGroup(Atomic):
         self._subsets = None
         self._msa = None
         self._sequenceMap = None
+        self._anisous = None
 
     def __repr__(self):
 
@@ -238,12 +239,12 @@ class AtomGroup(Atomic):
         if self._n_csets:
             if self._n_csets == other._n_csets:
                 new.setCoords(np.concatenate((self._coords, other._coords), 1))
-                this = self._data['anisou']
-                that = other._data['anisou']
+                this = self._anisous
+                that = other._anisous
                 if this is not None and that is not None:
                     if (isinstance(this, np.ndarray) and isinstance(that, np.ndarray)
                         and len(this) > 0 and len(that) > 0):
-                        new.setAnisous(np.concatenate((this, that), 1))
+                        new.setAnisous(np.concatenate((self._anisous, other._anisous), 1))
                 if self._n_csets > 1:
                     LOGGER.info('All {0} coordinate sets are copied to '
                                 '{1}.'.format(self._n_csets, new.getTitle()))
@@ -701,8 +702,8 @@ class AtomGroup(Atomic):
 
         diff = coords.shape[0]
         self._coords = np.concatenate((self._coords, coords), axis=0)
-        if anisous is not None and self._data['anisou'] is not None:
-            self._data['anisou'] = np.concatenate((self._data['anisou'], anisous/10000), axis=0)
+        if anisous is not None and self._anisous is not None:
+            self._anisous = np.concatenate((self._anisous, anisous/10000), axis=0)
         self._n_csets = self._coords.shape[0]
         timestamps = self._timestamps
         self._timestamps = np.zeros(self._n_csets)
