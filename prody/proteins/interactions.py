@@ -2375,6 +2375,11 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                            e.g. "resname ADP",
                            by default "all not protein"
     :type ligand_selection: str
+    
+    :arg ligand_selection: scoring function (vina or vinardo)
+                           by default is "vina"
+    
+    :type ligand_selection: str
 
     SMINA installation is required to compute ligand binding affinity:
     >> conda install -c conda-forge smina       (for Anaconda)
@@ -2404,6 +2409,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
     stop_frame = kwargs.pop('stop_frame', -1)
     protein_selection = kwargs.pop('protein_selection', "protein")
     ligand_selection = kwargs.pop('ligand_selection', "all not protein")
+    scoring_function = kwargs.pop('scoring_function', 'vina')
     bindingAffinity = []
 
     if trajectory is not None:
@@ -2435,7 +2441,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 writePDB(temp_pdb_file_lig.name, ligand)
 
                 data = {}
-                command = "smina -r {} -l {} --score_only".format(temp_pdb_file.name, temp_pdb_file_lig.name)
+                command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
                 result = subprocess.check_output(command, shell=True, text=True)
 
                 result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
@@ -2468,7 +2474,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 writePDB(temp_pdb_file_lig.name, ligand)
 
                 data = {}
-                command = "smina -r {} -l {} --score_only".format(temp_pdb_file.name, temp_pdb_file_lig.name)
+                command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
                 result = subprocess.check_output(command, shell=True, text=True)
 
                 result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
@@ -2499,7 +2505,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                     writePDB(temp_pdb_file_lig.name, ligand)
 
                     data = {}
-                    command = "smina -r {} -l {} --score_only".format(temp_pdb_file.name, temp_pdb_file_lig.name)
+                    command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
                     result = subprocess.check_output(command, shell=True, text=True)
 
                     result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
@@ -4227,8 +4233,8 @@ class LigandInteractionsTrajectory(object):
         
         if self._traj is not None:
             trajectory = self._traj        
-            return calcLigandBindingAffinity(atoms, trajectory, **kwargs)
+            return calcSminaBindingAffinity(atoms, trajectory, **kwargs)
         else:
-            return calcLigandBindingAffinity(atoms, **kwargs)
+            return calcSminaBindingAffinity(atoms, **kwargs)
         
             
