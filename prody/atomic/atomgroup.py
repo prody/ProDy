@@ -604,6 +604,9 @@ class AtomGroup(Atomic):
         if coords.ndim == 2:
             coords = coords.reshape((1, n_atoms, 3))
 
+        if anisous.ndim == 2:
+            anisous = anisous.reshape((1, n_atoms, 6))
+
         diff = coords.shape[0]
         self._coords = np.concatenate((self._coords, coords), axis=0)
         if anisous is not None and self._anisous is not None:
