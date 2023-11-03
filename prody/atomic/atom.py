@@ -95,21 +95,21 @@ class Atom(AtomPointer):
         self._ag._setTimeStamp(acsi)
 
     def getAnisou(self):
-        """Returns a copy of anisou of the atom from the active coordinate
+        """Returns a copy of anisotropic temperature factors of the atom from the active coordinate
         set."""
 
         if self._ag._anisous is not None:
             return self._ag._anisous[self.getACSIndex(), self._index].copy()
 
     def _getAnisou(self):
-        """Returns a view of anisou of the atom from the active coordinate
+        """Returns a view of anisotropic temperature factors of the atom from the active coordinate
         set."""
 
         if self._ag._anisous is not None:
             return self._ag._anisous[self.getACSIndex(), self._index]
 
     def setAnisou(self, anisou):
-        """Set anisou of the atom in the active coordinate set."""
+        """Set anisotropic temperature factors of the atom in the active coordinate set."""
 
         acsi = self.getACSIndex()
         self._ag._anisous[acsi, self._index] = anisou

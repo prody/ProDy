@@ -576,19 +576,19 @@ class AtomGroup(Atomic):
             self._cslabels[acsi] = str(label)
 
     def getAnisous(self):
-        """Returns a copy of anisous from active coordinate set."""
+        """Returns a copy of anisotropic temperature factors from active coordinate set."""
 
         if self._anisous is not None:
             return self._anisous[self._acsi].copy()
 
     def _getAnisous(self):
-        """Returns a view of anisous from active coordinate set."""
+        """Returns a view of anisotropic temperature factors from active coordinate set."""
 
         if self._anisous is not None:
             return self._anisous[self._acsi]
 
     def setAnisous(self, anisous, label=''):
-        """Set anisous of atoms.  *anisous* may be any array like object
+        """Set anisotropic temperature factors of atoms. *anisous* may be any array like object
         or an object instance with :meth:`getAnisous` method.  If the shape of
         anisou array is ``(n_csets > 1, n_atoms, 3)``, it will replace all
         coordinate sets and the active coordinate set index  will reset to
@@ -621,10 +621,10 @@ class AtomGroup(Atomic):
         self._setAnisous(anisous, label=label)
 
     def _setAnisous(self, anisous, label='', overwrite=False):
-        """Set anisous without data type checking.  *coords* must
-        be a :class:`~numpy.ndarray`, but may have data type other than
-        :class:`~numpy.float64`, e.g. :class:`~numpy.float32`.  *label*
-        argument may be used to label coordinate sets.  *label* may be
+        """Set anisotropic temperature factors without data type checking.
+        *anisous* must be a :class:`~numpy.ndarray`, but may have data type
+        other than :class:`~numpy.float64`, e.g. :class:`~numpy.float32`.
+        *label* argument may be used to label coordinate sets.  *label* may be
         a string or a list of strings length equal to the number of
         coordinate sets."""
 
