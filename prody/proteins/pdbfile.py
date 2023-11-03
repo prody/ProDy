@@ -845,7 +845,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         atomgroup._setCoords(coordinates)
                         if isPDB and anisou is not None:
                             anisou.resize((acount, 6), refcheck=False)
-                            atomgroup._setAnisous(anisou / 10000)
+                            atomgroup.setAnisous(anisou / 10000)
                 else:
                     coordsets = np.zeros((int(diff//acount+1), acount, 3))
                     coordsets[0] = coordinates[:acount]
