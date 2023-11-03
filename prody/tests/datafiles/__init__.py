@@ -282,6 +282,16 @@ DATA_FILES = {
         'anisousA': array([[1.3327, 0.8826, 0.7048, 0.0444, 0.3365, 0.1618]]),
         'anisousB': array([[1.3306, 0.8825, 0.7058, 0.0438, 0.338 , 0.1608]])
     },
+    '6flr_sel': {
+        'pdb': '6flr',
+        'file': 'pdb6flr_B234.pdb',
+        'atoms': 1,
+        'ca_atoms': 1,
+        'models': 2,
+        'biomols': 1,
+        'anisousA': array([[1.3327, 0.8826, 0.7048, 0.0444, 0.3365, 0.1618]]),
+        'anisousB': array([[1.3306, 0.8825, 0.7058, 0.0438, 0.338 , 0.1608]])
+    },
     'gromacs': {
         'pdb': '6fpj',
         'file': 'pdb6fpj_Bb_fixed_solv_ions.pdb',
