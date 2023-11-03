@@ -883,6 +883,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     atomgroup.setElements(np.char.strip(elements))
                     from prody.utilities.misctools import getMasses
                     atomgroup.setMasses(getMasses(np.char.strip(elements)))
+                    if anisou is not None:
+                        anisou.resize((acount, 6), refcheck=False)
+                        atomgroup.setAnisous(anisou / 10000)
                     if siguij is not None:
                         siguij.resize((acount, 6), refcheck=False)
                         atomgroup.setAnistds(siguij / 10000)
