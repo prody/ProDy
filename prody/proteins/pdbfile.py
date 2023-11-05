@@ -64,7 +64,7 @@ _parsePDBdoc = _parsePQRdoc + """
 
     :arg altloc: if a location indicator is passed, such as ``'A'`` or ``'B'``,
          only indicated alternate locations will be parsed as the single
-         coordinate set of the AtomGroup,  if *altloc* is set **True** all
+         coordinate set of the AtomGroup,  if *altloc* is set ``'all'`` then all
          alternate locations will be parsed and each will be appended as a
          distinct coordinate set, default is ``"A"``
     :type altloc: str
@@ -769,8 +769,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     elements = np.concatenate((elements,
                         np.zeros(asize, ATOMIC_FIELDS['element'].dtype)))
                     if anisou is not None:
-                        anisou = np.concatenate((anisou, np.zeros((asize, 6),
-                            ATOMIC_FIELDS['anisou'].dtype)))
+                        anisou = np.concatenate((anisou, np.zeros((asize, 6), float)))
                     if siguij is not None:
                         siguij = np.concatenate((siguij, np.zeros((asize, 6),
                             ATOMIC_FIELDS['siguij'].dtype)))
@@ -840,9 +839,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if END:
                     coordinates.resize((acount, 3), refcheck=False)
                     if addcoords:
-                        atomgroup.addCoordset(coordinates)
+                        atomgroup.addCoordset(coordinates, anisous=anisou)
                     else:
                         atomgroup._setCoords(coordinates)
+                        if isPDB and anisou is not None:
+                            anisou.resize((acount, 6), refcheck=False)
+                            atomgroup.setAnisous(anisou / 10000)
                 else:
                     coordsets = np.zeros((int(diff//acount+1), acount, 3))
                     coordsets[0] = coordinates[:acount]
@@ -905,8 +907,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         elif isPDB and startswith == 'ANISOU':
             if anisou is None:
                 anisou = True
-                anisou = np.zeros((alength, 6),
-                    dtype=ATOMIC_FIELDS['anisou'].dtype)
+                anisou = np.zeros((alength, 6), dtype=float)
 
             alt = line[16]
             if alt not in which_altlocs and which_altlocs != 'all':
@@ -956,7 +957,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         # this means last line was an ATOM line, so atomgroup is not decorated
         coordinates.resize((acount, 3), refcheck=False)
         if addcoords:
-            atomgroup.addCoordset(coordinates)
+            atomgroup.addCoordset(coordinates, anisous=anisou)
         else:
             atomgroup._setCoords(coordinates)
         atomnames.resize(acount, refcheck=False)
@@ -1026,6 +1027,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
     indices = {}
     for key in altloc_keys:
         xyz = atomgroup.getCoords()
+        anisou = atomgroup.getAnisous()
         success = 0
         lines = altloc[key]
         for line, i in lines:
@@ -1052,7 +1054,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                 LOGGER.warn("failed to parse altloc {0} at line {1}, "
                             "residue name mismatch (expected {2}, "
                             "parsed {3})".format(repr(key), i+1, repr(rn),
-                                                   repr(arn)))
+                                                 repr(arn)))
                 continue
             index = ids[(ans == aan).nonzero()[0]]
             if len(index) != 1:
@@ -1060,21 +1062,35 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                             " {2} not found in the residue"
                             .format(repr(key), i+1, repr(aan)))
                 continue
-            try:
-                xyz[index[0], 0] = float(line[30:38])
-                xyz[index[0], 1] = float(line[38:46])
-                xyz[index[0], 2] = float(line[46:54])
-            except:
-                LOGGER.warn('failed to parse altloc {0} at line {1}, could'
-                            ' not read coordinates'.format(repr(key), i+1))
-                continue
-            success += 1
+
+            if line.startswith('ATOM  '):
+                try:
+                    xyz[index[0], 0] = float(line[30:38])
+                    xyz[index[0], 1] = float(line[38:46])
+                    xyz[index[0], 2] = float(line[46:54])
+                except:
+                    LOGGER.warn('failed to parse altloc {0} at line {1}, could'
+                                ' not read coordinates'.format(repr(key), i+1))
+                    continue
+                success += 1
+            elif line.startswith('ANISOU'):
+                try:
+                    anisou[index[0], 0] = line[28:35]
+                    anisou[index[0], 1] = line[35:42]
+                    anisou[index[0], 2] = line[43:49]
+                    anisou[index[0], 3] = line[49:56]
+                    anisou[index[0], 4] = line[56:63]
+                    anisou[index[0], 5] = line[63:70]
+                except:
+                    LOGGER.warn('failed to parse altloc {0} at line {1}, could'
+                                ' not read anisous'.format(repr(key), i+1))
+                success += 1
         LOGGER.info('{0} out of {1} altloc {2} lines were parsed.'
                     .format(success, len(lines), repr(key)))
         if success > 0:
             LOGGER.info('Altloc {0} is appended as a coordinate set to '
                         'atomgroup {1}.'.format(repr(key), atomgroup.getTitle()))
-            atomgroup.addCoordset(xyz, label='altloc ' + key)
+            atomgroup.addCoordset(xyz, label='altloc ' + key, anisous=anisou)
 
 
 #HELIXLINE = ('HELIX  %3d %3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
@@ -1227,7 +1243,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         NB: ChimeraX seems to prefer hybrid36 and may have problems with hexadecimal.
     :type hybrid36: bool
     """
-
+    initialACSI = atoms.getACSIndex()
     renumber = kwargs.get('renumber', True)
 
     remark = str(atoms)
@@ -1359,10 +1375,6 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             if charges2[i] == '0+':
                 charges2[i] = '  '
 
-    anisous = atoms._getAnisous()
-    if anisous is not None:
-        anisous = np.array(anisous * 10000, dtype=int)
-
     # write remarks
     stream.write('REMARK {0}\n'.format(remark))
 
@@ -1425,6 +1437,12 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     write = stream.write
     num_ter_lines = 0
     for m, coords in enumerate(coordsets):
+
+        atoms.setACSIndex(m)
+        anisous = atoms._getAnisous()
+        if anisous is not None:
+            anisous = np.array(anisous * 10000, dtype=int)
+
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
 
@@ -1595,6 +1613,8 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             altlocs = np.zeros(n_atoms, s_or_u + '1')
             
     write('END   ' + " "*74 + '\n')
+
+    atoms.setACSIndex(initialACSI)
 
 writePDBStream.__doc__ += _writePDBdoc
 
