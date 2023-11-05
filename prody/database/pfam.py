@@ -209,21 +209,6 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     :arg compressed: gzip the downloaded MSA file, default is **False**
 
-    *Alignment Options*
-
-    :arg format: a Pfam supported MSA file format, one of ``'selex'``,
-        (default), ``'stockholm'`` or ``'fasta'``
-
-    :arg order: ordering of sequences, ``'tree'`` (default) or
-        ``'alphabetical'``
-
-    :arg inserts: letter case for inserts, ``'upper'`` (default) or ``'lower'``
-
-    :arg gaps: gap character, one of ``'dashes'`` (default), ``'dots'``,
-        ``'mixed'`` or **None** for unaligned
-
-    *Other Options*
-
     :arg timeout: timeout for blocking connection attempt in seconds, default
         is 60
 
@@ -233,76 +218,21 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     
     import requests
 
-    # url = prefix + 'family/acc?id=' + acc
-    # handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
-    orig_acc = acc
-    # acc = handle.readline().strip()
-    # if PY3K:
-    #     acc = acc.decode()
-    url_flag = False
-
     if not re.search('(?<=PF)[0-9]{5}$', acc):
         raise ValueError('{0} is not a valid Pfam ID or Accession Code'
-                         .format(repr(orig_acc)))
+                         .format(repr(acc)))
 
     if alignment not in DOWNLOAD_FORMATS:
-        raise ValueError('alignment must be one of full, seed,'
-                         #' ncbi or'
-                         #' metagenomics'
-                         ' or uniprot')
-    # if alignment == 'ncbi' or alignment == 'metagenomics' or alignment == 'uniprot':
-    #     #url = (prefix + 'family/' + acc + '/alignment/' +
-    #     #       alignment + '/gzipped')
-    #     url = (new_prefix + acc + 
-    #            '/?annotation=alignment:' + alignment + '&download')
-    #     url_flag = True
-    #     extension = '.sth'
-    # else:
-    if not kwargs:
-        #url = (prefix + 'family/' + acc + '/alignment/' +
-        #       alignment + '/gzipped')
-        url = (new_prefix + "/pfam/" + acc + 
-                '/?annotation=alignment:' + alignment + '&download')
-        url_flag = True
-        extension = '.sth'
-    else:
-        raise ValueError('kwargs are not supported for Interpro Pfam')
-    #     align_format = kwargs.get('format', 'selex').lower()
+        raise ValueError('alignment must be one of full, seed, or uniprot')
 
-    #     if align_format not in FORMAT_OPTIONS['format']:
-    #         raise ValueError('alignment format must be of type selex'
-    #                             ' stockholm or fasta. MSF not supported')
-
-    #     if align_format == SELEX:
-    #         align_format, extension = 'pfam', '.slx'
-    #     elif align_format == FASTA:
-    #         extension = '.fasta'
-    #     else:
-    #         extension = '.sth'
-
-    #     gaps = str(kwargs.get('gaps', 'dashes')).lower()
-    #     if gaps not in FORMAT_OPTIONS['gaps']:
-    #         raise ValueError('gaps must be of type mixed, dots, dashes, '
-    #                             'or None')
-
-    #     inserts = kwargs.get('inserts', 'upper').lower()
-    #     if(inserts not in FORMAT_OPTIONS['inserts']):
-    #         raise ValueError('inserts must be of type lower or upper')
-
-    #     order = kwargs.get('order', 'tree').lower()
-    #     if order not in FORMAT_OPTIONS['order']:
-    #         raise ValueError('order must be of type tree or alphabetical')
-
-    #     url = (prefix + 'family/' + acc + '/alignment/'
-    #             + alignment + '/format?format=' + align_format +
-    #             '&alnType=' + alignment + '&order=' + order[0] +
-    #             '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
+    url = (new_prefix + "/pfam/" + acc + 
+            '/?annotation=alignment:' + alignment + '&download')
+    extension = '.sth'
 
     LOGGER.timeit('_pfam')
     timeout = kwargs.get('timeout', 60)
     response = None
     sleep = 2
-    try_error = 3
     while LOGGER.timing('_pfam') < timeout:
         try:
             response = requests.get(url, verify=False).content
@@ -314,32 +244,22 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
         sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
         LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
-    # response = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     outname = kwargs.get('outname', None)
     if not outname:
-        outname = orig_acc
+        outname = acc
     folder = str(kwargs.get('folder', '.'))
     filepath = join(makePath(folder), outname + '_' + alignment + extension)
     if compressed:
         filepath = filepath + '.gz'
-        if url_flag:
-            f_out = open(filepath, 'wb')
-        else:
-            f_out = openFile(filepath, 'wb')
-        # f_out.write(response.read())
+        f_out = open(filepath, 'wb')
         f_out.write(response)
         f_out.close()
     else:
-        if url_flag:
-            gunzip(response, filepath)
-        else:
-            with open(filepath, 'wb') as f_out:
-                # f_out.write(response.read())
-                f_out.write(response)
+        gunzip(response, filepath)
 
     filepath = relpath(filepath)
     LOGGER.info('Pfam MSA for {0} is written as {1}.'
-                .format(orig_acc, filepath))
+                .format(acc, filepath))
 
     return filepath
 
