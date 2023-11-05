@@ -219,7 +219,7 @@ class TestParsePDB(unittest.TestCase):
         path = pathDatafile(self.altlocs['file'])
 
         ag = parsePDB(path, altloc=None)
-        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_altloc'],
+        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_single'],
             'parsePDB failed to parse correct number of atoms with altloc None')
         self.assertEqual(ag.numCoordsets(), self.altlocs['num_altlocs'],
             'parsePDB failed to parse correct number of coordsets (2) with altloc None')
