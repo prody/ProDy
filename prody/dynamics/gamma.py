@@ -6,7 +6,7 @@ import numpy as np
 
 from prody.atomic import Atomic
 
-__all__ = ['Gamma', 'GammaStructureBased', 'GammaVariableCutoff', 'GammaGOdMD']
+__all__ = ['Gamma', 'GammaStructureBased', 'GammaVariableCutoff', 'GammaED', 'GammaGOdMD']
 
 
 class Gamma(object):
@@ -37,7 +37,7 @@ class GammaStructureBased(Gamma):
     """Facilitate setting the spring constant based on the secondary structure
     and connectivity of the residues.
 
-    A recent systematic study [LT10]_ of a large set of NMR-structures analyzed
+    A systematic study [LT10]_ of a large set of NMR-structures analyzed
     using a method based on entropy maximization showed that taking into
     consideration properties such as sequential separation between
     contacting residues and the secondary structure types of the interacting
@@ -301,15 +301,37 @@ class GammaVariableCutoff(Gamma):
         return gamma
 
 
-class GammaGOdMD(Gamma):
+class GammaED(Gamma):
     """Facilitate setting the spring constant based on 
-    sequence distance and spatial distance as in GOdMD.
+    sequence distance and spatial distance as in ed-ENM [OL10]_.
+    This ENM is refined based on comparison to essential dynamics 
+    from MD simulations and can reproduce flexibility in NMR ensembles.
+
+    It has also been implemented in FlexServ [CJ09]_ and 
+    used in MDdMD [SP12]_ and GOdMD [SP13]_.
 
     The sequence distance-dependent term is Cseq/(S**2)
     for S=abs(i,j) <= Slim
 
     The structure distance-dependent term is (Ccart/dist)**Ex
 
+    .. [OL10] Orellana L, Rueda M, Ferrer-Costa C, Lopez-Blanco JR, Chacón P, Orozco M. 
+       Approaching Elastic Network Models to Molecular Dynamics Flexibility.
+       *J Chem Theory Comput* **2010** 6(9):2910-23.
+
+    .. [CJ09] Camps J, Carrillo O, Emperador A, Orellana L, Hospital A, Rueda M, 
+       Cicin-Sain D, D'Abramo M, Gelpí JL, Orozco M.
+       FlexServ: an integrated tool for the analysis of protein flexibility.
+       *Bioinformatics* **2009** 25(13):1709-10.
+
+    .. [SP12] Sfriso P, Emperador A, Orellana L, Hospital A, Gelpí JL, Orozco M.
+       Finding Conformational Transition Pathways from Discrete Molecular Dynamics Simulations.
+       *J Chem Theory Comput* **2012** 8(11):4707-18.
+
+    .. [SP13] Sfriso P, Hospital A, Emperador A, Orozco M. 
+       Exploration of conformational transition pathways from coarse-grained simulations.
+       *Bioinformatics* **2013** 29(16):1980-6.     
+       
     **Example**:
 
     Let's parse coordinates from a PDB file.
@@ -317,7 +339,7 @@ class GammaGOdMD(Gamma):
     .. ipython:: python
 
        from prody import *
-       ubi, header = parsePDB('1aar', chain='A', subset='calpha')
+       ubi = parsePDB('1aar', chain='A', subset='calpha')
 
     In the above we parsed only the atoms needed for this calculation, i.e.
     Cα atoms from chain A.
@@ -373,7 +395,7 @@ class GammaGOdMD(Gamma):
         assert Ccart > 0, 'gamma must be greater than 0'
 
         Cseq = float(Cseq)
-        assert Cseq > 0, 'helix must be greater than 0'
+        assert Cseq > 0, 'Cseq must be greater than 0'
 
         self._Ccart = Ccart
         self._Ex = Ex
@@ -396,3 +418,5 @@ class GammaGOdMD(Gamma):
         else:
             dist = dist2**0.5
             return (Ccart/dist)**Ex
+
+GammaGOdMD = GammaED

@@ -89,15 +89,9 @@ def prody_pca(coords, **kwargs):
 
         nproc = kwargs.get('nproc')
         if nproc:
-            try:
-                from threadpoolctl import threadpool_limits
-            except ImportError:
-                raise ImportError('Please install threadpoolctl to control threads')
-
-            with threadpool_limits(limits=nproc, user_api="blas"):
-                pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
-                pca.calcModes(nmodes)
-                ensemble = dcd
+            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
+            pca.calcModes(nmodes, nproc=nproc)
+            ensemble = dcd
         else:
             if len(dcd) > 1000:
                 pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
@@ -145,7 +139,8 @@ def prody_pca(coords, **kwargs):
 
     LOGGER.info('Writing numerical output.')
     if kwargs.get('outnpz'):
-        prody.saveModel(pca, join(outdir, prefix))
+        prody.saveModel(pca, join(outdir, prefix), 
+                        matrices=kwargs.get('npzmatrices'))
 
     if kwargs.get('outscipion'):
         prody.writeScipionModes(outdir, pca)

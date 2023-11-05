@@ -190,7 +190,7 @@ class GNMBase(NMA):
         self._n_atoms = n_atoms
         self._dof = n_atoms
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, **kwargs):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Kirchhoff matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
@@ -218,7 +218,7 @@ class GNMBase(NMA):
         self._clear()
         LOGGER.timeit('_gnm_calc_modes')
         values, vectors, vars = solveEig(self._kirchhoff, n_modes=n_modes, zeros=zeros, 
-                                         turbo=turbo, expct_n_zeros=1)
+                                         turbo=turbo, expct_n_zeros=1, **kwargs)
 
         self._eigvals = values
         self._array = vectors

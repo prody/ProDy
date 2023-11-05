@@ -30,6 +30,8 @@ class TestParsePDB(unittest.TestCase):
         self.hex = DATA_FILES['hex']
         self.h36 = DATA_FILES['h36']
 
+        self.altlocs = DATA_FILES['6flr']
+
     def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""
 
@@ -186,6 +188,57 @@ class TestParsePDB(unittest.TestCase):
         serial = '100000'
         self.assertEqual(str(parsePDB(path).getSerials()[100000-1]),
              serial, 'parsePDB failed to parse Hybrid36 serial number')
+        
+    def testAltlocAllToMultiAtoms(self):
+        """Test number of coordinate sets and atoms with altloc='all'."""
+
+        path = pathDatafile(self.altlocs['file'])
+
+        ag = parsePDB(path, altloc="all")
+        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_altloc'],
+            'parsePDB failed to parse correct number of atoms with altloc "all"')
+        self.assertEqual(ag.numCoordsets(), 1,
+            'parsePDB failed to parse correct number of coordsets (1) with altloc "all"')
+
+        hisB234 = ag.select('resname HIS and chain B and resnum 234 and name CA')
+        self.assertEqual(hisB234.numAtoms(), self.altlocs['num_altlocs'],
+            'parsePDB failed to parse correct number of His B234 CA atoms (2) with altloc "all"')
+
+        self.assertEqual(hisB234.getAnisous().shape, (self.altlocs['num_altlocs'], 6),
+            'parsePDB failed to have right shape for His B234 CA atoms getAnisous (2, 6) with altloc "all"')
+
+        assert_allclose(hisB234.getAnisous()[0], self.altlocs['anisousA'][0],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous A with altloc "all"')
+
+        assert_allclose(hisB234.getAnisous()[1], self.altlocs['anisousB'][0],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc "all"')
+        
+    def testAltlocNoneToMultiCoordets(self):
+        """Test number of coordinate sets and atoms with altloc=None."""
+
+        path = pathDatafile(self.altlocs['file'])
+
+        ag = parsePDB(path, altloc=None)
+        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_single'],
+            'parsePDB failed to parse correct number of atoms with altloc None')
+        self.assertEqual(ag.numCoordsets(), self.altlocs['num_altlocs'],
+            'parsePDB failed to parse correct number of coordsets (2) with altloc None')
+
+        hisB234 = ag.select('resname HIS and chain B and resnum 234 and name CA')
+        self.assertEqual(hisB234.numAtoms(), 1,
+            'parsePDB failed to parse correct number of His B234 CA atoms (1) with altloc None')
+
+        self.assertEqual(hisB234.getAnisous().shape, (1, 6),
+            'parsePDB failed to have right shape for His B234 CA atoms getAnisous (1, 6) with altloc None')
+
+        assert_allclose(hisB234.getAnisous(), self.altlocs['anisousA'],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous A with altloc None')
+
+        hisB234.setACSIndex(1)
+
+        assert_allclose(hisB234.getAnisous(), self.altlocs['anisousB'],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc None')
+
 '''
     def testBiomolArgument(self):
 
@@ -209,8 +262,17 @@ class TestWritePDB(unittest.TestCase):
         self.ag = parsePDB(self.pdb['path'])
         self.tmp = os.path.join(TEMPDIR, 'test.pdb')
 
+        self.ubi = parsePDB(DATA_FILES['1ubi']['path'], secondary=True)
+
         self.hex = parsePDB(DATA_FILES['hex']['path'])
         self.h36 = parsePDB(DATA_FILES['h36']['path'])
+
+        self.hex_ter = parsePDB(DATA_FILES['hex_ter']['path'])
+        self.h36_ter = parsePDB(DATA_FILES['h36_ter']['path'])
+
+        self.altlocs = DATA_FILES['6flr']
+        self.altloc_full = parsePDB(self.altlocs['path'], altloc=None)
+        self.altloc_sel = DATA_FILES['6flr_sel']['path']
 
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR)
 
@@ -248,11 +310,11 @@ class TestWritePDB(unittest.TestCase):
         self.assertEqual(resnum_2710_line[22:26], '2710',
             'writePDB failed to write correct hex resnum')
 
-        serial_99999_line = lines[100000]
+        serial_99999_line = lines[99999]
         self.assertEqual(serial_99999_line[6:11], '99999',
             'writePDB failed to write correct pre-hex serial')        
 
-        serial_186a0_line = lines[100001]
+        serial_186a0_line = lines[100000]
         self.assertEqual(serial_186a0_line[6:11], '186a0',
             'writePDB failed to write correct hex serial')  
 
@@ -274,13 +336,22 @@ class TestWritePDB(unittest.TestCase):
         self.assertEqual(resnum_A000_line[22:26], 'A000',
             'writePDB failed to write correct h36 resnum')
 
-        serial_99999_line = lines[100000]
+        serial_99999_line = lines[99999]
         self.assertEqual(serial_99999_line[6:11], '99999',
-            'writePDB failed to write correct pre-h36 serial')        
+            'writePDB failed to write correct pre-h36 serial')
 
-        serial_A0000_line = lines[100001]
+        serial_A0000_line = lines[100000]
         self.assertEqual(serial_A0000_line[6:11], 'A0000',
-            'writePDB failed to write correct h36 serial') 
+            'writePDB failed to write correct h36 serial')
+        
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingSecstrs(self):
+        """Test if output from writing secstrs is as expected."""
+
+        out = writePDB(self.tmp, self.ubi)
+        ubi_new = parsePDB(out, secondary=True)
+        self.assertListEqual(list(self.ubi.getSecstrs()), list(ubi_new.getSecstrs()))
 
     @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
@@ -295,6 +366,86 @@ class TestWritePDB(unittest.TestCase):
                 'failed to write correct number of models')
             assert_equal(out.getCoords(), self.ag.getCoordsets(i),
                  'failed to write model {0} coordinates correctly'.format(i+1))
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingHexTer(self):
+        """Test if output from writing hexadecimal with TER lines is as expected."""
+
+        out = writePDB(self.tmp, self.hex_ter)
+        fi = open(out, 'r')
+        lines = fi.readlines()
+        fi.close()
+
+        pre_ter_line = lines[4060]
+        self.assertEqual(pre_ter_line[22:26], ' 550',
+            'writePDB failed to write correct pre-ter resnum')
+        self.assertEqual(pre_ter_line[6:11], ' 4060',
+            'writePDB failed to write correct pre-ter serial')
+
+        post_ter_line = lines[4062]
+        self.assertEqual(post_ter_line[22:26], '   4',
+            'writePDB failed to write correct post-ter resnum')
+        self.assertEqual(post_ter_line[6:11], ' 4062',
+            'writePDB failed to write correct post-ter serial')
+        
+        serial_99999_line = lines[99999]
+        self.assertEqual(serial_99999_line[6:11], '99999',
+            'writePDB failed to write correct pre-hex serial')
+
+        serial_186a0_line = lines[100000]
+        self.assertEqual(serial_186a0_line[6:11], '186a0',
+            'writePDB failed to write correct hex serial')
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingHybrid36Ter(self):
+        """Test if output from writing Hybrid36 with TER lines is as expected."""
+
+        out = writePDB(self.tmp, self.h36_ter, hybrid36=True)
+        fi = open(out, 'r')
+        lines = fi.readlines()
+        fi.close()
+
+        pre_ter_line = lines[4060]
+        self.assertEqual(pre_ter_line[22:26], ' 550',
+            'writePDB failed to write correct pre-ter resnum')
+        self.assertEqual(pre_ter_line[6:11], ' 4060',
+            'writePDB failed to write correct pre-ter serial')
+
+        post_ter_line = lines[4062]
+        self.assertEqual(post_ter_line[22:26], '   4',
+            'writePDB failed to write correct post-ter resnum')
+        self.assertEqual(post_ter_line[6:11], ' 4062',
+            'writePDB failed to write correct post-ter serial')
+
+        serial_99999_line = lines[99999]
+        self.assertEqual(serial_99999_line[6:11], '99999',
+            'writePDB failed to write correct pre-h36 serial')        
+
+        serial_A0000_line = lines[100000]
+        self.assertEqual(serial_A0000_line[6:11], 'A0000',
+            'writePDB failed to write correct h36 serial')
+        
+    def testWritingAltlocModels(self):
+        """Test if output from writing hexadecimal with TER lines is as expected."""
+
+        hisB234 = self.altloc_full.select('resname HIS and chain B and resnum 234 and name CA')
+        out = writePDB(self.tmp, hisB234)
+
+        fi = open(out, 'r')
+        lines1 = fi.readlines()
+        fi.close()
+
+        fi = open(self.altloc_sel, 'r')
+        lines2 = fi.readlines()
+        fi.close()
+        
+        self.assertEqual(lines1[4], lines2[4],
+            'writePDB failed to write correct ANISOU line 4 for 6flr selection with altloc None')
+        
+        self.assertEqual(lines1[8], lines2[8],
+            'writePDB failed to write correct ANISOU line 8 for 6flr selection with altloc None')
 
     @dec.slow
     def tearDown(self):
