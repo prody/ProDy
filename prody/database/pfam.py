@@ -39,9 +39,7 @@ FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'inserts': set(['lower', 'upper']),
                   'gaps': set(['mixed', 'dots', 'dashes', 'none'])})
 
-old_prefix = 'https://pfam.xfam.org/'
-prefix = 'https://pfam-legacy.xfam.org/'
-new_prefix = 'https://www.ebi.ac.uk/interpro/wwwapi/entry/'
+prefix = 'https://www.ebi.ac.uk/interpro/wwwapi/entry/'
 
 def searchPfam(query, **kwargs):
     """Returns Pfam search results in a dictionary.  Matching Pfam accession
@@ -94,10 +92,10 @@ def searchPfam(query, **kwargs):
             raise ValueError('A UniProt accession for PDB {0} could not be '
                                 'parsed.'.format(repr(seq)))
         else:
-            url = new_prefix + "all/protein/uniprot/" + accession
+            url = prefix + "all/protein/uniprot/" + accession
 
     else:
-        url = new_prefix + "all/protein/uniprot/" + seq
+        url = prefix + "all/protein/uniprot/" + seq
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
@@ -129,37 +127,10 @@ def searchPfam(query, **kwargs):
         LOGGER.warn('No Pfam matches found for: ' + seq)
         return None
     elif xml.find('No valid UniProt accession or ID') > 0:
-        try:
-            url = prefix + 'protein/' + accession + '?output=xml'
-            LOGGER.debug('Retrieving Pfam search results: ' + url)
-            xml = openURL(url, timeout=timeout).read()
-        except:
-            raise ValueError('No valid UniProt accession or ID for: ' + seq)
-        
-        if xml.find('No valid UniProt accession or ID') > 0:
-            try:
-                ag = parsePDB(seq, subset='ca')
-                ag_seq = ag.getSequence()
-                return searchPfam(ag_seq)
-            except:
-                try:
-                    url = 'https://uniprot.org/uniprot/' + accession + '.xml'
-                    xml = openURL(url, timeout=timeout).read()
-                    if len(xml) > 0:
-                        root = ET.XML(xml)
-                        accession = root[0][0].text
-
-                        url = prefix + 'protein/' + accession + '?output=xml'
-                        LOGGER.debug('Retrieving Pfam search results: ' + url)
-                        xml = openURL(url, timeout=timeout).read()
-                    else:
-                        raise ValueError('No valid UniProt accession or ID for: ' + seq)
-                except:
-                    raise ValueError('No valid UniProt accession or ID for: ' + seq)
+        raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
         root = json.loads(xml)
-        #return root
     except Exception as err:
         raise ValueError('failed to parse results XML, check URL: ' + url)
 
@@ -227,7 +198,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     if alignment not in DOWNLOAD_FORMATS:
         raise ValueError('alignment must be one of full, seed, or uniprot')
 
-    url = (new_prefix + "/pfam/" + acc + 
+    url = (prefix + "/pfam/" + acc + 
             '/?annotation=alignment:' + alignment + '&download')
     extension = '.sth'
 
