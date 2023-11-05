@@ -109,37 +109,20 @@ class TestFetchPfamMSA(unittest.TestCase):
         
         self.assertTrue(os.path.exists(b))
 
-        
-    def testFormat(self):
+    def testFolder(self):
         """Test the outcome of fetching the domain MSA for claudins
-        with keyword argument format set to fasta. This should give a 
-        ValueError for now"""
+        with keyword folder set to a folder that is made especially."""
 
-        self.assertRaises(ValueError, fetchPfamMSA, self.query, format="fasta")
-        # b = fetchPfamMSA(self.query, format="fasta")
+        folder = "new_folder"
+        os.mkdir(folder)
+        b = fetchPfamMSA(self.query, folder=folder)
 
-        # self.assertIsInstance(b, str,
-        #     'fetchPfamMSA failed to return a str instance')
+        self.assertIsInstance(b, str,
+            'fetchPfamMSA failed to return a str instance')
         
-        # self.assertEqual(b, 'PF00822_full.fasta')
+        self.assertEqual(b, 'new_folder/PF00822_full.slx')
         
-        # self.assertTrue(os.path.exists(b))
-
-
-    # def testFolder(self):
-    #     """Test the outcome of fetching the domain MSA for claudins
-    #     with keyword folder set to a folder that is made especially."""
-
-    #     folder = "new_folder"
-    #     os.mkdir(folder)
-    #     b = fetchPfamMSA(self.query, folder=folder)
-
-    #     self.assertIsInstance(b, str,
-    #         'fetchPfamMSA failed to return a str instance')
-        
-    #     self.assertEqual(b, 'new_folder/PF00822_full.slx')
-        
-    #     self.assertTrue(os.path.exists(b))
+        self.assertTrue(os.path.exists(b))
     
     @classmethod
     def tearDownClass(self):
