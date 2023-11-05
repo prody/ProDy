@@ -432,5 +432,5 @@ def parsePfamPDBs(query, data=[], **kwargs):
     else:
         LOGGER.warn('data should be a list in order to get output')
     
-    return results
+    return [result for result in results if result is not None]
 
