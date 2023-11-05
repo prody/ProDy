@@ -270,9 +270,14 @@ class TestWritePDB(unittest.TestCase):
         self.hex_ter = parsePDB(DATA_FILES['hex_ter']['path'])
         self.h36_ter = parsePDB(DATA_FILES['h36_ter']['path'])
 
+        oldSecondary = confProDy('auto_secondary')
+        confProDy(auto_secondary=True)
+
         self.altlocs = DATA_FILES['6flr']
         self.altloc_full = parsePDB(self.altlocs['path'], altloc=None)
         self.altloc_sel = DATA_FILES['6flr_sel']['path']
+
+        confProDy(auto_secondary=oldSecondary)
 
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR)
 
@@ -430,9 +435,6 @@ class TestWritePDB(unittest.TestCase):
     def testWritingAltlocModels(self):
         """Test if output from writing hexadecimal with TER lines is as expected."""
 
-        oldSecondary = confProDy('auto_secondary')
-        confProDy(auto_secondary=True)
-
         hisB234 = self.altloc_full.select('resname HIS and chain B and resnum 234 and name CA')
         out = writePDB(self.tmp, hisB234)
 
@@ -449,8 +451,6 @@ class TestWritePDB(unittest.TestCase):
         
         self.assertEqual(lines1[8], lines2[8],
             'writePDB failed to write correct ANISOU line 8 for 6flr selection with altloc None')
-        
-        confProDy(auto_secondary=oldSecondary)
 
     @dec.slow
     def tearDown(self):
