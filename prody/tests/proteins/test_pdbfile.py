@@ -207,11 +207,11 @@ class TestParsePDB(unittest.TestCase):
         self.assertEqual(hisB234.getAnisous().shape, (self.altlocs['num_altlocs'], 6),
             'parsePDB failed to have right shape for His B234 CA atoms getAnisous (2, 6) with altloc "all"')
 
-        self.assertEqual(hisB234.getAnisous()[0][0], self.altlocs['anisousA'][0],
-            'parsePDB failed to have right His B234 CA atoms getAnisous A with altloc "all"')
+        assert_allclose(hisB234.getAnisous()[0], self.altlocs['anisousA'][0],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous A with altloc "all"')
 
-        self.assertEqual(hisB234.getAnisous()[1][0], self.altlocs['anisousB'][0],
-            'parsePDB failed to have right His B234 CA atoms getAnisous B with altloc "all"')
+        assert_allclose(hisB234.getAnisous()[1], self.altlocs['anisousB'][0],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc "all"')
         
     def testAltlocNoneToMultiCoordets(self):
         """Test number of coordinate sets and atoms with altloc=None."""
@@ -231,13 +231,13 @@ class TestParsePDB(unittest.TestCase):
         self.assertEqual(hisB234.getAnisous().shape, (1, 6),
             'parsePDB failed to have right shape for His B234 CA atoms getAnisous (1, 6) with altloc None')
 
-        self.assertEqual(hisB234.getAnisous()[0], self.altlocs['anisousA'][0],
-            'parsePDB failed to have right His B234 CA atoms getAnisous A with altloc None')
+        assert_allclose(hisB234.getAnisous(), self.altlocs['anisousA'],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous A with altloc None')
 
         hisB234.setACSIndex(1)
 
-        self.assertEqual(hisB234.getAnisous()[0], self.altlocs['anisousB'][0],
-            'parsePDB failed to have right His B234 CA atoms getAnisous B with altloc None')
+        assert_allclose(hisB234.getAnisous(), self.altlocs['anisousB'],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc None')
 
 '''
     def testBiomolArgument(self):
