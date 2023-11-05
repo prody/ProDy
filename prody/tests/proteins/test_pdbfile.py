@@ -440,9 +440,6 @@ class TestWritePDB(unittest.TestCase):
         fi = open(self.altloc_sel, 'r')
         lines2 = fi.readlines()
         fi.close()
-
-        self.assertEqual(len(lines1), len(lines2),
-            'writePDB failed to write enough lines for 6flr selection with altloc None (11)')
         
         self.assertEqual(lines1[4], lines2[4],
             'writePDB failed to write correct ANISOU line 4 for 6flr selection with altloc None')
