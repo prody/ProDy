@@ -149,13 +149,13 @@ class TestParsePfamPDBs(unittest.TestCase):
         b = parsePfamPDBs(self.queries[0])
 
         self.assertIsInstance(b, list,
-            'fetchPfamMSA failed to return a list instance')
+            'parsePfamPDBs failed to return a list instance')
 
         self.assertIsInstance(b[0], Selection,
-            'fetchPfamMSA failed to return a list of Selection instances')
+            'parsePfamPDBs failed to return a list of Selection instances')
         
         self.assertEqual(len(b), 5,
-            'fetchPfamMSA failed to return a list of length 5')
+            'parsePfamPDBs failed to return a list of length 5')
 
 
     def testUniprotDefault(self):
@@ -166,13 +166,13 @@ class TestParsePfamPDBs(unittest.TestCase):
         b = parsePfamPDBs(self.queries[1])
 
         self.assertIsInstance(b, list,
-            'fetchPfamMSA failed to return a list instance')
+            'parsePfamPDBs failed to return a list instance')
 
         self.assertIsInstance(b[0], Selection,
-            'fetchPfamMSA failed to return a list of Selection instances')
+            'parsePfamPDBs failed to return a list of Selection instances')
         
         self.assertEqual(len(b), 5,
-            'fetchPfamMSA failed to return a list of length 5')
+            'parsePfamPDBs failed to return a list of length 5')
 
         
     def testMultiDomainDefault(self):
@@ -183,16 +183,16 @@ class TestParsePfamPDBs(unittest.TestCase):
         b = parsePfamPDBs(self.queries[2])
 
         self.assertIsInstance(b, list,
-            'fetchPfamMSA failed to return a list instance')
+            'parsePfamPDBs failed to return a list instance')
 
         self.assertIsInstance(b[0], Selection,
-            'fetchPfamMSA failed to return a list of Selection instances')
+            'parsePfamPDBs failed to return a list of Selection instances')
         
         self.assertEqual(len(b), 7,
-            'fetchPfamMSA failed to return a list of length 7')
+            'parsePfamPDBs failed to return a list of length 7')
         
         self.assertEqual(b[0].getResnums()[0], 262,
-            'fetchPfamMSA failed to return a first Selection with first resnum 262')        
+            'parsePfamPDBs failed to return a first Selection with first resnum 262')
 
     def testMultiDomainStart1(self):
         """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1, 
@@ -202,16 +202,16 @@ class TestParsePfamPDBs(unittest.TestCase):
         b = parsePfamPDBs(self.queries[2], start=1)
 
         self.assertIsInstance(b, list,
-            'fetchPfamMSA failed to return a list instance')
+            'parsePfamPDBs failed to return a list instance')
 
         self.assertIsInstance(b[0], Selection,
-            'fetchPfamMSA failed to return a list of Selection instances')
+            'parsePfamPDBs failed to return a list of Selection instances')
         
         self.assertEqual(len(b), 7,
-            'fetchPfamMSA failed to return a list of length 7')
+            'parsePfamPDBs failed to return a list of length 7')
         
         self.assertEqual(b[0].getResnums()[0], 262,
-            'fetchPfamMSA failed to return a first Selection with first resnum 262')  
+            'parsePfamPDBs failed to return a first Selection with first resnum 262')
         
     def testMultiDomainStart2(self):
         """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1, 
@@ -221,13 +221,13 @@ class TestParsePfamPDBs(unittest.TestCase):
         b = parsePfamPDBs(self.queries[2], start=418)
 
         self.assertIsInstance(b, list,
-            'fetchPfamMSA failed to return a list instance')
+            'parsePfamPDBs failed to return a list instance')
 
         self.assertIsInstance(b[0], Selection,
-            'fetchPfamMSA failed to return a list of Selection instances')
+            'parsePfamPDBs failed to return a list of Selection instances')
         
         self.assertEqual(b[0].getResnums()[0], 418,
-            'fetchPfamMSA failed to return a first Selection with first resnum 418')  
+            'parsePfamPDBs failed to return a first Selection with first resnum 418')
         
     @classmethod
     def tearDownClass(self):
