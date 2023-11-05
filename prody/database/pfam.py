@@ -122,6 +122,8 @@ def searchPfam(query, **kwargs):
 
     if PY3K:
         xml = xml.decode()
+    else:
+        xml = xml.encode()
 
     if xml.find('There was a system error on your last request.') > 0:
         LOGGER.warn('No Pfam matches found for: ' + seq)
@@ -294,6 +296,10 @@ def parsePfamPDBs(query, data=[], **kwargs):
     if len(query) > 4 and query.startswith('PF'):
         pfam_acc = query
     else:
+        if not isinstance(start, Integral) and not isinstance(end, Integral):
+            raise ValueError('Please provide an integer for start or end '
+                             'when using a UniProt ID or PDB ID.')
+
         pfam_matches = searchPfam(query, **kwargs)
         keys = list(pfam_matches.keys())
 
@@ -311,16 +317,12 @@ def parsePfamPDBs(query, data=[], **kwargs):
                 start_diff = np.array(start_diff)
                 pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
 
-        elif isinstance(end, Integral):
+        if isinstance(end, Integral):
             end_diff = []
             for i, key in enumerate(pfam_matches):
                 end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
             end_diff = np.array(end_diff)
             pfam_acc = keys[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
-
-        else:
-            raise ValueError('Please provide an integer for start or end '
-                             'when using a UniProt ID or PDB ID.')
 
     from ftplib import FTP
     from .uniprot import queryUniprot
