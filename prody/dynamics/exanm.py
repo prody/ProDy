@@ -183,7 +183,7 @@ class exANM(ANM):
 
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set. 
-        **kwargs** are passed to :method:`.buildMembrane`.
+        **kwargs** are passed to :meth:`.buildMembrane`.
 
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
@@ -232,7 +232,7 @@ class exANM(ANM):
         self._dof = self._hessian.shape[0]
         self._n_atoms = n_atoms
     
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+    def calcModes(self, n_modes=20, **kwargs):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Hessian matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
@@ -248,7 +248,7 @@ class exANM(ANM):
         :type turbo: bool, default is **True**
         """
 
-        super(exANM, self).calcModes(n_modes, zeros, turbo)
+        super(exANM, self).calcModes(n_modes, **kwargs)
 
     def getMembrane(self):
         """Returns a copy of the membrane coordinates."""

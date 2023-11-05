@@ -2,7 +2,7 @@
 
 from numpy import any, float32, tile
 
-__all__ = ['checkCoords', 'checkWeights', 'checkTypes']
+__all__ = ['checkCoords', 'checkWeights', 'checkTypes', 'checkAnisous']
 
 COORDS_NDIM = set([2])
 CSETS_NDIMS = set([2, 3])
@@ -133,5 +133,59 @@ def checkTypes(args, **types):
 
             raise TypeError('{0} must be an instance of {1}, not {2}'
                             .format(repr(arg), tstr, repr(type(val).__name__)))
+
+    return True
+
+A_CSETS_NDIMS = set([2, 6])
+
+def checkAnisous(anisous, csets=False, natoms=None, dtype=(float, float32),
+                name='anisous'):
+    """Returns **True** if shape, dimensionality, and data type of *anisous*
+    array are as expected.
+
+    :arg anisous: anisous array
+
+    :arg csets: whether multiple coordinate sets (i.e. ``.ndim in (2, 3)``) are
+        allowed, default is **False**
+
+    :arg natoms: number of atoms, if **None** number of atoms is not checked
+
+    :arg dtype: allowed data type(s), default is ``(float, numpy.float32)``,
+        if **None** data type is not checked
+
+    :arg name: name of the coordinate argument
+
+    :raises: :exc:`TypeError` when *anisous* is not an instance of
+        :class:`numpy.ndarray`
+
+    :raises: :exc:`ValueError` when wrong shape, dimensionality, or data type
+        is encountered"""
+
+    try:
+        ndim, shape = anisous.ndim, anisous.shape
+    except AttributeError:
+        raise TypeError('anisous must be a numpy.ndarray instance')
+
+    ndims = A_CSETS_NDIMS if csets else COORDS_NDIM
+    if ndim not in ndims:
+        raise ValueError(str(name) + '.ndim must be ' +
+                         ' or '.join([str(d) for d in ndims]))
+
+    elif shape[-1] != 6:
+        raise ValueError(str(name) + '.shape[-1] must be 6')
+
+    elif natoms and shape[-2] != natoms:
+        raise ValueError(str(name) + '.shape[-2] must match number of atoms')
+
+    elif dtype:
+        if isinstance(dtype, type) and anisous.dtype != dtype:
+            raise ValueError(str(name) + '.dtype must be ' + dtype.__name__)
+        elif anisous.dtype not in dtype:
+            if len(dtype) > 1:
+                msg = ', '.join([repr(dt.__name__) for dt in dtype[:-1]]
+                                ) + ', or ' + repr(dtype[-1].__name__)
+            else:
+                msg = dtype[0].__name__
+            raise ValueError(str(name) + '.dtype must be ' + msg)
 
     return True

@@ -251,7 +251,8 @@ class PackageLogger(object):
 
         if not hasattr(self, '_verb'):
             self._verb = self._getverbosity()
-            self._setverbosity('progress')
+            if self._level < logging.WARNING:
+                self._setverbosity('progress')
         self._n_progress += 1
 
     def update(self, step, msg=None, label=None):
