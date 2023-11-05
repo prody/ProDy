@@ -207,10 +207,10 @@ class TestParsePDB(unittest.TestCase):
         self.assertEqual(hisB234.getAnisous().shape, (self.altlocs['num_altlocs'], 6),
             'parsePDB failed to have right shape for His B234 CA atoms getAnisous (2, 6) with altloc "all"')
 
-        self.assertEqual(hisB234.getAnisous()[0], self.altlocs['anisousA'],
+        self.assertEqual(hisB234.getAnisous()[0][0], self.altlocs['anisousA'][0],
             'parsePDB failed to have right His B234 CA atoms getAnisous A with altloc "all"')
 
-        self.assertEqual(hisB234.getAnisous()[1], self.altlocs['anisousB'],
+        self.assertEqual(hisB234.getAnisous()[1][0], self.altlocs['anisousB'][0],
             'parsePDB failed to have right His B234 CA atoms getAnisous B with altloc "all"')
         
     def testAltlocNoneToMultiCoordets(self):
@@ -231,12 +231,12 @@ class TestParsePDB(unittest.TestCase):
         self.assertEqual(hisB234.getAnisous().shape, (1, 6),
             'parsePDB failed to have right shape for His B234 CA atoms getAnisous (1, 6) with altloc None')
 
-        self.assertEqual(hisB234.getAnisous(), self.altlocs['anisousA'],
+        self.assertEqual(hisB234.getAnisous()[0], self.altlocs['anisousA'][0],
             'parsePDB failed to have right His B234 CA atoms getAnisous A with altloc None')
 
         hisB234.setACSIndex(1)
 
-        self.assertEqual(hisB234.getAnisous(), self.altlocs['anisousB'],
+        self.assertEqual(hisB234.getAnisous()[0], self.altlocs['anisousB'][0],
             'parsePDB failed to have right His B234 CA atoms getAnisous B with altloc None')
 
 '''
