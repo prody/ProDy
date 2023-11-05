@@ -272,7 +272,7 @@ class TestWritePDB(unittest.TestCase):
 
         self.altlocs = DATA_FILES['6flr']
         self.altloc_full = parsePDB(self.altlocs['path'], altloc=None)
-        self.altloc_sel = parsePDB(DATA_FILES['6flr_sel']['path'])
+        self.altloc_sel = DATA_FILES['6flr_sel']['path']
 
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR)
 
@@ -437,7 +437,7 @@ class TestWritePDB(unittest.TestCase):
         lines1 = fi.readlines()
         fi.close()
 
-        fi = open(self.altloc_sel['path'], 'r')
+        fi = open(self.altloc_sel, 'r')
         lines2 = fi.readlines()
         fi.close()
 
