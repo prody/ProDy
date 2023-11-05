@@ -437,7 +437,7 @@ class TestWritePDB(unittest.TestCase):
         lines1 = fi.readlines()
         fi.close()
 
-        fi = open(self.altloc_sel, 'r')
+        fi = open(self.altloc_sel['path'], 'r')
         lines2 = fi.readlines()
         fi.close()
 
