@@ -260,6 +260,8 @@ def parsePfamPDBs(query, data=[], **kwargs):
         The PFAM domain that ends closest to this will be selected. 
     :type end: int
     """
+
+    only_parse = kwargs.pop('only_parse', False)
     
     start = kwargs.pop('start', 1)
     end = kwargs.pop('end', None)
@@ -341,10 +343,16 @@ def parsePfamPDBs(query, data=[], **kwargs):
     else:
         results = ags
 
+    if only_parse:
+        return results
+
     LOGGER.progress('Extracting Pfam domains...', len(ags))
     comma_splitter = re.compile(r'\s*,\s*').split
     no_info = []
     for i, ag in enumerate(ags):
+        if ag is None:
+            continue
+
         LOGGER.update(i)
         data_dict = data_dicts[i]
         pfamRange = data_dict['UniprotResnumRange'].split('-')
