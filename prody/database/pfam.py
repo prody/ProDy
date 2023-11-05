@@ -344,7 +344,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
         results = ags
 
     if only_parse:
-        return results
+        return [result for result in results if result is not None]
 
     LOGGER.progress('Extracting Pfam domains...', len(ags))
     comma_splitter = re.compile(r'\s*,\s*').split
