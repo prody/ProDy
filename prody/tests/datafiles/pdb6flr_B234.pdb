@@ -1,5 +1,4 @@
 REMARK Selection 'resname HIS and...234 and name CA'
-HELIX   21 AC3 HIS B  234  HIS B  234  1                                   1    
 MODEL        1
 ATOM      1  CA AHIS B 234      14.092 -10.803  78.631  0.50 76.86           C  
 ANISOU    1  CA AHIS B 234    13327   8826   7048    444   3365   1618       C  

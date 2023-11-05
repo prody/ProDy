@@ -270,14 +270,9 @@ class TestWritePDB(unittest.TestCase):
         self.hex_ter = parsePDB(DATA_FILES['hex_ter']['path'])
         self.h36_ter = parsePDB(DATA_FILES['h36_ter']['path'])
 
-        oldSecondary = confProDy('auto_secondary')
-        confProDy(auto_secondary=True)
-
         self.altlocs = DATA_FILES['6flr']
         self.altloc_full = parsePDB(self.altlocs['path'], altloc=None)
         self.altloc_sel = DATA_FILES['6flr_sel']['path']
-
-        confProDy(auto_secondary=oldSecondary)
 
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR)
 
