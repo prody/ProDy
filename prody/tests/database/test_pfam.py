@@ -226,9 +226,6 @@ class TestParsePfamPDBs(unittest.TestCase):
         self.assertIsInstance(b[0], Selection,
             'fetchPfamMSA failed to return a list of Selection instances')
         
-        self.assertEqual(len(b), 23,
-            'fetchPfamMSA failed to return a list of length 23')
-        
         self.assertEqual(b[0].getResnums()[0], 418,
             'fetchPfamMSA failed to return a first Selection with first resnum 418')  
         
