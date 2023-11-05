@@ -393,7 +393,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
                 pdbid = value['PDB']
             except:
                 continue
-            if pdbid != data_dict['PDB_ID']:
+            if pdbid.lower() != data_dict['PDB_ID'].lower():
                 continue
             pdbchains = value['chains']
 
