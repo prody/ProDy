@@ -131,7 +131,7 @@ class Contacts(object):
         return self._unitcell.copy()
 
 
-def iterNeighbors(atoms, radius, atoms2=None, unitcell=None):
+def iterNeighbors(atoms, radius, atoms2=None, unitcell=None, seqdist=None):
     """Yield pairs of *atoms* that are within *radius* of each other and the
     distance between them.  If *atoms2* is also provided, one atom from *atoms*
     and another from *atoms2* will be yielded.  If one of *atoms* or *atoms2*
@@ -199,7 +199,8 @@ def iterNeighbors(atoms, radius, atoms2=None, unitcell=None):
         _dict = {}
         if ag is None:
             for (i, j), r in zip(*kdtree(radius)):
-                yield (i, j, r)
+                if seqdist is None or abs(i.getResnum() - j.getResnum()) > seqdist:
+                    yield (i, j, r)
         else:
             for (i, j), r in zip(*kdtree(radius)):
                 a1 = _dict.get(i)
@@ -210,7 +211,8 @@ def iterNeighbors(atoms, radius, atoms2=None, unitcell=None):
                 if a2 is None:
                     a2 = Atom(ag, index(j), acsi)
                     _dict[j] = a2
-                yield (a1, a2, r)
+                if seqdist is None or abs(a1.getResnum() - a2.getResnum()) > seqdist:
+                    yield (a1, a2, r)
     else:
         try:
             coords2 = atoms2._getCoords()
@@ -251,7 +253,8 @@ def iterNeighbors(atoms, radius, atoms2=None, unitcell=None):
             if ag is None or ag2 is None:
                 for j, xyz in enumerate(coords2):
                     for i, r in zip(*kdtree(radius, xyz)):
-                        yield (i, j, r)
+                        if seqdist is None or abs(i.getResnum() - j.getResnum()) > seqdist:
+                            yield (i, j, r)
             else:
                 for a2 in atoms2.iterAtoms():
                     for i, r in zip(*kdtree(radius, a2._getCoords())):
@@ -259,14 +262,16 @@ def iterNeighbors(atoms, radius, atoms2=None, unitcell=None):
                         if a1 is None:
                             a1 = Atom(ag, index(i), acsi)
                             _dict[i] = a1
-                        yield (a1, a2, r)
+                        if seqdist is None or abs(a1.getResnum() - a2.getResnum()) > seqdist:
+                            yield (a1, a2, r)
         else:
             kdtree = KDTree(coords2, unitcell=unitcell, none=list)
             _dict = {}
             if ag is None or ag2 is None:
                 for i, xyz in enumerate(coords):
                     for j, r in zip(*kdtree(radius, xyz)):
-                        yield (i, j, r)
+                        if seqdist is None or abs(i.getResnum() - j.getResnum()) > seqdist:
+                            yield (i, j, r)
             else:
                 for a1 in atoms.iterAtoms():
                     for i, r in zip(*kdtree(radius, a1._getCoords())):
@@ -274,11 +279,12 @@ def iterNeighbors(atoms, radius, atoms2=None, unitcell=None):
                         if a2 is None:
                             a2 = Atom(ag2, index2(i), acsi2)
                             _dict[i] = a2
-                        yield (a1, a2, r)
+                        if seqdist is None or abs(a1.getResnum() - a2.getResnum()) > seqdist:
+                            yield (a1, a2, r)
 
 
-def findNeighbors(atoms, radius, atoms2=None, unitcell=None):
+def findNeighbors(atoms, radius, atoms2=None, unitcell=None, seqdist=None):
     """Returns list of neighbors that are within *radius* of each other and the
     distance between them.  See :func:`iterNeighbors` for more details."""
 
-    return list(iterNeighbors(atoms, radius, atoms2, unitcell))
+    return list(iterNeighbors(atoms, radius, atoms2, unitcell, seqdist))
