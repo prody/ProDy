@@ -133,14 +133,21 @@ class Contacts(object):
 
 def iterNeighbors(atoms, radius, atoms2=None, unitcell=None, seqdist=None):
     """Yield pairs of *atoms* that are within *radius* of each other and the
-    distance between them.  If *atoms2* is also provided, one atom from *atoms*
+    distance between them.  
+    
+    If *atoms2* is also provided, one atom from *atoms*
     and another from *atoms2* will be yielded.  If one of *atoms* or *atoms2*
     is a coordinate array, pairs of indices and distances will be yielded.
+    
     When orthorhombic *unitcell* dimensions are provided, periodic boundary
     conditions will be taken into account (see :class:`.KDTree` and also
     :func:`wrapAtoms` for details).  If *atoms* is a :class:`.Frame` instance
     and *unitcell* is not provided, unitcell information from frame will be
-    if available."""
+    used if available.
+    
+    If *seqdist* is provided, neighbors will be filtered out if the 
+    sequence distance is greater than *seqdist*.
+    """
 
     radius = float(radius)
     if radius <= 0:
