@@ -1441,9 +1441,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
         if had_atoms:
             atoms.setACSIndex(m)
-            anisous = atoms._getAnisous()
-            if anisous is not None:
-                anisous = np.array(anisous * 10000, dtype=int)
+        anisous = atoms._getAnisous()
+        if anisous is not None:
+            anisous = np.array(anisous * 10000, dtype=int)
 
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
