@@ -1261,6 +1261,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if coordsets is None:
         raise ValueError('atoms does not have any coordinate sets')
 
+    had_atoms = False
     try:
         acsi = atoms.getACSIndex()
         had_atoms = True
