@@ -549,7 +549,7 @@ def calcChHydrogenBonds(atoms, **kwargs):
     seq_cutoff = kwargs.pop('seq_cutoff', 25)
 
     if len(np.unique(atoms.getChids())) > 1:
-        HBS_calculations = calcHydrogenBonds(atoms, **kwargs)
+        HBS_calculations = calcHydrogenBonds(atoms, distA=distA, angle=angle, seq_cutoff=seq_cutoff)
     
         ChainsHBs = [ i for i in HBS_calculations if str(i[2]) != str(i[5]) ]
         if not ChainsHBs:
