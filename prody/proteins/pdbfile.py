@@ -1242,12 +1242,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         Default is **False**, which means using hexadecimal instead.
         NB: ChimeraX seems to prefer hybrid36 and may have problems with hexadecimal.
     :type hybrid36: bool
-    """
-    keepACSI = False
-    if hasattr(atoms, 'getACSIndex'):
-        initialACSI = atoms.getACSIndex()
-        keepACSI = True
-        
+    """    
     renumber = kwargs.get('renumber', True)
 
     remark = str(atoms)
@@ -1268,6 +1263,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
     try:
         acsi = atoms.getACSIndex()
+        had_atoms = True
     except AttributeError:
         try:
             atoms = atoms.getAtoms()
@@ -1442,10 +1438,11 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     num_ter_lines = 0
     for m, coords in enumerate(coordsets):
 
-        atoms.setACSIndex(m)
-        anisous = atoms._getAnisous()
-        if anisous is not None:
-            anisous = np.array(anisous * 10000, dtype=int)
+        if had_atoms:
+            atoms.setACSIndex(m)
+            anisous = atoms._getAnisous()
+            if anisous is not None:
+                anisous = np.array(anisous * 10000, dtype=int)
 
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
@@ -1618,8 +1615,8 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             
     write('END   ' + " "*74 + '\n')
 
-    if keepACSI:
-        atoms.setACSIndex(initialACSI)
+    if had_atoms:
+        atoms.setACSIndex(acsi)
 
 writePDBStream.__doc__ += _writePDBdoc
 
