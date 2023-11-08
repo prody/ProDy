@@ -487,27 +487,27 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         mask = (altlocs == '') | (altlocs == altlocs[0])
 
     if addcoords:
-        atomgroup.addCoordset(coordinates[mask])
+        atomgroup.addCoordset(coordinates[mask][:modelSize])
     else:
-        atomgroup._setCoords(coordinates[mask])
+        atomgroup._setCoords(coordinates[mask][:modelSize])
 
-    atomgroup.setNames(atomnames[mask])
-    atomgroup.setResnames(resnames[mask])
-    atomgroup.setResnums(resnums[mask])
-    atomgroup.setSegnames(segnames[mask])
-    atomgroup.setChids(chainids[mask])
-    atomgroup.setFlags('hetatm', hetero[mask])
-    atomgroup.setFlags('pdbter', termini[mask])
-    atomgroup.setFlags('selpdbter', termini[mask])
-    atomgroup.setAltlocs(altlocs[mask])
-    atomgroup.setIcodes(icodes[mask])
-    atomgroup.setSerials(serials[mask])
+    atomgroup.setNames(atomnames[mask][:modelSize])
+    atomgroup.setResnames(resnames[mask][:modelSize])
+    atomgroup.setResnums(resnums[mask][:modelSize])
+    atomgroup.setSegnames(segnames[mask][:modelSize])
+    atomgroup.setChids(chainids[mask][:modelSize])
+    atomgroup.setFlags('hetatm', hetero[mask][:modelSize])
+    atomgroup.setFlags('pdbter', termini[mask][:modelSize])
+    atomgroup.setFlags('selpdbter', termini[mask][:modelSize])
+    atomgroup.setAltlocs(altlocs[mask][:modelSize])
+    atomgroup.setIcodes(icodes[mask][:modelSize])
+    atomgroup.setSerials(serials[mask][:modelSize])
 
-    atomgroup.setElements(elements[mask])
+    atomgroup.setElements(elements[mask][:modelSize])
     from prody.utilities.misctools import getMasses
-    atomgroup.setMasses(getMasses(elements[mask]))
-    atomgroup.setBetas(bfactors[mask])
-    atomgroup.setOccupancies(occupancies[mask])
+    atomgroup.setMasses(getMasses(elements[mask][:modelSize]))
+    atomgroup.setBetas(bfactors[mask][:modelSize])
+    atomgroup.setOccupancies(occupancies[mask][:modelSize])
 
     anisou = None
     siguij = None
@@ -556,6 +556,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
     if model is None:
         for n in range(1, nModels):
-            atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
+            atomgroup.addCoordset(coordinates[mask][n*modelSize:(n+1)*modelSize])
 
     return atomgroup
