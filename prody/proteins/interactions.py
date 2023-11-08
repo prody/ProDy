@@ -4094,14 +4094,10 @@ class LigandInteractionsTrajectory(object):
                         Selection pointed as None will return all interactions together
                         without ligands separation.
         :type selection: str
-
-        :arg contacts_min: Minimal number of contacts which residue may form with ligand.
-                            by default is 2. 
-        :type contacts_min: int  """
+        """
 
         atoms = self._atoms   
         interactions = self._interactions_traj
-        contacts_min = kwargs.pop('contacts_min', 2)
         selection = kwargs.pop('selection', None)
         
         from collections import Counter
