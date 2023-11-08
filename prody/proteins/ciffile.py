@@ -302,7 +302,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     doneAtomBlock = False
     start = 0
     stop = 0
-    warnedAltloc = False
     while not doneAtomBlock:
         line = lines[i]
         if line[:11] == '_atom_site.':
@@ -434,8 +433,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 continue
 
         alt = line.split()[fields['label_alt_id']]
-        if not (alt in which_altlocs or ascii_uppercase[int(alt)-1] in which_altlocs) and which_altlocs != 'all':
-            continue
 
         if alt == '.':
             alt = ' '
@@ -483,28 +480,36 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     else:
         modelSize = acount
 
+    mask = np.full(modelSize, True, dtype=bool)
+    if which_altlocs != 'all':
+        #mask out any unwanted alternative locations
+        mask = (altlocs == '') | (altlocs == which_altlocs)
+
+    if np.all(mask == False):
+        mask = (altlocs == '') | (altlocs == altlocs[0])
+
     if addcoords:
-        atomgroup.addCoordset(coordinates[:modelSize])
+        atomgroup.addCoordset(coordinates[mask])
     else:
-        atomgroup._setCoords(coordinates[:modelSize])
+        atomgroup._setCoords(coordinates[mask])
 
-    atomgroup.setNames(atomnames[:modelSize])
-    atomgroup.setResnames(resnames[:modelSize])
-    atomgroup.setResnums(resnums[:modelSize])
-    atomgroup.setSegnames(segnames[:modelSize])
-    atomgroup.setChids(chainids[:modelSize])
-    atomgroup.setFlags('hetatm', hetero[:modelSize])
-    atomgroup.setFlags('pdbter', termini[:modelSize])
-    atomgroup.setFlags('selpdbter', termini[:modelSize])
-    atomgroup.setAltlocs(altlocs[:modelSize])
-    atomgroup.setIcodes(icodes[:modelSize])
-    atomgroup.setSerials(serials[:modelSize])
+    atomgroup.setNames(atomnames[mask])
+    atomgroup.setResnames(resnames[mask])
+    atomgroup.setResnums(resnums[mask])
+    atomgroup.setSegnames(segnames[mask])
+    atomgroup.setChids(chainids[mask])
+    atomgroup.setFlags('hetatm', hetero[mask])
+    atomgroup.setFlags('pdbter', termini[mask])
+    atomgroup.setFlags('selpdbter', termini[mask])
+    atomgroup.setAltlocs(altlocs[mask])
+    atomgroup.setIcodes(icodes[mask])
+    atomgroup.setSerials(serials[mask])
 
-    atomgroup.setElements(elements[:modelSize])
+    atomgroup.setElements(elements[mask])
     from prody.utilities.misctools import getMasses
-    atomgroup.setMasses(getMasses(elements[:modelSize]))
-    atomgroup.setBetas(bfactors[:modelSize])
-    atomgroup.setOccupancies(occupancies[:modelSize])
+    atomgroup.setMasses(getMasses(elements[mask]))
+    atomgroup.setBetas(bfactors[mask])
+    atomgroup.setOccupancies(occupancies[mask])
 
     anisou = None
     siguij = None
