@@ -88,7 +88,7 @@ def parseMMCIF(pdb, **kwargs):
     auto_bonds = SETTINGS.get('auto_bonds')
     get_bonds = kwargs.get('bonds', auto_bonds)
     if get_bonds:
-        LOGGER.warn('Parsing struct_conn information from mmCIF is current unsupported and no bond information is added to the results')
+        LOGGER.warn('Parsing struct_conn information from mmCIF is currently unsupported and no bond information is added to the results')
     if not os.path.isfile(pdb):
         if len(pdb) == 5 and pdb.isalnum():
             if chain is None:
@@ -107,8 +107,12 @@ def parseMMCIF(pdb, **kwargs):
 
             if os.path.isfile(pdb + '.cif'):
                 filename = pdb + '.cif'
+                LOGGER.debug('CIF file is found in working directory ({0}).'
+                            .format(filename))
             elif os.path.isfile(pdb + '.cif.gz'):
                 filename = pdb + '.cif.gz'
+                LOGGER.debug('CIF file is found in working directory ({0}).'
+                            .format(filename))
             else:
                 filename = fetchPDB(pdb, report=True,
                                     format='cif', compressed=False)
