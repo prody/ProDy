@@ -216,11 +216,11 @@ def fetchPDB(*pdb, **kwargs):
 
     folder = kwargs.get('folder', '.')
     compressed = kwargs.get('compressed')
-    format = kwargs.get('format')
+    format_ = kwargs.get('format')
 
     # check *folder* specified by the user, usually pwd ('.')
     filedict = findPDBFiles(folder, compressed=compressed, 
-                            format=format)
+                            format=format_)
 
     filenames = []
     not_found = []
@@ -231,8 +231,6 @@ def fetchPDB(*pdb, **kwargs):
         elif pdb in filedict:
             filenames.append(filedict[pdb])
             exists += 1
-            LOGGER.debug('{0} file is found in working directory ({1}).'
-                         .format(format.upper(), sympath(filedict[pdb])))
         else:
             filenames.append(None)
             not_found.append((i, pdb))
@@ -242,7 +240,7 @@ def fetchPDB(*pdb, **kwargs):
             filenames = filenames[0]
             if exists:
                 LOGGER.debug('{0} file is found in working directory ({1}).'
-                             .format(format.upper(), sympath(filedict[pdb])))
+                             .format(format_.upper(), sympath(filedict[pdb])))
         return filenames
 
     if not isWritable(folder):
