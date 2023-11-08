@@ -285,7 +285,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     :arg lines: mmCIF lines
 
     :arg report: whether to report warnings about not finding data
-        default True
+        default False
     :type report: bool
     """
 

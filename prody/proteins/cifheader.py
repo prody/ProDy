@@ -129,7 +129,7 @@ def getCIFHeaderDict(stream, *keys, **kwargs):
     or a stream.
 
     :arg report: whether to report warnings about not finding data
-        default True
+        default False
     :type report: bool
     """
 
