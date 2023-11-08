@@ -2358,6 +2358,37 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     LOGGER.info("TCL file saved")
 
 
+def SMINA_extract_data(result):
+    """Supporting function for analysis of the SMINA results."""
+    import re
+    
+    data = {}
+    result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
+    matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
+    for match in matches:
+        key = match.group('key')
+        value = float(match.group(2))
+        data[key] = value
+
+    intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
+    if intramolecular_energy_match:
+        data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
+
+    terms_and_weights_match = re.search(r'Weights\s+Terms\n(.*?)(?=\n## Name)', result, re.DOTALL)
+    if terms_and_weights_match:
+        terms_and_weights_text = terms_and_weights_match.group(1)
+        term_lines = terms_and_weights_text.strip().split('\n')
+        term_dict = {}
+        for line in term_lines[1:]:
+            parts = line.split()
+            weight = float(parts[0])
+            term = ' '.join(parts[1:])
+            term_dict[term] = weight
+        data.update(term_dict)
+    
+    return data
+
+
 def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
     """Computing binding affinity of ligand toward protein structure
     usig SMINA package [DRK13]_.
@@ -2450,7 +2481,6 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 writePDB(temp_pdb_file.name, protein)
                 writePDB(temp_pdb_file_lig.name, ligand)
 
-                data = {}
                 if atom_terms == False:
                     command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
                                                         temp_pdb_file_lig.name, scoring_function)
@@ -2459,18 +2489,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                                                         temp_pdb_file_lig.name, scoring_function, j0)
                 
                 result = subprocess.check_output(command, shell=True, text=True)
-                result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
-
-                matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
-                for match in matches:
-                    key = match.group('key')
-                    value = float(match.group(2))
-                    data[key] = value
-
-                intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
-                if intramolecular_energy_match:
-                    data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
-
+                data = SMINA_extract_data(result)
                 LOGGER.info('Frame {0}: {1} kcal/mol'.format(j0, data['Affinity']))
                 bindingAffinity.append(data['Affinity'])
         
@@ -2488,7 +2507,6 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 writePDB(temp_pdb_file.name, protein)
                 writePDB(temp_pdb_file_lig.name, ligand)
 
-                data = {}
                 if atom_terms == False:
                     command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
                                                         temp_pdb_file_lig.name, scoring_function)
@@ -2497,18 +2515,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                                                         temp_pdb_file_lig.name, scoring_function)
                
                 result = subprocess.check_output(command, shell=True, text=True)
-                result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
-
-                matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
-                for match in matches:
-                    key = match.group('key')
-                    value = float(match.group(2))
-                    data[key] = value
-
-                intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
-                if intramolecular_energy_match:
-                    data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
-
+                data = SMINA_extract_data(result)
                 bindingAffinity.append(data['Affinity'])
 
         if atoms.numCoordsets() > 1:
@@ -2524,7 +2531,6 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                     writePDB(temp_pdb_file.name, protein, csets=atoms.getACSIndex())
                     writePDB(temp_pdb_file_lig.name, ligand, csets=atoms.getACSIndex())
 
-                    data = {}
                     if atom_terms == False:
                         command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
                                                             temp_pdb_file_lig.name, scoring_function)
@@ -2533,18 +2539,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                                                         temp_pdb_file_lig.name, scoring_function, i+start_frame)
                
                     result = subprocess.check_output(command, shell=True, text=True)
-                    result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
-
-                    matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
-                    for match in matches:
-                        key = match.group('key')
-                        value = float(match.group(2))
-                        data[key] = value
-
-                    intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
-                    if intramolecular_energy_match:
-                        data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
-
+                    data = SMINA_extract_data(result)
                     LOGGER.info('Model {0}: {1} kcal/mol'.format(i+start_frame, data['Affinity']))
                     bindingAffinity.append(data['Affinity'])
 
