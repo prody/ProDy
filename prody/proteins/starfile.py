@@ -1031,7 +1031,12 @@ def parseSTARSection(lines, key, report=True):
     corresponding to a *key* (part before the dot). 
     This can be a loop or data block.
     
-    Returns data encapulated in a list and the associated fields."""
+    Returns data encapulated in a list and the associated fields.
+    
+    :arg report: whether to report warnings about not finding data
+        default True
+    :type report: bool
+    """
 
     if not isinstance(key, str):
         raise TypeError("key should be a string")
