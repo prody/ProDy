@@ -6,6 +6,7 @@
 
 from collections import OrderedDict
 import os.path
+from numbers import Integral
 import numpy as np
 
 from prody.atomic import AtomGroup
@@ -18,6 +19,8 @@ from .localpdb import fetchPDB
 from .starfile import parseSTARLines, StarDict, parseSTARSection
 from .cifheader import getCIFHeaderDict
 from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
+
+from string import ascii_uppercase
 
 __all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF']
 
@@ -300,6 +303,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     doneAtomBlock = False
     start = 0
     stop = 0
+    warnedAltloc = False
     while not doneAtomBlock:
         line = lines[i]
         if line[:11] == '_atom_site.':
@@ -432,7 +436,12 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
         alt = line.split()[fields['label_alt_id']]
         if alt not in which_altlocs and which_altlocs != 'all':
-            continue
+            try:
+                alt = ascii_uppercase[int(alt)]
+            except TypeError:
+                if not warnedAltloc:
+                    LOGGER.warn('alt {0} not in which_altlocs {1}'.format(alt, which_altlocs))
+                continue
 
         if alt == '.':
             alt = ' '
