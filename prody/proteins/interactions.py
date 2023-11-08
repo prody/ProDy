@@ -2455,8 +2455,8 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                     command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
                                                         temp_pdb_file_lig.name, scoring_function)
                 else:
-                    command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms.txt".format(temp_pdb_file.name, 
-                                                        temp_pdb_file_lig.name, scoring_function)
+                    command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms_{}.txt".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function, j0)
                 
                 result = subprocess.check_output(command, shell=True, text=True)
                 result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
@@ -2529,8 +2529,8 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                         command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
                                                             temp_pdb_file_lig.name, scoring_function)
                     else:
-                        command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms.txt".format(temp_pdb_file.name, 
-                                                        temp_pdb_file_lig.name, scoring_function)
+                        command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms_{}.txt".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function, i+start_frame)
                
                     result = subprocess.check_output(command, shell=True, text=True)
                     result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
