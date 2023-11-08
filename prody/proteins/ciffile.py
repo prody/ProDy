@@ -6,7 +6,6 @@
 
 from collections import OrderedDict
 import os.path
-from numbers import Integral
 import numpy as np
 
 from prody.atomic import AtomGroup
@@ -437,7 +436,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         alt = line.split()[fields['label_alt_id']]
         if alt not in which_altlocs and which_altlocs != 'all':
             try:
-                alt = ascii_uppercase[int(alt)]
+                alt = ascii_uppercase[int(alt)-1]
             except TypeError:
                 if not warnedAltloc:
                     LOGGER.warn('alt {0} not in which_altlocs {1}'.format(alt, which_altlocs))
