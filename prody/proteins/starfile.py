@@ -1026,7 +1026,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     return np.array(images), parsed_images_data
 
 
-def parseSTARSection(lines, key):
+def parseSTARSection(lines, key, report=True):
     """Parse a section of data from *lines* from a STAR file 
     corresponding to a *key* (part before the dot). 
     This can be a loop or data block.
@@ -1077,7 +1077,8 @@ def parseSTARSection(lines, key):
         else:
             data = [loop_dict["data"]]
     else:
-        LOGGER.warn("Could not find {0} in lines.".format(key))
+        if report:
+            LOGGER.warn("Could not find {0} in lines.".format(key))
         return []
 
     return data
