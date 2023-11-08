@@ -145,7 +145,7 @@ def _parseMMTF(mmtf_struc, **kwargs):
     chain = kwargs.get('chain')
     header = kwargs.get('header', False)
     get_bonds = kwargs.get('bonds',False) 
-    altloc_sel = kwargs.get('altloc', 'A')
+    altloc_sel = kwargs.get('altloc', None)
     
     assert isinstance(header, bool), 'header must be a boolean'
 
@@ -223,7 +223,7 @@ def _bio_transform(dec):
         ret[t['name']] = L
     return ret
 
-def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
+def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel=None):
 
     mmtfHETATMtypes = set([
         "D-SACCHARIDE",
@@ -324,8 +324,9 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
     mask = np.full(asize, True, dtype=bool)
     if altloc_sel != 'all':
         #mask out any unwanted alternative locations
-        mask = (altlocs == '') | (altlocs == altloc_sel)
-        if np.all(mask == False) and len(altlocs):
+        default_altloc = altloc_sel if altloc_sel != None else 'A'
+        mask = (altlocs == '') | (altlocs == default_altloc)
+        if np.all(mask == False) and altloc_sel == None and len(altlocs):
             #nothing selected, use first altloc; 6uwi
             mask = altlocs == altlocs[0]            
         
