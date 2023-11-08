@@ -512,7 +512,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         LOGGER.warn("No anisotropic B factors found")
     else:
         anisou = np.zeros((acount, 6),
-                          dtype=ATOMIC_FIELDS['anisou'].dtype)
+                          dtype=float)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
             siguij = np.zeros((acount, 6),
