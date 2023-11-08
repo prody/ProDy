@@ -2380,6 +2380,11 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                            by default is "vina"
     
     :type ligand_selection: str
+    
+    :arg atom_terms: write per-atom interaction term values
+                     by default is False,
+    :type atom_terms: bool
+     
 
     SMINA installation is required to compute ligand binding affinity:
     >> conda install -c conda-forge smina       (for Anaconda)
@@ -2414,6 +2419,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
     protein_selection = kwargs.pop('protein_selection', "protein")
     ligand_selection = kwargs.pop('ligand_selection', "all not protein")
     scoring_function = kwargs.pop('scoring_function', 'vina')
+    atom_terms = kwargs.pop('atom_terms', False)
     bindingAffinity = []
 
     if trajectory is not None:
@@ -2445,9 +2451,14 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 writePDB(temp_pdb_file_lig.name, ligand)
 
                 data = {}
-                command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
+                if atom_terms == False:
+                    command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function)
+                else:
+                    command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms.txt".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function)
+                
                 result = subprocess.check_output(command, shell=True, text=True)
-
                 result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
 
                 matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
@@ -2478,9 +2489,14 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 writePDB(temp_pdb_file_lig.name, ligand)
 
                 data = {}
-                command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
+                if atom_terms == False:
+                    command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function)
+                else:
+                    command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms.txt".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function)
+               
                 result = subprocess.check_output(command, shell=True, text=True)
-
                 result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
 
                 matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
@@ -2509,9 +2525,14 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                     writePDB(temp_pdb_file_lig.name, ligand, csets=atoms.getACSIndex())
 
                     data = {}
-                    command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
+                    if atom_terms == False:
+                        command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
+                                                            temp_pdb_file_lig.name, scoring_function)
+                    else:
+                        command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms.txt".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function)
+               
                     result = subprocess.check_output(command, shell=True, text=True)
-
                     result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
 
                     matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
