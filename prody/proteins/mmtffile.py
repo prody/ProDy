@@ -41,9 +41,11 @@ _parseMMTFdoc = """
 
     :arg altloc: if a location indicator is passed, such as ``'A'`` or ``'B'``,
          only indicated alternate locations will be parsed as the single
-         coordinate set of the AtomGroup, if *altloc* is set **True** all
+         coordinate set of the AtomGroup. If *altloc* is ``'all'`` then all
          alternate locations will be parsed and each will be appended as a
-         distinct coordinate set, default is ``"A"``
+         distinct coordinate set, default is ``"A"``.  In the rare instance
+         where all atoms have a location indicator specified and this does not
+         match altloc, the first location indicator in the file is used.
     :type altloc: str
     """
 
