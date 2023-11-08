@@ -323,6 +323,9 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
     if altloc_sel != 'all':
         #mask out any unwanted alternative locations
         mask = (altlocs == '') | (altlocs == altloc_sel)
+        if np.all(mask == False) and len(altlocs):
+            #nothing selected, use first altloc; 6uwi
+            mask = altlocs == altlocs[0]            
         
     atomgroup.setCoords(coords[:,mask])
     atomgroup.setNames(atom_names[mask])
