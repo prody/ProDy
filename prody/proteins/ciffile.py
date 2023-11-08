@@ -19,8 +19,6 @@ from .starfile import parseSTARLines, StarDict, parseSTARSection
 from .cifheader import getCIFHeaderDict
 from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
 
-from string import ascii_uppercase
-
 __all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF']
 
 
