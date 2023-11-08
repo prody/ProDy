@@ -2513,7 +2513,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
 
         if atoms.numCoordsets() > 1:
             # Multi-model PDB
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
                 atoms.setACSIndex(i+start_frame) 
                 protein = atoms.select(protein_selection)
                 ligand = atoms.select(ligand_selection)        
@@ -3935,7 +3935,7 @@ class LigandInteractionsTrajectory(object):
 
         else:
             if atoms.numCoordsets() > 1:
-                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
                     LOGGER.info(' ')
                     LOGGER.info('Model: {0}'.format(i+start_frame))
                     atoms.setACSIndex(i+start_frame) 
