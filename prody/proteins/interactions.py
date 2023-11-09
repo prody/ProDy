@@ -2420,8 +2420,11 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
     
     :type ligand_selection: str
     
-    :arg atom_terms: write per-atom interaction term values
-                     by default is False,
+    :arg atom_terms: write per-atom interaction term values.
+                     It will provide more information as dictionary for each frame/model,
+                     and details for atom terms will be saved in terms_*frame_number*.txt,    
+                     by default is False
+
     :type atom_terms: bool
      
 
