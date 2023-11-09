@@ -2363,29 +2363,37 @@ def SMINA_extract_data(result):
     import re
     
     data = {}
-    result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
-    matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
-    for match in matches:
-        key = match.group('key')
-        value = float(match.group(2))
-        data[key] = value
 
+    # Extracting Affinity from SMINA output
+    affinity_match = re.search(r'Affinity: ([0-9.-]+) \(kcal/mol\)', result)
+    if affinity_match:
+        data['Affinity'] = float(affinity_match.group(1))
+
+    # Extracting Intramolecular energy from SMINA output
     intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
     if intramolecular_energy_match:
         data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
 
-    terms_and_weights_match = re.search(r'Weights\s+Terms\n(.*?)(?=\n## Name)', result, re.DOTALL)
-    if terms_and_weights_match:
-        terms_and_weights_text = terms_and_weights_match.group(1)
-        term_lines = terms_and_weights_text.strip().split('\n')
+    # Extracting Weights and Terms from SMINA output
+    weights_terms_match = re.search(r'Weights\s+Terms\s*([\s\S]*?)## Name', result, re.DOTALL)
+    if weights_terms_match:
+        weights_terms_text = weights_terms_match.group(1)
+        term_lines = weights_terms_text.strip().split('\n')
         term_dict = {}
-        for line in term_lines[1:]:
+        for line in term_lines:
             parts = line.split()
-            weight = float(parts[0])
-            term = ' '.join(parts[1:])
-            term_dict[term] = weight
+            if len(parts) >= 2: 
+                weight = float(parts[0])
+                term = ' '.join(parts[1:])
+                term_dict[term] = weight
         data.update(term_dict)
-    
+        
+    term_values_match = re.search(r'Term values, before weighting:\n##\s+(.*?)\n', result, re.DOTALL)
+    if term_values_match:
+        term_values_text = term_values_match.group(1)
+        term_values_array = np.array([float(value) for value in term_values_text.split()])
+        data['Term values, before weighting'] = term_values_array.tolist()           
+        
     return data
 
 
@@ -2468,7 +2476,8 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
 
         atoms_copy = atoms.copy()
-
+        data_final = []
+        
         for j0, frame0 in enumerate(traj, start=start_frame):
             atoms_copy.setCoords(frame0.getCoords())        
             protein = atoms_copy.select(protein_selection)
@@ -2492,6 +2501,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 data = SMINA_extract_data(result)
                 LOGGER.info('Frame {0}: {1} kcal/mol'.format(j0, data['Affinity']))
                 bindingAffinity.append(data['Affinity'])
+                data_final.append(data)
         
         trajectory._nfi = nfi
                 
@@ -2516,10 +2526,12 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                
                 result = subprocess.check_output(command, shell=True, text=True)
                 data = SMINA_extract_data(result)
+                data_final = data
                 bindingAffinity.append(data['Affinity'])
 
         if atoms.numCoordsets() > 1:
             # Multi-model PDB
+            data_final = []
             for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
                 atoms.setACSIndex(i+start_frame) 
                 protein = atoms.select(protein_selection)
@@ -2542,11 +2554,15 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                     data = SMINA_extract_data(result)
                     LOGGER.info('Model {0}: {1} kcal/mol'.format(i+start_frame, data['Affinity']))
                     bindingAffinity.append(data['Affinity'])
+                    data_final.append(data)
 
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.') 
 
-    return bindingAffinity
+    if atom_terms == False:
+        return bindingAffinity
+    else:
+        return data_final
 
 
 class Interactions(object):
