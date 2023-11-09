@@ -19,6 +19,8 @@ from .starfile import parseSTARLines, StarDict, parseSTARSection
 from .cifheader import getCIFHeaderDict
 from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
 
+from string import ascii_uppercase
+
 __all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF']
 
 
@@ -86,7 +88,7 @@ def parseMMCIF(pdb, **kwargs):
     auto_bonds = SETTINGS.get('auto_bonds')
     get_bonds = kwargs.get('bonds', auto_bonds)
     if get_bonds:
-        LOGGER.warn('Parsing struct_conn information from mmCIF is current unsupported and no bond information is added to the results')
+        LOGGER.warn('Parsing struct_conn information from mmCIF is currently unsupported and no bond information is added to the results')
     if not os.path.isfile(pdb):
         if len(pdb) == 5 and pdb.isalnum():
             if chain is None:
@@ -105,8 +107,12 @@ def parseMMCIF(pdb, **kwargs):
 
             if os.path.isfile(pdb + '.cif'):
                 filename = pdb + '.cif'
+                LOGGER.debug('CIF file is found in working directory ({0}).'
+                            .format(filename))
             elif os.path.isfile(pdb + '.cif.gz'):
                 filename = pdb + '.cif.gz'
+                LOGGER.debug('CIF file is found in working directory ({0}).'
+                            .format(filename))
             else:
                 filename = fetchPDB(pdb, report=True,
                                     format='cif', compressed=False)
@@ -300,6 +306,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     doneAtomBlock = False
     start = 0
     stop = 0
+    warnedAltloc = False
     while not doneAtomBlock:
         line = lines[i]
         if line[:11] == '_atom_site.':
@@ -431,7 +438,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 continue
 
         alt = line.split()[fields['label_alt_id']]
-        if alt not in which_altlocs and which_altlocs != 'all':
+        if not (alt in which_altlocs or ascii_uppercase[int(alt)-1] in which_altlocs) and which_altlocs != 'all':
             continue
 
         if alt == '.':
@@ -505,12 +512,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
     anisou = None
     siguij = None
-    try:
-        data = parseSTARSection(lines, "_atom_site_anisotrop")
-        x = data[0] # check if data has anything in it
-    except IndexError:
-        LOGGER.warn("No anisotropic B factors found")
-    else:
+    data = parseSTARSection(lines, "_atom_site_anisotrop", report=False)
+    if len(data) > 0:
         anisou = np.zeros((acount, 6),
                           dtype=float)
         
