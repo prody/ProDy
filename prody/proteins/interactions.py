@@ -45,7 +45,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
-           'calcSminaBindingAffinity']
+           'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions']
 
 
 def cleanNumbers(listContacts):
@@ -2399,7 +2399,7 @@ def SMINA_extract_data(result):
 
 def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
     """Computing binding affinity of ligand toward protein structure
-    usig SMINA package [DRK13]_.
+    using SMINA package [DRK13]_.
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
@@ -2566,6 +2566,52 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
         return bindingAffinity
     else:
         return data_final
+
+
+def calcSminaPerAtomInteractions(atoms, list_terms):
+    """Computing the summary of per-atom interaction term values
+    using SMINA package [DRK13]_. It will return dictionary with per-atom interaction term values.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+    
+    :arg list_terms: List of *terms.txt* files obtained from meth:`.calcSminaBindingAffinity`
+                     using *atom_terms = True*
+    :type list_terms: list 
+    """
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+    
+    ref_file = list_terms[0]
+    infile = open(ref_file, 'r').readlines()
+    dict_terms = {}
+    for nr_j, j in enumerate(infile[1:-2]):
+            inter_type = j.split()[0]
+            xyz = j.split()[1].strip('<').strip('>').split(',')
+            try:
+                xyz_atom = (atoms2.select('x `'+str(xyz[0])+'` y `'+str(xyz[1])+'` z `'+str(xyz[2])+'`')).getNames()[0]
+            except:
+                xyz_atom = ' '
+
+            sum_of_energy = np.sum([float(i) for i in j.split()[2:]])
+            atom_name_with_type = inter_type+ '  '+xyz_atom
+            dict_terms[atom_name_with_type] = [sum_of_energy]            
+
+            # Checking by specific line each file
+            for i in list_terms[1:]:
+                an_line = open(i, 'r').readlines()[nr_j+1]
+                sum_of_energy_line = np.sum([float(i) for i in an_line.split()[2:]])
+                dict_terms[atom_name_with_type].append(sum_of_energy_line)
+    
+    return dict_terms
 
 
 class Interactions(object):
