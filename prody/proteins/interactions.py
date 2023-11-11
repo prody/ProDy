@@ -2578,6 +2578,9 @@ def calcSminaPerAtomInteractions(atoms, list_terms):
     :arg list_terms: List of *terms.txt* files obtained from meth:`.calcSminaBindingAffinity`
                      using *atom_terms = True*
     :type list_terms: list 
+    
+    Important: First text file in the list should be reference structure which correspond to the 
+    provided coordinates as atoms.
     """
 
     try:
@@ -2590,19 +2593,23 @@ def calcSminaPerAtomInteractions(atoms, list_terms):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     
-    ref_file = list_terms[0]
-    infile = open(ref_file, 'r').readlines()
+    if not isinstance(list_terms, list):
+        raise TypeError('list_terms must be a list of text files with per-atom interaction term values.')
+    
+    LOGGER.info('Reference file: ', list_terms[0])
+    ref_file = open(list_terms[0], 'r').readlines()
     dict_terms = {}
-    for nr_j, j in enumerate(infile[1:-2]):
+    for nr_j, j in enumerate(ref_file[1:-2]):
             inter_type = j.split()[0]
             xyz = j.split()[1].strip('<').strip('>').split(',')
             try:
-                xyz_atom = (atoms2.select('x `'+str(xyz[0])+'` y `'+str(xyz[1])+'` z `'+str(xyz[2])+'`')).getNames()[0]
+                xyz_atom = (atoms.select('x `'+str(xyz[0])+'` y `'+str(xyz[1])+'` z `'+str(xyz[2])+'`')).getNames()[0]
             except:
                 xyz_atom = ' '
+                LOGGER.info('Coordinates in atoms and in the reference file are different. The name of atoms will not be provided.')
 
             sum_of_energy = np.sum([float(i) for i in j.split()[2:]])
-            atom_name_with_type = inter_type+ '  '+xyz_atom
+            atom_name_with_type = inter_type+ ' '+xyz_atom
             dict_terms[atom_name_with_type] = [sum_of_energy]            
 
             # Checking by specific line each file
