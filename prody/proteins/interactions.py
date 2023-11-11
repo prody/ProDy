@@ -2596,7 +2596,7 @@ def calcSminaPerAtomInteractions(atoms, list_terms):
     if not isinstance(list_terms, list):
         raise TypeError('list_terms must be a list of text files with per-atom interaction term values.')
     
-    LOGGER.info('Reference file: ', list_terms[0])
+    LOGGER.info('Reference file: {}'.format(list_terms[0]))
     ref_file = open(list_terms[0], 'r').readlines()
     dict_terms = {}
     for nr_j, j in enumerate(ref_file[1:-2]):
@@ -2606,7 +2606,6 @@ def calcSminaPerAtomInteractions(atoms, list_terms):
                 xyz_atom = (atoms.select('x `'+str(xyz[0])+'` y `'+str(xyz[1])+'` z `'+str(xyz[2])+'`')).getNames()[0]
             except:
                 xyz_atom = ' '
-                LOGGER.info('Coordinates in atoms and in the reference file are different. The name of atoms will not be provided.')
 
             sum_of_energy = np.sum([float(i) for i in j.split()[2:]])
             atom_name_with_type = inter_type+ ' '+xyz_atom
