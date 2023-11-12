@@ -45,7 +45,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
-           'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions']
+           'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues']
 
 
 def cleanNumbers(listContacts):
@@ -2618,6 +2618,29 @@ def calcSminaPerAtomInteractions(atoms, list_terms):
                 dict_terms[atom_name_with_type].append(sum_of_energy_line)
     
     return dict_terms
+
+
+def calcSminaTermValues(data):
+    """Computing weights multiplied by term values, before weighting for each Term.
+    As a results will are obtaining a dictionary.
+    
+    :arg data: List of results provided by Smina using meth:`.calcSminaBindingAffinity`
+                     with *atom_terms = True*
+    :type data: list 
+    """
+    
+    if not isinstance(data, list):
+        raise TypeError('data must be a list')
+
+    result_dict = {key: [] for key in list(data[0].keys())[2:-1]}
+
+    for i in data:
+        weights = i['Term values, before weighting']
+        for idx, key in enumerate(result_dict.keys()):
+            result_dict[key].append(i[key] * weights[idx] if key in i else None)
+
+    return result_dict
+
 
 
 class Interactions(object):
