@@ -45,7 +45,8 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
-           'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues']
+           'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
+           'showSminaTermValues']
 
 
 def cleanNumbers(listContacts):
@@ -2640,6 +2641,41 @@ def calcSminaTermValues(data):
             result_dict[key].append(i[key] * weights[idx] if key in i else None)
 
     return result_dict
+
+
+def showSminaTermValues(data):
+    """Display a histogram of weights multiplied by term values, before weighting for each Term.
+    As a results will are obtaining a dictionary.
+    
+    :arg data: List of results provided by Smina using meth:`.calcSminaBindingAffinity`
+                     with *atom_terms = True*
+    :type data: list 
+    """
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    if not isinstance(data, list):
+        raise TypeError('data must be a list')
+
+    term_values = calcSminaTermValues(data)
+    non_zero_values = {key: [v for v in value if v != 0] for key, value in term_values.items()}
+
+    fig, ax = plt.subplots()
+    colors = ['blue', 'orange', 'red', 'green', 'purple', 'silver', 'cyan', 'magenta', 'yellow']
+    alpha = 0.5
+
+    for i, (key, values) in enumerate(non_zero_values.items()):
+        if values:
+            show = ax.hist(values, bins=10, alpha=alpha, label=key, color=colors[i % len(colors)])
+
+    ax.legend()
+    ax.set_xlabel('Energy [kcal/mol]')
+    ax.set_ylabel('# counts')
+
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
 
 
 
