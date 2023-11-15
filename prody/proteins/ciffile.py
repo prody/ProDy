@@ -19,8 +19,6 @@ from .starfile import parseSTARLines, StarDict, parseSTARSection
 from .cifheader import getCIFHeaderDict
 from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
 
-from string import ascii_uppercase
-
 __all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF']
 
 
@@ -311,7 +309,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     doneAtomBlock = False
     start = 0
     stop = 0
-    warnedAltloc = False
     while not doneAtomBlock:
         line = lines[i]
         if line[:11] == '_atom_site.':
@@ -443,8 +440,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 continue
 
         alt = line.split()[fields['label_alt_id']]
-        if alt not in which_altlocs and which_altlocs != 'all':
-            continue
 
         if alt == '.':
             alt = ' '
@@ -492,28 +487,36 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     else:
         modelSize = acount
 
+    mask = np.full(modelSize, True, dtype=bool)
+    if which_altlocs != 'all':
+        #mask out any unwanted alternative locations
+        mask = (altlocs == '') | (altlocs == which_altlocs)
+
+    if np.all(mask == False):
+        mask = (altlocs == '') | (altlocs == altlocs[0])
+
     if addcoords:
-        atomgroup.addCoordset(coordinates[:modelSize])
+        atomgroup.addCoordset(coordinates[mask][:modelSize])
     else:
-        atomgroup._setCoords(coordinates[:modelSize])
+        atomgroup._setCoords(coordinates[mask][:modelSize])
 
-    atomgroup.setNames(atomnames[:modelSize])
-    atomgroup.setResnames(resnames[:modelSize])
-    atomgroup.setResnums(resnums[:modelSize])
-    atomgroup.setSegnames(segnames[:modelSize])
-    atomgroup.setChids(chainids[:modelSize])
-    atomgroup.setFlags('hetatm', hetero[:modelSize])
-    atomgroup.setFlags('pdbter', termini[:modelSize])
-    atomgroup.setFlags('selpdbter', termini[:modelSize])
-    atomgroup.setAltlocs(altlocs[:modelSize])
-    atomgroup.setIcodes(icodes[:modelSize])
-    atomgroup.setSerials(serials[:modelSize])
+    atomgroup.setNames(atomnames[mask][:modelSize])
+    atomgroup.setResnames(resnames[mask][:modelSize])
+    atomgroup.setResnums(resnums[mask][:modelSize])
+    atomgroup.setSegnames(segnames[mask][:modelSize])
+    atomgroup.setChids(chainids[mask][:modelSize])
+    atomgroup.setFlags('hetatm', hetero[mask][:modelSize])
+    atomgroup.setFlags('pdbter', termini[mask][:modelSize])
+    atomgroup.setFlags('selpdbter', termini[mask][:modelSize])
+    atomgroup.setAltlocs(altlocs[mask][:modelSize])
+    atomgroup.setIcodes(icodes[mask][:modelSize])
+    atomgroup.setSerials(serials[mask][:modelSize])
 
-    atomgroup.setElements(elements[:modelSize])
+    atomgroup.setElements(elements[mask][:modelSize])
     from prody.utilities.misctools import getMasses
-    atomgroup.setMasses(getMasses(elements[:modelSize]))
-    atomgroup.setBetas(bfactors[:modelSize])
-    atomgroup.setOccupancies(occupancies[:modelSize])
+    atomgroup.setMasses(getMasses(elements[mask][:modelSize]))
+    atomgroup.setBetas(bfactors[mask][:modelSize])
+    atomgroup.setOccupancies(occupancies[mask][:modelSize])
 
     anisou = None
     siguij = None
@@ -558,6 +561,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
     if model is None:
         for n in range(1, nModels):
-            atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
+            atomgroup.addCoordset(coordinates[mask][n*modelSize:(n+1)*modelSize])
 
     return atomgroup
