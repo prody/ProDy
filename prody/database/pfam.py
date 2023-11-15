@@ -406,8 +406,10 @@ def parsePfamPDBs(query, data=[], **kwargs):
                 continue
 
             right_dbref = header[data_dict['chain']].dbrefs[right_part]
-            chainStart = ag.select('chain {0}'.format(data_dict['chain'])
-                                  ).getResnums()[0]
+            chain = ag.select('chain {0}'.format(data_dict['chain']))
+            if chain is None:
+                continue
+            chainStart = chain.getResnums()[0]
             missing = chainStart - right_dbref.first[0]
             partStart = ag.getResindices()[np.where(ag.getResnums() == 
                                            right_dbref.first[0] + missing)][0]
