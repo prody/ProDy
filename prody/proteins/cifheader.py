@@ -185,8 +185,8 @@ def _getBiomoltrans(lines):
     # 2 blocks are needed for this:
     # _pdbx_struct_assembly_gen: what to apply to which chains
     # _pdbx_struct_oper_list: everything else
-    data1 = parseSTARSection(lines, '_pdbx_struct_assembly_gen', report=report)
-    data2 = parseSTARSection(lines, '_pdbx_struct_oper_list', report=report)
+    data1 = parseSTARSection(lines, '_pdbx_struct_assembly_gen', report=False)
+    data2 = parseSTARSection(lines, '_pdbx_struct_oper_list', report=False)
 
     # extracting the data
     for n, item1 in enumerate(data1):
@@ -232,7 +232,7 @@ def _getRelatedEntries(lines):
 
     try:
         key = "_pdbx_database_related"
-        data = parseSTARSection(lines, key, report=report)
+        data = parseSTARSection(lines, key, report=False)
         for item in data:
             dbref = DBRef()
             dbref.accession = item[key + ".db_id"]
@@ -722,8 +722,8 @@ def _getReference(lines):
 
     # JRNL double block. Blocks 6 and 7 as copied from COMPND
     # Block 1 has most info. Block 2 has author info
-    items1 = parseSTARSection(lines, "_citation", report=report)
-    items2 = parseSTARSection(lines, "_citation_author", report=report)
+    items1 = parseSTARSection(lines, "_citation", report=False)
+    items2 = parseSTARSection(lines, "_citation_author", report=False)
 
     for row in items1:
         for k, value in row.items():
@@ -774,7 +774,7 @@ def _getPolymers(lines):
     entities = defaultdict(list)
 
     # SEQRES block
-    items1 = parseSTARSection(lines, '_entity_poly', report=report)
+    items1 = parseSTARSection(lines, '_entity_poly', report=False)
 
     for item in items1:
         chains = item['_entity_poly.pdbx_strand_id']
@@ -788,7 +788,7 @@ def _getPolymers(lines):
                 '_entity_poly.pdbx_seq_one_letter_code_can'].replace(';', '').split())
 
     # DBREF block 1
-    items2 = parseSTARSection(lines, '_struct_ref', report=report)
+    items2 = parseSTARSection(lines, '_struct_ref', report=False)
 
     for item in items2:
         entity = item["_struct_ref.id"]
@@ -805,7 +805,7 @@ def _getPolymers(lines):
             poly.dbrefs.append(dbref)
 
     # DBREF block 2
-    items3 = parseSTARSection(lines, "_struct_ref_seq", report=report)
+    items3 = parseSTARSection(lines, "_struct_ref_seq", report=False)
 
     for i, item in enumerate(items3):
         i += 1
@@ -891,7 +891,7 @@ def _getPolymers(lines):
             last = temp
 
     # MODRES block
-    data4 = parseSTARSection(lines, "_pdbx_struct_mod_residue", report=report)
+    data4 = parseSTARSection(lines, "_pdbx_struct_mod_residue", report=False)
 
     for data in data4:
         ch = data["_pdbx_struct_mod_residue.label_asym_id"]
@@ -911,7 +911,7 @@ def _getPolymers(lines):
                                 data["_pdbx_struct_mod_residue.details"]))
 
     # SEQADV block
-    data5 = parseSTARSection(lines, "_struct_ref_seq_dif", report=report)
+    data5 = parseSTARSection(lines, "_struct_ref_seq_dif", report=False)
 
     for i, data in enumerate(data5):
         ch = data["_struct_ref_seq_dif.pdbx_pdb_strand_id"]
@@ -971,8 +971,8 @@ def _getPolymers(lines):
 
     # COMPND double block. 
     # Block 6 has most info. Block 7 has synonyms
-    data6 = parseSTARSection(lines, "_entity", report=report)
-    data7 = parseSTARSection(lines, "_entity_name_com", report=report)
+    data6 = parseSTARSection(lines, "_entity", report=False)
+    data7 = parseSTARSection(lines, "_entity_name_com", report=False)
 
     dict_ = {}
     for molecule in data6:
@@ -1052,7 +1052,7 @@ def _getChemicals(lines):
     # 1st block we need is has info about location in structure
 
     # this instance only includes single sugars not branched structures
-    items = parseSTARSection(lines, "_pdbx_nonpoly_scheme", report=report)
+    items = parseSTARSection(lines, "_pdbx_nonpoly_scheme", report=False)
 
     for data in items:
         resname = data["_pdbx_nonpoly_scheme.mon_id"]
@@ -1071,7 +1071,7 @@ def _getChemicals(lines):
         chemicals[chem.resname].append(chem)
 
     # next we get the equivalent one for branched sugars part
-    items = parseSTARSection(lines, "_pdbx_branch_scheme", report=report)
+    items = parseSTARSection(lines, "_pdbx_branch_scheme", report=False)
 
     for data in items:
         resname = data["_pdbx_branch_scheme.mon_id"]
@@ -1087,7 +1087,7 @@ def _getChemicals(lines):
         chemicals[chem.resname].append(chem)
 
     # 2nd block to get has general info e.g. name and formula
-    items = parseSTARSection(lines, "_chem_comp", report=report)
+    items = parseSTARSection(lines, "_chem_comp", report=False)
 
     for data in items:
         resname = data["_chem_comp.id"]
@@ -1162,7 +1162,7 @@ def _getTitle(lines):
     title = ''
 
     try:
-        data = parseSTARSection(lines, "_struct", report=report)
+        data = parseSTARSection(lines, "_struct", report=False)
         for item in data:
             title += item['_struct.title'].upper()
     except:
@@ -1179,7 +1179,7 @@ def _getAuthors(lines):
     authors = []
 
     try:
-        data = parseSTARSection(lines, "_audit_author", report=report)
+        data = parseSTARSection(lines, "_audit_author", report=False)
         for item in data:
             author = ''.join(item['_audit_author.name'].split(', ')[::-1])
             authors.append(author.upper())
@@ -1199,7 +1199,7 @@ def _getSplit(lines):
     key = "_pdbx_database_related"
 
     try:
-        data, _ = parseSTARSection(lines, key, report=report)
+        data, _ = parseSTARSection(lines, key, report=False)
         for item in data:
             if item[key + '.content_type'] == 'split':
                 split.append(item[key + '.db_id'])
@@ -1234,7 +1234,7 @@ def _getOther(lines, key=None):
     data = []
 
     try:
-        data = parseSTARSection(lines, key, report=report)
+        data = parseSTARSection(lines, key, report=False)
     except:
         pass
 
@@ -1249,7 +1249,7 @@ def _getUnobservedSeq(lines):
     key_unobs = '_pdbx_unobs_or_zero_occ_residues'
 
     try:
-        unobs = parseSTARSection(lines, key_unobs, report=report)
+        unobs = parseSTARSection(lines, key_unobs, report=False)
         polymers = _getPolymers(lines)
     except:
         pass
