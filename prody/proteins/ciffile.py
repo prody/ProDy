@@ -282,10 +282,15 @@ parseMMCIFStream.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
-                     altloc_torf, segment, unite_chains):
+                     altloc_torf, segment, unite_chains,
+                     report=False):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
+
+    :arg report: whether to report warnings about not finding data
+        default False
+    :type report: bool
     """
 
     if subset is not None:
@@ -438,7 +443,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 continue
 
         alt = line.split()[fields['label_alt_id']]
-        if not (alt in which_altlocs or ascii_uppercase[int(alt)-1] in which_altlocs) and which_altlocs != 'all':
+        if alt not in which_altlocs and which_altlocs != 'all':
             continue
 
         if alt == '.':
@@ -512,7 +517,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
     anisou = None
     siguij = None
-    data = parseSTARSection(lines, "_atom_site_anisotrop", report=False)
+    data = parseSTARSection(lines, "_atom_site_anisotrop", report=report)
     if len(data) > 0:
         anisou = np.zeros((acount, 6),
                           dtype=float)
