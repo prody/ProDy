@@ -549,7 +549,7 @@ def calcChHydrogenBonds(atoms, **kwargs):
     seq_cutoff = kwargs.pop('seq_cutoff', 25)
 
     if len(np.unique(atoms.getChids())) > 1:
-        HBS_calculations = calcHydrogenBonds(atoms, **kwargs)
+        HBS_calculations = calcHydrogenBonds(atoms, distA=distA, angle=angle, seq_cutoff=seq_cutoff)
     
         ChainsHBs = [ i for i in HBS_calculations if str(i[2]) != str(i[5]) ]
         if not ChainsHBs:
@@ -4094,14 +4094,10 @@ class LigandInteractionsTrajectory(object):
                         Selection pointed as None will return all interactions together
                         without ligands separation.
         :type selection: str
-
-        :arg contacts_min: Minimal number of contacts which residue may form with ligand.
-                            by default is 2. 
-        :type contacts_min: int  """
+        """
 
         atoms = self._atoms   
         interactions = self._interactions_traj
-        contacts_min = kwargs.pop('contacts_min', 2)
         selection = kwargs.pop('selection', None)
         
         from collections import Counter

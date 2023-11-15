@@ -262,6 +262,11 @@ class TestWritePDB(unittest.TestCase):
         self.ag = parsePDB(self.pdb['path'])
         self.tmp = os.path.join(TEMPDIR, 'test.pdb')
 
+        self.ens = PDBEnsemble()
+        self.ens.setAtoms(self.ag)
+        self.ens.setCoords(self.ag.getCoords())
+        self.ens.addCoordset(self.ag.getCoordsets())
+
         self.ubi = parsePDB(DATA_FILES['1ubi']['path'], secondary=True)
 
         self.hex = parsePDB(DATA_FILES['hex']['path'])
@@ -446,6 +451,16 @@ class TestWritePDB(unittest.TestCase):
         
         self.assertEqual(lines1[8], lines2[8],
             'writePDB failed to write correct ANISOU line 8 for 6flr selection with altloc None')
+        
+    def testWriteEnsembleToPDB(self):
+        """Test that writePDB can handle ensembles."""
+
+        out = writePDB(self.tmp, self.ens)
+        out = parsePDB(out)
+        self.assertEqual(out.numCoordsets(), self.ens.numCoordsets(),
+            'failed to write correct number of models from ensemble')
+        assert_equal(out.getCoords(), self.ag.getCoordsets(0),
+                'failed to write ensemble model 1 coordinates correctly')
 
     @dec.slow
     def tearDown(self):
