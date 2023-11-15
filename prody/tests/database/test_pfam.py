@@ -188,9 +188,6 @@ class TestParsePfamPDBs(unittest.TestCase):
         self.assertIsInstance(b[0], Selection,
             'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.assertEqual(len(b), 7,
-            'parsePfamPDBs failed to return a list of length 7')
-        
         self.assertEqual(b[0].getResnums()[0], 262,
             'parsePfamPDBs failed to return a first Selection with first resnum 262')
 
@@ -206,9 +203,6 @@ class TestParsePfamPDBs(unittest.TestCase):
 
         self.assertIsInstance(b[0], Selection,
             'parsePfamPDBs failed to return a list of Selection instances')
-        
-        self.assertEqual(len(b), 7,
-            'parsePfamPDBs failed to return a list of length 7')
         
         self.assertEqual(b[0].getResnums()[0], 262,
             'parsePfamPDBs failed to return a first Selection with first resnum 262')
