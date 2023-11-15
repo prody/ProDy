@@ -124,16 +124,10 @@ def parseCIFHeader(pdb, *keys):
     return header
 
 
-def getCIFHeaderDict(stream, *keys, **kwargs):
+def getCIFHeaderDict(stream, *keys):
     """Returns header data in a dictionary.  *stream* may be a list of PDB lines
     or a stream.
-
-    :arg report: whether to report warnings about not finding data
-        default False
-    :type report: bool
     """
-
-    report = kwargs.get('report', False)
 
     try:
         lines = stream.readlines()
