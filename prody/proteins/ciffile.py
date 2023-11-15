@@ -439,7 +439,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 continue
 
         alt = line.split()[fields['label_alt_id']]
-        if not (alt in which_altlocs or ascii_uppercase[int(alt)-1] in which_altlocs) and which_altlocs != 'all':
+        if alt not in which_altlocs and which_altlocs != 'all':
             continue
 
         if alt == '.':
