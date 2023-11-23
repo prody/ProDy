@@ -1245,10 +1245,15 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
     :arg full_ter: whether to write full TER lines with atoms info
         Default is **True**
-    :type full_ter: bool    
+    :type full_ter: bool
+
+    :arg write_remarks: whether to write REMARK lines
+        Default is **True**
+    :type write_remarks: bool
     """    
     renumber = kwargs.get('renumber', True)
     full_ter = kwargs.get('full_ter', True)
+    write_remarks = kwargs.get('write_remarks', True)
 
     remark = str(atoms)
     try:
@@ -1381,62 +1386,63 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             if charges2[i] == '0+':
                 charges2[i] = '  '
 
-    # write remarks
-    stream.write('REMARK {0}\n'.format(remark))
+    if write_remarks:
+        # write remarks
+        stream.write('REMARK {0}\n'.format(remark))
 
-    # write secondary structures (if any)
-    secondary = kwargs.get('secondary', True)
-    secstrs = atoms._getSecstrs()
-    if secstrs is not None and secondary:
-        secindices = atoms._getSecindices()
-        secclasses = atoms._getSecclasses()
-        secids = atoms._getSecids()
+        # write secondary structures (if any)
+        secondary = kwargs.get('secondary', True)
+        secstrs = atoms._getSecstrs()
+        if secstrs is not None and secondary:
+            secindices = atoms._getSecindices()
+            secclasses = atoms._getSecclasses()
+            secids = atoms._getSecids()
 
-        # write helices
-        for i in range(1,max(secindices)+1):
-            torf = np.logical_and(isHelix(secstrs), secindices==i)
-            if torf.any():
-                helix_resnums = resnums[torf]
-                helix_chainids = chainids[torf]
-                helix_resnames = resnames[torf]
-                helix_secclasses = secclasses[torf]
-                helix_secids = secids[torf]
-                helix_icodes = icodes[torf]
-                L = helix_resnums[-1] - helix_resnums[0] + 1
+            # write helices
+            for i in range(1,max(secindices)+1):
+                torf = np.logical_and(isHelix(secstrs), secindices==i)
+                if torf.any():
+                    helix_resnums = resnums[torf]
+                    helix_chainids = chainids[torf]
+                    helix_resnames = resnames[torf]
+                    helix_secclasses = secclasses[torf]
+                    helix_secids = secids[torf]
+                    helix_icodes = icodes[torf]
+                    L = helix_resnums[-1] - helix_resnums[0] + 1
 
-                stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0], 
-                            initResName=helix_resnames[0][:3], initChainID=helix_chainids[0], 
-                            initSeqNum=helix_resnums[0], initICode=helix_icodes[0],
-                            endResName=helix_resnames[-1][:3], endChainID=helix_chainids[-1], 
-                            endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
-                            helixClass=helix_secclasses[0], length=L))
+                    stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0], 
+                                initResName=helix_resnames[0][:3], initChainID=helix_chainids[0], 
+                                initSeqNum=helix_resnums[0], initICode=helix_icodes[0],
+                                endResName=helix_resnames[-1][:3], endChainID=helix_chainids[-1], 
+                                endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
+                                helixClass=helix_secclasses[0], length=L))
 
-        # write strands
-        torf_all_sheets = isSheet(secstrs)
-        sheet_secids = secids[torf_all_sheets]
+            # write strands
+            torf_all_sheets = isSheet(secstrs)
+            sheet_secids = secids[torf_all_sheets]
 
-        unique_sheet_secids, indices = np.unique(sheet_secids, return_index=True)
-        unique_sheet_secids = unique_sheet_secids[indices.argsort()]
-        for sheet_id in unique_sheet_secids:
-            torf_strands_in_sheet = np.logical_and(torf_all_sheets, secids==sheet_id)
-            strand_indices = secindices[torf_strands_in_sheet]
-            numStrands = len(np.unique(strand_indices))
+            unique_sheet_secids, indices = np.unique(sheet_secids, return_index=True)
+            unique_sheet_secids = unique_sheet_secids[indices.argsort()]
+            for sheet_id in unique_sheet_secids:
+                torf_strands_in_sheet = np.logical_and(torf_all_sheets, secids==sheet_id)
+                strand_indices = secindices[torf_strands_in_sheet]
+                numStrands = len(np.unique(strand_indices))
 
-            for i in np.unique(strand_indices):
-                torf_strand = np.logical_and(torf_strands_in_sheet, secindices==i)
-                strand_resnums = resnums[torf_strand]
-                strand_chainids = chainids[torf_strand]
-                strand_resnames = resnames[torf_strand]
-                strand_secclasses = secclasses[torf_strand]
-                strand_icodes = icodes[torf_strand]
+                for i in np.unique(strand_indices):
+                    torf_strand = np.logical_and(torf_strands_in_sheet, secindices==i)
+                    strand_resnums = resnums[torf_strand]
+                    strand_chainids = chainids[torf_strand]
+                    strand_resnames = resnames[torf_strand]
+                    strand_secclasses = secclasses[torf_strand]
+                    strand_icodes = icodes[torf_strand]
 
-                stream.write(SHEETLINE.format(strand=i, sheetID=sheet_id, numStrands=numStrands,
-                            initResName=strand_resnames[0][:3], initChainID=strand_chainids[0], 
-                            initSeqNum=strand_resnums[0], initICode=strand_icodes[0],
-                            endResName=strand_resnames[-1][:3], endChainID=strand_chainids[-1], 
-                            endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
-                            sense=strand_secclasses[0]))
-        pass
+                    stream.write(SHEETLINE.format(strand=i, sheetID=sheet_id, numStrands=numStrands,
+                                initResName=strand_resnames[0][:3], initChainID=strand_chainids[0], 
+                                initSeqNum=strand_resnums[0], initICode=strand_icodes[0],
+                                endResName=strand_resnames[-1][:3], endChainID=strand_chainids[-1], 
+                                endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
+                                sense=strand_secclasses[0]))
+            pass
 
     # write atoms
     multi = len(coordsets) > 1
