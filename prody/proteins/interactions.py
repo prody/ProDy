@@ -44,7 +44,8 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
-           'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory']
+           'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
+           'calcSminaBindingAffinity']
 
 
 def cleanNumbers(listContacts):
@@ -280,6 +281,7 @@ def calcSASA(atoms, **kwargs):
             return output_final
         else:
             return [ float(i[-1]) for i in output_final ]
+
 
 def calcVolume(atoms, **kwargs):
     """Provide information about volume for each residue/molecule/chain
@@ -547,7 +549,7 @@ def calcChHydrogenBonds(atoms, **kwargs):
     seq_cutoff = kwargs.pop('seq_cutoff', 25)
 
     if len(np.unique(atoms.getChids())) > 1:
-        HBS_calculations = calcHydrogenBonds(atoms, **kwargs)
+        HBS_calculations = calcHydrogenBonds(atoms, distA=distA, angle=angle, seq_cutoff=seq_cutoff)
     
         ChainsHBs = [ i for i in HBS_calculations if str(i[2]) != str(i[5]) ]
         if not ChainsHBs:
@@ -2014,17 +2016,24 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
                 LOGGER.info(i)
 
 
-def listLigandInteractions(PLIP_output):
+def listLigandInteractions(PLIP_output, **kwargs):
     """Create a list of interactions from PLIP output created using calcLigandInteractions().
     Results can be displayed in VMD. 
     
     :arg PLIP_output: Results from PLIP for protein-ligand interactions.
-    :type PLIP_output: PLIP object obtained from calcLigandInteractions() 
+    :type PLIP_output: PLIP object obtained from calcLigandInteractions()
+    
+    :arg output: parameter to print the interactions on the screen
+                 while analyzing the structure (True | False)
+                 by default is False
+    :type output: bool     
     
     Note that five types of interactions are considered: hydrogen bonds, salt bridges, 
     pi-stacking, cation-pi, hydrophobic and water bridges."""
     
     Inter_list_all = []
+    output = kwargs.pop('output', False)
+    
     for i in PLIP_output.all_itypes:
         param_inter = [method for method in dir(i) if method.startswith('_') is False]
         
@@ -2062,13 +2071,14 @@ def listLigandInteractions(PLIP_output):
                       
         Inter_list_all.append(Inter_list)               
     
-    LOGGER.info("%3s%12s%10s%20s%8s  <---> %6s%10s%6s%10s%16s" % ('#','Type','Residue','Atoms','Chain','','Ligand','Atoms','Chain','Distance/Angle'))
-    for nr_k,k in enumerate(Inter_list_all):
-        if k[0] == 'watBridge':
-            LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%12s%14s" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6], 
-                                ' '.join(str(np.round(x, 2)) for x in k[7]), ' '.join(str(np.round(x, 2)) for x in k[8])))
-        else:
-            LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
+    if output == True:
+        LOGGER.info("%3s%12s%10s%20s%8s  <---> %6s%10s%6s%10s%16s" % ('#','Type','Residue','Atoms','Chain','','Ligand','Atoms','Chain','Distance/Angle'))
+        for nr_k,k in enumerate(Inter_list_all):
+            if k[0] == 'watBridge':
+                LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%12s%14s" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6], 
+                                    ' '.join(str(np.round(x, 2)) for x in k[7]), ' '.join(str(np.round(x, 2)) for x in k[8])))
+            else:
+                LOGGER.info("%3i%12s%10s%26s%4s  <---> %8s%12s%4s%6.1f" % (nr_k+1,k[0],k[1],k[2],k[3],k[4],k[5],k[6],k[7]))
     
     return Inter_list_all
 
@@ -2122,7 +2132,7 @@ def calcLigandInteractions(atoms, **kwargs):
            
     import tempfile
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file:
-        writePDB(temp_pdb_file.name, atoms)
+        writePDB(temp_pdb_file.name, atoms, csets=atoms.getACSIndex())
         temp_pdb_file_name = temp_pdb_file.name
 
     try:
@@ -2167,7 +2177,6 @@ def calcLigandInteractions(atoms, **kwargs):
     
     except:
         LOGGER.info("Ligand not found.")
-
 
 
 def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
@@ -2223,7 +2232,7 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
         computed by any function which returns interactions.
         
         :arg interactions: List of interaction lists for protein interactions.
-        :type interactions: List
+        :type interactions: list
         
         :arg color: Name of the color which will be used for the visualization of 
                     interactions in VMD
@@ -2347,6 +2356,181 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     tcl_file.write('draw materials off')
     tcl_file.close()   
     LOGGER.info("TCL file saved")
+
+
+def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
+    """Computing binding affinity of ligand toward protein structure
+    usig SMINA package [DRK13]_.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+    
+    :arg protein_selection: selection string for the protein and other compoment
+                            of the system that should be included,
+                            e.g. "protein and chain A",
+                            by default "protein" 
+    :type protein_selection: str
+    
+    :arg ligand_selection: selection string for ligand,
+                           e.g. "resname ADP",
+                           by default "all not protein"
+    :type ligand_selection: str
+    
+    :arg ligand_selection: scoring function (vina or vinardo)
+                           by default is "vina"
+    
+    :type ligand_selection: str
+
+    SMINA installation is required to compute ligand binding affinity:
+    >> conda install -c conda-forge smina       (for Anaconda)
+    
+    For more information on SMINA see https://sourceforge.net/projects/smina/.
+    If you benefited from SMINA, please consider citing [DRK13]_.
+
+    .. [DRK13] Koes D. R., Baumgartner M. P., Camacho C. J., Lessons Learned in 
+    Empirical Scoring with smina from the CSAR 2011 Benchmarking Exercise,
+    *J. Chem. Inf. Model.* **2013** 53: 1893–1904. """
+
+    import tempfile
+    import subprocess
+    import re
+
+    if isinstance(atoms, LigandInteractionsTrajectory):
+        atoms = atoms._atoms
+        trajectory = atoms._traj
+    
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+    protein_selection = kwargs.pop('protein_selection', "protein")
+    ligand_selection = kwargs.pop('ligand_selection', "all not protein")
+    scoring_function = kwargs.pop('scoring_function', 'vina')
+    bindingAffinity = []
+
+    if trajectory is not None:
+        # Trajectory
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)
+    
+        nfi = trajectory._nfi
+        trajectory.reset()
+        numFrames = trajectory._n_csets
+
+        if stop_frame == -1:
+            traj = trajectory[start_frame:]
+        else:
+            traj = trajectory[start_frame:stop_frame+1]
+
+        atoms_copy = atoms.copy()
+
+        for j0, frame0 in enumerate(traj, start=start_frame):
+            atoms_copy.setCoords(frame0.getCoords())        
+            protein = atoms_copy.select(protein_selection)
+            ligand = atoms_copy.select(ligand_selection)        
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file, \
+                 tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file_lig:
+                
+                # Files are starage in the memory
+                writePDB(temp_pdb_file.name, protein)
+                writePDB(temp_pdb_file_lig.name, ligand)
+
+                data = {}
+                command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
+                result = subprocess.check_output(command, shell=True, text=True)
+
+                result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
+
+                matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
+                for match in matches:
+                    key = match.group('key')
+                    value = float(match.group(2))
+                    data[key] = value
+
+                intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
+                if intramolecular_energy_match:
+                    data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
+
+                LOGGER.info('Frame {0}: {1} kcal/mol'.format(j0, data['Affinity']))
+                bindingAffinity.append(data['Affinity'])
+        
+        trajectory._nfi = nfi
+                
+    else:
+        if atoms.numCoordsets() == 1:
+            # Single PDB
+            protein = atoms.select(protein_selection)
+            ligand = atoms.select(ligand_selection)        
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file, \
+                 tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file_lig:
+                
+                writePDB(temp_pdb_file.name, protein)
+                writePDB(temp_pdb_file_lig.name, ligand)
+
+                data = {}
+                command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
+                result = subprocess.check_output(command, shell=True, text=True)
+
+                result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
+
+                matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
+                for match in matches:
+                    key = match.group('key')
+                    value = float(match.group(2))
+                    data[key] = value
+
+                intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
+                if intramolecular_energy_match:
+                    data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
+
+                bindingAffinity.append(data['Affinity'])
+
+        if atoms.numCoordsets() > 1:
+            # Multi-model PDB
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                atoms.setACSIndex(i+start_frame) 
+                protein = atoms.select(protein_selection)
+                ligand = atoms.select(ligand_selection)        
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file, \
+                     tempfile.NamedTemporaryFile(delete=False, suffix=".pdb") as temp_pdb_file_lig:
+                    
+                    writePDB(temp_pdb_file.name, protein, csets=atoms.getACSIndex())
+                    writePDB(temp_pdb_file_lig.name, ligand, csets=atoms.getACSIndex())
+
+                    data = {}
+                    command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
+                    result = subprocess.check_output(command, shell=True, text=True)
+
+                    result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
+
+                    matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
+                    for match in matches:
+                        key = match.group('key')
+                        value = float(match.group(2))
+                        data[key] = value
+
+                    intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
+                    if intramolecular_energy_match:
+                        data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
+
+                    LOGGER.info('Model {0}: {1} kcal/mol'.format(i+start_frame, data['Affinity']))
+                    bindingAffinity.append(data['Affinity'])
+
+        else:
+            LOGGER.info('Include trajectory or use multi-model PDB file.') 
+
+    return bindingAffinity
 
 
 class Interactions(object):
@@ -2834,8 +3018,9 @@ class Interactions(object):
             (6) Hydrophobic interactions (hp)
             (7) Disulfide bonds (disb)
         
-        :arg contacts_min: Minimal number of contacts which residue may form with other residues. 
-        :type contacts_min: int, be default 3.  """
+        :arg contacts_min: Minimal number of contacts which residue may form with other residues, 
+                           by default 3.
+        :type contacts_min: int  """
 
         atoms = self._atoms   
         interactions = self._interactions
@@ -3631,7 +3816,6 @@ class InteractionsTrajectory(object):
 
  
 class LigandInteractionsTrajectory(object):
-
     """Class for protein-ligand interaction analysis of DCD trajectory or multi-model PDB (Ensemble PDB).
     This class is using PLIP to provide the interactions. Install PLIP before using it.
 
@@ -3652,8 +3836,10 @@ class LigandInteractionsTrajectory(object):
         self._atoms = None
         self._traj = None
         self._interactions_traj = None
+        self._freq_interactors = None
 
-    def calcLigandInteractionsTrajectory(self, atoms, trajectory=None, filename=None, **kwargs):
+    
+    def calcLigandInteractionsTrajectory(self, atoms, trajectory=None, **kwargs):
         """Compute protein-ligand interactions for DCD trajectory or multi-model PDB 
             using PLIP library.
         
@@ -3670,7 +3856,13 @@ class LigandInteractionsTrajectory(object):
         :type start_frame: int
 
         :arg stop_frame: index of last frame to read
-        :type stop_frame: int """
+        :type stop_frame: int 
+        
+        :arg output: parameter to print the interactions on the screen
+                    while analyzing the structure,
+                    use 'info'.
+        :type output: bool
+        """
 
         try:
             coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -3687,6 +3879,8 @@ class LigandInteractionsTrajectory(object):
 
         start_frame = kwargs.pop('start_frame', 0)
         stop_frame = kwargs.pop('stop_frame', -1)
+        output = kwargs.pop('output', False)
+        filename = kwargs.pop('filename', None)
 
         if trajectory is not None:
             if isinstance(trajectory, Atomic):
@@ -3712,7 +3906,7 @@ class LigandInteractionsTrajectory(object):
                 
                 ligs_per_frame_interactions = []
                 for ligs in ligand_interactions:
-                    LP_interactions = listLigandInteractions(ligs) 
+                    LP_interactions = listLigandInteractions(ligs, output=output) 
                     ligs_per_frame_interactions.extend(LP_interactions)
                 
                 interactions_all.append(ligs_per_frame_interactions)
@@ -3729,7 +3923,7 @@ class LigandInteractionsTrajectory(object):
                     
                     ligs_per_frame_interactions = []
                     for ligs in ligand_interactions:
-                        LP_interactions = listLigandInteractions(ligs) 
+                        LP_interactions = listLigandInteractions(ligs, output=output) 
                         ligs_per_frame_interactions.extend(LP_interactions)
                     
                     interactions_all.append(ligs_per_frame_interactions)
@@ -3751,23 +3945,94 @@ class LigandInteractionsTrajectory(object):
             
         return interactions_all
 
-
+    
     def getLigandInteractions(self, **kwargs):
-        """Return the list of protein-ligand interactions."""
-
-        return self._interactions_traj
-
+        """Return the list of protein-ligand interactions.
+                
+        :arg filters: selection string of ligand with chain ID or interaction type
+                     e.g. 'SBs' (HBs, SBs, HPh, PiStack, PiCat, HPh, watBridge)
+        :type filters: str    
+        
+        :arg include_frames: used with filters, it will leave selected keyword in orginal 
+                    lists, if False it will collect selected interactions in one list,
+                    Use True to assign new selection using setLigandInteractions.
+                    by default True
+        :type include_frames: bool            
+        """
+        
+        filters = kwargs.pop('filters', None)
+        include_frames = kwargs.pop('include_frames', True)
+        filtered_lists = []
+                                 
+        if filters != None:
+            if include_frames == False:
+                filtered_lists = [element for group in self._interactions_traj for element in group 
+                                if filters in element]
+            if include_frames == True:
+                filtered_lists = []
+                for i in self._interactions_traj:
+                    filtered_lists.append([item for item in i if filters in item])
+        
+            return filtered_lists
+            
+        else:
+            return self._interactions_traj
+            
 
     def getAtoms(self):
         """Returns associated atoms."""
 
         return self._atoms
 
-    
-    def getLigandInteractionsNumber(self):
-        """Return the number of interactions in each frame."""
+
+    def setLigandInteractions(self, atoms, interaction):
+        """Replace protein-ligand interactions
+        for example byb using getLigandInteractions() with filters to select particular ligand. 
         
-        return self._interactions_nb_traj 
+        :arg atoms: an Atomic object from which residues are selected
+        :type atoms: :class:`.Atomic`
+        
+        :arg interactions: list of interactions
+        :type interactions: list
+        """
+
+        self._interactions_traj = interaction
+        self._atoms = atoms
+        LOGGER.info('Protein-ligand interactions are replaced.')
+    
+    
+    def getLigandInteractionsNumber(self, **kwargs):
+        """Return the number of interactions per each frame. Number of interactions can
+        be a total number of interactions or it can be divided into interaction types.
+        
+        :arg types: Interaction types can be included (True) or not (False).
+                    by default is True. 
+        :type types: bool
+        """
+
+        types = kwargs.pop('types', True)
+        
+        if types == True:
+            interactions = self._interactions_traj 
+            unique_keywords = set()
+
+            for sublist in interactions:
+                for sublist_item in sublist:
+                    keyword = sublist_item[0]
+                    unique_keywords.add(keyword)
+            unique_keywords_list = list(unique_keywords)
+        
+            keyword_counts = {keyword: [0] * len(interactions) for keyword in unique_keywords_list}
+
+            for i, sublist in enumerate(interactions):
+                for sublist_item in sublist:
+                    keyword = sublist_item[0]  
+                    keyword_counts[keyword][i] += 1
+
+            return keyword_counts
+        
+        else:         
+            return self._interactions_nb_traj 
 
     
     def parseLigandInteractions(self, filename):
@@ -3785,4 +4050,153 @@ class LigandInteractionsTrajectory(object):
         self._interactions_nb_traj = [[len(sublist) if sublist else 0 for sublist in sublist] for sublist in data]
         
         return data
+
+
+    def getInteractionTypes(self):
+        """Show which interaction types were detected for ligands."""
+        
+        interactions = self._interactions_traj 
+        unique_keywords = set()
+
+        for sublist in interactions:
+            for sublist_item in sublist:
+                keyword = sublist_item[0]
+                unique_keywords.add(keyword)
+
+        unique_keywords_list = list(unique_keywords)
+        LOGGER.info("Interaction types: {0}".format(unique_keywords_list))
+        
+        return unique_keywords_list
+
+
+    def getLigandsNames(self):
+        """Show which ligands are in a system."""
+        
+        interactions = self._interactions_traj 
+        ligands = set()
+
+        for sublist in interactions:
+            for sublist_item in sublist:
+                keyword = sublist_item[4]
+                ligands.add(keyword)
+
+        ligands_list = list(ligands)
+        
+        return ligands_list
+
+
+    def calcFrequentInteractors(self, **kwargs):
+        """Returns a dictonary with residues involved in the interaction with ligand
+        and their number of counts. 
+
+        :arg selection: selection string of ligand with chain ID
+                        e.g. "MESA" where MES is ligand resname and A is chain ID.
+                        Selection pointed as None will return all interactions together
+                        without ligands separation.
+        :type selection: str
+        """
+
+        atoms = self._atoms   
+        interactions = self._interactions_traj
+        selection = kwargs.pop('selection', None)
+        
+        from collections import Counter
+
+        if selection == None:  # Compute all interactions without distinguishing ligands
+            all_residues = [ j[1]+j[3] for i in interactions for j in i ]
+            dictOfInteractions = Counter(all_residues)
+        
+        else:
+            interactions2 = [element for group in interactions for element in group]
+            ligs = {}
+            dictOfInteractions = []
+            for i in interactions2:
+                ligs_names = i[4]+i[6]
+                if ligs_names not in ligs:
+                    ligs[ligs_names] = []
+                    
+                res_name = i[1]+i[3]
+                ligs[ligs_names].append(res_name)
+
+            for i in ligs.keys():
+
+                if selection == None:
+                    LOGGER.info('LIGAND: {0}'.format(i))
+                    aa_counter = Counter(ligs[i])
+                    dictOfInteractions.append(aa_counter)
+                    
+                else:
+                    if selection not in ligs.keys():
+                        LOGGER.info('Wrong selection. Please provide ligand name with chain ID.')
+                    if i == selection:
+                        LOGGER.info('LIGAND: {0}'.format(selection))
+                        aa_counter = Counter(ligs[selection])
+                        dictOfInteractions.append(aa_counter)                    
+                
+        self._freq_interactors = dictOfInteractions
+        
+        return dictOfInteractions
+
+
+    def saveInteractionsPDB(self, **kwargs):
+        """Save the number of interactions with ligand to PDB file in occupancy column
+        It will recognize the chains. If the system will contain one chain and many segments
+        the PDB file will not be created in a correct way.
+        
+        :arg filename: name of the PDB file which will be saved for visualization,
+                     it will contain the results in occupancy column.
+        :type filename: str  
+        
+        :arg ligand_sele: ligand selection,
+                          by default is 'all not (protein or water or ion)'.
+        :type ligand_sele: str          
+        """
+        
+        if self._freq_interactors is None:
+            raise ValueError('Please calculate frequent interactors using getFrequentInteractors.')
+
+        atoms = self._atoms     
+        dictOfInteractions = self._freq_interactors
+        ligand_sele = kwargs.pop('ligand_sele', 'all not (protein or water or ion)')
+
+        chids_list = np.unique(atoms.getChids())
+        freq_contacts_list = []
+        
+        for nr_chid, chid in enumerate(chids_list):
+            atoms_chid = atoms.ca.select('protein and chain '+chid)
+            freq_contacts_list_chids = np.zeros(atoms_chid.ca.numAtoms(), dtype=int)
+            firstElement = atoms_chid.ca.getResnums()[0]
+            dictOfInteractions_chids = dictOfInteractions[nr_chid]
+            
+            for k, v in dictOfInteractions_chids.items():
+                res_index = int(k[3:-1])
+                freq_contacts_list_chids[res_index - firstElement] = v
+
+            freq_contacts_list.extend(freq_contacts_list_chids)
+
+        freq_contacts_list = np.array(freq_contacts_list)
+
+        from collections import Counter
+        lista_ext = []
+        ligands = atoms.select(ligand_sele)
+        atoms = atoms.select("protein and noh")
+        ligand_occupancy = np.zeros(len(ligands.getResnums()))
+        
+        aa_counter = Counter(atoms.getResindices())
+        calphas = atoms.select('name CA')
+        for i in range(calphas.numAtoms()):
+            # in PDB values are normalized to 100 (max value)
+            lista_ext.extend(list(aa_counter.values())[i]*[round((freq_contacts_list[i]/np.max(freq_contacts_list)*100), 8)])
+        
+        lista_ext.extend(ligand_occupancy)
+        
+        kw = {'occupancy': lista_ext}
+        if 'filename' in kwargs:
+            writePDB(kwargs['filename'], atoms+ligands, **kw)
+            LOGGER.info('PDB file saved.')
+        else:
+            writePDB('filename', atoms+ligands, **kw)
+            LOGGER.info('PDB file saved.')
+
+        return freq_contacts_list
 

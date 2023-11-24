@@ -41,9 +41,11 @@ _parseMMTFdoc = """
 
     :arg altloc: if a location indicator is passed, such as ``'A'`` or ``'B'``,
          only indicated alternate locations will be parsed as the single
-         coordinate set of the AtomGroup, if *altloc* is set **True** all
+         coordinate set of the AtomGroup. If *altloc* is ``'all'`` then all
          alternate locations will be parsed and each will be appended as a
-         distinct coordinate set, default is ``"A"``
+         distinct coordinate set, default is ``"A"``.  In the rare instance
+         where all atoms have a location indicator specified and this does not
+         match altloc, the first location indicator in the file is used.
     :type altloc: str
     """
 
@@ -143,7 +145,7 @@ def _parseMMTF(mmtf_struc, **kwargs):
     chain = kwargs.get('chain')
     header = kwargs.get('header', False)
     get_bonds = kwargs.get('bonds',False) 
-    altloc_sel = kwargs.get('altloc', 'A')
+    altloc_sel = kwargs.get('altloc', None)
     
     assert isinstance(header, bool), 'header must be a boolean'
 
@@ -221,7 +223,7 @@ def _bio_transform(dec):
         ret[t['name']] = L
     return ret
 
-def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
+def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel=None):
 
     mmtfHETATMtypes = set([
         "D-SACCHARIDE",
@@ -322,7 +324,11 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
     mask = np.full(asize, True, dtype=bool)
     if altloc_sel != 'all':
         #mask out any unwanted alternative locations
-        mask = (altlocs == '') | (altlocs == altloc_sel)
+        default_altloc = altloc_sel if altloc_sel != None else 'A'
+        mask = (altlocs == '') | (altlocs == default_altloc)
+        if np.all(mask == False) and altloc_sel == None and len(altlocs):
+            #nothing selected, use first altloc; 6uwi
+            mask = altlocs == altlocs[0]            
         
     atomgroup.setCoords(coords[:,mask])
     atomgroup.setNames(atom_names[mask])

@@ -769,8 +769,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     elements = np.concatenate((elements,
                         np.zeros(asize, ATOMIC_FIELDS['element'].dtype)))
                     if anisou is not None:
-                        anisou = np.concatenate((anisou, np.zeros((asize, 6),
-                            ATOMIC_FIELDS['anisou'].dtype)))
+                        anisou = np.concatenate((anisou, np.zeros((asize, 6), float)))
                     if siguij is not None:
                         siguij = np.concatenate((siguij, np.zeros((asize, 6),
                             ATOMIC_FIELDS['siguij'].dtype)))
@@ -840,9 +839,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if END:
                     coordinates.resize((acount, 3), refcheck=False)
                     if addcoords:
-                        atomgroup.addCoordset(coordinates)
+                        atomgroup.addCoordset(coordinates, anisous=anisou)
                     else:
                         atomgroup._setCoords(coordinates)
+                        if isPDB and anisou is not None:
+                            anisou.resize((acount, 6), refcheck=False)
+                            atomgroup.setAnisous(anisou / 10000)
                 else:
                     coordsets = np.zeros((int(diff//acount+1), acount, 3))
                     coordsets[0] = coordinates[:acount]
@@ -905,8 +907,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         elif isPDB and startswith == 'ANISOU':
             if anisou is None:
                 anisou = True
-                anisou = np.zeros((alength, 6),
-                    dtype=ATOMIC_FIELDS['anisou'].dtype)
+                anisou = np.zeros((alength, 6), dtype=float)
 
             alt = line[16]
             if alt not in which_altlocs and which_altlocs != 'all':
@@ -956,7 +957,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         # this means last line was an ATOM line, so atomgroup is not decorated
         coordinates.resize((acount, 3), refcheck=False)
         if addcoords:
-            atomgroup.addCoordset(coordinates)
+            atomgroup.addCoordset(coordinates, anisous=anisou)
         else:
             atomgroup._setCoords(coordinates)
         atomnames.resize(acount, refcheck=False)
@@ -1026,6 +1027,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
     indices = {}
     for key in altloc_keys:
         xyz = atomgroup.getCoords()
+        anisou = atomgroup.getAnisous()
         success = 0
         lines = altloc[key]
         for line, i in lines:
@@ -1052,7 +1054,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                 LOGGER.warn("failed to parse altloc {0} at line {1}, "
                             "residue name mismatch (expected {2}, "
                             "parsed {3})".format(repr(key), i+1, repr(rn),
-                                                   repr(arn)))
+                                                 repr(arn)))
                 continue
             index = ids[(ans == aan).nonzero()[0]]
             if len(index) != 1:
@@ -1060,21 +1062,35 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                             " {2} not found in the residue"
                             .format(repr(key), i+1, repr(aan)))
                 continue
-            try:
-                xyz[index[0], 0] = float(line[30:38])
-                xyz[index[0], 1] = float(line[38:46])
-                xyz[index[0], 2] = float(line[46:54])
-            except:
-                LOGGER.warn('failed to parse altloc {0} at line {1}, could'
-                            ' not read coordinates'.format(repr(key), i+1))
-                continue
-            success += 1
+
+            if line.startswith('ATOM  '):
+                try:
+                    xyz[index[0], 0] = float(line[30:38])
+                    xyz[index[0], 1] = float(line[38:46])
+                    xyz[index[0], 2] = float(line[46:54])
+                except:
+                    LOGGER.warn('failed to parse altloc {0} at line {1}, could'
+                                ' not read coordinates'.format(repr(key), i+1))
+                    continue
+                success += 1
+            elif line.startswith('ANISOU'):
+                try:
+                    anisou[index[0], 0] = line[28:35]
+                    anisou[index[0], 1] = line[35:42]
+                    anisou[index[0], 2] = line[43:49]
+                    anisou[index[0], 3] = line[49:56]
+                    anisou[index[0], 4] = line[56:63]
+                    anisou[index[0], 5] = line[63:70]
+                except:
+                    LOGGER.warn('failed to parse altloc {0} at line {1}, could'
+                                ' not read anisous'.format(repr(key), i+1))
+                success += 1
         LOGGER.info('{0} out of {1} altloc {2} lines were parsed.'
                     .format(success, len(lines), repr(key)))
         if success > 0:
             LOGGER.info('Altloc {0} is appended as a coordinate set to '
                         'atomgroup {1}.'.format(repr(key), atomgroup.getTitle()))
-            atomgroup.addCoordset(xyz, label='altloc ' + key)
+            atomgroup.addCoordset(xyz, label='altloc ' + key, anisous=anisou)
 
 
 #HELIXLINE = ('HELIX  %3d %3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
@@ -1226,8 +1242,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         Default is **False**, which means using hexadecimal instead.
         NB: ChimeraX seems to prefer hybrid36 and may have problems with hexadecimal.
     :type hybrid36: bool
-    """
-
+    """    
     renumber = kwargs.get('renumber', True)
 
     remark = str(atoms)
@@ -1246,8 +1261,10 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if coordsets is None:
         raise ValueError('atoms does not have any coordinate sets')
 
+    had_atoms = False
     try:
         acsi = atoms.getACSIndex()
+        had_atoms = True
     except AttributeError:
         try:
             atoms = atoms.getAtoms()
@@ -1359,10 +1376,6 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             if charges2[i] == '0+':
                 charges2[i] = '  '
 
-    anisous = atoms._getAnisous()
-    if anisous is not None:
-        anisous = np.array(anisous * 10000, dtype=int)
-
     # write remarks
     stream.write('REMARK {0}\n'.format(remark))
 
@@ -1387,9 +1400,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 L = helix_resnums[-1] - helix_resnums[0] + 1
 
                 stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0], 
-                            initResName=helix_resnames[0][:3], initChainID=helix_chainids[0], 
+                            initResName=helix_resnames[0][:3], initChainID=helix_chainids[0][:1], 
                             initSeqNum=helix_resnums[0], initICode=helix_icodes[0],
-                            endResName=helix_resnames[-1][:3], endChainID=helix_chainids[-1], 
+                            endResName=helix_resnames[-1][:3], endChainID=helix_chainids[-1][:1], 
                             endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
                             helixClass=helix_secclasses[0], length=L))
 
@@ -1413,9 +1426,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 strand_icodes = icodes[torf_strand]
 
                 stream.write(SHEETLINE.format(strand=i, sheetID=sheet_id, numStrands=numStrands,
-                            initResName=strand_resnames[0][:3], initChainID=strand_chainids[0], 
+                            initResName=strand_resnames[0][:3], initChainID=strand_chainids[0][:1], 
                             initSeqNum=strand_resnums[0], initICode=strand_icodes[0],
-                            endResName=strand_resnames[-1][:3], endChainID=strand_chainids[-1], 
+                            endResName=strand_resnames[-1][:3], endChainID=strand_chainids[-1][:1], 
                             endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
                             sense=strand_secclasses[0]))
         pass
@@ -1425,6 +1438,13 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     write = stream.write
     num_ter_lines = 0
     for m, coords in enumerate(coordsets):
+
+        if had_atoms:
+            atoms.setACSIndex(m)
+        anisous = atoms._getAnisous()
+        if anisous is not None:
+            anisous = np.array(anisous * 10000, dtype=int)
+
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
 
@@ -1551,7 +1571,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
                 write(anisouline % ("ANISOU", serial,
                                     atomnames[i], altlocs[i],
-                                    resname, chainids[i], resnum,
+                                    resname, chainids[i][:1], resnum,
                                     icodes[i],
                                     anisou[0], anisou[1], anisou[2],
                                     anisou[3], anisou[4], anisou[5],
@@ -1566,7 +1586,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
                     false_pdbline = pdbline % ("TER   ", serial,
                                                "", "",
-                                               resname, chainids[i], resnum,
+                                               resname, chainids[i][:1], resnum,
                                                icodes[i],
                                                xyz[0], xyz[1], xyz[2],
                                                occupancies[i], bfactors[i],
@@ -1582,7 +1602,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
                     false_pdbline = pdbline % ("TER   ", serial,
                                                "", "",
-                                               resname, chainids[i], resnum,
+                                               resname, chainids[i][:1], resnum,
                                                icodes[i],
                                                xyz[0], xyz[1], xyz[2],
                                                occupancies[i], bfactors[i],
@@ -1595,6 +1615,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             altlocs = np.zeros(n_atoms, s_or_u + '1')
             
     write('END   ' + " "*74 + '\n')
+
+    if had_atoms:
+        atoms.setACSIndex(acsi)
 
 writePDBStream.__doc__ += _writePDBdoc
 

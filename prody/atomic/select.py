@@ -2424,3 +2424,10 @@ class Select(object):
         if self._coords is None:
             self._coords = self._atoms._getCoords()
         return self._coords
+
+    def _getAnisous(self):
+        """Returns anisotropic temperature factors of atoms."""
+
+        if self._anisous is None:
+            self._anisous = self._atoms._getAnisous()
+        return self._anisous

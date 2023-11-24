@@ -30,6 +30,8 @@ class TestParsePDB(unittest.TestCase):
         self.hex = DATA_FILES['hex']
         self.h36 = DATA_FILES['h36']
 
+        self.altlocs = DATA_FILES['6flr']
+
     def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""
 
@@ -186,6 +188,57 @@ class TestParsePDB(unittest.TestCase):
         serial = '100000'
         self.assertEqual(str(parsePDB(path).getSerials()[100000-1]),
              serial, 'parsePDB failed to parse Hybrid36 serial number')
+        
+    def testAltlocAllToMultiAtoms(self):
+        """Test number of coordinate sets and atoms with altloc='all'."""
+
+        path = pathDatafile(self.altlocs['file'])
+
+        ag = parsePDB(path, altloc="all")
+        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_altloc'],
+            'parsePDB failed to parse correct number of atoms with altloc "all"')
+        self.assertEqual(ag.numCoordsets(), 1,
+            'parsePDB failed to parse correct number of coordsets (1) with altloc "all"')
+
+        hisB234 = ag.select('resname HIS and chain B and resnum 234 and name CA')
+        self.assertEqual(hisB234.numAtoms(), self.altlocs['num_altlocs'],
+            'parsePDB failed to parse correct number of His B234 CA atoms (2) with altloc "all"')
+
+        self.assertEqual(hisB234.getAnisous().shape, (self.altlocs['num_altlocs'], 6),
+            'parsePDB failed to have right shape for His B234 CA atoms getAnisous (2, 6) with altloc "all"')
+
+        assert_allclose(hisB234.getAnisous()[0], self.altlocs['anisousA'][0],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous A with altloc "all"')
+
+        assert_allclose(hisB234.getAnisous()[1], self.altlocs['anisousB'][0],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc "all"')
+        
+    def testAltlocNoneToMultiCoordets(self):
+        """Test number of coordinate sets and atoms with altloc=None."""
+
+        path = pathDatafile(self.altlocs['file'])
+
+        ag = parsePDB(path, altloc=None)
+        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_single'],
+            'parsePDB failed to parse correct number of atoms with altloc None')
+        self.assertEqual(ag.numCoordsets(), self.altlocs['num_altlocs'],
+            'parsePDB failed to parse correct number of coordsets (2) with altloc None')
+
+        hisB234 = ag.select('resname HIS and chain B and resnum 234 and name CA')
+        self.assertEqual(hisB234.numAtoms(), 1,
+            'parsePDB failed to parse correct number of His B234 CA atoms (1) with altloc None')
+
+        self.assertEqual(hisB234.getAnisous().shape, (1, 6),
+            'parsePDB failed to have right shape for His B234 CA atoms getAnisous (1, 6) with altloc None')
+
+        assert_allclose(hisB234.getAnisous(), self.altlocs['anisousA'],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous A with altloc None')
+
+        hisB234.setACSIndex(1)
+
+        assert_allclose(hisB234.getAnisous(), self.altlocs['anisousB'],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc None')
+
 '''
     def testBiomolArgument(self):
 
@@ -209,6 +262,11 @@ class TestWritePDB(unittest.TestCase):
         self.ag = parsePDB(self.pdb['path'])
         self.tmp = os.path.join(TEMPDIR, 'test.pdb')
 
+        self.ens = PDBEnsemble()
+        self.ens.setAtoms(self.ag)
+        self.ens.setCoords(self.ag.getCoords())
+        self.ens.addCoordset(self.ag.getCoordsets())
+
         self.ubi = parsePDB(DATA_FILES['1ubi']['path'], secondary=True)
 
         self.hex = parsePDB(DATA_FILES['hex']['path'])
@@ -216,6 +274,10 @@ class TestWritePDB(unittest.TestCase):
 
         self.hex_ter = parsePDB(DATA_FILES['hex_ter']['path'])
         self.h36_ter = parsePDB(DATA_FILES['h36_ter']['path'])
+
+        self.altlocs = DATA_FILES['6flr']
+        self.altloc_full = parsePDB(self.altlocs['path'], altloc=None)
+        self.altloc_sel = DATA_FILES['6flr_sel']['path']
 
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR)
 
@@ -368,7 +430,37 @@ class TestWritePDB(unittest.TestCase):
 
         serial_A0000_line = lines[100000]
         self.assertEqual(serial_A0000_line[6:11], 'A0000',
-            'writePDB failed to write correct h36 serial') 
+            'writePDB failed to write correct h36 serial')
+        
+    def testWritingAltlocModels(self):
+        """Test if output from writing hexadecimal with TER lines is as expected."""
+
+        hisB234 = self.altloc_full.select('resname HIS and chain B and resnum 234 and name CA')
+        out = writePDB(self.tmp, hisB234)
+
+        fi = open(out, 'r')
+        lines1 = fi.readlines()
+        fi.close()
+
+        fi = open(self.altloc_sel, 'r')
+        lines2 = fi.readlines()
+        fi.close()
+        
+        self.assertEqual(lines1[4], lines2[4],
+            'writePDB failed to write correct ANISOU line 4 for 6flr selection with altloc None')
+        
+        self.assertEqual(lines1[8], lines2[8],
+            'writePDB failed to write correct ANISOU line 8 for 6flr selection with altloc None')
+        
+    def testWriteEnsembleToPDB(self):
+        """Test that writePDB can handle ensembles."""
+
+        out = writePDB(self.tmp, self.ens)
+        out = parsePDB(out)
+        self.assertEqual(out.numCoordsets(), self.ens.numCoordsets(),
+            'failed to write correct number of models from ensemble')
+        assert_equal(out.getCoords(), self.ag.getCoordsets(0),
+                'failed to write ensemble model 1 coordinates correctly')
 
     @dec.slow
     def tearDown(self):

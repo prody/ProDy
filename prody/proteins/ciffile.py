@@ -86,7 +86,7 @@ def parseMMCIF(pdb, **kwargs):
     auto_bonds = SETTINGS.get('auto_bonds')
     get_bonds = kwargs.get('bonds', auto_bonds)
     if get_bonds:
-        LOGGER.warn('Parsing struct_conn information from mmCIF is current unsupported and no bond information is added to the results')
+        LOGGER.warn('Parsing struct_conn information from mmCIF is currently unsupported and no bond information is added to the results')
     if not os.path.isfile(pdb):
         if len(pdb) == 5 and pdb.isalnum():
             if chain is None:
@@ -105,8 +105,12 @@ def parseMMCIF(pdb, **kwargs):
 
             if os.path.isfile(pdb + '.cif'):
                 filename = pdb + '.cif'
+                LOGGER.debug('CIF file is found in working directory ({0}).'
+                            .format(filename))
             elif os.path.isfile(pdb + '.cif.gz'):
                 filename = pdb + '.cif.gz'
+                LOGGER.debug('CIF file is found in working directory ({0}).'
+                            .format(filename))
             else:
                 filename = fetchPDB(pdb, report=True,
                                     format='cif', compressed=False)
@@ -276,10 +280,15 @@ parseMMCIFStream.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
-                     altloc_torf, segment, unite_chains):
+                     altloc_torf, segment, unite_chains,
+                     report=False):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
+
+    :arg report: whether to report warnings about not finding data
+        default False
+    :type report: bool
     """
 
     if subset is not None:
@@ -431,8 +440,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 continue
 
         alt = line.split()[fields['label_alt_id']]
-        if alt not in which_altlocs and which_altlocs != 'all':
-            continue
 
         if alt == '.':
             alt = ' '
@@ -480,39 +487,43 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     else:
         modelSize = acount
 
+    mask = np.full(modelSize, True, dtype=bool)
+    if which_altlocs != 'all':
+        #mask out any unwanted alternative locations
+        mask = (altlocs == '') | (altlocs == which_altlocs)
+
+    if np.all(mask == False):
+        mask = (altlocs == '') | (altlocs == altlocs[0])
+
     if addcoords:
-        atomgroup.addCoordset(coordinates[:modelSize])
+        atomgroup.addCoordset(coordinates[mask][:modelSize])
     else:
-        atomgroup._setCoords(coordinates[:modelSize])
+        atomgroup._setCoords(coordinates[mask][:modelSize])
 
-    atomgroup.setNames(atomnames[:modelSize])
-    atomgroup.setResnames(resnames[:modelSize])
-    atomgroup.setResnums(resnums[:modelSize])
-    atomgroup.setSegnames(segnames[:modelSize])
-    atomgroup.setChids(chainids[:modelSize])
-    atomgroup.setFlags('hetatm', hetero[:modelSize])
-    atomgroup.setFlags('pdbter', termini[:modelSize])
-    atomgroup.setFlags('selpdbter', termini[:modelSize])
-    atomgroup.setAltlocs(altlocs[:modelSize])
-    atomgroup.setIcodes(icodes[:modelSize])
-    atomgroup.setSerials(serials[:modelSize])
+    atomgroup.setNames(atomnames[mask][:modelSize])
+    atomgroup.setResnames(resnames[mask][:modelSize])
+    atomgroup.setResnums(resnums[mask][:modelSize])
+    atomgroup.setSegnames(segnames[mask][:modelSize])
+    atomgroup.setChids(chainids[mask][:modelSize])
+    atomgroup.setFlags('hetatm', hetero[mask][:modelSize])
+    atomgroup.setFlags('pdbter', termini[mask][:modelSize])
+    atomgroup.setFlags('selpdbter', termini[mask][:modelSize])
+    atomgroup.setAltlocs(altlocs[mask][:modelSize])
+    atomgroup.setIcodes(icodes[mask][:modelSize])
+    atomgroup.setSerials(serials[mask][:modelSize])
 
-    atomgroup.setElements(elements[:modelSize])
+    atomgroup.setElements(elements[mask][:modelSize])
     from prody.utilities.misctools import getMasses
-    atomgroup.setMasses(getMasses(elements[:modelSize]))
-    atomgroup.setBetas(bfactors[:modelSize])
-    atomgroup.setOccupancies(occupancies[:modelSize])
+    atomgroup.setMasses(getMasses(elements[mask][:modelSize]))
+    atomgroup.setBetas(bfactors[mask][:modelSize])
+    atomgroup.setOccupancies(occupancies[mask][:modelSize])
 
     anisou = None
     siguij = None
-    try:
-        data = parseSTARSection(lines, "_atom_site_anisotrop")
-        x = data[0] # check if data has anything in it
-    except IndexError:
-        LOGGER.warn("No anisotropic B factors found")
-    else:
+    data = parseSTARSection(lines, "_atom_site_anisotrop", report=report)
+    if len(data) > 0:
         anisou = np.zeros((acount, 6),
-                          dtype=ATOMIC_FIELDS['anisou'].dtype)
+                          dtype=float)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
             siguij = np.zeros((acount, 6),
@@ -550,6 +561,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
     if model is None:
         for n in range(1, nModels):
-            atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
+            atomgroup.addCoordset(coordinates[mask][n*modelSize:(n+1)*modelSize])
 
     return atomgroup
