@@ -380,7 +380,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             except:
                 color = cmap(color_norm(color))
 
-        if label:
+        if label is not None:
             kwargs['label'] = label
         else:
             kwargs.pop('label', None)
