@@ -298,6 +298,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         cycle_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         for i, label in enumerate(set(labels)):
             colors_dict[label] = cycle_colors[i % len(cycle_colors)]
+        colors = [colors_dict[label] for label in labels]
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         by_time = not kwargs.pop('show_density', True)
