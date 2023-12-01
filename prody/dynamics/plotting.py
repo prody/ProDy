@@ -23,6 +23,7 @@ from .analysis import calcCrossCorr, calcCovariance, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
+from .lda import LDA
 
 __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showCumulOverlap', 'showFractVars',
@@ -259,6 +260,37 @@ def showProjection(ensemble, modes, *args, **kwargs):
     use_weights = kwargs.pop('use_weights', False)
     weights = kwargs.pop('weights', ensemble.getData('size'))
 
+    use_labels = kwargs.pop('use_labels', True)
+    labels = kwargs.pop('label', None)
+    if labels is None:
+        if  use_labels:
+            if isinstance(modes, LDA):
+                labels = modes._labels.tolist()
+                LOGGER.info('using labels from LDA modes')
+            elif isinstance(modes.getModel(), LDA):
+                labels = modes.getModel()._labels.tolist()
+                LOGGER.info('using labels from LDA model')
+
+    if labels is not None and len(labels) != projection.shape[0]:
+        raise ValueError('label should have the same length as ensemble')
+
+    c = kwargs.pop('c', 'b')
+    colors = kwargs.pop('color', c)
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+    if isinstance(colors, (str, tuple)) or colors is None:
+        colors = [colors] * num
+    elif isinstance(colors, list):
+        if len(colors) != num:
+            raise ValueError('length of color must be {0}'.format(num))
+    elif isinstance(colors, dict):
+        if labels is None:
+            raise TypeError('color must be a string or a list unless labels are provided')
+        colors_dict = colors
+        colors = [colors_dict[label] for label in labels]
+    else:
+        raise TypeError('color must be a string or a list or a dict if labels are provided')
+
     if projection.ndim == 1 or projection.shape[1] == 1:
         by_time = not kwargs.pop('show_density', True)
         by_time = kwargs.pop('by_time', by_time)
@@ -267,14 +299,29 @@ def showProjection(ensemble, modes, *args, **kwargs):
             show = plt.plot(range(len(projection)), projection.flatten(), *args, **kwargs)
             if use_weights:
                 kwargs['s'] = weights
-                plt.scatter(range(len(projection)), projection.flatten(), *args, **kwargs)
+            if labels is not None:
+                for label in set(labels):
+                    kwargs['c'] = colors_dict[label]
+                    inds = np.nonzero(np.array(labels) == label)[0]
+                    show = plt.scatter(inds, projection[inds].flatten(), *args, **kwargs)
+            else:
+                show = plt.scatter(range(len(projection)),
+                                   projection.flatten(), *args, **kwargs)
             plt.ylabel('Mode {0} coordinate'.format(str(modes)))
             plt.xlabel('Conformation number')  
         else:
-            color = kwargs.pop('c', 'b')
             if weights is not None and use_weights:
                 kwargs['weights'] = weights
-            show = plt.hist(projection.flatten(), *args, **kwargs)
+
+            if labels is not None:
+                for label in set(labels):
+                    kwargs['color'] = colors_dict[label]
+                    inds = np.nonzero(np.array(labels) == label)[0]
+                    if projection.ndim == 1:
+                        projection = projection.reshape(projection.shape[0], 1)
+                    show = plt.hist(projection[inds].flatten(), *args, **kwargs)
+            else:
+                show = plt.hist(projection.flatten(), *args, **kwargs)
             plt.xlabel('Mode {0} coordinate'.format(str(modes)))
             plt.ylabel('Number of conformations')
         return show
@@ -292,18 +339,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
             raise ValueError('length of marker must be {0}'.format(num))
     else:
         raise TypeError('marker must be a string or a list')
-
-    c = kwargs.pop('c', 'blue')
-    colors = kwargs.pop('color', c)
-    if isinstance(colors, np.ndarray):
-        colors = tuple(colors)
-    if isinstance(colors, (str, tuple)) or colors is None:
-        colors = [colors] * num
-    elif isinstance(colors, list):
-        if len(colors) != num:
-            raise ValueError('length of color must be {0}'.format(num))
-    else:
-        raise TypeError('color must be a string or a list')
 
     color_norm = None
     if isinstance(colors[0], Number):
