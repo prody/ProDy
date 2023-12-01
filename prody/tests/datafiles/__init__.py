@@ -167,6 +167,12 @@ DATA_FILES = {
     'pca2k39_vectors': {
         'file': 'pca2k39_vectors.dat'
     },
+    'lda2k39_evalues': {
+        'file': 'lda2k39_evalues.dat',
+    },
+    'lda2k39_vectors': {
+        'file': 'lda2k39_vectors.dat'
+    },
     'commute1ubi': {
         'file': 'commute1ubi.dat'
     },

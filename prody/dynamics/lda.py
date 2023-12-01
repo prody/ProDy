@@ -61,6 +61,9 @@ class LDA(NMA):
             self._coordsets = coordsets._getCoordsets()
         elif isinstance(coordsets, Ensemble):
             self._coordsets = coordsets._getCoordsets()
+        else:
+            raise TypeError('coordsets should be Atomic, Ensemble or numpy.ndarray, not {0}'
+                            .format(type(coordsets)))
 
         nconfs = self._coordsets.shape[0]
         if not isListLike(labels):
