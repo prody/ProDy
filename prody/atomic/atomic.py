@@ -112,6 +112,8 @@ class Atomic(object):
                                                  ' from ' + str(self))
                         else:
                             return None
+                elif name == '_anisous':
+                    return None
                 else:
                     selstr = name
                     items = name.split('_')
