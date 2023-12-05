@@ -85,6 +85,7 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         type_ = 'PCA'
     elif isinstance(nma, LDA):
         type_ = 'LDA'
+        attr_list.append('_labels')
     else:
         type_ = 'NMA'
 
