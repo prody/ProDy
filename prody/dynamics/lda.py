@@ -42,6 +42,11 @@ class LDA(NMA):
             default is **None**,
             if **None** or ``'all'`` is given, all modes will be calculated
         :type n_modes: int
+
+        :arg n_shuffles: number of random shuffles of labels to assess variability
+        :type n_shuffles: int
+
+        Other kwargs for the LDA class can also be used. n_components defaults to n_modes
         """
         try:
             from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -57,6 +62,7 @@ class LDA(NMA):
             if (coordsets.ndim != 3 or coordsets.shape[2] != 3 or
                     coordsets.dtype not in (np.float32, float)):
                 raise ValueError('coordsets is not a valid coordinate array')
+            self._coordsets = coordsets
         elif isinstance(coordsets, Atomic):
             self._coordsets = coordsets._getCoordsets()
         elif isinstance(coordsets, Ensemble):
@@ -79,8 +85,11 @@ class LDA(NMA):
         self._coordsets = self._coordsets.reshape(nconfs, -1)
         self._labels = labels
 
-        n_components = kwargs.pop('n_components', n_modes)
-        self._lda = LinearDiscriminantAnalysis(n_components=n_components, **kwargs)
+        quiet = kwargs.pop('quiet', False)
+
+        self._n_components = kwargs.pop('n_components', n_modes)
+        self._n_shuffles = kwargs.pop('n_shuffles', 0)
+        self._lda = LinearDiscriminantAnalysis(n_components=self._n_components, **kwargs)
         self._projection = self._lda.fit(self._coordsets, self._labels)
 
         values = self._lda.explained_variance_ratio_
@@ -89,15 +98,43 @@ class LDA(NMA):
         self._vars = values
         self._n_modes = len(self._eigvals)
 
-        vecs = self._lda.scalings_
-        self._array = np.array([vecs[:,i]/(vecs[:,i]**2).sum()**0.5 for i in range(self._n_modes)]).T
+        self._array = np.array([self._lda.scalings_[:,i]/(self._lda.scalings_[:,i]**2).sum()**0.5 
+                                for i in range(self._n_modes)]).T
 
-        if self._n_modes > 1:
-            LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
-                     .format(self._n_modes, time.time()-start))
-        else:
-            LOGGER.debug('{0} mode was calculated in {1:.2f}s.'
-                     .format(self._n_modes, time.time()-start))
+        if not quiet:
+            if self._n_modes > 1:
+                LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
+                        .format(self._n_modes, time.time()-start))
+            else:
+                LOGGER.debug('{0} mode was calculated in {1:.2f}s.'
+                        .format(self._n_modes, time.time()-start))
+
+            if self._n_shuffles > 0:
+                if self._n_modes > 1:
+                    LOGGER.debug('Calculating {0} modes for {1} shuffles.'
+                        .format(self._n_modes, self._n_shuffles))
+                else:
+                    LOGGER.debug('Calculating {0} mode for {1} shuffles.'
+                        .format(self._n_modes, self._n_shuffles))
+            
+        self._shuffled_ldas = [LDA('shuffle '+str(n)) for n in range(self._n_shuffles)]
+        self._coordsets_reshaped = self._coordsets.reshape(self._coordsets.shape[0], self._n_atoms, -1)
+        labelsNew = self._labels.copy()
+        for n in range(self._n_shuffles):
+            # use random generator with None, 
+            # then fresh, unpredictable entropy will be pulled from the OS
+            rng = np.random.default_rng() 
+            rng.shuffle(labelsNew) # in place
+            self._shuffled_ldas[n].calcModes(self._coordsets_reshaped, 
+                                             labelsNew, quiet=True)
+            
+        if self._n_shuffles > 0 and not quiet:
+            if self._n_modes > 1:
+                LOGGER.debug('{0} modes were calculated with {1} shuffles in {2:.2f}s.'
+                        .format(self._n_modes, self._n_shuffles, time.time()-start))
+            else:
+                LOGGER.debug('{0} mode was calculated with {1} shuffles in {2:.2f}s.'
+                        .format(self._n_modes, self._n_shuffles, time.time()-start))
 
     def addEigenpair(self, eigenvector, eigenvalue=None):
         """Add eigen *vector* and eigen *value* pair(s) to the instance.
