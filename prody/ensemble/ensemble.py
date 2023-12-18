@@ -317,6 +317,9 @@ class Ensemble(object):
         return copy(self._indices)
     
     def hasSelectionIssue(self):
+        if self._atoms is None or self._atoms.ca is None:
+            return False
+        
         selids = self._indices
         if (selids.max() > self._coords.shape[0] 
             and set(selids).issubset(set(self._atoms.ca.getIndices()))):
