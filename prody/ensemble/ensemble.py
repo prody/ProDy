@@ -217,7 +217,7 @@ class Ensemble(object):
             return self._atoms
         return self._atoms[self._indices]
 
-    def setAtoms(self, atoms):
+    def setAtoms(self, atoms, allowSame=False):
         """Set *atoms* or specify a selection of atoms to be considered in
         calculations and coordinate requests.  When a selection is set,
         corresponding subset of coordinates will be considered in, for
@@ -273,7 +273,7 @@ class Ensemble(object):
                     raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
                                     .format(n_atoms, ag.numAtoms()))
                 self._atoms = ag
-                self._indices, _ = sliceAtoms(self._atoms, atoms)
+                self._indices, _ = sliceAtoms(self._atoms, atoms, allowSame=allowSame)
                 
         else: # if assigning atoms to a new ensemble
             self._n_atoms = atoms.numAtoms()
