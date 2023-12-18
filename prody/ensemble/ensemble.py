@@ -238,7 +238,7 @@ class Ensemble(object):
 
         n_atoms = self._n_atoms
         if n_atoms:
-            if atoms.numAtoms() > n_atoms:
+            if atoms.numAtoms() > n_atoms and atoms.ca.numAtoms() > n_atoms:
                 raise ValueError('atoms must be same size or smaller than '
                                 'the ensemble')
 
@@ -261,7 +261,15 @@ class Ensemble(object):
                     ag = atoms.getAtomGroup()
                 except AttributeError:
                     ag = atoms
-                if ag.numAtoms() != n_atoms:
+                try:
+                    self_ag = self._atoms.getAtomGroup()
+                except AttributeError:
+                    self_ag = self._atoms
+                try:
+                    self_ag_n_atoms = self_ag.numAtoms()
+                except AttributeError:
+                    self_ag_n_atoms = 0
+                if ag.numAtoms() != n_atoms and ag.numAtoms() != self_ag_n_atoms and self_ag_n_atoms != 0:
                     raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
                                     .format(n_atoms, ag.numAtoms()))
                 self._atoms = ag
@@ -294,12 +302,26 @@ class Ensemble(object):
             return None
         if self._indices is None or not selected:
             return self._coords.copy()
-        return self._coords[self._indices].copy()
+        
+        selids = self._indices
+        if self.hasSelectionIssue():
+            selids = self.getIndices(calphas=True)
+        return self._coords[selids].copy()
 
-    def getIndices(self):
+    def getIndices(self, calphas=False):
         """Returns a copy of indices of selected columns"""
 
+        if calphas:
+            return array([list(self._atoms.ca.getIndices()).index(idx) 
+                          for idx in self._indices])
         return copy(self._indices)
+    
+    def hasSelectionIssue(self):
+        selids = self._indices
+        if (selids.max() > self._coords.shape[0] 
+            and set(selids).issubset(set(self._atoms.ca.getIndices()))):
+            return True
+        return False        
 
     def setIndices(self, value):
         if not isListLike(value):
@@ -359,10 +381,17 @@ class Ensemble(object):
             return None
         if self._indices is None or not selected:
             return self._weights.copy()
-        if self._weights.ndim == 2:
-            return self._weights[self._indices].copy()
+        
+        
+        if self.hasSelectionIssue():
+            selids = self.getIndices(calphas=True)
         else:
-            return self._weights[:, self._indices].copy()
+            selids = self._indices
+            
+        if self._weights.ndim == 2:
+            return self._weights[selids].copy()
+        else:
+            return self._weights[:, selids].copy()
 
     def _getWeights(self, selected=True):
 
