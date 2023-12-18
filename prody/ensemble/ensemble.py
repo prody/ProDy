@@ -321,6 +321,9 @@ class Ensemble(object):
             return False
         
         selids = self._indices
+        if selids is None:
+            return False
+
         if (selids.max() > self._coords.shape[0] 
             and set(selids).issubset(set(self._atoms.ca.getIndices()))):
             return True
