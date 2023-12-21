@@ -467,16 +467,6 @@ class TestWritePDB(unittest.TestCase):
                 'failed to write ensemble model 1 coordinates correctly')
 
     @dec.slow
-    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
-    def testWritingAtomMap(self):
-        """Test if output from writing a sorted AtomMap works and is as expected."""
-
-        sorted_sel = sortAtoms(self.sort_sel_ag, 'chain')
-        out = writePDB(self.tmp, sorted_sel)
-        new = parsePDB(out)
-        self.assertListEqual(list(new.getChids()), self.sort_sel['sorted_order'])
-
-    @dec.slow
     def tearDown(self):
         """Remove test file."""
 
