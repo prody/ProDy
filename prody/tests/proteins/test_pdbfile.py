@@ -31,6 +31,7 @@ class TestParsePDB(unittest.TestCase):
         self.h36 = DATA_FILES['h36']
 
         self.altlocs = DATA_FILES['6flr']
+        self.his_selstr = 'resname HIS and chain B and resnum 234 and name CA'
 
     def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""
@@ -200,7 +201,7 @@ class TestParsePDB(unittest.TestCase):
         self.assertEqual(ag.numCoordsets(), 1,
             'parsePDB failed to parse correct number of coordsets (1) with altloc "all"')
 
-        hisB234 = ag.select('resname HIS and chain B and resnum 234 and name CA')
+        hisB234 = ag.select(self.his_selstr)
         self.assertEqual(hisB234.numAtoms(), self.altlocs['num_altlocs'],
             'parsePDB failed to parse correct number of His B234 CA atoms (2) with altloc "all"')
 
@@ -213,7 +214,7 @@ class TestParsePDB(unittest.TestCase):
         assert_allclose(hisB234.getAnisous()[1], self.altlocs['anisousB'][0],
             err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc "all"')
         
-    def testAltlocNoneToMultiCoordets(self):
+    def testAltlocNoneToMultiCoordsets(self):
         """Test number of coordinate sets and atoms with altloc=None."""
 
         path = pathDatafile(self.altlocs['file'])
@@ -224,7 +225,7 @@ class TestParsePDB(unittest.TestCase):
         self.assertEqual(ag.numCoordsets(), self.altlocs['num_altlocs'],
             'parsePDB failed to parse correct number of coordsets (2) with altloc None')
 
-        hisB234 = ag.select('resname HIS and chain B and resnum 234 and name CA')
+        hisB234 = ag.select(self.his_selstr)
         self.assertEqual(hisB234.numAtoms(), 1,
             'parsePDB failed to parse correct number of His B234 CA atoms (1) with altloc None')
 
