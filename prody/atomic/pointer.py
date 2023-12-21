@@ -273,6 +273,15 @@ class AtomPointer(Atomic):
                             .intersection(set(self._getIndices()))), int)
         subset.sort()
         return subset
+    
+    def getAnisous(self):
+        """Returns a copy of anisotropic temperature factors from the active coordinate set."""
+
+        if self._ag._anisous is not None:
+            # Since this is not slicing, a view is not returned
+            return self._ag._anisous[self.getACSIndex(), self._indices]
+
+    _getAnisous = getAnisous
 
     def _iterBonds(self):
         """Yield pairs of indices for bonded atoms that are within the pointer.

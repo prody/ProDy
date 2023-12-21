@@ -245,6 +245,16 @@ DATA_FILES = {
         'atoms': 165175,
         'segment_SX0_atoms': 1089,
     },
+    '6zu5_sel': {
+        'pdb': '6zu5',
+        'file': '6zu5_sel_SE0_SF0_10-20.pdb',
+        'atoms': 22,
+        'segment_SF0_atoms': 11,
+        'chid_order': ['Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z',
+                       'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'],
+        'sorted_order': ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+                         'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z']
+    },
     '3hsy': {
         'pdb': '3hsy',
         'file': 'pdb3hsy.pdb',
