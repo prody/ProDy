@@ -276,7 +276,8 @@ class TestWritePDB(unittest.TestCase):
         self.h36_ter = parsePDB(DATA_FILES['h36_ter']['path'])
 
         self.altlocs = DATA_FILES['6flr']
-        self.altloc_full = parsePDB(self.altlocs['path'], altloc=None)
+        self.altloc_full = parsePDB(self.altlocs['path'], altloc=None,
+                                    secondary=False)
         self.altloc_sel = DATA_FILES['6flr_sel']['path']
 
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR)
@@ -446,11 +447,11 @@ class TestWritePDB(unittest.TestCase):
         lines2 = fi.readlines()
         fi.close()
         
-        self.assertEqual(lines1[4], lines2[4],
-            'writePDB failed to write correct ANISOU line 4 for 6flr selection with altloc None')
+        self.assertEqual(lines1[3], lines2[3],
+            'writePDB failed to write correct ANISOU line 3 for 6flr selection with altloc None')
         
-        self.assertEqual(lines1[8], lines2[8],
-            'writePDB failed to write correct ANISOU line 8 for 6flr selection with altloc None')
+        self.assertEqual(lines1[7], lines2[7],
+            'writePDB failed to write correct ANISOU line 7 for 6flr selection with altloc None')
         
     def testWriteEnsembleToPDB(self):
         """Test that writePDB can handle ensembles."""
