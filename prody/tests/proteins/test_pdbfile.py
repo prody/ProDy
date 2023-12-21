@@ -280,6 +280,9 @@ class TestWritePDB(unittest.TestCase):
                                     secondary=False)
         self.altloc_sel = DATA_FILES['6flr_sel']['path']
 
+        self.sort_sel = DATA_FILES['6zu5_sel']
+        self.sort_sel_ag = parsePDB(self.sort_sel['path'])
+
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR)
 
     @dec.slow
@@ -462,6 +465,16 @@ class TestWritePDB(unittest.TestCase):
             'failed to write correct number of models from ensemble')
         assert_equal(out.getCoords(), self.ag.getCoordsets(0),
                 'failed to write ensemble model 1 coordinates correctly')
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingAtomMap(self):
+        """Test if output from writing a sorted AtomMap works and is as expected."""
+
+        sorted_sel = sortAtoms(self.sort_sel_ag, 'chain')
+        out = writePDB(self.tmp, sorted_sel)
+        new = parsePDB(out)
+        self.assertListEqual(list(new.getChids()), self.sort_sel['sorted_order'])
 
     @dec.slow
     def tearDown(self):
