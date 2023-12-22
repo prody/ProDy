@@ -216,7 +216,7 @@ def fetchPDB(*pdb, **kwargs):
 
     folder = kwargs.get('folder', '.')
     compressed = kwargs.get('compressed')
-    format_ = kwargs.get('format')
+    format_ = kwargs.get('format', 'pdb')
 
     # check *folder* specified by the user, usually pwd ('.')
     filedict = findPDBFiles(folder, compressed=compressed, 
