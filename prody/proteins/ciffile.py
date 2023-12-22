@@ -15,9 +15,9 @@ from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
-from .starfile import parseSTARLines, StarDict, parseSTARSection
+from .starfile import parseSTARSection
 from .cifheader import getCIFHeaderDict
-from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
+from .header import buildBiomolecules, assignSecstr
 
 __all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF']
 
@@ -365,12 +365,12 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         elif altloc_torf.strip() != 'A':
             LOGGER.info('Parsing alternate locations {0}.'
                         .format(altloc_torf))
-            which_altlocs = '.' + ''.join(altloc_torf.split())
+            which_altlocs = ' ' + ''.join(altloc_torf.split())
         else:
-            which_altlocs = '.A'
+            which_altlocs = ' A'
         altloc_torf = False
     else:
-        which_altlocs = '.A'
+        which_altlocs = ' A'
         altloc_torf = True
 
     coordinates = np.zeros((asize, 3), dtype=float)
@@ -490,10 +490,11 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     mask = np.full(modelSize, True, dtype=bool)
     if which_altlocs != 'all':
         #mask out any unwanted alternative locations
-        mask = (altlocs == '') | (altlocs == which_altlocs)
+        mask = (altlocs == ' ') | np.logical_or(*[(altlocs == altloc)
+                                                  for altloc in which_altlocs])
 
     if np.all(mask == False):
-        mask = (altlocs == '') | (altlocs == altlocs[0])
+        mask = (altlocs == altlocs[0])
 
     if addcoords:
         atomgroup.addCoordset(coordinates[mask][:modelSize])
@@ -523,7 +524,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     data = parseSTARSection(lines, "_atom_site_anisotrop", report=report)
     if len(data) > 0:
         anisou = np.zeros((acount, 6),
-                          dtype=float)
+                           dtype=float)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
             siguij = np.zeros((acount, 6),
@@ -531,7 +532,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
         for entry in data:
             try:
-                index = np.where(atomgroup.getSerials() == int(
+                index = np.where(serials == int(
                     entry["_atom_site_anisotrop.id"]))[0][0]
             except:
                 continue
@@ -554,10 +555,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 except:
                     pass
 
-        atomgroup.setAnisous(anisou) # no division needed anymore
+        atomgroup.setAnisous(anisou[mask][:modelSize]) # no division needed anymore
 
-        if not np.any(siguij):
-            atomgroup.setAnistds(siguij)  # no division needed anymore
+        if np.any(siguij):
+            atomgroup.setAnistds(siguij[mask][:modelSize])  # no division needed anymore
 
     if model is None:
         for n in range(1, nModels):
