@@ -759,10 +759,9 @@ class ClustENM(Ensemble):
             centers, wei = self._centers(confs_cg, label_cg)
             LOGGER.report('Centroids were generated in %.2fs.',
                         label='_clustenm_gen')
+            confs_centers = confs_ex[centers]
         else:
-            centers, wei = confs_cg, [len(confs_cg)]
-        
-        confs_centers = confs_ex[centers]
+            confs_centers, wei = confs_cg, [len(confs_cg)]
 
         return confs_centers, wei
 
