@@ -487,7 +487,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     else:
         modelSize = acount
 
-    mask = np.full(modelSize, True, dtype=bool)
+    mask = np.full(acount, True, dtype=bool)
     if which_altlocs != 'all':
         #mask out any unwanted alternative locations
         mask = (altlocs == ' ') | np.logical_or(*[(altlocs == altloc)
