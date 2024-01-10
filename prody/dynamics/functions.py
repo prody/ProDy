@@ -86,6 +86,7 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     elif isinstance(nma, LDA):
         type_ = 'LDA'
         attr_list.append('_labels')
+        attr_list.append('_shuffled_ldas')
     else:
         type_ = 'NMA'
 
