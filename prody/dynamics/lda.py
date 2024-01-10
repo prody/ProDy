@@ -151,3 +151,7 @@ class LDA(NMA):
         self._clear()
         NMA.setEigens(self, vectors, values)
         self._vars = self._eigvals
+
+    def getShuffledModes(self):
+        return self._shuffled_ldas.copy()
+    
