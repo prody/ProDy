@@ -155,3 +155,5 @@ class LDA(NMA):
     def getShuffledModes(self):
         return self._shuffled_ldas.copy()
     
+    def getShuffledEigvecs(self):
+        return np.array([lda.getEigvecs() for lda in self._shuffled_ldas])
