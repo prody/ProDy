@@ -276,3 +276,8 @@ class Atomic(object):
             raise ImportError('TEMPy is needed for this functionality')
 
         return BioPy_Structure(self.toTEMPyAtoms())
+
+    def numResidues(self):
+        """Returns number of residues."""
+
+        return len(set(self._getResindices()))
