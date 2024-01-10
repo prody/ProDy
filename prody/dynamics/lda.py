@@ -157,3 +157,6 @@ class LDA(NMA):
     
     def getShuffledEigvecs(self):
         return np.array([lda.getEigvecs() for lda in self._shuffled_ldas])
+
+    def getShuffledPercentile(self, percentile):
+        return np.percentile(self.getShuffledEigvecs(), percentile)
