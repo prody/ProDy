@@ -170,6 +170,7 @@ def parseMMCIFStream(stream, **kwargs):
     unite_chains = kwargs.get('unite_chains', False)
     altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
+    report = kwargs.get('report', False)
     assert isinstance(header, bool), 'header must be a boolean'
 
     if model is not None:
@@ -235,7 +236,7 @@ def parseMMCIFStream(stream, **kwargs):
             hd = getCIFHeaderDict(lines)
 
         _parseMMCIFLines(ag, lines, model, chain, subset, altloc, 
-                         segment, unite_chains)
+                         segment, unite_chains, report)
 
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -281,7 +282,7 @@ parseMMCIFStream.__doc__ += _parseMMCIFdoc
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                      altloc_torf, segment, unite_chains,
-                     report=False):
+                     report):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
@@ -487,7 +488,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     else:
         modelSize = acount
 
-    mask = np.full(modelSize, True, dtype=bool)
+    mask = np.full(acount, True, dtype=bool)
     if which_altlocs != 'all':
         #mask out any unwanted alternative locations
         mask = (altlocs == ' ') | np.logical_or(*[(altlocs == altloc)
