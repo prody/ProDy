@@ -562,6 +562,28 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
 
     kwargs['ls'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
 
+    colors_dict = {}
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+    if isinstance(colors, (str, tuple)) or colors is None:
+        colors = [colors] * num
+    elif isinstance(colors, list):
+        if len(colors) != num:
+            raise ValueError('length of color must be {0}'.format(num))
+    elif isinstance(colors, dict):
+        if labels is None:
+            raise TypeError('color must be a string or a list unless labels are provided')
+        colors_dict = colors
+        colors = [colors_dict[label] for label in labels]
+    else:
+        raise TypeError('color must be a string or a list or a dict if labels are provided')
+
+    if labels is not None and len(colors_dict) == 0:
+        cycle_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        for i, label in enumerate(set(labels)):
+            colors_dict[label] = cycle_colors[i % len(cycle_colors)]
+        colors = [colors_dict[label] for label in labels]
+
     texts = kwargs.pop('text', None)
     if texts:
         if not isinstance(texts, list):
