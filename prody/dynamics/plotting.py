@@ -308,7 +308,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             show = plt.plot(range(len(projection)), projection.flatten(), *args, **kwargs)
             if use_weights:
                 kwargs['s'] = weights
-            if labels is not None:
+            if labels is not None and use_labels:
                 for label in set(labels):
                     kwargs['c'] = colors_dict[label]
                     inds = np.nonzero(np.array(labels) == label)[0]
@@ -322,7 +322,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             if weights is not None and use_weights:
                 kwargs['weights'] = weights
 
-            if labels is not None:
+            if labels is not None and use_labels:
                 for label in set(labels):
                     kwargs['color'] = colors_dict[label]
                     inds = np.nonzero(np.array(labels) == label)[0]
