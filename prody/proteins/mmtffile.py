@@ -19,7 +19,7 @@ from .header import getHeaderDict, buildBiomolecules
 import struct as st
 import numpy as np
 
-__all__ = ['parseMMTF']
+__all__ = ['parseMMTF', 'writeMMTF']
 
 _parseMMTFdoc = """
     :arg chain: Chain identifier(s) to parse (e.g., 'A' for chain A). If not provided,
@@ -363,3 +363,36 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel=None):
         atomgroup.setBonds(nonpeptide)
 
     return atomgroup
+
+def writeMMTF(filename, atoms, csets=None, autoext=True, **kwargs):
+    """Write *atoms* in MMTF format to a file with name *filename* and return
+    *filename*.  If *filename* ends with :file:`.gz`, a compressed file will
+    be written.
+    
+    :arg atoms: an object with atom and coordinate data
+    :type atoms: :class:`.Atomic`
+
+    :arg csets: coordinate set indices, default is all coordinate sets
+
+    :arg autoext: when not present, append extension :file:`.mmtf` to *filename*
+
+    :keyword header: header to write too
+    :type header: dict
+    """
+    try:
+        from Bio.PDB.mmtf import MMTFIO
+    except ImportError:
+        raise ImportError('Biopython MMTFIO could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+
+    header = kwargs.get('header', None)
+
+    if autoext and not filename.lower().endswith('.mmtf'):
+        filename += '.mmtf'
+
+    structure = atoms.toBioPythonStructure(header=header, csets=csets)
+    io=MMTFIO()
+    io.set_structure(structure)
+    io.save(filename)
+    return filename
