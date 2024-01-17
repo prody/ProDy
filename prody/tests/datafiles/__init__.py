@@ -197,6 +197,9 @@ DATA_FILES = {
     'MSA': {
         'file': 'msa_3hsyA_3o21A.fasta'
     },
+    'MSA_MEW': {
+        'file': 'msa_3hsyA_3o21A_new.fasta'
+    },
     'RTER': {
         'file': 'pdbRTER.pdb'
     },
