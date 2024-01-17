@@ -304,7 +304,9 @@ class Atomic(object):
 
         origACSI = self.getACSIndex()
 
-        csets = kwargs.get('csets', range(self.numCoordsets()))
+        csets = kwargs.get('csets', None)
+        if csets is None:
+            csets = range(self.numCoordsets())
 
         structure_builder = StructureBuilder()
         structure_builder.init_structure(self.getTitle())
@@ -342,6 +344,8 @@ class Atomic(object):
 
                 resseq = atom.getResnum()
                 icode = atom.getIcode()
+                if len(icode) == 0:
+                    icode = ' '
                 residue_id = (hetero_flag, resseq, icode)
 
                 if current_chain_id != chainid:
