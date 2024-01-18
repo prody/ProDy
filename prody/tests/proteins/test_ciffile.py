@@ -280,3 +280,14 @@ class TestParseMMCIF(unittest.TestCase):
 
         assert_allclose(hisB234.getAnisous(), self.altlocs['anisousA'],
             err_msg='parsePDB failed to have right His B234 CA atoms getAnisous A with altloc "all"')
+
+    def testAltlocAllMultiModels(self):
+        """Test number of coordinate sets and atoms for multi-model case with altloc='all'."""
+
+        path = pathDatafile(self.multi['file'])
+
+        ag = parsePDB(path, altloc="all")
+        self.assertEqual(ag.numAtoms(), self.multi['atoms'],
+            'parsePDB failed to parse correct number of atoms for multi-model with altloc "all"')
+        self.assertEqual(ag.numCoordsets(), self.multi['models'],
+            'parsePDB failed to parse correct number of coordsets ({0}) with altloc "all"'.format(self.multi['models']))
