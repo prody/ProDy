@@ -128,6 +128,9 @@ class LDA(NMA):
             self._shuffled_ldas[n].calcModes(self._coordsets_reshaped, 
                                              labelsNew, quiet=True)
             
+        self._shuffled_ldas = np.array(self._shuffled_ldas)
+        self._shuffled_ldas = self._shuffled_ldas.flatten()
+
         if self._n_shuffles > 0 and not quiet:
             if self._n_modes > 1:
                 LOGGER.debug('{0} modes were calculated with {1} shuffles in {2:.2f}s.'
@@ -151,3 +154,12 @@ class LDA(NMA):
         self._clear()
         NMA.setEigens(self, vectors, values)
         self._vars = self._eigvals
+
+    def getShuffledModes(self):
+        return self._shuffled_ldas.copy()
+    
+    def getShuffledEigvecs(self):
+        return np.array([lda.getEigvecs() for lda in self._shuffled_ldas])
+
+    def getShuffledPercentile(self, percentile):
+        return np.percentile(self.getShuffledEigvecs(), percentile)

@@ -19,7 +19,8 @@ from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
-           'calcFractVariance', 'calcSqFlucts', 'calcRMSFlucts', 'calcTempFactors',
+           'calcFractVariance', 'calcSqFlucts', 'calcRMSFlucts',
+           'calcMostMobileNodes', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
            'calcDistFlucts', 'calcHinges', 'calcHitTime',
@@ -342,6 +343,28 @@ def calcRMSFlucts(modes):
         raise ValueError("Square Fluctuation should not contain negative values, please check input modes")
 
     return sq_flucts ** 0.5
+
+def calcMostMobileNodes(modes, **kwargs):
+    """Returns indices for nodes with highest root mean square fluctuations (RMSFs) for given set of normal *modes*
+    above a particular *percentile* and/or *cutoff*.
+
+    :arg percentile: percentile for internal cutoff (between 0 and 100).
+        Default 0 takes all values
+    :type percentile: int
+
+    :arg cutoff: user-defined cutoff, default is to take all values
+    :type cutoff: float
+    """
+    rmsf = calcRMSFlucts(modes)
+
+    cutoff = kwargs.get('cutoff', rmsf.min())
+    inds = np.nonzero(rmsf > cutoff)[0]
+
+    percentile = kwargs.get('percentile', 0)
+    cutoff = np.percentile(rmsf, percentile)
+    inds = inds[np.nonzero(rmsf[inds] > cutoff)[0]]
+
+    return inds
 
 def calcCrossCorr(modes, n_cpu=1, norm=True):
     """Returns cross-correlations matrix.  For a 3-d model, cross-correlations
