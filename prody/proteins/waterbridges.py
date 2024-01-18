@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module detects, predicts and analyzes water bridges.
+"""This module provides the the WatFinder toolkit that detects, predicts and analyzes water bridges.
 """
 
 __author__ = 'Karolina Mikulska-Ruminska'
