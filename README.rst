@@ -96,6 +96,8 @@ DOCUMENTATION
 
 * Changes: http://prody.csb.pitt.edu/manual/release
 
+See also https://github.com/prody/ProDy-website for latest versions.
+
 
 SOURCE CODE
 -----------
