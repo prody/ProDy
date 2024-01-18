@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for analyzing normal modes obtained 
+"""This module defines functions for signature dynamics (SignDy), analyzing normal modes obtained 
 for conformations in an ensemble."""
 
 import time
