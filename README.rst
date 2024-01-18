@@ -47,7 +47,7 @@ The main ones are:
 
 - :mod:`~prody.dynamics` provides all the modules for normal mode analysis with various elastic network models, 
 as well as PCA, SignDy (:mod:`~prody.dynamics.signature`), hybrid methods such as :mod:`~prody.dynamics.clustenm`, 
-allosteric signal propagation methods :mod:`~prody.dynamics.perturb` and :func:`~prody.dynamics.analysis.calcHitTime`,
+allosteric signal propagation methods :mod:`~prody.dynamics.perturb` (PRS) and :func:`~prody.dynamics.analysis.calcHitTime` (Markovian hitting time),
 and various analysis and plotting functions.
 
 - :mod:`~prody.ensemble` enables construction of heterogeneous structural ensembles for exploring dynamics from experiments and simulations
