@@ -192,7 +192,6 @@ def _parseMMTF(mmtf_struc, **kwargs):
 def set_header(data_api):
 
     #get the transform here and convert it to the format that prody wants
-    assembly = data_api.bio_assembly[0]
     chain_list = data_api.chain_name_list
     assembly = _bio_transform(data_api)
     header = {
@@ -210,20 +209,21 @@ def set_header(data_api):
 
 def _bio_transform(dec):
     ret = {}
+    matrix_line_format_string = ' %9.6f %9.6f %9.6f      %9.5f            \n'
     for t in dec.bio_assembly:
-        name = t['name']
         L = []
         for trans in t['transformList']:
             chis = trans['chainIndexList']
             chains = sorted(set([dec.chain_name_list[c] for c in chis]))
             m = trans['matrix']
-            L += [chains, '%f %f %f %f'%tuple(m[:4]), 
-                      '%f %f %f %f'%tuple(m[4:8]), 
-                      '%f %f %f %f'%tuple(m[8:12])]
+            L += [chains,
+                  matrix_line_format_string % tuple(m[:4]),
+                  matrix_line_format_string % tuple(m[4:8]),
+                  matrix_line_format_string % tuple(m[8:12])]
         ret[t['name']] = L
     return ret
 
-def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel=None):
+def set_info(atomgroup, mmtf_data, get_bonds=False, altloc_sel=None):
 
     mmtfHETATMtypes = set([
         "D-SACCHARIDE",
