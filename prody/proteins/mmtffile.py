@@ -387,12 +387,14 @@ def writeMMTF(filename, atoms, csets=None, autoext=True, **kwargs):
             'to solve the problem.')
 
     header = kwargs.get('header', None)
+    infer_bonds = kwargs.get('infer_bonds', False)
 
     if autoext and not filename.lower().endswith('.mmtf'):
         filename += '.mmtf'
 
-    structure = atoms.toBioPythonStructure(header=header, csets=csets)
+    structure = atoms.toBioPythonStructure(header=header, csets=csets,
+                                           infer_bonds=infer_bonds)
     io=MMTFIO()
     io.set_structure(structure)
-    io.save(filename)
+    io.save(filename, num_bonds=atoms.numBonds())
     return filename
