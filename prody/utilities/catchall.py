@@ -11,7 +11,8 @@ from .logger import LOGGER
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
-           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters']
+           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters',
+           'calcKmedoidClusters']
 
 class LinkageError(Exception):
     pass
@@ -1048,3 +1049,14 @@ def calcRMSDclusters(rmsd_matrix, c, labels=None):
 
 calcGromosClusters = calcRMSDclusters
 calcGromacsClusters = calcRMSDclusters
+
+def calcKmedoidClusters(distances, nClusters):
+    try:
+        import kmedoids
+    except ImportError:
+        raise ImportError('Please install kmedoids to run this function')
+    
+    c = kmedoids.fasterpam(distances, nClusters)
+    labels = c.labels
+    _, counts = np.unique(labels, return_counts=True)
+    return c.medoids, labels, counts
