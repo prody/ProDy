@@ -290,9 +290,6 @@ class Atomic(object):
         :type atoms: :class:`.Atomic`
 
         :arg csets: coordinate set indices, default is all coordinate sets
-        
-        :arg infer_bonds: whether to infer new bonds
-        :type infer_bonds: bool
         """ 
         try:
             from Bio.PDB.Structure import Structure
@@ -309,10 +306,6 @@ class Atomic(object):
         csets = kwargs.get('csets', None)
         if csets is None:
             csets = range(self.numCoordsets())
-
-        infer_bonds = kwargs.get('infer_bonds', False)
-        if infer_bonds:
-            self.inferBonds()
 
         structure_builder = StructureBuilder()
         structure_builder.init_structure(self.getTitle())

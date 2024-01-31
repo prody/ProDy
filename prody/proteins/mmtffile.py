@@ -100,7 +100,7 @@ def parseMMTF(mmtf_struc, **kwargs):
                                     .format(mmtf_struc))
                 mmtf_struc = structure
             else:
-                raise IOError('{0} is not a valid filename or a valid PDB '
+                raise IOError('{0} is not a valid mmtf filename or a valid PDB '
                             'identifier.'.format(mmtf_struc))
             
         else: #entering the mmtf file name
@@ -383,18 +383,16 @@ def writeMMTF(filename, atoms, csets=None, autoext=True, **kwargs):
         from Bio.PDB.mmtf import MMTFIO
     except ImportError:
         raise ImportError('Biopython MMTFIO could not be imported. '
-            'Reinstall ProDy or install Biopython '
+            'Reinstall ProDy or install Biopython and mmtf-python'
             'to solve the problem.')
 
     header = kwargs.get('header', None)
-    infer_bonds = kwargs.get('infer_bonds', False)
 
     if autoext and not filename.lower().endswith('.mmtf'):
         filename += '.mmtf'
 
-    structure = atoms.toBioPythonStructure(header=header, csets=csets,
-                                           infer_bonds=infer_bonds)
+    structure = atoms.toBioPythonStructure(header=header, csets=csets)
     io=MMTFIO()
     io.set_structure(structure)
-    io.save(filename, num_bonds=atoms.numBonds())
+    io.save(filename)
     return filename
