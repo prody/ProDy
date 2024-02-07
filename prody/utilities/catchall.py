@@ -1054,7 +1054,7 @@ def calcKmedoidClusters(coordsets, nClusters):
     try:
         from sklearn_extra.cluster import KMedoids
     except ImportError:
-        raise ImportError('Please install sklearn_extra to run this function')
+        raise ImportError('Please install scikit-learn-extra to run this function')
     
     X = coordsets.reshape(coordsets.shape[0], -1)
     c = KMedoids(n_clusters=nClusters, random_state=0).fit(X)
