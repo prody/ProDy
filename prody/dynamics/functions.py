@@ -934,8 +934,8 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     if isfile(eigval_fname):
         vals_fname = eigval_fname
-    elif isfile(run_path + eigval_fname):
-        vals_fname = run_path + eigval_fname
+    elif isfile(join(run_path, eigval_fname)):
+        vals_fname = join(run_path, eigval_fname)
     else:
         raise ValueError('eigval_fname should point be a path to a file '
                          'either relative to run_path or an absolute one')
@@ -947,8 +947,8 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     if isfile(eigvec_fname):
         vecs_fname = eigval_fname
-    elif isfile(run_path + eigvec_fname):
-        vecs_fname = run_path + eigvec_fname
+    elif isfile(join(run_path, eigvec_fname)):
+        vecs_fname = join(run_path, eigvec_fname)
     else:
         raise ValueError('eigvec_fname should point be a path to a file '
                          'either relative to run_path or an absolute one')
@@ -960,8 +960,8 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     if isfile(pdb_fname):
         pdb = eigval_fname
-    elif isfile(run_path + pdb_fname):
-        pdb = run_path + pdb_fname
+    elif isfile(join(run_path, pdb_fname)):
+        pdb = join(run_path, pdb_fname)
     else:
         raise ValueError('pdb_fname should point be a path to a file '
                          'either relative to run_path or an absolute one')
