@@ -360,3 +360,6 @@ __all__.extend(essa.__all__)
 from prody.ensemble import functions
 functions.ClustENM = ClustENM
 
+from . import lda
+from .lda import *
+__all__.extend(lda.__all__)
