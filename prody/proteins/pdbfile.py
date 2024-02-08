@@ -1656,7 +1656,7 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     """
 
     if not (filename.lower().endswith('.pdb') or filename.lower().endswith('.pdb.gz') or
-            filename.lower().endswith('.ent') or filename.lower().endswith('.ent.gz')):
+            filename.lower().endswith('.ent') or filename.lower().endswith('.ent.gz')) and autoext:
         filename += '.pdb'
     out = openFile(filename, 'wt')
     writePDBStream(out, atoms, csets, **kwargs)
