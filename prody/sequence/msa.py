@@ -6,8 +6,6 @@ from numbers import Integral
 from numpy import all, zeros, dtype, array, char, cumsum, ceil, reshape
 from numpy import where, sort, concatenate, vstack, isscalar, chararray
 
-from Bio import AlignIO
-
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
 from prody.utilities import toChararray, pystr, splitSeqLabel

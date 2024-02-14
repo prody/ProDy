@@ -407,7 +407,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=N
         raise TypeError('atomics should be list-like')
 
     if len(atomics) == 1 and degeneracy is True:
-        raise ValueError('atomics should have at least two items')
+        raise ValueError('atomics should have at least two items or degeneracy should be False')
 
     if labels is not None:
         if len(labels) != len(atomics):
