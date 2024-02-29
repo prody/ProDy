@@ -275,7 +275,7 @@ class Atom(AtomPointer):
             self.getAltloc(), self.getIcode(),
             self.getCharge(), self.getElement(),
             self.getOccupancy(), self.getResname(),
-            None, self.getACSIndex(), self.getChid(),
+            self.getACSIndex(), self.getChid(),
             self.getResnum())
 
 

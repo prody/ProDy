@@ -11,7 +11,8 @@ from .logger import LOGGER
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
-           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters']
+           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters',
+           'calcKmedoidClusters']
 
 class LinkageError(Exception):
     pass
@@ -53,14 +54,6 @@ def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne',
         from sklearn.manifold import TSNE
     except ImportError:
         raise ImportError('need sklearn module')
-        '''
-        try: 
-            import Bio 
-        except ImportError:
-            raise ImportError('Phylo module could not be imported. '
-                'Reinstall ProDy or install Biopython '
-                'to solve the problem.')
-        '''
         
 
     # Check inputs to make sure are of valid types/values
@@ -246,13 +239,11 @@ def getTreeFromLinkage(names, linkage):
     :type linkage: :class:`~numpy.ndarray`
     """
     try: 
-        import Bio 
+        from Bio.Phylo.BaseTree import Tree, Clade
     except ImportError:
         raise ImportError('Phylo module could not be imported. '
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
-
-    from Bio.Phylo.BaseTree import Tree, Clade
     
     if not isinstance(linkage, np.ndarray):
         raise TypeError('linkage must be a numpy.ndarray instance')
@@ -315,12 +306,6 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
     :arg linkage: whether the linkage matrix is returned. Note that NJ trees do not support linkage
     :type linkage: bool
     """
-    try: 
-        import Bio 
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
             
     from .TreeConstruction import DistanceMatrix, DistanceTreeConstructor
     
@@ -1048,3 +1033,15 @@ def calcRMSDclusters(rmsd_matrix, c, labels=None):
 
 calcGromosClusters = calcRMSDclusters
 calcGromacsClusters = calcRMSDclusters
+
+def calcKmedoidClusters(coordsets, nClusters):
+    try:
+        from sklearn_extra.cluster import KMedoids
+    except ImportError:
+        raise ImportError('Please install scikit-learn-extra to run this function')
+    
+    X = coordsets.reshape(coordsets.shape[0], -1)
+    c = KMedoids(n_clusters=nClusters, random_state=0).fit(X)
+    labels = c.labels_
+    _, counts = np.unique(labels, return_counts=True)
+    return c.medoid_indices_, labels, counts

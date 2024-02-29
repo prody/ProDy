@@ -9,7 +9,7 @@ optional arguments:
 
 subcommands:
   {anm,gnm,pca,eda,align,blast,biomol,catdcd,contacts,fetch,select,energy,clustenm}
-    anm                 perform anisotropic network model calculations
+    anm                 perform anisotropic network model normal mode analysis calculations
     gnm                 perform Gaussian network model calculations
     pca                 perform principal component analysis calculations
     eda                 perform essential dynamics analysis calculations

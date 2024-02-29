@@ -24,6 +24,10 @@ __pycache__
 *.pdb.gz
 *.cif
 *.cif.gz
+*.mmtf
+*.map
+*.mrc
+*.dcd
 
 # Docs
 /docs/_build/
