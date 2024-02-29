@@ -158,14 +158,14 @@ def calcPerturbResponse(model, **kwargs):
     return norm_prs_matrix, effectiveness, sensitivity
 
 
-def calcDynamicFlexibilityIndex(model, atoms, select, **kwargs):
+def calcDynamicFlexibilityIndex(matrix, atoms, select, **kwargs):
     """
     Calculate the dynamic flexibility index for the selected residue(s).
     This function implements the dynamic flexibility index (Dfi) method
     described in [ZNG13]_.
 
-    :arg model: 3D model from which to calculate covariance matrix
-    :type model: :class:`.ANM`, :class:`.PCA`
+    :arg matrix: PRS or covariance matrix, or a model from which to calculate them
+    :type matrix: :class:`~numpy.ndarray`, :class:`.ANM`, :class:`.PCA`, :class:`.GNM`
 
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -173,7 +173,8 @@ def calcDynamicFlexibilityIndex(model, atoms, select, **kwargs):
     :arg select: a selection string or selection for residues of interest
     :type select: str, :class:`.Selection`
 
-    :arg norm: whether to normalise the covariance, default False
+    :arg norm: whether to normalise the covariance to a PRS matrix, default False
+        This option is only valid when providing a model.
     :type norm: bool
 
     .. [ZNG13] Gerek ZN, Kumar S, Ozkan SB, Structural dynamics flexibility 
@@ -181,34 +182,37 @@ def calcDynamicFlexibilityIndex(model, atoms, select, **kwargs):
        *Evol Appl.* **2013** 6(3):423-33.
 
     """
-    if not isinstance(model, NMA) or not model.is3d():
-        raise TypeError('model must be of type ANM or PCA, not {0}'
-                        .format(type(model)))
-
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms should be an Atomic object')
-
-    norm = kwargs.get('norm', False)
-    if norm:
-        prs_matrix, _, _ = calcPerturbResponse(model, atoms=atoms, **kwargs)
-    else:
-        prs_matrix = model.getCovariance()
 
     if not isinstance(select, (str, Selection)):
         raise TypeError('select should be a Selection or selection string')
 
-    profiles = sliceAtomicData(prs_matrix, atoms, select, axis=0)
-    return np.sum(profiles, axis=1)/np.sum(prs_matrix)
+    if isinstance(matrix, NMA):
+        model = matrix
+        
+        norm = kwargs.get('norm', False)
+        if norm:
+            matrix, _, _ = calcPerturbResponse(model, atoms=atoms, **kwargs)
+        else:
+            matrix = model.getCovariance()
+
+    elif not isinstance(matrix, np.ndarray):
+        raise TypeError('matrix must be an array, ANM, GNM or PCA, not {0}'
+                        .format(type(model)))
+
+    profiles = sliceAtomicData(matrix, atoms, select, axis=0)
+    return np.sum(profiles, axis=1)/np.sum(matrix)
 
 
-def calcDynamicCouplingIndex(model, atoms, select, func_sel, **kwargs):
+def calcDynamicCouplingIndex(matrix, atoms, select, func_sel, **kwargs):
     """
     Calculate the dynamic coupling index for the selected residue(s).
     This function implements the dynamic coupling index (DCI) 
     or functional DFI method described in [AK15]_.
 
-    :arg model: 3D model from which to calculate covariance matrix
-    :type model: :class:`.ANM`, :class:`.PCA`
+    :arg matrix: PRS or covariance matrix, or a model from which to calculate them
+    :type matrix: :class:`~numpy.ndarray`, :class:`.ANM`, :class:`.PCA`, :class:`.GNM`
 
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -219,7 +223,8 @@ def calcDynamicCouplingIndex(model, atoms, select, func_sel, **kwargs):
     :arg func_sel: a selection string or selection for functional residues
     :type func_sel: str, :class:`.Selection`
 
-    :arg norm: whether to normalise the covariance, default False
+    :arg norm: whether to normalise the covariance to a PRS matrix, default False
+        This option is only valid when providing a model.
     :type norm: bool
 
     .. [AK15] Kumar A, Glembo TJ, Ozkan SB. The Role of Conformational Dynamics and Allostery 
@@ -227,18 +232,8 @@ def calcDynamicCouplingIndex(model, atoms, select, func_sel, **kwargs):
        *Biophys J.* **2015** 109(6):1273-81.
 
     """
-    if not isinstance(model, NMA) or not model.is3d():
-        raise TypeError('model must be of type ANM or PCA, not {0}'
-                        .format(type(model)))
-
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms should be an Atomic object')
-
-    norm = kwargs.get('norm', False)
-    if norm:
-        prs_matrix, _, _ = calcPerturbResponse(model, atoms=atoms, **kwargs)
-    else:
-        prs_matrix = model.getCovariance()
 
     if not isinstance(select, (str, Selection)):
         raise TypeError('select should be a Selection or selection string')
@@ -246,7 +241,20 @@ def calcDynamicCouplingIndex(model, atoms, select, func_sel, **kwargs):
     if not isinstance(func_sel, (str, Selection)):
         raise TypeError('func_sel should be a Selection or selection string')
 
-    profiles = sliceAtomicData(prs_matrix, atoms, select, axis=0)
+    if isinstance(matrix, NMA):
+        model = matrix
+
+        norm = kwargs.get('norm', False)
+        if norm:
+            matrix, _, _ = calcPerturbResponse(model, atoms=atoms, **kwargs)
+        else:
+            matrix = model.getCovariance()
+
+    elif not isinstance(matrix, np.ndarray):
+        raise TypeError('matrix must be an array, ANM, GNM or PCA, not {0}'
+                        .format(type(model)))
+
+    profiles = sliceAtomicData(matrix, atoms, select, axis=0)
     func_profiles = sliceAtomicData(profiles, atoms, func_sel, axis=1)
 
     if isinstance(func_sel, str):

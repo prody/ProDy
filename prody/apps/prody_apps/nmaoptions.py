@@ -12,11 +12,14 @@ for key, txt, val in [
     ('select', 'atom selection',
          "protein and name CA or nucleic and name P C4' C2"),
     ('nmodes', 'number of non-zero eigenvectors (modes) to calculate', 10),
+    ('membrane', 'whether to include the explicit membrane model', False),
 
     ('outall', 'write all outputs', False),
     ('outeig', 'write eigenvalues/vectors', False),
     ('outcov', 'write covariance matrix', False),
     ('outnpz', 'write compressed ProDy data file', False),
+    ('npzmatrices', 'write matrix to compressed ProDy data file', False),
+    ('outscipion', 'write continuousflex modes directory and sqlite', False),
     ('outcc', 'write cross-correlations', False),
     ('outhm', 'write cross-correlations heatmap file', False),
     ('outsf', 'write square-fluctuations', False),
@@ -35,7 +38,8 @@ for key, txt, val in [
     ('figdpi', 'figure resolution (dpi)', 300),
     ('figall', 'save all figures', False),
     ('figcc', 'save cross-correlations figure', False),
-    ('figsf', 'save square-fluctuations figure', False),]:
+    ('figsf', 'save square-fluctuations figure', False),
+    ('nproc', 'number of processors', 0),]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
@@ -45,7 +49,7 @@ __all__ = ['addNMAParameters', 'addNMAOutput', 'addNMAOutputOptions',
            'addNMAFigures', 'addNMAFigureOptions']
 
 
-def addNMAParameters(parser):
+def addNMAParameters(parser, include_nproc=True):
 
     parser = parser.add_argument_group('parameters')
 
@@ -54,8 +58,16 @@ def addNMAParameters(parser):
         help=HELPTEXT['nmodes'] + ' (default: %(default)s)')
 
     parser.add_argument('-s', '--select', dest='select', type=str,
-        default=DEFAULTS['select'], metavar='SEL',
+        default=DEFAULTS['select'], metavar='STR',
         help=HELPTEXT['select'] + ' (default: "%(default)s")')
+    
+    parser.add_argument('-N', '--membrane', dest='membrane', action='store_true',
+        default=DEFAULTS['membrane'], help=HELPTEXT['membrane'])
+    
+    if include_nproc:
+        parser.add_argument('-P', '--number-of-processors', dest='nproc', type=int,
+            default=DEFAULTS['nproc'], metavar='INT',
+            help=HELPTEXT['nproc'] + ' (default: %(default)s meaning use all)')
 
     return parser
 
@@ -93,6 +105,12 @@ def addNMAOutput(parser):
 
     parser.add_argument('-z', '--npz', dest='outnpz', action='store_true',
         default=DEFAULTS['outnpz'], help=HELPTEXT['outnpz'])
+
+    parser.add_argument('-Z', '--npzmatrices', dest='npzmatrices', action='store_true',
+        default=DEFAULTS['npzmatrices'], help=HELPTEXT['npzmatrices'])
+
+    parser.add_argument('-S', '--export-scipion', dest='outscipion', action='store_true',
+        default=DEFAULTS['outscipion'], help=HELPTEXT['outscipion'])
 
     parser.add_argument('-t', '--extend', dest='extend', type=str,
         metavar='STR', choices=set(['bb', 'all', 'backbone']),

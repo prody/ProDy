@@ -35,9 +35,11 @@ def prody_select(selstr, *pdbs, **kwargs):
     prefix = kwargs.get('prefix', None)
     suffix = kwargs.get('suffix', '_selected')
     output = kwargs.get('output', None)
+    altloc = kwargs.get('altloc', 'all')
+    uniteChains = kwargs.get('uniteChains', False)
 
     for pdb in pdbs:
-        pdb = parsePDB(pdb)
+        pdb = parsePDB(pdb, altloc=altloc, unite_chains=uniteChains)
 
         pdbselect = pdb.select(selstr)
         if pdbselect is None:
@@ -81,9 +83,16 @@ Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
     group.add_argument('-p', '--prefix', dest='prefix', metavar='STR',
         type=str, help=('output filename prefix (default: PDB filename)'))
 
+    group.add_argument('-L', '--altloc', dest='altloc', metavar='STR',
+        type=str, default='all', help=('altloc (default: %(default)s)'))
+
     group.add_argument('-x', '--suffix', dest='suffix', metavar='STR',
         type=str, default='_selected',
         help=('output filename suffix (default: %(default)s)'))
+
+    group.add_argument('-u', '--unite-chains', dest='uniteChains',
+        action='store_true',
+        default=False, help=('unite chains if using mmCIF (default False)'))
 
     subparser.add_argument('select', help='atom selection string')
     subparser.add_argument('pdb', nargs='+',

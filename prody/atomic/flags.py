@@ -144,7 +144,7 @@ DEFAULTS = {
                   'TIP4']),
 
     'ion': set(['AL', 'BA', 'CA', 'CD', 'CL', 'CO', 'CS', 'CU', 'CU1', 'CUA',
-                'HG', 'IN', 'IOD', 'K', 'MG', 'MN3', 'NA', 'PB', 'PT', 'RB',
+                'HG', 'IN', 'IOD', 'K', 'MG', 'MN', 'MN3', 'NA', 'PB', 'PT', 'RB',
                 'TB', 'TL', 'WO4', 'YB', 'ZN']),
     'ion_other': set(['CAL', 'CES', 'CLA', 'POT', 'SOD', 'ZN2']),
 
@@ -512,6 +512,7 @@ Heteros
       `K`_     potassium           Yes
       `MG`_    magnesium           Yes
       `MN3`_   manganese (iii)     Yes
+      `MN`_    manganese (ii)      Yes    
       `NA`_    sodium              Yes
       `PB`_    lead (ii)           Yes
       `PT`_    platinum (ii)       Yes
@@ -547,6 +548,11 @@ Heteros
    pdbter
       is available when atomic data is parsed from a PDB format file and
       indicates atoms that were followed by ``'TER'`` record.
+
+   selpdbter
+      is available when atomic data is parsed from a PDB format file and
+      then a selection is made and indicates selected atoms that should
+      be followed by ``'TER'`` record.
 
 """.format(
 
@@ -689,7 +695,7 @@ def updateDefinitions():
 
     global DEFINITIONS, AMINOACIDS, BACKBONE, TIMESTAMP
     DEFINITIONS = {}
-    user = SETTINGS.get('flag_definitions', {})
+    user = SETTINGS.get('flags_definitions', {})
 
     # nucleics
     nucleic = set()
@@ -783,6 +789,15 @@ def setProtein(ag, label):
         flags = torf[resindices]
     else:
         flags = zeros(ag.numAtoms(), bool)
+        
+    water = ag._getSubset("water")
+    if len(water):
+        flags[water] = False
+        
+    ions = ag._getSubset("ion")
+    if len(ions):
+        flags[ions] = False
+    
     ag._setFlags('protein', flags)
     return flags
 

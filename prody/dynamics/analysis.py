@@ -19,11 +19,12 @@ from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
-           'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
+           'calcFractVariance', 'calcSqFlucts', 'calcRMSFlucts',
+           'calcMostMobileNodes', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
-           'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime',
-           'calcAnisousFromModel']
+           'calcDistFlucts', 'calcHinges', 'calcHitTime',
+           'calcAnisousFromModel', 'calcScipionScore', 'calcHemnmaScore']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None, is3d=None):
@@ -36,7 +37,8 @@ def calcCollectivity(mode, masses=None, is3d=None):
        spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
 
     :arg mode: mode(s) or vector(s)
-    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`,
+        :class:`.NMA`, :class:`~numpy.ndarray`
 
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`
@@ -333,6 +335,36 @@ def calcSqFlucts(modes):
         sq_flucts = sq_flucts_Nx3.sum(axis=1)
     return sq_flucts
 
+def calcRMSFlucts(modes):
+    """Returns root mean square fluctuation(s) (RMSF) for given set of normal *modes*.
+    This is calculated just by doing the square root of the square fluctuations """
+    sq_flucts = calcSqFlucts(modes)
+    if len(np.where(sq_flucts<0)[0]) != 0:
+        raise ValueError("Square Fluctuation should not contain negative values, please check input modes")
+
+    return sq_flucts ** 0.5
+
+def calcMostMobileNodes(modes, **kwargs):
+    """Returns indices for nodes with highest root mean square fluctuations (RMSFs) for given set of normal *modes*
+    above a particular *percentile* and/or *cutoff*.
+
+    :arg percentile: percentile for internal cutoff (between 0 and 100).
+        Default 0 takes all values
+    :type percentile: int
+
+    :arg cutoff: user-defined cutoff, default is to take all values
+    :type cutoff: float
+    """
+    rmsf = calcRMSFlucts(modes)
+
+    cutoff = kwargs.get('cutoff', rmsf.min())
+    inds = np.nonzero(rmsf > cutoff)[0]
+
+    percentile = kwargs.get('percentile', 0)
+    cutoff = np.percentile(rmsf, percentile)
+    inds = inds[np.nonzero(rmsf[inds] > cutoff)[0]]
+
+    return inds
 
 def calcCrossCorr(modes, n_cpu=1, norm=True):
     """Returns cross-correlations matrix.  For a 3-d model, cross-correlations
@@ -398,12 +430,12 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
             import multiprocessing
             n_cpu = min(multiprocessing.cpu_count(), n_cpu)
             queue = multiprocessing.Queue()
-            size = n_modes / n_cpu
+            size = n_modes // n_cpu
             for i in range(n_cpu):
                 if n_cpu - i == 1:
-                    indices = modes.indices[i*size:]
+                    indices = modes.getIndices()[i*size:]
                 else:
-                    indices = modes.indices[i*size:(i+1)*size]
+                    indices = modes.getIndices()[i*size:(i+1)*size]
                 process = multiprocessing.Process(
                     target=_crossCorrelations,
                     args=(queue, n_atoms, array, variances, indices))
@@ -498,7 +530,7 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     :arg ind1: first residue number.
     :type ind1: int 
     
-    :arg ind2: secound residue number.
+    :arg ind2: second residue number.
     :type ind2: int 
     """
 
@@ -676,7 +708,7 @@ def calcHitTime(model, method='standard'):
 
 
 def calcAnisousFromModel(model, ):
-    """Returns a 3Nx6 matrix containing anisotropic B factors (ANISOU lines)
+    """Returns a Nx6 matrix containing anisotropic B factors (ANISOU lines)
     from a covariance matrix calculated from **model**.
 
     :arg model: 3D model from which to calculate covariance matrix
@@ -707,3 +739,43 @@ def calcAnisousFromModel(model, ):
         anisou[index, 4] = submatrix[0, 2]
         anisou[index, 5] = submatrix[1, 2]
     return anisou
+
+
+def calcScipionScore(modes):
+    """Calculate the score from hybrid electron microscopy normal mode analysis (HEMNMA) 
+    [CS14]_ as implemented in the Scipion continuousflex plugin [MH20]_. This score 
+    prioritises modes as a function of mode number and collectivity order.
+
+    .. [CS14] Sorzano COS, de la Rosa-Trevín JM, Tama F, Jonić S.
+       Hybrid Electron Microscopy Normal Mode Analysis graphical interface and protocol.
+       *J Struct Biol* **2014** 188:134-41.
+
+    .. [MH20] Harastani M, Sorzano COS, Jonić S. 
+       Hybrid Electron Microscopy Normal Mode Analysis with Scipion.
+       *Protein Sci* **2020** 29:223-236.
+
+    :arg modes: mode(s) or vector(s)
+    :type modes: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, :class:`.NMA`
+    """
+    n_modes = modes.numModes()
+    
+    if n_modes > 1:
+        collectivityList = list(calcCollectivity(modes))
+    else:
+        collectivityList = [calcCollectivity(modes)]
+
+    idxSorted = [i[0] for i in sorted(enumerate(collectivityList),
+                                      key=lambda x: x[1],
+                                      reverse=True)]
+
+    score = np.zeros(n_modes)
+    modeNum = list(range(n_modes))
+
+    for i in range(n_modes):
+        score[idxSorted[i]] = idxSorted[i] + modeNum[i] + 2  
+
+    score = score / (2.0 * n_modes) 
+
+    return score
+
+calcHemnmaScore = calcScipionScore

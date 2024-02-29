@@ -152,6 +152,7 @@ The following functions are parsing or writing normal mode data:
   * :func:`.writeModes` - normal modes
   * :func:`.writeNMD` - normal mode, coordinate, and atomic data
   * :func:`.writeOverlapTable` - overlap between modes in a formatted table
+  * :func:`.writeBILD` - normal mode and coordinate data for ChimeraX
 
 Save/load models
 ================
@@ -315,6 +316,10 @@ from . import vmdfile
 from .vmdfile import *
 __all__.extend(vmdfile.__all__)
 
+from . import bildfile
+from .bildfile import *
+__all__.extend(bildfile.__all__)
+
 #from . import bbenm
 #from .bbenm import *
 #__all__.extend(bbenm.__all__)
@@ -366,3 +371,7 @@ functions.Hybrid = Hybrid
 functions.ClustENM = ClustENM
 functions.AdaptiveHybrid = AdaptiveHybrid
 functions.CoMD = CoMD
+
+from . import lda
+from .lda import *
+__all__.extend(lda.__all__)

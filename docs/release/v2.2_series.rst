@@ -1,0 +1,26 @@
+ProDy 2.2 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+2.2.0 (May 19, 2022)
+------------------------------------------------------------------------------
+
+**Bug Fixes and Improvements**:
+
+  * Updates to :function:`.parseScipionModes`` to use sqlite and xmd metadata files 
+  and handle eigenvalues
+
+  * Actual fix to logging so LOGGER.progress doesn't override logging level
+
+  * Updates to the PCA app to better handle number of modes for Scipion 
+
+  * New arguments sparse, kdtree and turbo for :class:`.ClustENM`, allowing 
+  better control of ANM calculations.
+
+  * Another bug fix for mmCIF header parsing
+
+  * Bug fix for parsing CONECT bond records from PDB files
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.1.2...v2.2.0

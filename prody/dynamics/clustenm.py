@@ -86,6 +86,7 @@ class ClustENM(Ensemble):
 
         self._sol = 'imp'
         self._padding = None
+        self._boxSize = None
         self._ionicStrength = 0.0
         self._force_field = None
         self._tolerance = 10.0
@@ -267,9 +268,14 @@ class ClustENM(Ensemble):
         if self._sol == 'exp':
             forcefield = ForceField(*self._force_field)
 
-            modeller.addSolvent(forcefield,
-                                padding=self._padding*nanometers,
-                                ionicStrength=self._ionicStrength*molar)
+            if self._boxSize:
+                modeller.addSolvent(forcefield,
+                                    ionicStrength=self._ionicStrength*molar,
+                                    boxSize=self._boxSize*nanometers)
+            else:
+                modeller.addSolvent(forcefield,
+                                    padding=self._padding*nanometers,
+                                    ionicStrength=self._ionicStrength*molar)
 
             system = forcefield.createSystem(modeller.topology,
                                              nonbondedMethod=PME,
@@ -478,7 +484,8 @@ class ClustENM(Ensemble):
     def _buildANM(self, cg):
 
         anm = ANM()
-        anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma)
+        anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma,
+                         sparse=self._sparse, kdtree=self._kdtree)
 
         return anm
 
@@ -513,7 +520,7 @@ class ClustENM(Ensemble):
         if not self._checkANM(anm_cg):
             return None
 
-        anm_cg.calcModes(self._n_modes)
+        anm_cg.calcModes(self._n_modes, turbo=self._turbo)
 
         anm_ex = self._extendModel(anm_cg, cg, tmp)
         ens_ex = sampleModes(anm_ex, atoms=tmp,
@@ -840,7 +847,7 @@ class ClustENM(Ensemble):
 
         :arg single: If it is True (default), then the conformers will be saved into a single PDB file with
             each conformer as a model. Otherwise, a directory will be created with the filename,
-            and each conformer will be saved as a separate PDB fle.
+            and each conformer will be saved as a separate PDB file.
         :type single: bool
         '''
 
@@ -980,6 +987,12 @@ class ClustENM(Ensemble):
         self._cutoff = cutoff
         self._n_modes = n_modes
         self._gamma = gamma
+        self._sparse = kwargs.get('sparse', False)
+        self._kdtree = kwargs.get('kdtree', False)
+        self._turbo = kwargs.get('turbo', False)
+        if kwargs.get('zeros', False):
+            LOGGER.warn('ClustENM cannot use zero modes so ignoring this kwarg')
+
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
         self._n_gens = n_gens
@@ -1015,6 +1028,7 @@ class ClustENM(Ensemble):
 
         self._sol = solvent if self._nuc is None else 'exp'
         self._padding = kwargs.pop('padding', 1.0)
+        self._boxSize = kwargs.pop('boxSize', None)
         self._ionicStrength = kwargs.pop('ionicStrength', 0.0)
         if self._sol == 'imp':
             self._force_field = ('amber99sbildn.xml', 'amber99_obc.xml') if force_field is None else force_field

@@ -10,8 +10,7 @@ The following functions can be used to search and retrieve Pfam_ data:
   * :func:`.fetchPfamMSA` - download MSA files
   * :func:`.searchPfam` - search for domain families of a protein
 
-
-.. _Pfam: http://pfam.sanger.ac.uk/
+.. _Pfam: https://www.ebi.ac.uk/interpro/entry/pfam/
 
 UniProt
 ========
@@ -70,7 +69,14 @@ The following classes and functions can be used to search and retrieve data from
 
 .. _GOA: https://www.ebi.ac.uk/GOA/
 
+Interpro
+====
 
+The following functions can be used to search and retrieve Pfam_ data:
+
+  * :func:`.searchInterpro` - search for domain families of a protein
+
+.. _Pfam: https://www.ebi.ac.uk/interpro/
 """
 
 __all__ = []
@@ -98,3 +104,7 @@ __all__.extend(goa.__all__)
 from . import quartataweb
 from .quartataweb import *
 __all__.extend(quartataweb.__all__)
+
+from . import interpro
+from .interpro import *
+__all__.extend(interpro.__all__)

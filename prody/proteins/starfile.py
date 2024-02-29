@@ -19,7 +19,8 @@ from prody import LOGGER
 from .emdfile import parseEMD
 
 __all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR',
-           'StarDict', 'StarDataBlock', 'StarLoop', ]
+           'StarDict', 'StarDataBlock', 'StarLoop', 
+           'parseSTARSection']
 
 
 class StarDict:
@@ -378,7 +379,7 @@ class StarLoop:
         self.data = list(self._dict['data'].values())
         self._n_fields = len(self.fields)
         self._n_rows = len(self.data)
-        self._title = dataBlock._title + ' loop ' + str(key)
+        self._title = str(dataBlock._title) + ' loop ' + str(key)
 
     def numRows(self):
         return self._n_rows
@@ -545,7 +546,7 @@ def parseSTARLines(lines, **kwargs):
             if inLoop:
                 # We expect to only have the field identifier and no data until after
 
-                if len(split(line.strip(), shlex=shlex)) == 1:
+                if len(split(line.strip(), shlex=shlex)) == 1 or len(split(line.strip(), shlex=shlex)) == 2:
                     # This is what we expect for a data loop
                     finalDictionary[currentDataBlock][currentLoop]['fields'][loop_fieldCounter] = currentField
                     dataItemsCounter = 0
@@ -674,7 +675,7 @@ def parseSTARLines(lines, **kwargs):
                 prog = 'XMIPP'
 
         else:
-            raise TypeError('This file does not conform to the STAR file format.'
+            raise TypeError('This file does not conform to the STAR file format. '
                             'There is a problem with line {0}:\n {1}'.format(lineNumber, line))
 
         lineNumber += 1
@@ -682,7 +683,7 @@ def parseSTARLines(lines, **kwargs):
     return finalDictionary, prog
 
 
-def writeSTAR(filename, starDict):
+def writeSTAR(filename, starDict, **kwargs):
     """Writes a STAR file from a dictionary containing data
     such as that parsed from a Relion STAR file.
 
@@ -694,7 +695,10 @@ def writeSTAR(filename, starDict):
         This should have nested entries starting with data blocks then loops/tables then
         field names and finally data.
     :type starDict: dict
+
+    kwargs can be given including the program style to follow (*prog*)
     """
+    prog=kwargs.get('prog', 'XMIPP')
 
     star = open(filename, 'w')
 
@@ -703,11 +707,15 @@ def writeSTAR(filename, starDict):
         for loopNumber in starDict[dataBlockKey]:
             star.write('\nloop_\n')
             for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
-                star.write('_' + starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
+                if prog == 'XMIPP':
+                    star.write(' ')
+                star.write(starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
             for dataItemNumber in starDict[dataBlockKey][loopNumber]['data']:
+                if prog == 'XMIPP':
+                    star.write('\t')
                 for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                     currentField = starDict[dataBlockKey][loopNumber]['fields'][fieldNumber]
-                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + ' ')
+                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + '\t')
                 star.write('\n')
 
     star.close()
@@ -740,15 +748,15 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     :arg particle_indices: indices for particles regardless of STAR structure
         default is take all particles
         Please note: this acts after block_indices and row_indices
-    :type particle_indices: list, :class"`~numpy.ndarray`
+    :type particle_indices: list, :class:`~numpy.ndarray`
 
     :arg saveImageArrays: whether to save the numpy array for each image to file
         default is False
     :type saveImageArrays: bool
 
     :arg saveDirectory: directory where numpy image arrays are saved
-        default is None, which means save to the current working directory
-    :type saveDirectory: str, None
+        default is **None**, which means save to the current working directory
+    :type saveDirectory: str
 
     :arg rotateImages: whether to apply in plane translations and rotations using 
         provided psi and origin data, default is True
@@ -979,7 +987,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             raise ValueError('particlesSTAR does not contain data about particle image '
                              '{0} location in either RELION or XMIPP format'.format(i))
 
-        if filename.endswith('.stk'):
+        if filename.lower().endswith('.stk'):
             stk_images.append(str(i))
             continue
 
@@ -1018,12 +1026,17 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     return np.array(images), parsed_images_data
 
 
-def parseSTARSection(lines, key):
+def parseSTARSection(lines, key, report=True):
     """Parse a section of data from *lines* from a STAR file 
     corresponding to a *key* (part before the dot). 
     This can be a loop or data block.
     
-    Returns data encapulated in a list and the associated fields."""
+    Returns data encapulated in a list and the associated fields.
+    
+    :arg report: whether to report warnings about not finding data
+        default True
+    :type report: bool
+    """
 
     if not isinstance(key, str):
         raise TypeError("key should be a string")
@@ -1069,6 +1082,8 @@ def parseSTARSection(lines, key):
         else:
             data = [loop_dict["data"]]
     else:
-        raise ValueError("Could not find {0} in lines.".format(key))
+        if report:
+            LOGGER.warn("Could not find {0} in lines.".format(key))
+        return []
 
     return data
