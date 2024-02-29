@@ -605,8 +605,35 @@ class ClustENM(Ensemble):
             centers[i] = idx[i][tmp]
 
         return centers, wei
+    
+    def _filter(self, *args):
 
-    def _generate(self, confs):
+        ag = self._atoms.copy()
+        confs = args[0]
+        wei = args[1]
+        ccList = np.zeros(len(args[1]))
+        for i in range(len(confs)-1,-1,-1):
+            ag.setCoords(confs[i])
+            sim_map = self._blurrer(ag.toTEMPyStructure(), self._fit_resolution, self._fitmap)
+            cc = self._scorer.CCC(sim_map, self._fitmap)
+            ccList[i] = cc
+            if cc - self._cc_prev < 0:
+                confs = np.delete(confs, i, 0)
+                wei = np.delete(wei, i, 0)
+
+        if len(wei) == 0:
+            confs = args[0]
+            wei = args[1]
+            LOGGER.info('There were no closer conformers in generation %d so filtering was not performed' % self._cycle)
+
+        if ccList.max() > self._cc_prev:
+            self._cc_prev = ccList.max()
+
+        self._cc.append(ccList.max())
+
+        return confs, wei
+
+    def _generate(self, confs, **kwargs):
 
         LOGGER.info('Sampling conformers in generation %d ...' % self._cycle)
         LOGGER.timeit('_clustenm_gen')
@@ -630,8 +657,17 @@ class ClustENM(Ensemble):
         centers, wei = self._centers(confs_cg, label_cg)
         LOGGER.report('Centroids were generated in %.2fs.',
                       label='_clustenm_gen')
+        
+        confs_centers = confs_ex[centers]
+        
+        if self._fitmap is not None:
+            LOGGER.info('Filtering for fitting in generation %d ...' % self._cycle)
+            confs_centers, wei = self._filter(confs_centers, wei)
+            LOGGER.report('Filtered centroids were generated in %.2fs.',
+                          label='_clustenm_gen')
+            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(wei)))
 
-        return confs_ex[centers], wei
+        return confs_centers, wei
 
     def _outliers(self, arg):
 
@@ -978,6 +1014,14 @@ class ClustENM(Ensemble):
 
         :arg parallel: If it is True (default is False), conformer generation will be parallelized.
         :type parallel: bool
+
+        :arg fitmap: Cryo-EM map for fitting using a protocol similar to MDeNM-EMFit
+            Default *None*
+        :type fitmap: EMDMAP
+
+        :arg fit_resolution: Resolution for comparing to cryo-EM map for fitting
+            Default 5 Angstroms
+        :type fit_resolution: float
         '''
 
         if self._isBuilt():
@@ -1000,6 +1044,19 @@ class ClustENM(Ensemble):
         self._parallel = kwargs.pop('parallel', False)
         self._targeted = kwargs.pop('targeted', False)
         self._tmdk = kwargs.pop('tmdk', 15.)
+
+        self._fitmap = kwargs.pop('fitmap', None)
+        if self._fitmap is not None:
+            try:
+                from TEMPy.protein.structure_blurrer import StructureBlurrer
+                from TEMPy.protein.scoring_functions import ScoringFunctions
+            except ImportError:
+                LOGGER.warn('TEMPy must be installed to use fitmap so ignoring this kwarg')
+                self._fitmap = None
+        
+        if self._fitmap is not None:
+            self._fitmap = self._fitmap.toTEMPyMap()
+            self._fit_resolution = kwargs.get('fit_resolution', 5)
 
         if maxclust is None and threshold is None and n_gens > 0:
             raise ValueError('Either maxclust or threshold should be set!')
@@ -1059,6 +1116,16 @@ class ClustENM(Ensemble):
                      - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
         if rank_diff != 0:
             raise ValueError('atoms has disconnected parts; please check the structure')
+
+        if self._fitmap is not None:
+            self._blurrer = StructureBlurrer().gaussian_blur_real_space
+            sim_map_start = self._blurrer(self._atoms.toTEMPyStructure(),
+                                          self._fit_resolution,
+                                          self._fitmap)
+            self._scorer = ScoringFunctions()
+            self._cc_prev = self._scorer.CCC(self._fitmap, sim_map_start)
+            self._cc = [self._cc_prev]
+            LOGGER.info('Starting CC is %f' % self._cc_prev)
 
         LOGGER.timeit('_clustenm_overall')
 
