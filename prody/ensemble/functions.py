@@ -47,7 +47,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
                           '_padding', '_ionicStrength', '_force_field', '_tolerance',
                           '_maxIterations', '_sim', '_temp', '_t_steps', '_outlier',
                           '_mzscore', '_v1', '_parallel', '_idx_cg', '_n_cg', '_cycle',
-                          '_time', '_targeted', '_tmdk', '_topology', '_positions'])
+                          '_time', '_targeted', '_tmdk', '_topology', '_positions', '_cc'])
     if isinstance(ensemble, AdaptiveHybrid):
         attr_list.extend(['_atomsB', '_defvecs', '_resetFmin', '_rmsds'])
         atomsB = dict_['_atomsB']
@@ -174,7 +174,7 @@ def loadEnsemble(filename, **kwargs):
                     '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
                     '_sim', '_temp', '_t_steps', '_outlier', '_mzscore', '_v1',
                     '_parallel', '_idx_ca', '_n_ca', '_cycle', '_time', '_targeted',
-                    '_tmdk', '_topology', '_positions']
+                    '_tmdk', '_topology', '_positions', '_cc']
             
             for attr in attrs:
                 if attr in attr_dict.files:
