@@ -528,6 +528,40 @@ class ClustENM(Ensemble):
                              rmsd=self._rmsd[self._cycle])
         coordsets = ens_ex.getCoordsets()
 
+        if self._fitmap is not None:
+            LOGGER.info('Filtering for fitting in generation %d ...' % self._cycle)
+
+            kept_coordsets = []
+            if self._fitmap is not None:
+                kept_coordsets.extend(self._filter(coordsets))
+                n_confs = n_confs - len(kept_coordsets)
+
+            if len(kept_coordsets) == 0:
+                while len(kept_coordsets) == 0:
+                    anm_ex = self._extendModel(anm_cg, cg, tmp)
+                    ens_ex = sampleModes(anm_ex, atoms=tmp,
+                                        n_confs=n_confs,
+                                        rmsd=self._rmsd[self._cycle])
+                    coordsets = ens_ex.getCoordsets()
+
+                    if self._fitmap is not None:
+                        kept_coordsets.extend(self._filter(coordsets))
+                        n_confs = n_confs - len(kept_coordsets)
+
+            if self._replace_filtered:
+                while n_confs > 0: 
+                    anm_ex = self._extendModel(anm_cg, cg, tmp)
+                    ens_ex = sampleModes(anm_ex, atoms=tmp,
+                                        n_confs=n_confs,
+                                        rmsd=self._rmsd[self._cycle])
+                    coordsets = ens_ex.getCoordsets()
+
+                    if self._fitmap is not None:
+                        kept_coordsets.extend(self._filter(coordsets))
+                        n_confs = n_confs - len(kept_coordsets)
+
+            coordsets = np.array(kept_coordsets)
+
         if self._targeted:
             if self._parallel:
                 with Pool(cpu_count()) as p:
@@ -1022,6 +1056,10 @@ class ClustENM(Ensemble):
         :arg fit_resolution: Resolution for comparing to cryo-EM map for fitting
             Default 5 Angstroms
         :type fit_resolution: float
+
+        :arg replace_filtered: If it is True (default is False), conformer sampling and filtering 
+            will be repeated until the desired number of conformers have been kept.
+        :type replace_filtered: bool  
         '''
 
         if self._isBuilt():
@@ -1057,6 +1095,7 @@ class ClustENM(Ensemble):
         if self._fitmap is not None:
             self._fitmap = self._fitmap.toTEMPyMap()
             self._fit_resolution = kwargs.get('fit_resolution', 5)
+            self._replace_filtered = kwargs.pop('replace_filtered', False)
 
         if maxclust is None and threshold is None and n_gens > 0:
             raise ValueError('Either maxclust or threshold should be set!')
