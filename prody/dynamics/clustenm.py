@@ -517,6 +517,8 @@ class ClustENM(Ensemble):
 
         anm_cg = self._buildANM(cg)
 
+        n_confs = self._n_confs
+
         if not self._checkANM(anm_cg):
             return None
 
@@ -644,8 +646,7 @@ class ClustENM(Ensemble):
 
         ag = self._atoms.copy()
         confs = args[0]
-        wei = args[1]
-        ccList = np.zeros(len(args[1]))
+        ccList = np.zeros(len(args[0]))
         for i in range(len(confs)-1,-1,-1):
             ag.setCoords(confs[i])
             sim_map = self._blurrer(ag.toTEMPyStructure(), self._fit_resolution, self._fitmap)
@@ -653,19 +654,10 @@ class ClustENM(Ensemble):
             ccList[i] = cc
             if cc - self._cc_prev < 0:
                 confs = np.delete(confs, i, 0)
-                wei = np.delete(wei, i, 0)
 
-        if len(wei) == 0:
-            confs = args[0]
-            wei = args[1]
-            LOGGER.info('There were no closer conformers in generation %d so filtering was not performed' % self._cycle)
+        self._cc.extend(ccList)
 
-        if ccList.max() > self._cc_prev:
-            self._cc_prev = ccList.max()
-
-        self._cc.append(ccList.max())
-
-        return confs, wei
+        return confs
 
     def _generate(self, confs, **kwargs):
 
@@ -695,11 +687,18 @@ class ClustENM(Ensemble):
         confs_centers = confs_ex[centers]
         
         if self._fitmap is not None:
-            LOGGER.info('Filtering for fitting in generation %d ...' % self._cycle)
-            confs_centers, wei = self._filter(confs_centers, wei)
-            LOGGER.report('Filtered centroids were generated in %.2fs.',
-                          label='_clustenm_gen')
-            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(wei)))
+            self._cc_prev = max(self._cc)
+            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(confs_cg)))
+
+        if len(confs_cg) > 1:
+            LOGGER.info('Clustering in generation %d ...' % self._cycle)
+            label_cg = self._hc(confs_cg)
+            centers, wei = self._centers(confs_cg, label_cg)
+            LOGGER.report('Centroids were generated in %.2fs.',
+                        label='_clustenm_gen')
+            confs_centers = confs_ex[centers]
+        else:
+            confs_centers, wei = confs_cg, [len(confs_cg)]
 
         return confs_centers, wei
 
