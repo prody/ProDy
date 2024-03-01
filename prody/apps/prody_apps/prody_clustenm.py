@@ -86,6 +86,7 @@ def prody_clustenm(pdb, **kwargs):
     model = kwargs.pop('model')
     altloc = kwargs.pop('altloc')
     turbo = kwargs.pop('turbo')
+    nproc = kwargs.get('nproc')
 
     ngens = kwargs.pop('ngens')
     nconfs = kwargs.pop('nconfs')
@@ -154,7 +155,8 @@ def prody_clustenm(pdb, **kwargs):
             outlier=outlier, mzscore=mzscore,
             sparse=sparse, kdtree=kdtree, turbo=turbo,
             parallel=parallel, fitmap=fitmap, 
-            fit_resolution=fit_resolution, **kwargs)
+            fit_resolution=fit_resolution,
+            nproc=nproc, **kwargs)
 
     single = not kwargs.pop('multiple')
     outname = join(outdir, prefix)
@@ -200,7 +202,7 @@ graphical output files:
   $ prody clustenm 1aar -s "calpha and chain A and resnum < 70" -A""",
   test_examples=[0, 1])
 
-    group = addNMAParameters(subparser, include_nproc=False)
+    group = addNMAParameters(subparser, include_nproc=True)
 
     group.add_argument('-c', '--cutoff', dest='cutoff', type=str,
         default=DEFAULTS['cutoff'], metavar='FLOAT',
@@ -268,7 +270,7 @@ graphical output files:
         default=DEFAULTS['ionicStrength'], metavar='FLOAT',
         help=HELPTEXT['ionicStrength'] + ' (default: %(default)s)')
     
-    group.add_argument('-P', '--padding', dest='padding', type=float,
+    group.add_argument('-Q', '--padding', dest='padding', type=float,
         default=DEFAULTS['padding'], metavar='FLOAT',
         help=HELPTEXT['padding'] + ' (default: %(default)s)')
 
