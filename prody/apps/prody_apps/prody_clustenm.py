@@ -45,7 +45,8 @@ for key, txt, val in [
     ('fitmap', 'map to fit by filtering conformations like MDeNMD-EMFit', None),
     ('fit_resolution', 'resolution for blurring structures for fitting cc', 5),
     ('map_cutoff', 'min_cutoff for passing map for fitting', 0),
-    ('replace_filtered', 'whether to keep sampling again to replace filtered conformers', False)]:
+    ('replace_filtered', 'whether to keep sampling again to replace filtered conformers', False),
+    ('platform', 'openmm platform (OpenCL, CUDA, CPU or None)', None)]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
@@ -336,7 +337,11 @@ graphical output files:
 
     group.add_argument('-O', '--replace_filtered', dest='replace_filtered',
         action='store_true',
-        default=DEFAULTS['replace_filtered'], help=HELPTEXT['replace_filtered'])\
+        default=DEFAULTS['replace_filtered'], help=HELPTEXT['replace_filtered'])
+
+    group.add_argument('-V', '--platform', dest='platform', type=str,
+        default=DEFAULTS['platform'], metavar='STR',
+        help=HELPTEXT['platform'] + ' (default: %(default)s)')
 
     subparser.add_argument('pdb', help='PDB identifier or filename')
 
