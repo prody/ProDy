@@ -135,6 +135,7 @@ DEFAULTS = {
     'nucleoside': set(['ADN', 'AMP', 'ADP', 'ATP',
                        'CMP', # cyclic AMP
                        'A2P', 'A3P', # multi site diphosphates
+                       'AGS', # ATP-gamma-S
                        'CTN', 'C5P', 'CDP', 'CTP',
                        'C2P', 'C3P', # other site monophosphates
                        'GMP', '5GP', 'GDP', 'GTP',
@@ -431,6 +432,7 @@ Nucleic
       `AMP`_   adenosine-5'-monophosphate
       `ADP`_   adenosine-5'-diphosphate
       `ATP`_   adenosine-5'-triphosphate
+      `AGS`_   adenosine-5'-triphosphate-gamma-S
       `CMP`_   cyclic adenosine-3',5'-monophosphate
       `A2P`_   adenosine-2',5'-diphosphate
       `A3P`_   adenosine-3',5'-diphosphate
