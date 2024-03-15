@@ -400,6 +400,15 @@ SELECTION_TESTS['gromacs'] = {
     'test_flags':  [('protein', 12194, 'aminoacid')],
 }
 
+data_nucleoside = DATA_FILES['pdb7pbl']
+pdb_nucleoside = prody.parsePDB(pathDatafile(data_nucleoside['file']), secondary=True)
+SELECTION_TESTS['nucleoside'] = {
+    'n_atoms': data_nucleoside['atoms'],
+    'ag': pdb_nucleoside,
+    'all': pdb_nucleoside.all,
+    'test_flags':  [('nucleoside', data_nucleoside['nucleoside'], 'nucleoside')],
+}
+
 pdb3mht = SELECTION_TESTS['pdb3mht']['ag']
 pdb3mht.setCharges(pdb3mht.getOccupancies())
 pdb3mht.setMasses(pdb3mht.getBetas())

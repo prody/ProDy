@@ -377,6 +377,11 @@ DATA_FILES = {
     'pdb1ake': {
         'file': 'pdb1ake.pdb'
     },
+    'pdb7pbl': {
+        'file': 'pdb7pbl.pdb',
+        'atoms': 31396,
+        'nucleoside': 252
+    }
 }
 
 
