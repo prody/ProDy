@@ -376,3 +376,7 @@ __all__.extend(lda.__all__)
 
 functions.AdaptiveHybrid = AdaptiveHybrid
 functions.CoMD = CoMD
+
+from . import logistic
+from .logistic import *
+__all__.extend(logistic.__all__)
