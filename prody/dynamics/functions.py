@@ -205,6 +205,11 @@ def loadModel(filename, **kwargs):
             else:
                 dict_[attr] = attr_dict[attr]
 
+    if '_shuffled_ldas' in nma.__dict__:
+        nma._shuffled_ldas = [arr[0].getModel() for arr in nma._shuffled_ldas]
+    elif '_shuffled_lrcs' in nma.__dict__:
+        nma._shuffled_lrcs = [arr[0].getModel() for arr in nma._shuffled_lrcs]
+
     return nma
 
 
