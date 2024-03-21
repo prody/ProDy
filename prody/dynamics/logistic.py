@@ -12,10 +12,10 @@ from prody.utilities import isListLike
 
 from .nma import NMA
 
-__all__ = ['LRC']
+__all__ = ['LRA']
 
 
-class LRC(NMA):
+class LRA(NMA):
 
     """A class for logistic regression classification of conformational
     ensembles. See examples in :ref:`pca`."""
@@ -121,7 +121,7 @@ class LRC(NMA):
                     LOGGER.debug('Calculating {0} mode for {1} shuffles.'
                         .format(self._n_modes, self._n_shuffles))
             
-        self._shuffled_lrcs = [LRC('shuffle '+str(n)) for n in range(self._n_shuffles)]
+        self._shuffled_lrcs = [LRA('shuffle '+str(n)) for n in range(self._n_shuffles)]
         self._coordsets_reshaped = self._coordsets.reshape(self._coordsets.shape[0], self._n_atoms, -1)
 
         n = 0
