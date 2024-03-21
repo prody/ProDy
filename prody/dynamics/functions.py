@@ -25,6 +25,7 @@ from .exanm import exANM, MaskedExANM
 from .rtb import RTB
 from .pca import PCA, EDA
 from .lda import LDA
+from .logistic import LRA
 from .imanm import imANM
 from .exanm import exANM
 from .mode import Vector, Mode, VectorBase
@@ -87,6 +88,10 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         type_ = 'LDA'
         attr_list.append('_labels')
         attr_list.append('_shuffled_ldas')
+    elif isinstance(nma, LRA):
+        type_ = 'LR'
+        attr_list.append('_labels')
+        attr_list.append('_shuffled_lrcs')
     else:
         type_ = 'NMA'
 
@@ -184,6 +189,8 @@ def loadModel(filename, **kwargs):
             nma = RTB(title)
         elif type_ == 'LDA':
             nma = LDA(title)
+        elif type_ == 'LRA':
+            nma = LRA(title)
         else:
             raise IOError('NMA model type is not recognized: {0}'.format(type_))
 
