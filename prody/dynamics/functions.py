@@ -86,12 +86,14 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         type_ = 'PCA'
     elif isinstance(nma, LDA):
         type_ = 'LDA'
+        attr_list.append('_lda')
         attr_list.append('_labels')
         attr_list.append('_shuffled_ldas')
     elif isinstance(nma, LRA):
         type_ = 'LRA'
+        attr_list.append('_lra')
         attr_list.append('_labels')
-        attr_list.append('_shuffled_lrcs')
+        attr_list.append('_shuffled_lras')
     else:
         type_ = 'NMA'
 
@@ -214,8 +216,8 @@ def loadModel(filename, **kwargs):
 
     if '_shuffled_ldas' in nma.__dict__:
         nma._shuffled_ldas = [arr[0].getModel() for arr in nma._shuffled_ldas]
-    elif '_shuffled_lrcs' in nma.__dict__:
-        nma._shuffled_lrcs = [arr[0].getModel() for arr in nma._shuffled_lrcs]
+    elif '_shuffled_lras' in nma.__dict__:
+        nma._shuffled_lras = [arr[0].getModel() for arr in nma._shuffled_lras]
 
     return nma
 
