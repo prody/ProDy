@@ -265,14 +265,13 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     use_labels = kwargs.pop('use_labels', True)
     labels = kwargs.pop('label', None)
-    if labels is None:
-        if  use_labels:
-            if isinstance(modes, (LDA, LRA)):
-                labels = modes._labels.tolist()
-                LOGGER.info('using labels from LDA modes')
-            elif isinstance(modes.getModel(), (LDA, LRA)):
-                labels = modes.getModel()._labels.tolist()
-                LOGGER.info('using labels from LDA model')
+    if labels is None and  use_labels:
+        if isinstance(modes, (LDA, LRA)):
+            labels = modes._labels.tolist()
+            LOGGER.info('using labels from LDA modes')
+        elif isinstance(modes.getModel(), (LDA, LRA)):
+            labels = modes.getModel()._labels.tolist()
+            LOGGER.info('using labels from LDA model')
 
     if labels is not None and len(labels) != num:
         raise ValueError('label should have the same length as ensemble')
