@@ -261,9 +261,14 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
                                     rmsd,)
     
     use_weights = kwargs.pop('use_weights', False)
-    weights = None
     if use_weights:
-        weights = kwargs.pop('weights', ensemble.getData('size'))
+        if ensemble is not None:
+            weights = kwargs.pop('weights', ensemble.getData('size'))
+        else:
+            weights = kwargs.pop('weights', None)
+    else:
+        weights = kwargs.pop('weights', None)
+        weights = None
 
     num = projection.shape[0]
 
