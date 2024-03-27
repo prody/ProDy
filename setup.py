@@ -12,7 +12,7 @@ if sys.version_info[:2] < (2, 7):
     sys.exit()
 
 if sys.version_info[:2] == (2, 7) or sys.version_info[:2] <= (3, 5):
-    INSTALL_REQUIRES=['numpy>=1.10,<1.24', 'biopython<=1.76', 'pyparsing', 'scipy']
+    INSTALL_REQUIRES=['numpy>=1.10,<1.25', 'biopython<=1.76', 'pyparsing', 'scipy']
 else:
     INSTALL_REQUIRES=['numpy>=1.10,<1.24', 'biopython', 'pyparsing<=3.1.1', 'scipy', 'setuptools']
 
