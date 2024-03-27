@@ -139,10 +139,27 @@ def searchPfam(query, **kwargs):
         try:
             metadata = entry["metadata"]
             accession = metadata["accession"]
+            if isinstance(metadata["member_databases"], dict):
+                accessions2 = [list(value.keys())[0] 
+                               for value in metadata["member_databases"].values()]
+            else:
+                accessions2 = []
         except KeyError:
             raise ValueError('failed to parse accessions from results, check URL: ' + url)
 
+        foundPfam = False
         if not re.search('PF[0-9]{5}$', accession):
+            for accession in accessions2:
+                if re.search('PF[0-9]{5}$', accession):
+                    foundPfam = True
+                    break
+        else:
+            foundPfam = True
+
+        if entry["proteins"][0]["entry_protein_locations"] is None:
+            foundPfam = False
+
+        if not foundPfam:
             continue
 
         match = matches.setdefault(accession, dict(metadata.items()))
