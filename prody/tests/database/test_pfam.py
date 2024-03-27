@@ -62,8 +62,8 @@ class TestSearchPfam(unittest.TestCase):
             'searchPfam failed to return a dict instance')
         
         self.assertEqual(sorted(list(a.keys())), 
-                           ['PF00822'],
-                           'searchPfam failed to return the right domain family IDs for TARP')
+                         ['PF00822', 'PF13903'],
+                         'searchPfam failed to return the right domain family IDs for TARP')
         
     @classmethod
     def tearDownClass(self):
