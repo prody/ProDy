@@ -37,7 +37,7 @@ class TestSearchPfam(unittest.TestCase):
             'searchPfam failed to return a dict instance')
         
         self.assertEqual(sorted(list(a.keys()))[:2], ['PF00060', 'PF00497'],
-                         'searchPfam failed to return the right domain family IDs')
+                           'searchPfam failed to return the right domain family IDs')
         
     def testPdbIdChMulti(self):
         """Test the outcome of a simple search scenario using a PDB ID

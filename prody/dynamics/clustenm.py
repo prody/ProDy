@@ -457,7 +457,8 @@ class ClustENM(Ensemble):
         if not self._checkANM(anm_cg):
             return None
 
-        anm_cg.calcModes(self._n_modes)
+        anm_cg.calcModes(self._n_modes, turbo=self._turbo,
+                         nproc=self._nproc)
 
         anm_ex = self._extendModel(anm_cg, cg, tmp)
         a = np.array(list(product([-1, 0, 1], repeat=self._n_modes)))
@@ -485,7 +486,8 @@ class ClustENM(Ensemble):
 
         anm = ANM()
         anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma,
-                         sparse=self._sparse, kdtree=self._kdtree)
+                         sparse=self._sparse, kdtree=self._kdtree,
+                         nproc=self._nproc)
 
         return anm
 
@@ -517,16 +519,53 @@ class ClustENM(Ensemble):
 
         anm_cg = self._buildANM(cg)
 
+        n_confs = self._n_confs
+
         if not self._checkANM(anm_cg):
             return None
 
-        anm_cg.calcModes(self._n_modes, turbo=self._turbo)
+        anm_cg.calcModes(self._n_modes, turbo=self._turbo,
+                         nproc=self._nproc)
 
         anm_ex = self._extendModel(anm_cg, cg, tmp)
         ens_ex = sampleModes(anm_ex, atoms=tmp,
                              n_confs=self._n_confs,
                              rmsd=self._rmsd[self._cycle])
         coordsets = ens_ex.getCoordsets()
+
+        if self._fitmap is not None:
+            LOGGER.info('Filtering for fitting in generation %d ...' % self._cycle)
+
+            kept_coordsets = []
+            if self._fitmap is not None:
+                kept_coordsets.extend(self._filter(coordsets))
+                n_confs = n_confs - len(kept_coordsets)
+
+            if len(kept_coordsets) == 0:
+                while len(kept_coordsets) == 0:
+                    anm_ex = self._extendModel(anm_cg, cg, tmp)
+                    ens_ex = sampleModes(anm_ex, atoms=tmp,
+                                        n_confs=n_confs,
+                                        rmsd=self._rmsd[self._cycle])
+                    coordsets = ens_ex.getCoordsets()
+
+                    if self._fitmap is not None:
+                        kept_coordsets.extend(self._filter(coordsets))
+                        n_confs = n_confs - len(kept_coordsets)
+
+            if self._replace_filtered:
+                while n_confs > 0: 
+                    anm_ex = self._extendModel(anm_cg, cg, tmp)
+                    ens_ex = sampleModes(anm_ex, atoms=tmp,
+                                        n_confs=n_confs,
+                                        rmsd=self._rmsd[self._cycle])
+                    coordsets = ens_ex.getCoordsets()
+
+                    if self._fitmap is not None:
+                        kept_coordsets.extend(self._filter(coordsets))
+                        n_confs = n_confs - len(kept_coordsets)
+
+            coordsets = np.array(kept_coordsets)
 
         if self._targeted:
             if self._parallel:
@@ -610,8 +649,7 @@ class ClustENM(Ensemble):
 
         ag = self._atoms.copy()
         confs = args[0]
-        wei = args[1]
-        ccList = np.zeros(len(args[1]))
+        ccList = np.zeros(len(args[0]))
         for i in range(len(confs)-1,-1,-1):
             ag.setCoords(confs[i])
             sim_map = self._blurrer(ag.toTEMPyStructure(), self._fit_resolution, self._fitmap)
@@ -619,19 +657,10 @@ class ClustENM(Ensemble):
             ccList[i] = cc
             if cc - self._cc_prev < 0:
                 confs = np.delete(confs, i, 0)
-                wei = np.delete(wei, i, 0)
 
-        if len(wei) == 0:
-            confs = args[0]
-            wei = args[1]
-            LOGGER.info('There were no closer conformers in generation %d so filtering was not performed' % self._cycle)
+        self._cc.extend(ccList)
 
-        if ccList.max() > self._cc_prev:
-            self._cc_prev = ccList.max()
-
-        self._cc.append(ccList.max())
-
-        return confs, wei
+        return confs
 
     def _generate(self, confs, **kwargs):
 
@@ -661,11 +690,18 @@ class ClustENM(Ensemble):
         confs_centers = confs_ex[centers]
         
         if self._fitmap is not None:
-            LOGGER.info('Filtering for fitting in generation %d ...' % self._cycle)
-            confs_centers, wei = self._filter(confs_centers, wei)
-            LOGGER.report('Filtered centroids were generated in %.2fs.',
-                          label='_clustenm_gen')
-            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(wei)))
+            self._cc_prev = max(self._cc)
+            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(confs_cg)))
+
+        if len(confs_cg) > 1:
+            LOGGER.info('Clustering in generation %d ...' % self._cycle)
+            label_cg = self._hc(confs_cg)
+            centers, wei = self._centers(confs_cg, label_cg)
+            LOGGER.report('Centroids were generated in %.2fs.',
+                        label='_clustenm_gen')
+            confs_centers = confs_ex[centers]
+        else:
+            confs_centers, wei = confs_cg, [len(confs_cg)]
 
         return confs_centers, wei
 
@@ -1022,6 +1058,10 @@ class ClustENM(Ensemble):
         :arg fit_resolution: Resolution for comparing to cryo-EM map for fitting
             Default 5 Angstroms
         :type fit_resolution: float
+
+        :arg replace_filtered: If it is True (default is False), conformer sampling and filtering 
+            will be repeated until the desired number of conformers have been kept.
+        :type replace_filtered: bool  
         '''
 
         if self._isBuilt():
@@ -1034,6 +1074,7 @@ class ClustENM(Ensemble):
         self._sparse = kwargs.get('sparse', False)
         self._kdtree = kwargs.get('kdtree', False)
         self._turbo = kwargs.get('turbo', False)
+        self._nproc = kwargs.pop('nproc', None)
         if kwargs.get('zeros', False):
             LOGGER.warn('ClustENM cannot use zero modes so ignoring this kwarg')
 
@@ -1057,6 +1098,7 @@ class ClustENM(Ensemble):
         if self._fitmap is not None:
             self._fitmap = self._fitmap.toTEMPyMap()
             self._fit_resolution = kwargs.get('fit_resolution', 5)
+            self._replace_filtered = kwargs.pop('replace_filtered', False)
 
         if maxclust is None and threshold is None and n_gens > 0:
             raise ValueError('Either maxclust or threshold should be set!')

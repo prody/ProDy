@@ -5,16 +5,15 @@ import os.path
 import inspect
 import numpy as np
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    from numpy.testing import dec
 
 from prody import *
 from prody import LOGGER
 from prody.tests import unittest
 from prody.tests.datafiles import *
 from prody.atomic.atommap import DUMMY
+
+from prody.utilities import importDec
+dec = importDec()
 
 prody.atomic.select.DEBUG = False
 LOGGER.verbosity = 'none'
