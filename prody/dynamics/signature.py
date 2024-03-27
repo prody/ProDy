@@ -1648,7 +1648,7 @@ def showSignatureDistribution(signature, **kwargs):
     bins = kwargs.pop('bins', 'auto')
     if bins == 'auto':
         _, bins = np.histogram(W.flatten(), bins='auto')
-    elif np.isscalar(bins) and isinstance(bins, (int, np.integer)):
+    elif np.isscalar(bins) and isinstance(bins, int):
         step = (W.max() - W.min())/bins
         bins = np.arange(W.min(), W.max(), step)
 
