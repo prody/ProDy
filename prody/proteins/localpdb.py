@@ -436,17 +436,17 @@ def iterPDBFilenames(path=None, sort=False, unique=True, **kwargs):
             yielded = set()
         compressed = kwargs.get('compressed')
         if compressed is None:
-            pdbext = compile('\.(pdb|ent)(\.gz)?$', IGNORECASE)
-            cifext = compile('\.(cif)(\.gz)?$', IGNORECASE)
-            emdext = compile('\.(emd|map|mrc)(\.gz)?$', IGNORECASE)
+            pdbext = compile('[.](pdb|ent)([.]gz)?$', IGNORECASE)
+            cifext = compile('[.](cif)([.]gz)?$', IGNORECASE)
+            emdext = compile('[.](emd|map|mrc)([.]gz)?$', IGNORECASE)
         elif compressed:
-            pdbext = compile('\.(pdb|ent)\.gz$', IGNORECASE)
-            cifext = compile('\.(cif)\.gz$', IGNORECASE)
-            emdext = compile('\.(emd|map|mrc)\.gz$', IGNORECASE)
+            pdbext = compile('[.](pdb|ent)[.]gz$', IGNORECASE)
+            cifext = compile('[.](cif)[.]gz$', IGNORECASE)
+            emdext = compile('[.](emd|map|mrc)[.]gz$', IGNORECASE)
         else:
-            pdbext = compile('\.(pdb|ent)$', IGNORECASE)
-            cifext = compile('\.(cif)$', IGNORECASE)
-            emdext = compile('\.(emd|map|mrc)$', IGNORECASE)
+            pdbext = compile('[.](pdb|ent)$', IGNORECASE)
+            cifext = compile('[.](cif)$', IGNORECASE)
+            emdext = compile('[.](emd|map|mrc)$', IGNORECASE)
         if format == 'cif':
             pdbext = cifext
         if format == 'emd':
