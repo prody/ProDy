@@ -87,7 +87,7 @@ def prody_clustenm(pdb, **kwargs):
     model = kwargs.pop('model')
     altloc = kwargs.pop('altloc')
     turbo = kwargs.pop('turbo')
-    nproc = kwargs.get('nproc')
+    nproc = kwargs.pop('nproc')
 
     ngens = kwargs.pop('ngens')
     nconfs = kwargs.pop('nconfs')
