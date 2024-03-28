@@ -36,17 +36,24 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
         raise ValueError('ensemble instance does not contain data')
 
     dict_ = ensemble.__dict__
+    atomsB = None
     attr_list = ['_title', '_confs', '_weights', '_coords', '_indices']
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
-    elif isinstance(ensemble, ClustENM):
+    elif isinstance(ensemble, (Hybrid, ClustENM)):
         attr_list.extend(['_ph', '_cutoff', '_gamma', '_n_modes', '_n_confs',
                           '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
                           '_padding', '_ionicStrength', '_force_field', '_tolerance',
                           '_maxIterations', '_sim', '_temp', '_t_steps', '_outlier',
                           '_mzscore', '_v1', '_parallel', '_idx_cg', '_n_cg', '_cycle',
                           '_time', '_targeted', '_tmdk', '_topology', '_positions', '_cc'])
+    if isinstance(ensemble, AdaptiveHybrid):
+        attr_list.extend(['_atomsB', '_defvecs', '_resetFmin', '_rmsds'])
+        atomsB = dict_['_atomsB']
+    if isinstance(ensemble, CoMD):
+        attr_list.extend(['_atomsB', '_target_rmsd', '_min_rmsd_diff', '_traj_rmsds'])
+        atomsB = dict_['_atomsB']        
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
@@ -59,6 +66,9 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     atoms = dict_['_atoms']
     if atoms is not None:
         attr_dict['_atoms'] = np.array([atoms, None], 
+                                        dtype=object)
+    if atomsB is not None:
+        attr_dict['_atomsB'] = np.array([atomsB, None], 
                                         dtype=object)
 
     data = dict_['_data']
@@ -130,6 +140,12 @@ def loadEnsemble(filename, **kwargs):
         ensemble = PDBEnsemble(title)
     elif type_ == 'ClustENM':
         ensemble = ClustENM(title)
+    elif type_ == 'AdaptiveHybrid':
+        ensemble = AdaptiveHybrid(title)
+    elif type_ == 'Hybrid':
+        ensemble = Hybrid(title)
+    elif type_ == 'CoMD':
+        ensemble = CoMD(title)
     else:
         ensemble = Ensemble(title)
 
@@ -153,12 +169,19 @@ def loadEnsemble(filename, **kwargs):
         if '_msa' in attr_dict.files:
             ensemble._msa = attr_dict['_msa'][0]
     else:
-        if type_ == 'ClustENM':
+        if type_ in ['ClustENM', 'Hybrid', 'AdaptiveHybrid']:
             attrs = ['_ph', '_cutoff', '_gamma', '_n_modes', '_n_confs',
                     '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
                     '_sim', '_temp', '_t_steps', '_outlier', '_mzscore', '_v1',
                     '_parallel', '_idx_ca', '_n_ca', '_cycle', '_time', '_targeted',
-                    '_tmdk', '_topology', '_positions', '_cc']
+                    '_tmdk', '_topology', '_positions']
+            
+            for attr in attrs:
+                if attr in attr_dict.files:
+                    setattr(ensemble, attr, attr_dict[attr])
+
+        if type_ == 'AdaptiveHybrid':
+            attrs = ['_atomsB', '_defvecs', '_resetFmin', '_rmsds', '_cc']
             
             for attr in attrs:
                 if attr in attr_dict.files:
@@ -184,7 +207,25 @@ def loadEnsemble(filename, **kwargs):
                 data[key] = arr
     else:
         atoms = None
-    ensemble.setAtoms(atoms)
+
+    if type_ == 'AdaptiveHybrid':
+        atomsB = attr_dict['_atomsB'][0]
+
+        if isinstance(atomsB, AtomGroup):
+            dataB = atomsB._data
+        else:
+            dataB = atomsB._ag._data
+        
+        for key in dataB:
+            arrB = dataB[key]
+            char = arrB.dtype.char
+            if char in 'SU' and char != DTYPE:
+                arrB = arrB.astype(str)
+                dataB[key] = arrB
+
+        ensemble.setAtoms(atoms, atomsB)
+    else:
+        ensemble.setAtoms(atoms)
 
     if '_indices' in attr_dict:
         indices = attr_dict['_indices']
