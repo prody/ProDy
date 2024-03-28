@@ -36,7 +36,8 @@ class TestSearchPfam(unittest.TestCase):
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
         
-        self.assertEqual(sorted(list(a.keys()))[:2], ['PF00060', 'PF00497'],
+        self.assertEqual(sorted(list(a.keys())), 
+                         ['PF00060', 'PF00497', 'PF01094', 'PF10613'],
                          'searchPfam failed to return the right domain family IDs')
         
     def testPdbIdChMulti(self):
@@ -48,7 +49,7 @@ class TestSearchPfam(unittest.TestCase):
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
         
-        self.assertEqual(sorted(list(a.keys()))[:2], ['PF00060', 'PF00497'],
+        self.assertEqual(sorted(list(a.keys())), ['PF00060', 'PF00497', 'PF01094', 'PF10613'],
                          'searchPfam failed to return the right domain family IDs for AMPAR')
         
     def testPdbIdChSingle(self):
@@ -61,8 +62,8 @@ class TestSearchPfam(unittest.TestCase):
             'searchPfam failed to return a dict instance')
         
         self.assertEqual(sorted(list(a.keys())), 
-                           ['PF00822'],
-                           'searchPfam failed to return the right domain family IDs for TARP')
+                         ['PF00822', 'PF13903'],
+                         'searchPfam failed to return the right domain family IDs for TARP')
         
     @classmethod
     def tearDownClass(self):

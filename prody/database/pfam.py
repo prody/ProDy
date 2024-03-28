@@ -60,7 +60,6 @@ def searchPfam(query, **kwargs):
 
     seq = ''.join(query.split())
 
-    import xml.etree.cElementTree as ET
     LOGGER.timeit('_pfam')
     timeout = int(kwargs.get('timeout', 60))
 
@@ -139,26 +138,41 @@ def searchPfam(query, **kwargs):
         try:
             metadata = entry["metadata"]
             accession = metadata["accession"]
+            if isinstance(metadata["member_databases"], dict):
+                accessions2 = [list(value.keys())
+                               for value in metadata["member_databases"].values()]
+            else:
+                accessions2 = []
         except KeyError:
             raise ValueError('failed to parse accessions from results, check URL: ' + url)
 
-        if not re.search('PF[0-9]{5}$', accession):
+        pfamAccessions = []
+        if re.search('PF[0-9]{5}$', accession):
+            pfamAccessions.append(accession)
+        else:
+            for accession in np.array(accessions2).flatten():
+                if (re.search('PF[0-9]{5}$', accession) and
+                    entry["proteins"][0]["entry_protein_locations"] is not None):
+                    pfamAccessions.append(accession)
+
+        if len(pfamAccessions) == 0:
             continue
 
-        match = matches.setdefault(accession, dict(metadata.items()))
-        
-        other_data = entry["proteins"]
-        locations = match.setdefault("locations", [])
-        for item1 in other_data:
-            for key, value in item1.items():
-                if key == "entry_protein_locations":
-                    for item2 in value:
-                        new_dict = {}
-                        for item3 in value[0]["fragments"]:
-                            new_dict["start"] = item3["start"]
-                            new_dict["end"] = item3["end"]
-                            new_dict["score"] = item2["score"]
-                            locations.append(new_dict)    
+        for accession in pfamAccessions:
+            match = matches.setdefault(accession, dict(metadata.items()))
+            
+            other_data = entry["proteins"]
+            locations = match.setdefault("locations", [])
+            for item1 in other_data:
+                for key, value in item1.items():
+                    if key == "entry_protein_locations":
+                        for item2 in value:
+                            new_dict = {}
+                            for item3 in value[0]["fragments"]:
+                                new_dict["start"] = item3["start"]
+                                new_dict["end"] = item3["end"]
+                                new_dict["score"] = item2["score"]
+                                locations.append(new_dict)    
 
     query = 'Query ' + repr(query)
 

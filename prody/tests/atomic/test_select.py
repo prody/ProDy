@@ -5,16 +5,15 @@ import os.path
 import inspect
 import numpy as np
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    from numpy.testing import dec
 
 from prody import *
 from prody import LOGGER
 from prody.tests import unittest
 from prody.tests.datafiles import *
 from prody.atomic.atommap import DUMMY
+
+from prody.utilities import importDec
+dec = importDec()
 
 prody.atomic.select.DEBUG = False
 LOGGER.verbosity = 'none'
@@ -400,6 +399,15 @@ SELECTION_TESTS['gromacs'] = {
     'test_flags':  [('protein', 12194, 'aminoacid')],
 }
 
+data_nucleoside = DATA_FILES['pdb7pbl']
+pdb_nucleoside = prody.parsePDB(pathDatafile(data_nucleoside['file']), secondary=True)
+SELECTION_TESTS['nucleoside'] = {
+    'n_atoms': data_nucleoside['atoms'],
+    'ag': pdb_nucleoside,
+    'all': pdb_nucleoside.all,
+    'test_flags':  [('nucleoside', data_nucleoside['nucleoside'], 'nucleoside')],
+}
+
 pdb3mht = SELECTION_TESTS['pdb3mht']['ag']
 pdb3mht.setCharges(pdb3mht.getOccupancies())
 pdb3mht.setMasses(pdb3mht.getBetas())
@@ -418,6 +426,7 @@ class TestSelect(unittest.TestCase):
 
     pass
 
+count = 0
 for case, items in SELECTION_TESTS.items():
 
     for key, tests in items.items():
@@ -426,7 +435,6 @@ for case, items in SELECTION_TESTS.items():
             continue
         type_ = key[5:]
 
-        count = 0
         for test in tests:
             def func(self, pdb=case, test=test, type_=type_, **kwargs):
 

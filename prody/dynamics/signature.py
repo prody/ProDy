@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for analyzing normal modes obtained 
+"""This module defines functions for signature dynamics (SignDy), analyzing normal modes obtained 
 for conformations in an ensemble."""
 
 import time
@@ -1648,7 +1648,7 @@ def showSignatureDistribution(signature, **kwargs):
     bins = kwargs.pop('bins', 'auto')
     if bins == 'auto':
         _, bins = np.histogram(W.flatten(), bins='auto')
-    elif np.isscalar(bins) and isinstance(bins, (int, np.integer)):
+    elif np.isscalar(bins) and isinstance(bins, int):
         step = (W.max() - W.min())/bins
         bins = np.arange(W.min(), W.max(), step)
 

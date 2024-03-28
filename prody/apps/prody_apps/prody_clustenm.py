@@ -44,7 +44,9 @@ for key, txt, val in [
     ('write_params', 'whether to write parameters', False),
     ('fitmap', 'map to fit by filtering conformations like MDeNMD-EMFit', None),
     ('fit_resolution', 'resolution for blurring structures for fitting cc', 5),
-    ('map_cutoff', 'min_cutoff for passing map for fitting', 0)]:
+    ('map_cutoff', 'min_cutoff for passing map for fitting', 0),
+    ('replace_filtered', 'whether to keep sampling again to replace filtered conformers', False),
+    ('platform', 'openmm platform (OpenCL, CUDA, CPU or None)', None)]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
@@ -85,6 +87,7 @@ def prody_clustenm(pdb, **kwargs):
     model = kwargs.pop('model')
     altloc = kwargs.pop('altloc')
     turbo = kwargs.pop('turbo')
+    nproc = kwargs.pop('nproc')
 
     ngens = kwargs.pop('ngens')
     nconfs = kwargs.pop('nconfs')
@@ -153,7 +156,8 @@ def prody_clustenm(pdb, **kwargs):
             outlier=outlier, mzscore=mzscore,
             sparse=sparse, kdtree=kdtree, turbo=turbo,
             parallel=parallel, fitmap=fitmap, 
-            fit_resolution=fit_resolution, **kwargs)
+            fit_resolution=fit_resolution,
+            nproc=nproc, **kwargs)
 
     single = not kwargs.pop('multiple')
     outname = join(outdir, prefix)
@@ -199,7 +203,7 @@ graphical output files:
   $ prody clustenm 1aar -s "calpha and chain A and resnum < 70" -A""",
   test_examples=[0, 1])
 
-    group = addNMAParameters(subparser, include_nproc=False)
+    group = addNMAParameters(subparser, include_nproc=True)
 
     group.add_argument('-c', '--cutoff', dest='cutoff', type=str,
         default=DEFAULTS['cutoff'], metavar='FLOAT',
@@ -267,7 +271,7 @@ graphical output files:
         default=DEFAULTS['ionicStrength'], metavar='FLOAT',
         help=HELPTEXT['ionicStrength'] + ' (default: %(default)s)')
     
-    group.add_argument('-P', '--padding', dest='padding', type=float,
+    group.add_argument('-Q', '--padding', dest='padding', type=float,
         default=DEFAULTS['padding'], metavar='FLOAT',
         help=HELPTEXT['padding'] + ' (default: %(default)s)')
 
@@ -330,6 +334,14 @@ graphical output files:
     group.add_argument('-u', '--map_cutoff', dest='map_cutoff', type=float,
         default=DEFAULTS['map_cutoff'], metavar='FLOAT',
         help=HELPTEXT['map_cutoff'] + ' (default: %(default)s)')
+
+    group.add_argument('-O', '--replace_filtered', dest='replace_filtered',
+        action='store_true',
+        default=DEFAULTS['replace_filtered'], help=HELPTEXT['replace_filtered'])
+
+    group.add_argument('-V', '--platform', dest='platform', type=str,
+        default=DEFAULTS['platform'], metavar='STR',
+        help=HELPTEXT['platform'] + ' (default: %(default)s)')
 
     subparser.add_argument('pdb', help='PDB identifier or filename')
 

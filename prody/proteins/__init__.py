@@ -101,7 +101,7 @@ Use the following to parse and access header data in PDB files:
   * :class:`.Polymer` - store PDB polymer (macromolecule) component data
   * :class:`.DBRef` - store polymer sequence database reference records
 
-Analyze interactions
+Analyze interactions and stability with InSty and find water bridges with WatFinder
 ====================
 
 Use the following to analyze interactions within protein structure or
