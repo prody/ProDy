@@ -47,7 +47,7 @@ The following classes are designed for modeling and analysis of protein dynamics
 
 Usage of these classes are shown in :ref:`exanm` and :ref:`imanm` examples.
 
-SignDy
+Signature Dynamics (SignDy)
 ===============
 
 The following classes are designed for signature dynamics analysis of protein/domain families, 
