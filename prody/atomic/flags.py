@@ -132,8 +132,15 @@ DEFAULTS = {
 
     'nucleobase': set(['GUN', 'ADE', 'CYT', 'THY', 'URA']),
     'nucleotide': set(['DA', 'DC', 'DG', 'DT', 'DU', 'A', 'C', 'G', 'T', 'U']),
-    'nucleoside': set(['AMP', 'ADP', 'ATP', 'CDP', 'CTP', 'GMP', 'GDP', 'GTP',
-                       'TMP', 'TTP', 'UMP', 'UDP', 'UTP']),
+    'nucleoside': set(['ADN', 'AMP', 'ADP', 'ATP',
+                       'CMP', # cyclic AMP
+                       'A2P', 'A3P', # multi site diphosphates
+                       'AGS', # ATP-gamma-S
+                       'CTN', 'C5P', 'CDP', 'CTP',
+                       'C2P', 'C3P', # other site monophosphates
+                       'GMP', '5GP', 'GDP', 'GTP',
+                       'THM', 'TMP', 'TPP', 'TTP',
+                       'URI', 'UMP', 'UDP', 'UTP']),
 
     'at': set(['ADE', 'A', 'THY', 'T']),
     'cg': set(['CYT', 'C', 'GUN', 'G']),
@@ -418,19 +425,36 @@ Nucleic
       =======  ==================================
 
    nucleoside
-      indicates following nucleoside derivatives that are recognized by *PDB*:
+      indicates following nucleosides and their derivatives that are recognized by *PDB*:
 
       =======  ================================
-      `AMP`_   adenosine monophosphate
+      `ADN`_   adenosine
+      `AMP`_   adenosine-5'-monophosphate
       `ADP`_   adenosine-5'-diphosphate
       `ATP`_   adenosine-5'-triphosphate
+      `AGS`_   adenosine-5'-triphosphate-gamma-S
+      `CMP`_   cyclic adenosine-3',5'-monophosphate
+      `A2P`_   adenosine-2',5'-diphosphate
+      `A3P`_   adenosine-3',5'-diphosphate
+
+      `CTN`_   cytidine
+      `C2P`_   cytidine-2'-monophosphate
+      `C3P`_   cytidine-3'-monophosphate
+      `C5P`_   cytidine-5'-monophosphate
       `CDP`_   cytidine-5'-diphosphate
       `CTP`_   cytidine-5'-triphosphate
+
       `GMP`_   guanosine
+      `5GP`_   guanosine-5'-monophosphate
       `GDP`_   guanosine-5'-diphosphate
       `GTP`_   guanosine-5'-triphosphate
-      `TMP`_   thymidine-5'-phosphate
+
+      `THM`_   thymidine
+      `TMP`_   thymidine-5'-monophosphate
+      `TPP`_   thymidine-5'-diphosphate
       `TTP`_   thymidine-5'-triphosphate
+
+      `URI`_   uridine (uracil plus ribose)
       `UMP`_   2'-deoxyuridine 5'-monophosphate
       `UDP`_   uridine 5'-diphosphate
       `UTP`_   uridine 5'-triphosphate
