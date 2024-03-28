@@ -7,20 +7,13 @@ import re
 from numbers import Integral
 
 import numpy as np
-from os.path import join, isfile
+from os.path import join
 from io import BytesIO
 
 from prody import LOGGER, PY3K
-from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
+from prody.utilities import makePath, gunzip
 from prody.utilities import relpath
 from prody.proteins import parsePDB
-
-if PY3K:
-    import urllib.parse as urllib
-    import urllib.request as urllib2
-else:
-    import urllib
-    import urllib2
 
 import json
 
@@ -200,8 +193,11 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
         is 60
 
     :arg outname: out filename, default is input ``'acc_alignment.format'``
+    :type outname: str
 
-    :arg folder: output folder, default is ``'.'``"""
+    :arg folder: output folder, default is ``'.'``
+    :type folder: str
+    """
     
     import requests
 
