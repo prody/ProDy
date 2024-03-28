@@ -258,7 +258,7 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
 
     if projection is None:
         projection = calcProjection(ensemble, modes, 
-                                    rmsd,)
+                                    rmsd, norm)
     
     use_weights = kwargs.pop('use_weights', False)
     if use_weights:
