@@ -176,7 +176,7 @@ def searchPfam(query, **kwargs):
     return matches
 
 
-def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
+def fetchPfamMSA(acc, alignment='seed', compressed=False, **kwargs):
     """Returns a path to the downloaded Pfam MSA file.
 
     :arg acc: Pfam ID or Accession Code
@@ -185,7 +185,8 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     :arg alignment: alignment type, one of ``'full'`` (default), ``'seed'``,
          ``'ncbi'``, ``'metagenomics'``, ``'rp15'``, ``'rp35'``, ``'rp55'``,
          ``'rp75'`` or ``'uniprot'`` where rp stands for representative 
-         proteomes
+         proteomes. Please note that full alignments may not be available
+         following migration to Interpro.
 
     :arg compressed: gzip the downloaded MSA file, default is **False**
 
@@ -208,7 +209,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     if alignment not in DOWNLOAD_FORMATS:
         raise ValueError('alignment must be one of full, seed, or uniprot')
 
-    url = (prefix + "/pfam/" + acc + 
+    url = (prefix + "pfam/" + acc + 
             '/?annotation=alignment:' + alignment + '&download')
     extension = '.sth'
 
@@ -226,6 +227,9 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
         
         sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
         LOGGER.sleep(int(sleep), '. Trying to reconnect...')
+
+    if b'"list index out of range"' in response:
+        raise ValueError('Could not find {0} alignment for {1}'.format(alignment, acc))
 
     outname = kwargs.get('outname', None)
     if not outname:
