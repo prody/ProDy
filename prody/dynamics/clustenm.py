@@ -111,6 +111,8 @@ class ClustENM(Ensemble):
         self._targeted = False
         self._tmdk = 10.
 
+        self._cc = None
+
         super(ClustENM, self).__init__('Unknown')   # dummy title; will be replaced in the next line
         self._title = title
 
