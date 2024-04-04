@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module defines functions for calculating different types of interactions 
+"""This module called InSty defines functions for calculating different types of interactions 
 in protein structure, between proteins or between protein and ligand.
 The following interactions are available for protein interactions:
         (1) Hydrogen bonds
