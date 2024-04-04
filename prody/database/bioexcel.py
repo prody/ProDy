@@ -11,7 +11,7 @@ from prody.utilities import makePath
 from prody.atomic.atomgroup import AtomGroup
 from prody.atomic.functions import extendAtomicData
 from prody.proteins.pdbfile import parsePDB
-from prody.trajectory.psffile import writePSF
+from prody.trajectory.psffile import parsePSF, writePSF
 from prody.trajectory.dcdfile import parseDCD
 
 __all__ = ['fetchBioexcelPDB', 'parseBioexcelPDB', 'convertXtcToDcd',
@@ -51,14 +51,8 @@ def fetchBioexcelPDB(acc, **kwargs):
 
     url = prefix + acc + "/structure"
 
-    selection = kwargs.get('selection', None)
+    selection = checkSelection(**kwargs)
     if selection is not None:
-        if not isinstance(selection, str):
-            raise TypeError('selection should be a string')
-        
-        if selection not in ['_C', 'backbone', 'backbone and _C']:
-            raise ValueError("selection should be '_C', 'backbone' or 'backbone and _C'")
-        
         url += '?selection=' + selection.replace(" ","%20")
 
     LOGGER.timeit('_bioexcel')
@@ -132,14 +126,8 @@ def fetchBioexcelTrajectory(acc, **kwargs):
         
         url += '&frames=' + frames
 
-    selection = kwargs.get('selection', None)
+    selection = checkSelection(**kwargs)
     if selection is not None:
-        if not isinstance(selection, str):
-            raise TypeError('selection should be a string')
-        
-        if selection not in ['_C', 'backbone', 'backbone and _C']:
-            raise ValueError("selection should be '_C', 'backbone' or 'backbone and _C'")
-        
         url += '&selection=' + selection.replace(" ","%20")
 
     LOGGER.timeit('_bioexcel')
@@ -209,7 +197,7 @@ def fetchBioexcelTopology(acc, **kwargs):
     fo.close()
 
     if convert:
-        ag = parseBioexcelTopology(filepath)
+        ag = parseBioexcelTopology(filepath, **kwargs)
         filepath = filepath.replace(dot_json_str, '.psf')
         writePSF(filepath, ag)
 
@@ -227,43 +215,55 @@ def parseBioexcelTopology(query, **kwargs):
     else:
         filename = query
 
-    import json
+    if filename.endswith(dot_json_str):
+        import json
 
-    fp = open(filename, 'r')
-    data = json.load(fp)
-    fp.close()
+        fp = open(filename, 'r')
+        data = json.load(fp)
+        fp.close()
 
-    title = basename(splitext(filename)[0])
-    ag = AtomGroup(title)
+        title = basename(splitext(filename)[0])
+        ag = AtomGroup(title)
 
-    ag.setNames(data['atom_names'])
-    ag.setElements(data['atom_elements'])
-    ag.setCharges(data['atom_charges'])
-    ag.setResnums(data['atom_residue_indices'])
+        ag.setNames(data['atom_names'])
+        ag.setElements(data['atom_elements'])
+        ag.setCharges(data['atom_charges'])
+        ag.setResnums(data['atom_residue_indices'])
 
-    # set false n_csets and acsi to allow nodes in ag
-    ag._n_csets = 1
-    ag._acsi = 0
+        # set false n_csets and acsi to allow nodes in ag
+        ag._n_csets = 1
+        ag._acsi = 0
 
-    nodes = ag.select('name N')
+        nodes = ag.select('name N')
 
-    residue_chids = [data['chain_names'][chain_index] for chain_index in data['residue_chain_indices']]
-    chids, _ = extendAtomicData(residue_chids, nodes, ag)
-    ag.setChids(chids)
+        residue_chids = [data['chain_names'][chain_index] for chain_index in data['residue_chain_indices']]
+        chids, _ = extendAtomicData(residue_chids, nodes, ag)
+        ag.setChids(chids)
 
-    resnames, _ = extendAtomicData(data['residue_names'], nodes, ag)
-    ag.setResnames(resnames)
+        resnames, _ = extendAtomicData(data['residue_names'], nodes, ag)
+        ag.setResnames(resnames)
 
-    resnums, _ = extendAtomicData(data['residue_numbers'], nodes, ag)
-    ag.setResnums(resnums)
+        resnums, _ = extendAtomicData(data['residue_numbers'], nodes, ag)
+        ag.setResnums(resnums)
 
-    if data['residue_icodes'] is not None:
-        icodes, _ = extendAtomicData(data['residue_icodes'], nodes, ag)
-        ag.setIcodes(icodes)
+        if data['residue_icodes'] is not None:
+            icodes, _ = extendAtomicData(data['residue_icodes'], nodes, ag)
+            ag.setIcodes(icodes)
 
-    # restore acsi and n_csets to defaults
-    ag._acsi = None
-    ag._n_csets = 0
+        # restore acsi and n_csets to defaults
+        ag._acsi = None
+        ag._n_csets = 0
+    else:
+        ag = parsePSF(filename)
+
+    selection = checkSelection(**kwargs)
+
+    if selection == '_C':
+        ag = ag.select('element C').copy()
+    elif selection == 'backbone':
+        ag = ag.select('backbone').copy()
+    elif selection == 'backbone and _C':
+        ag = ag.select('backbone and element C')
 
     return ag
 
@@ -313,7 +313,7 @@ def convertXtcToDcd(filepath):
     return filepath
 
 def requestFromUrl(url, timeout):
-    """Make a request from a url and return the response"""
+    """Helper function to make a request from a url and return the response"""
     import requests
 
     response = None
@@ -332,3 +332,15 @@ def requestFromUrl(url, timeout):
         LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
     return response
+
+def checkSelection(**kwargs):
+    """Helper function to check selection"""
+    selection = kwargs.get('selection', None)
+    if selection is not None:
+        if not isinstance(selection, str):
+            raise TypeError('selection should be a string')
+
+        if selection not in ['_C', 'backbone', 'backbone and _C']:
+            raise ValueError("selection should be '_C', 'backbone' or 'backbone and _C'")
+
+    return selection
