@@ -19,6 +19,7 @@ __all__ = ['fetchBioexcelPDB', 'parseBioexcelPDB', 'convertXtcToDcd',
            'fetchBioexcelTopology', 'parseBioexcelTopology']
 
 prefix = 'https://bioexcel-cv19.bsc.es/api/rest/v1/projects/'
+dot_json_str = '.json'
 
 def fetchBioexcelPDB(acc, **kwargs):
     """Returns a path to the downloaded PDB file corresponding
@@ -48,8 +49,6 @@ def fetchBioexcelPDB(acc, **kwargs):
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
 
-    import requests
-
     url = prefix + acc + "/structure"
 
     selection = kwargs.get('selection', None)
@@ -64,18 +63,7 @@ def fetchBioexcelPDB(acc, **kwargs):
 
     LOGGER.timeit('_bioexcel')
     timeout = kwargs.get('timeout', 60)
-    response = None
-    sleep = 2
-    while LOGGER.timing('_bioexcel') < timeout:
-        try:
-            response = requests.get(url).content
-        except Exception:
-            pass
-        else:
-            break
-        
-        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
-        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
+    response = requestFromUrl(url, timeout)
 
     if PY3K:
         response = response.decode()
@@ -131,8 +119,6 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     type convert: bool
     """
 
-    import requests
-
     url = prefix + acc + "/trajectory?format=xtc"
 
     convert = kwargs.get('convert', True)
@@ -158,18 +144,7 @@ def fetchBioexcelTrajectory(acc, **kwargs):
 
     LOGGER.timeit('_bioexcel')
     timeout = kwargs.get('timeout', 60)
-    response = None
-    sleep = 2
-    while LOGGER.timing('_bioexcel') < timeout:
-        try:
-            response = requests.get(url).content
-        except Exception:
-            pass
-        else:
-            break
-        
-        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
-        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
+    response = requestFromUrl(url, timeout)
 
     folder = str(kwargs.get('folder', '.'))
     outname = kwargs.get('outname', None)
@@ -209,8 +184,6 @@ def fetchBioexcelTopology(acc, **kwargs):
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
 
-    import requests
-
     url = prefix + acc + "/topology"
 
     convert = kwargs.get('convert', True)
@@ -219,18 +192,7 @@ def fetchBioexcelTopology(acc, **kwargs):
 
     LOGGER.timeit('_bioexcel')
     timeout = kwargs.get('timeout', 60)
-    response = None
-    sleep = 2
-    while LOGGER.timing('_bioexcel') < timeout:
-        try:
-            response = requests.get(url).content
-        except Exception:
-            pass
-        else:
-            break
-        
-        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
-        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
+    response = requestFromUrl(url, timeout)
 
     if PY3K:
         response = response.decode()
@@ -239,8 +201,8 @@ def fetchBioexcelTopology(acc, **kwargs):
     outname = kwargs.get('outname', None)
     if not outname:
         outname = acc
-    if not outname.endswith('.json'):
-        outname += '.json'
+    if not outname.endswith(dot_json_str):
+        outname += dot_json_str
     filepath = join(makePath(folder), outname)
     fo = open(filepath, 'w')
     fo.write(response)
@@ -248,7 +210,7 @@ def fetchBioexcelTopology(acc, **kwargs):
 
     if convert:
         ag = parseBioexcelTopology(filepath)
-        filepath = filepath.replace('.json', '.psf')
+        filepath = filepath.replace(dot_json_str, '.psf')
         writePSF(filepath, ag)
 
     return filepath
@@ -349,3 +311,24 @@ def convertXtcToDcd(filepath):
         traj.save_dcd(filepath)
 
     return filepath
+
+def requestFromUrl(url, timeout):
+    """Make a request from a url and return the response"""
+    import requests
+
+    response = None
+    LOGGER.timeit('_bioexcel')
+    response = None
+    sleep = 2
+    while LOGGER.timing('_bioexcel') < timeout:
+        try:
+            response = requests.get(url).content
+        except Exception:
+            pass
+        else:
+            break
+        
+        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
+
+    return response
