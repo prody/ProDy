@@ -1,8 +1,5 @@
 """This module contains unit tests for :mod:`prody.database.pfam` module."""
 
-from numpy import tile, array, arange, ones
-from numpy.testing import assert_allclose
-
 from prody.tests import unittest
 from prody.database.pfam import searchPfam
 from prody.database.pfam import fetchPfamMSA
