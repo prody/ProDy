@@ -29,7 +29,7 @@ jobs:
         if [[ ${{ matrix.python-version }} != "2.7" ]]; then conda config --add channels conda-forge; fi
         conda create --yes -n test python=${{ matrix.python-version }}
         source activate test
-        conda install --yes numpy scipy nose requests
+        conda install --yes numpy scipy nose requests json
         if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; else conda install --yes pdbfixer; fi
         pip install mmtf-python scikit-learn
         pip install .
