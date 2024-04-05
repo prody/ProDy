@@ -1,10 +1,11 @@
 """This module contains unit tests for :mod:`prody.database.bioexcel` module."""
 
 from prody.tests import unittest
-from prody.database.bioexcel import (fetchBioexcelPDB, parseBioexcelPDB,
+from prody.database.bioexcel import (fetchBioexcelPDB, parseBioexcelPDB, convertXtcToDcd,
                                      fetchBioexcelTrajectory, parseBioexcelTrajectory,
-                                     convertXtcToDcd,
-                                     fetchBioexcelTopology, parseBioexcelTopology)
+                                     fetchBioexcelTopology, parseBioexcelTopology,
+                                     checkSelection, checkQuery, checkConvert, 
+                                     checkTimeout, checkFilePath, checkFrames, checkInputs)
 import prody
 
 import os
@@ -237,10 +238,123 @@ class TestFetchConvertParseBioexcelTop(unittest.TestCase):
         
         self.assertEqual(ag.numAtoms(), FULL_N_ATOMS, 
                          'fetch, then convert & parseBioexcelTopology output does not have correct number of atoms')
-    
+
+    def testConvertWrongType(self):
+        with self.assertRaises(TypeError):
+            fetchBioexcelTopology(self.query, folder=self.workdir, convert='False')
 
     @classmethod
     def tearDownClass(cls):
         os.chdir('..')
         shutil.rmtree(cls.workdir)
 
+
+class TestCheckSelection(unittest.TestCase):
+    """Test that checkSelection gives the right errors and outputs."""
+    
+    def testWrongType(self):
+        with self.assertRaises(TypeError):
+            checkSelection(**{"selection": 1})
+
+    def testWrongValue(self):
+        with self.assertRaises(ValueError):
+            checkSelection(**{"selection": '1'})
+
+    def testNothing(self):
+        self.assertIsNone(checkSelection(**{}))
+
+    def testCarbon(self):
+        self.assertEqual(checkSelection(**{'selection': '_C'}), '_C')
+
+    def testBB(self):
+        self.assertEqual(checkSelection(**{'selection': 'backbone'}), 'backbone')
+        
+    def testBoth(self):
+        self.assertEqual(checkSelection(**{'selection': 'backbone and _C'}), 'backbone and _C')
+
+
+class TestCheckQuery(unittest.TestCase):
+    """Test that checkQuery gives the right errors and outputs."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.query = 'MCV1900370'
+
+    def testWrongType(self):
+        with self.assertRaises(TypeError):
+            checkQuery(1)
+
+    def testCorrect(self):
+        self.assertEqual(checkQuery(self.query), self.query)
+
+
+class TestCheckConvert(unittest.TestCase):
+    """Test that checkConvert gives the right errors and outputs."""
+
+    def testWrongType(self):
+        with self.assertRaises(TypeError):
+            checkConvert(**{'convert': '1'})
+
+    def testTrue(self):
+        self.assertTrue(checkConvert(**{'convert': True}))
+
+    def testFalse(self):
+        self.assertFalse(checkConvert(**{'convert': False}))
+
+    def testNothing(self):
+        self.assertTrue(checkConvert(**{}))
+
+
+class TestCheckTimeout(unittest.TestCase):
+    """Test that checkTimeout gives the right errors and outputs."""
+
+    def testWrongType(self):
+        with self.assertRaises(TypeError):
+            checkTimeout(**{'timeout': '1'})
+
+    def testReplace(self):
+        self.assertEqual(checkTimeout(**{'timeout': 50}), 50)
+
+    def testDefault(self):
+        self.assertEqual(checkTimeout(**{}), 60)
+
+class TestCheckFilePath(unittest.TestCase):
+    """Test that checkFilePath gives the right errors and outputs."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.query = 'MCV1900370'
+        cls.workdir = 'bioexcel_PDB_tests'
+        cls.outname = 'outname'
+
+        if not os.path.exists(cls.workdir):
+            os.mkdir(cls.workdir)
+
+    def testDefault(self):
+        self.assertEqual(checkFilePath(self.query, **{}), 
+                         os.path.join('.', self.query))
+
+    def testWrongTypeFolder(self):
+        self.assertEqual(checkFilePath(self.query, **{'folder': 1}), 
+                         os.path.join('1', self.query))
+
+    def testReplaceFolder(self):
+        self.assertEqual(checkFilePath(self.query, **{'folder': self.workdir}), 
+                         os.path.join(self.workdir, self.query))
+
+    def testWrongTypeOutname(self):
+        with self.assertRaises(TypeError):
+            checkFilePath(self.query, **{'outname': 1})
+
+    def testReplaceOutname(self):
+        self.assertEqual(checkFilePath(self.query, **{'outname': self.outname}), 
+                         os.path.join('.', self.outname))
+
+    def testReplaceBoth(self):
+        kwargs = {'outname': self.outname, 'folder': self.workdir}
+        self.assertEqual(checkFilePath(self.query, **kwargs), 
+                         os.path.join(self.workdir, self.outname))
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.workdir)
