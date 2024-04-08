@@ -176,16 +176,17 @@ def searchPfam(query, **kwargs):
     return matches
 
 
-def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
+def fetchPfamMSA(acc, alignment='seed', compressed=False, **kwargs):
     """Returns a path to the downloaded Pfam MSA file.
 
     :arg acc: Pfam ID or Accession Code
     :type acc: str
 
-    :arg alignment: alignment type, one of ``'full'`` (default), ``'seed'``,
+    :arg alignment: alignment type, one of ``'full'``, ``'seed'`` (default),
          ``'ncbi'``, ``'metagenomics'``, ``'rp15'``, ``'rp35'``, ``'rp55'``,
          ``'rp75'`` or ``'uniprot'`` where rp stands for representative 
-         proteomes
+         proteomes. InterPro Pfam seems to only have seed alignments
+         easily accessible in most cases
 
     :arg compressed: gzip the downloaded MSA file, default is **False**
 
