@@ -5,6 +5,7 @@ __author__ = 'James Krieger'
 
 from os.path import join, isfile, basename, splitext
 from numbers import Number
+import numpy as np
 
 from prody import LOGGER, PY3K
 from prody.utilities import makePath
@@ -124,7 +125,7 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     fo.close()
 
     if convert:
-        filepath = convertXtcToDcd(filepath)
+        filepath = convertXtcToDcd(filepath, **kwargs)
 
     return filepath
 
@@ -241,10 +242,14 @@ def parseBioexcelTrajectory(query, **kwargs):
     fetching it if needed using **kwargs
     """
     kwargs['convert'] = True
-    if isfile(query):
+    if isfile(query) and query.endswith('.dcd'):
         filename = query
+    elif isfile(query + '.dcd'):
+        filename = query + '.dcd'
+    elif isfile(query) and query.endswith('.xtc'):
+        filename = convertXtcToDcd(query, **kwargs)
     elif isfile(query + '.xtc'):
-        filename = convertXtcToDcd(query + '.xtc')
+        filename = convertXtcToDcd(query + '.xtc', **kwargs)
     else:
         filename = fetchBioexcelTrajectory(query, **kwargs)
 
@@ -262,7 +267,7 @@ def parseBioexcelPDB(query, **kwargs):
 
     return parsePDB(filename)
 
-def convertXtcToDcd(filepath):
+def convertXtcToDcd(filepath, **kwargs):
     """Convert xtc trajectories to dcd files using mdtraj.
     Returns path to output dcd file.
     """
@@ -272,7 +277,7 @@ def convertXtcToDcd(filepath):
     except ImportError:
         raise ImportError('Please install mdtraj to convert to dcd.')
     else:
-        top = mdtraj.load_psf(fetchBioexcelTopology(acc))
+        top = mdtraj.load_psf(fetchBioexcelTopology(acc, **kwargs))
         traj = mdtraj.load_xtc(filepath, top=top)
         filepath = filepath.replace('xtc', 'dcd')
         traj.save_dcd(filepath)
@@ -312,6 +317,11 @@ def checkSelection(**kwargs):
     return selection
 
 def checkQuery(input):
+    """Check query or acc argument, which should be a string as follows:
+    
+    :arg acc: BioExcel-CV19 project accession or ID
+    :type acc: str
+    """
     if not isinstance(input, str):
         raise TypeError('query should be string')
     return input
@@ -349,9 +359,41 @@ def checkFilePath(query, **kwargs):
 
 
 def checkFrames(**kwargs):
+    """Check frames kwarg matches the following:
+
+    :arg frames: which frames to select in 
+        e.g. ``'1-5,11-15'`` or ``'10:20:2'``
+        default is to not specify and get all
+    :type frames: str
+    """
     frames = kwargs.get('frames', None)
-    if not isinstance(frames, (str, type(None))):
+    if frames is None:
+        return frames
+    
+    if not isinstance(frames, str):
         raise TypeError('frames should be a string')
+ 
+    for framesRange in frames.split(','):
+        if framesRange.find('-') != -1 and framesRange.find(':') != -1:
+            raise ValueError('Frames should have a set of comma-separated ranges containing either a hyphen or colons, not both')
+        
+        if framesRange.count('-') > 0:
+            if not np.all([item.isnumeric() for item in framesRange.split('-')]):
+                raise ValueError('Each frames range should only have numbers and hyphens (or colons), not spaces or anything else')
+            if framesRange.count('-') > 1:
+                raise ValueError('Each frames range can only have one hyphen')
+        
+        if framesRange.count(':') not in [0,1,2]:
+            raise ValueError('Each frames range can have no more than 2 colons')
+
+        if framesRange.count(':') > 0:
+            if not np.all([item.isnumeric() for item in framesRange.split(':')]):
+                raise ValueError('Each frames range should only have numbers and colons (or hyphens), not spaces or anything else')
+
+        if (framesRange.find('-') == -1 and framesRange.find(':') == -1 and 
+            not framesRange.isnumeric()):
+            raise ValueError('Each frames range should only have numbers (and colons or hyphens), not spaces or anything else')
+
     return frames
 
 def checkInputs(query, **kwargs):
