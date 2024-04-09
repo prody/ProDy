@@ -156,7 +156,7 @@ def fetchBioexcelTopology(acc, **kwargs):
 
     url = prefix + acc + "/topology"
 
-    response = requestFromUrl(url, timeout)
+    response = requestFromUrl(url, timeout, json=True)
 
     if PY3K:
         response = response.decode()
@@ -284,7 +284,7 @@ def convertXtcToDcd(filepath, **kwargs):
 
     return filepath
 
-def requestFromUrl(url, timeout):
+def requestFromUrl(url, timeout, json=False):
     """Helper function to make a request from a url and return the response"""
     import requests
 
@@ -294,6 +294,8 @@ def requestFromUrl(url, timeout):
     while LOGGER.timing('_bioexcel') < timeout:
         try:
             response = requests.get(url).content
+            if json:
+                json.loads(response)
         except Exception:
             pass
         else:
