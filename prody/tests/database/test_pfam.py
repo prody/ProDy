@@ -117,7 +117,7 @@ class TestFetchPfamMSA(unittest.TestCase):
         self.assertIsInstance(b, str,
             'fetchPfamMSA failed to return a str instance')
         
-        self.assertEqual(b, 'new_folder/PF00822_full.sth')
+        self.assertEqual(b, 'new_folder/PF00822_seed.sth')
         
         self.assertTrue(os.path.exists(b))
     
