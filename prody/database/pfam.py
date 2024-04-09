@@ -182,11 +182,11 @@ def fetchPfamMSA(acc, alignment='seed', compressed=False, **kwargs):
     :arg acc: Pfam ID or Accession Code
     :type acc: str
 
-    :arg alignment: alignment type, one of ``'full'`` (default), ``'seed'``,
+    :arg alignment: alignment type, one of ``'full'``, ``'seed'`` (default),
          ``'ncbi'``, ``'metagenomics'``, ``'rp15'``, ``'rp35'``, ``'rp55'``,
          ``'rp75'`` or ``'uniprot'`` where rp stands for representative 
-         proteomes. Please note that full alignments may not be available
-         following migration to Interpro.
+         proteomes. InterPro Pfam seems to only have seed alignments
+         easily accessible in most cases
 
     :arg compressed: gzip the downloaded MSA file, default is **False**
 
