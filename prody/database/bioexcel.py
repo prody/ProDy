@@ -4,6 +4,8 @@
 __author__ = 'James Krieger'
 
 from os.path import join, isfile, basename, splitext
+from numbers import Number
+import numpy as np
 
 from prody import LOGGER, PY3K
 from prody.utilities import makePath
@@ -11,7 +13,7 @@ from prody.utilities import makePath
 from prody.atomic.atomgroup import AtomGroup
 from prody.atomic.functions import extendAtomicData
 from prody.proteins.pdbfile import parsePDB
-from prody.trajectory.psffile import writePSF
+from prody.trajectory.psffile import parsePSF, writePSF
 from prody.trajectory.dcdfile import parseDCD
 
 __all__ = ['fetchBioexcelPDB', 'parseBioexcelPDB', 'convertXtcToDcd',
@@ -48,33 +50,19 @@ def fetchBioexcelPDB(acc, **kwargs):
 
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
+    acc, _, selection, filepath, timeout, _ = checkInputs(acc, **kwargs)
+    if not filepath.endswith('.pdb'):
+        filepath += '.pdb'
 
     url = prefix + acc + "/structure"
-
-    selection = kwargs.get('selection', None)
     if selection is not None:
-        if not isinstance(selection, str):
-            raise TypeError('selection should be a string')
-        
-        if selection not in ['_C', 'backbone', 'backbone and _C']:
-            raise ValueError("selection should be '_C', 'backbone' or 'backbone and _C'")
-        
         url += '?selection=' + selection.replace(" ","%20")
-
-    LOGGER.timeit('_bioexcel')
-    timeout = kwargs.get('timeout', 60)
+    
     response = requestFromUrl(url, timeout)
 
     if PY3K:
         response = response.decode()
 
-    folder = str(kwargs.get('folder', '.'))
-    outname = kwargs.get('outname', None)
-    if not outname:
-        outname = acc
-    if not outname.endswith('.pdb'):
-        outname += '.pdb'
-    filepath = join(makePath(folder), outname)
     fo = open(filepath, 'w')
     fo.write(response)
     fo.close()
@@ -118,47 +106,26 @@ def fetchBioexcelTrajectory(acc, **kwargs):
         default is True
     type convert: bool
     """
+    acc, convert, selection, filepath, timeout, frames = checkInputs(acc, **kwargs)
+    if not filepath.endswith('.xtc'):
+        filepath += '.xtc'
 
     url = prefix + acc + "/trajectory?format=xtc"
 
-    convert = kwargs.get('convert', True)
-    if not isinstance(convert, bool):
-        raise TypeError('convert should be a bool')
-
-    frames = kwargs.get('frames', None)
     if frames is not None:
-        if not isinstance(frames, str):
-            raise TypeError('frames should be a string')
-        
         url += '&frames=' + frames
 
-    selection = kwargs.get('selection', None)
     if selection is not None:
-        if not isinstance(selection, str):
-            raise TypeError('selection should be a string')
-        
-        if selection not in ['_C', 'backbone', 'backbone and _C']:
-            raise ValueError("selection should be '_C', 'backbone' or 'backbone and _C'")
-        
         url += '&selection=' + selection.replace(" ","%20")
 
-    LOGGER.timeit('_bioexcel')
-    timeout = kwargs.get('timeout', 60)
     response = requestFromUrl(url, timeout)
 
-    folder = str(kwargs.get('folder', '.'))
-    outname = kwargs.get('outname', None)
-    if not outname:
-        outname = acc
-    if not outname.endswith('.xtc'):
-        outname += '.xtc'
-    filepath = join(makePath(folder), outname)
     fo = open(filepath, 'wb')
     fo.write(response)
     fo.close()
 
     if convert:
-        filepath = convertXtcToDcd(filepath)
+        filepath = convertXtcToDcd(filepath, **kwargs)
 
     return filepath
 
@@ -183,33 +150,23 @@ def fetchBioexcelTopology(acc, **kwargs):
 
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
+    acc, convert, _, filepath, timeout, _ = checkInputs(acc, **kwargs)
+    if not filepath.endswith('.json'):
+        filepath += '.json'
 
     url = prefix + acc + "/topology"
 
-    convert = kwargs.get('convert', True)
-    if not isinstance(convert, bool):
-        raise TypeError('convert should be a bool')
-
-    LOGGER.timeit('_bioexcel')
-    timeout = kwargs.get('timeout', 60)
     response = requestFromUrl(url, timeout)
 
     if PY3K:
         response = response.decode()
 
-    folder = str(kwargs.get('folder', '.'))
-    outname = kwargs.get('outname', None)
-    if not outname:
-        outname = acc
-    if not outname.endswith(dot_json_str):
-        outname += dot_json_str
-    filepath = join(makePath(folder), outname)
     fo = open(filepath, 'w')
     fo.write(response)
     fo.close()
 
     if convert:
-        ag = parseBioexcelTopology(filepath)
+        ag = parseBioexcelTopology(filepath, **kwargs)
         filepath = filepath.replace(dot_json_str, '.psf')
         writePSF(filepath, ag)
 
@@ -220,50 +177,63 @@ def parseBioexcelTopology(query, **kwargs):
     """Parse a BioExcel-CV19 topology json into an :class:`.AtomGroup`,
     fetching it if needed using **kwargs
     """
-    kwargs.pop('convert', True)
+    query = checkQuery(query)
+
     kwargs['convert'] = False
     if not isfile(query):
         filename = fetchBioexcelTopology(query, **kwargs)
     else:
         filename = query
 
-    import json
+    if filename.endswith(dot_json_str):
+        import json
 
-    fp = open(filename, 'r')
-    data = json.load(fp)
-    fp.close()
+        fp = open(filename, 'r')
+        data = json.load(fp)
+        fp.close()
 
-    title = basename(splitext(filename)[0])
-    ag = AtomGroup(title)
+        title = basename(splitext(filename)[0])
+        ag = AtomGroup(title)
 
-    ag.setNames(data['atom_names'])
-    ag.setElements(data['atom_elements'])
-    ag.setCharges(data['atom_charges'])
-    ag.setResnums(data['atom_residue_indices'])
+        ag.setNames(data['atom_names'])
+        ag.setElements(data['atom_elements'])
+        ag.setCharges(data['atom_charges'])
+        ag.setResnums(data['atom_residue_indices'])
 
-    # set false n_csets and acsi to allow nodes in ag
-    ag._n_csets = 1
-    ag._acsi = 0
+        # set false n_csets and acsi to allow nodes in ag
+        ag._n_csets = 1
+        ag._acsi = 0
 
-    nodes = ag.select('name N')
+        nodes = ag.select('name N')
 
-    residue_chids = [data['chain_names'][chain_index] for chain_index in data['residue_chain_indices']]
-    chids, _ = extendAtomicData(residue_chids, nodes, ag)
-    ag.setChids(chids)
+        residue_chids = [data['chain_names'][chain_index] for chain_index in data['residue_chain_indices']]
+        chids, _ = extendAtomicData(residue_chids, nodes, ag)
+        ag.setChids(chids)
 
-    resnames, _ = extendAtomicData(data['residue_names'], nodes, ag)
-    ag.setResnames(resnames)
+        resnames, _ = extendAtomicData(data['residue_names'], nodes, ag)
+        ag.setResnames(resnames)
 
-    resnums, _ = extendAtomicData(data['residue_numbers'], nodes, ag)
-    ag.setResnums(resnums)
+        resnums, _ = extendAtomicData(data['residue_numbers'], nodes, ag)
+        ag.setResnums(resnums)
 
-    if data['residue_icodes'] is not None:
-        icodes, _ = extendAtomicData(data['residue_icodes'], nodes, ag)
-        ag.setIcodes(icodes)
+        if data['residue_icodes'] is not None:
+            icodes, _ = extendAtomicData(data['residue_icodes'], nodes, ag)
+            ag.setIcodes(icodes)
 
-    # restore acsi and n_csets to defaults
-    ag._acsi = None
-    ag._n_csets = 0
+        # restore acsi and n_csets to defaults
+        ag._acsi = None
+        ag._n_csets = 0
+    else:
+        ag = parsePSF(filename)
+
+    selection = checkSelection(**kwargs)
+
+    if selection == '_C':
+        ag = ag.select('element C').copy()
+    elif selection == 'backbone':
+        ag = ag.select('backbone').copy()
+    elif selection == 'backbone and _C':
+        ag = ag.select('backbone and element C')
 
     return ag
 
@@ -271,12 +241,15 @@ def parseBioexcelTrajectory(query, **kwargs):
     """Parse a BioExcel-CV19 topology json into an :class:`.Ensemble`,
     fetching it if needed using **kwargs
     """
-    kwargs.pop('convert', True)
     kwargs['convert'] = True
-    if isfile(query):
+    if isfile(query) and query.endswith('.dcd'):
         filename = query
+    elif isfile(query + '.dcd'):
+        filename = query + '.dcd'
+    elif isfile(query) and query.endswith('.xtc'):
+        filename = convertXtcToDcd(query, **kwargs)
     elif isfile(query + '.xtc'):
-        filename = convertXtcToDcd(query + '.xtc')
+        filename = convertXtcToDcd(query + '.xtc', **kwargs)
     else:
         filename = fetchBioexcelTrajectory(query, **kwargs)
 
@@ -286,7 +259,6 @@ def parseBioexcelPDB(query, **kwargs):
     """Parse a BioExcel-CV19 topology json into an :class:`.Ensemble`,
     fetching it if needed using **kwargs
     """
-    kwargs.pop('convert', True)
     kwargs['convert'] = True
     if not isfile(query):
         filename = fetchBioexcelPDB(query, **kwargs)
@@ -295,7 +267,7 @@ def parseBioexcelPDB(query, **kwargs):
 
     return parsePDB(filename)
 
-def convertXtcToDcd(filepath):
+def convertXtcToDcd(filepath, **kwargs):
     """Convert xtc trajectories to dcd files using mdtraj.
     Returns path to output dcd file.
     """
@@ -305,7 +277,7 @@ def convertXtcToDcd(filepath):
     except ImportError:
         raise ImportError('Please install mdtraj to convert to dcd.')
     else:
-        top = mdtraj.load_psf(fetchBioexcelTopology(acc))
+        top = mdtraj.load_psf(fetchBioexcelTopology(acc, **kwargs))
         traj = mdtraj.load_xtc(filepath, top=top)
         filepath = filepath.replace('xtc', 'dcd')
         traj.save_dcd(filepath)
@@ -313,10 +285,9 @@ def convertXtcToDcd(filepath):
     return filepath
 
 def requestFromUrl(url, timeout):
-    """Make a request from a url and return the response"""
+    """Helper function to make a request from a url and return the response"""
     import requests
 
-    response = None
     LOGGER.timeit('_bioexcel')
     response = None
     sleep = 2
@@ -332,3 +303,104 @@ def requestFromUrl(url, timeout):
         LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
     return response
+
+def checkSelection(**kwargs):
+    """Helper function to check selection"""
+    selection = kwargs.get('selection', None)
+    if selection is not None:
+        if not isinstance(selection, str):
+            raise TypeError('selection should be a string')
+
+        if selection not in ['_C', 'backbone', 'backbone and _C']:
+            raise ValueError("selection should be '_C', 'backbone' or 'backbone and _C'")
+
+    return selection
+
+def checkQuery(input):
+    """Check query or acc argument, which should be a string as follows:
+    
+    :arg acc: BioExcel-CV19 project accession or ID
+    :type acc: str
+    """
+    if not isinstance(input, str):
+        raise TypeError('query should be string')
+    return input
+
+def checkConvert(**kwargs):
+    convert = kwargs.get('convert', True)
+    if not isinstance(convert, (bool, type(None))):
+        raise TypeError('convert should be bool')
+    return convert
+
+def checkTimeout(**kwargs):
+    timeout = kwargs.get('timeout', 60)
+    if not isinstance(timeout, (Number, type(None))):
+        raise TypeError('timeout should be number')
+    return timeout
+
+
+def checkFilePath(query, **kwargs):
+    """Check folder and outname and path, making it if needed"""
+
+    folder = kwargs.get('folder', '.')
+    if not isinstance(folder, str):
+        try:
+            folder = str(folder)
+        except Exception:
+            raise TypeError('folder should be a string')
+    
+    outname = kwargs.get('outname', None)
+    if not outname:
+        outname = query
+    elif not isinstance(outname, str):
+        raise TypeError('outname should be a string')
+
+    return join(makePath(folder), outname)
+
+
+def checkFrames(**kwargs):
+    """Check frames kwarg matches the following:
+
+    :arg frames: which frames to select in 
+        e.g. ``'1-5,11-15'`` or ``'10:20:2'``
+        default is to not specify and get all
+    :type frames: str
+    """
+    frames = kwargs.get('frames', None)
+    if frames is None:
+        return frames
+    
+    if not isinstance(frames, str):
+        raise TypeError('frames should be a string')
+ 
+    for framesRange in frames.split(','):
+        if framesRange.find('-') != -1 and framesRange.find(':') != -1:
+            raise ValueError('Frames should have a set of comma-separated ranges containing either a hyphen or colons, not both')
+        
+        if framesRange.count('-') > 0:
+            if not np.all([item.isnumeric() for item in framesRange.split('-')]):
+                raise ValueError('Each frames range should only have numbers and hyphens (or colons), not spaces or anything else')
+            if framesRange.count('-') > 1:
+                raise ValueError('Each frames range can only have one hyphen')
+        
+        if framesRange.count(':') not in [0,1,2]:
+            raise ValueError('Each frames range can have no more than 2 colons')
+
+        if framesRange.count(':') > 0:
+            if not np.all([item.isnumeric() for item in framesRange.split(':')]):
+                raise ValueError('Each frames range should only have numbers and colons (or hyphens), not spaces or anything else')
+
+        if (framesRange.find('-') == -1 and framesRange.find(':') == -1 and 
+            not framesRange.isnumeric()):
+            raise ValueError('Each frames range should only have numbers (and colons or hyphens), not spaces or anything else')
+
+    return frames
+
+def checkInputs(query, **kwargs):
+    query = checkQuery(query)
+    timeout = checkTimeout(**kwargs)
+    convert = checkConvert(**kwargs)
+    selection = checkSelection(**kwargs)
+    filepath = checkFilePath(query, **kwargs)
+    frames = checkFrames(**kwargs)
+    return query, convert, selection, filepath, timeout, frames
