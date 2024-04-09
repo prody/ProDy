@@ -22,6 +22,7 @@ from .analysis import calcProjection
 from .analysis import calcCollectivity
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
+from .exgnm import exGNM
 from .rtb import RTB
 from .pca import PCA, EDA
 from .lda import LDA
@@ -127,6 +128,9 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
 
+    if isinstance(nma, exGNM):
+        attr_dict['type'] = 'exGNM'
+
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
         if not filename.lower().endswith(suffix):
@@ -185,6 +189,8 @@ def loadModel(filename, **kwargs):
             nma = exANM(title)
         elif type_ == 'imANM':
             nma = imANM(title)
+        elif type_ == 'exGNM':
+            nma = exGNM(title)
         elif type_ == 'NMA':
             nma = NMA(title)
         elif type_ == 'RTB':
