@@ -12,7 +12,7 @@ from prody.utilities import makePath
 
 from prody.atomic.atomgroup import AtomGroup
 from prody.atomic.functions import extendAtomicData
-from prody.proteins.pdbfile import parsePDB
+from prody.proteins.pdbfile import parsePDB, _parsePDBLines
 from prody.trajectory.psffile import parsePSF, writePSF
 from prody.trajectory.dcdfile import parseDCD
 
@@ -58,7 +58,7 @@ def fetchBioexcelPDB(acc, **kwargs):
     if selection is not None:
         url += '?selection=' + selection.replace(" ","%20")
     
-    response = requestFromUrl(url, timeout)
+    response = requestFromUrl(url, timeout, source='pdb')
 
     if PY3K:
         response = response.decode()
@@ -118,7 +118,7 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     if selection is not None:
         url += '&selection=' + selection.replace(" ","%20")
 
-    response = requestFromUrl(url, timeout)
+    response = requestFromUrl(url, timeout, source='xtc')
 
     fo = open(filepath, 'wb')
     fo.write(response)
@@ -150,20 +150,26 @@ def fetchBioexcelTopology(acc, **kwargs):
 
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
-    acc, convert, _, filepath, timeout, _ = checkInputs(acc, **kwargs)
-    if not filepath.endswith('.json'):
-        filepath += '.json'
+    if isfile(acc):
+        filepath = acc
+    else:
+        acc, convert, _, filepath, timeout, _ = checkInputs(acc, **kwargs)
+        if not filepath.endswith('.json') and not filepath.endswith('.psf'):
+            filepath += '.json'
 
-    url = prefix + acc + "/topology"
+    if filepath.endswith('.psf'):
+        convert = False
 
-    response = requestFromUrl(url, timeout, json=True)
+    if not isfile(filepath):
+        url = prefix + acc + "/topology"
+        response = requestFromUrl(url, timeout, source='json')
 
-    if PY3K:
-        response = response.decode()
+        if PY3K:
+            response = response.decode()
 
-    fo = open(filepath, 'w')
-    fo.write(response)
-    fo.close()
+        fo = open(filepath, 'w')
+        fo.write(response)
+        fo.close()
 
     if convert:
         ag = parseBioexcelTopology(filepath, **kwargs)
@@ -240,6 +246,9 @@ def parseBioexcelTopology(query, **kwargs):
 def parseBioexcelTrajectory(query, **kwargs):
     """Parse a BioExcel-CV19 topology json into an :class:`.Ensemble`,
     fetching it if needed using **kwargs
+
+    :arg top: topology filename
+    :type top: str
     """
     kwargs['convert'] = True
     if isfile(query) and query.endswith('.dcd'):
@@ -270,8 +279,16 @@ def parseBioexcelPDB(query, **kwargs):
 def convertXtcToDcd(filepath, **kwargs):
     """Convert xtc trajectories to dcd files using mdtraj.
     Returns path to output dcd file.
+
+    :arg top: topology filename
+    :type top: str    
     """
-    acc = basename(splitext(filepath)[0])
+    topFile = kwargs.get('top', None)
+    if topFile is not None:
+        acc = topFile
+    else:
+        acc = basename(splitext(filepath)[0])
+
     try:
         import mdtraj
     except ImportError:
@@ -284,9 +301,14 @@ def convertXtcToDcd(filepath, **kwargs):
 
     return filepath
 
-def requestFromUrl(url, timeout, json=False):
+def requestFromUrl(url, timeout, source=None):
     """Helper function to make a request from a url and return the response"""
     import requests
+    import json
+    import mdtraj
+    import tempfile
+
+    acc = url.split(prefix)[1].split('/')[0]
 
     LOGGER.timeit('_bioexcel')
     response = None
@@ -294,8 +316,20 @@ def requestFromUrl(url, timeout, json=False):
     while LOGGER.timing('_bioexcel') < timeout:
         try:
             response = requests.get(url).content
-            if json:
+
+            if source == 'json':
                 json.loads(response)
+
+            elif source == 'xtc':
+                ftmp = tempfile.NamedTemporaryFile()
+                ftmp.write(response, 'wb')
+                ftmp.close()
+                top = mdtraj.load_psf(fetchBioexcelTopology(acc))
+                mdtraj.load_xtc(ftmp.name, top=top)
+
+            elif source == 'pdb':
+                _parsePDBLines(response)
+
         except Exception:
             pass
         else:
