@@ -46,7 +46,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
                           '_padding', '_ionicStrength', '_force_field', '_tolerance',
                           '_maxIterations', '_sim', '_temp', '_t_steps', '_outlier',
                           '_mzscore', '_v1', '_parallel', '_idx_cg', '_n_cg', '_cycle',
-                          '_time', '_targeted', '_tmdk'])
+                          '_time', '_targeted', '_tmdk', '_topology', '_positions', '_cc'])
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
@@ -158,7 +158,7 @@ def loadEnsemble(filename, **kwargs):
                     '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
                     '_sim', '_temp', '_t_steps', '_outlier', '_mzscore', '_v1',
                     '_parallel', '_idx_ca', '_n_ca', '_cycle', '_time', '_targeted',
-                    '_tmdk']
+                    '_tmdk', '_topology', '_positions', '_cc']
             
             for attr in attrs:
                 if attr in attr_dict.files:
@@ -407,7 +407,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=N
         raise TypeError('atomics should be list-like')
 
     if len(atomics) == 1 and degeneracy is True:
-        raise ValueError('atomics should have at least two items')
+        raise ValueError('atomics should have at least two items or degeneracy should be False')
 
     if labels is not None:
         if len(labels) != len(atomics):

@@ -19,7 +19,7 @@ from .header import getHeaderDict, buildBiomolecules
 import struct as st
 import numpy as np
 
-__all__ = ['parseMMTF']
+__all__ = ['parseMMTF', 'writeMMTF']
 
 _parseMMTFdoc = """
     :arg chain: Chain identifier(s) to parse (e.g., 'A' for chain A). If not provided,
@@ -41,9 +41,11 @@ _parseMMTFdoc = """
 
     :arg altloc: if a location indicator is passed, such as ``'A'`` or ``'B'``,
          only indicated alternate locations will be parsed as the single
-         coordinate set of the AtomGroup, if *altloc* is set **True** all
+         coordinate set of the AtomGroup. If *altloc* is ``'all'`` then all
          alternate locations will be parsed and each will be appended as a
-         distinct coordinate set, default is ``"A"``
+         distinct coordinate set, default is ``"A"``.  In the rare instance
+         where all atoms have a location indicator specified and this does not
+         match altloc, the first location indicator in the file is used.
     :type altloc: str
     """
 
@@ -98,7 +100,7 @@ def parseMMTF(mmtf_struc, **kwargs):
                                     .format(mmtf_struc))
                 mmtf_struc = structure
             else:
-                raise IOError('{0} is not a valid filename or a valid PDB '
+                raise IOError('{0} is not a valid mmtf filename or a valid PDB '
                             'identifier.'.format(mmtf_struc))
             
         else: #entering the mmtf file name
@@ -143,7 +145,7 @@ def _parseMMTF(mmtf_struc, **kwargs):
     chain = kwargs.get('chain')
     header = kwargs.get('header', False)
     get_bonds = kwargs.get('bonds',False) 
-    altloc_sel = kwargs.get('altloc', 'A')
+    altloc_sel = kwargs.get('altloc', None)
     
     assert isinstance(header, bool), 'header must be a boolean'
 
@@ -190,7 +192,6 @@ def _parseMMTF(mmtf_struc, **kwargs):
 def set_header(data_api):
 
     #get the transform here and convert it to the format that prody wants
-    assembly = data_api.bio_assembly[0]
     chain_list = data_api.chain_name_list
     assembly = _bio_transform(data_api)
     header = {
@@ -208,20 +209,21 @@ def set_header(data_api):
 
 def _bio_transform(dec):
     ret = {}
+    matrix_line_format_string = ' %9.6f %9.6f %9.6f      %9.5f            \n'
     for t in dec.bio_assembly:
-        name = t['name']
         L = []
         for trans in t['transformList']:
             chis = trans['chainIndexList']
             chains = sorted(set([dec.chain_name_list[c] for c in chis]))
             m = trans['matrix']
-            L += [chains, '%f %f %f %f'%tuple(m[:4]), 
-                      '%f %f %f %f'%tuple(m[4:8]), 
-                      '%f %f %f %f'%tuple(m[8:12])]
+            L += [chains,
+                  matrix_line_format_string % tuple(m[:4]),
+                  matrix_line_format_string % tuple(m[4:8]),
+                  matrix_line_format_string % tuple(m[8:12])]
         ret[t['name']] = L
     return ret
 
-def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
+def set_info(atomgroup, mmtf_data, get_bonds=False, altloc_sel=None):
 
     mmtfHETATMtypes = set([
         "D-SACCHARIDE",
@@ -322,7 +324,11 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
     mask = np.full(asize, True, dtype=bool)
     if altloc_sel != 'all':
         #mask out any unwanted alternative locations
-        mask = (altlocs == '') | (altlocs == altloc_sel)
+        default_altloc = altloc_sel if altloc_sel != None else 'A'
+        mask = (altlocs == '') | (altlocs == default_altloc)
+        if np.all(mask == False) and altloc_sel == None and len(altlocs):
+            #nothing selected, use first altloc; 6uwi
+            mask = altlocs == altlocs[0]            
         
     atomgroup.setCoords(coords[:,mask])
     atomgroup.setNames(atom_names[mask])
@@ -357,3 +363,36 @@ def set_info(atomgroup, mmtf_data,get_bonds=False,altloc_sel='A'):
         atomgroup.setBonds(nonpeptide)
 
     return atomgroup
+
+def writeMMTF(filename, atoms, csets=None, autoext=True, **kwargs):
+    """Write *atoms* in MMTF format to a file with name *filename* and return
+    *filename*.  If *filename* ends with :file:`.gz`, a compressed file will
+    be written.
+    
+    :arg atoms: an object with atom and coordinate data
+    :type atoms: :class:`.Atomic`
+
+    :arg csets: coordinate set indices, default is all coordinate sets
+
+    :arg autoext: when not present, append extension :file:`.mmtf` to *filename*
+
+    :keyword header: header to write too
+    :type header: dict
+    """
+    try:
+        from Bio.PDB.mmtf import MMTFIO
+    except ImportError:
+        raise ImportError('Biopython MMTFIO could not be imported. '
+            'Reinstall ProDy or install Biopython and mmtf-python'
+            'to solve the problem.')
+
+    header = kwargs.get('header', None)
+
+    if autoext and not filename.lower().endswith('.mmtf'):
+        filename += '.mmtf'
+
+    structure = atoms.toBioPythonStructure(header=header, csets=csets)
+    io=MMTFIO()
+    io.set_structure(structure)
+    io.save(filename)
+    return filename

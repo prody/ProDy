@@ -158,9 +158,9 @@ def fetchPDBLigand(cci, filename=None):
     resnums = np.ones(n_atoms, dtype=ATOMIC_FIELDS['charge'].dtype)
 
     alternate_atomnames = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['name'].dtype)
-    leaving_atom_flags = np.zeros(n_atoms, np.bool)
-    aromatic_flags = np.zeros(n_atoms, np.bool)
-    stereo_configs = np.zeros(n_atoms, np.bool)
+    leaving_atom_flags = np.zeros(n_atoms, bool)
+    aromatic_flags = np.zeros(n_atoms, bool)
+    stereo_configs = np.zeros(n_atoms, bool)
     ordinals = np.zeros(n_atoms, int)
 
     name2index = {}

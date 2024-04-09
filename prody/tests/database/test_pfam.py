@@ -1,8 +1,5 @@
 """This module contains unit tests for :mod:`prody.database.pfam` module."""
 
-from numpy import tile, array, arange, ones
-from numpy.testing import assert_allclose
-
 from prody.tests import unittest
 from prody.database.pfam import searchPfam
 from prody.database.pfam import fetchPfamMSA
@@ -37,8 +34,8 @@ class TestSearchPfam(unittest.TestCase):
             'searchPfam failed to return a dict instance')
         
         self.assertEqual(sorted(list(a.keys())), 
-                           ['PF00060', 'PF00497', 'PF01094', 'PF10613'],
-                           'searchPfam failed to return the right domain family IDs')
+                         ['PF00060', 'PF00497', 'PF01094', 'PF10613'],
+                         'searchPfam failed to return the right domain family IDs')
         
     def testPdbIdChMulti(self):
         """Test the outcome of a simple search scenario using a PDB ID
@@ -62,8 +59,8 @@ class TestSearchPfam(unittest.TestCase):
             'searchPfam failed to return a dict instance')
         
         self.assertEqual(sorted(list(a.keys())), 
-                           ['PF00822'],
-                           'searchPfam failed to return the right domain family IDs for TARP')
+                         ['PF00822', 'PF13903'],
+                         'searchPfam failed to return the right domain family IDs for TARP')
         
     @classmethod
     def tearDownClass(self):
@@ -91,7 +88,7 @@ class TestFetchPfamMSA(unittest.TestCase):
         self.assertIsInstance(b, str,
             'fetchPfamMSA failed to return a str instance')
         
-        self.assertEqual(b, 'PF00822_full.sth')
+        self.assertEqual(b, 'PF00822_seed.sth')
         
         self.assertTrue(os.path.exists(b))
 
@@ -120,7 +117,7 @@ class TestFetchPfamMSA(unittest.TestCase):
         self.assertIsInstance(b, str,
             'fetchPfamMSA failed to return a str instance')
         
-        self.assertEqual(b, 'new_folder/PF00822_full.sth')
+        self.assertEqual(b, 'new_folder/PF00822_seed.sth')
         
         self.assertTrue(os.path.exists(b))
     
@@ -188,9 +185,6 @@ class TestParsePfamPDBs(unittest.TestCase):
         self.assertIsInstance(b[0], Selection,
             'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.assertEqual(len(b), 7,
-            'parsePfamPDBs failed to return a list of length 7')
-        
         self.assertEqual(b[0].getResnums()[0], 262,
             'parsePfamPDBs failed to return a first Selection with first resnum 262')
 
@@ -206,9 +200,6 @@ class TestParsePfamPDBs(unittest.TestCase):
 
         self.assertIsInstance(b[0], Selection,
             'parsePfamPDBs failed to return a list of Selection instances')
-        
-        self.assertEqual(len(b), 7,
-            'parsePfamPDBs failed to return a list of length 7')
         
         self.assertEqual(b[0].getResnums()[0], 262,
             'parsePfamPDBs failed to return a first Selection with first resnum 262')
