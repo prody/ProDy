@@ -379,7 +379,7 @@ class StarLoop:
         self.data = list(self._dict['data'].values())
         self._n_fields = len(self.fields)
         self._n_rows = len(self.data)
-        self._title = dataBlock._title + ' loop ' + str(key)
+        self._title = str(dataBlock._title) + ' loop ' + str(key)
 
     def numRows(self):
         return self._n_rows
@@ -546,7 +546,7 @@ def parseSTARLines(lines, **kwargs):
             if inLoop:
                 # We expect to only have the field identifier and no data until after
 
-                if len(split(line.strip(), shlex=shlex)) == 1:
+                if len(split(line.strip(), shlex=shlex)) == 1 or len(split(line.strip(), shlex=shlex)) == 2:
                     # This is what we expect for a data loop
                     finalDictionary[currentDataBlock][currentLoop]['fields'][loop_fieldCounter] = currentField
                     dataItemsCounter = 0
@@ -987,7 +987,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             raise ValueError('particlesSTAR does not contain data about particle image '
                              '{0} location in either RELION or XMIPP format'.format(i))
 
-        if filename.endswith('.stk'):
+        if filename.lower().endswith('.stk'):
             stk_images.append(str(i))
             continue
 
@@ -1026,12 +1026,17 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     return np.array(images), parsed_images_data
 
 
-def parseSTARSection(lines, key):
+def parseSTARSection(lines, key, report=True):
     """Parse a section of data from *lines* from a STAR file 
     corresponding to a *key* (part before the dot). 
     This can be a loop or data block.
     
-    Returns data encapulated in a list and the associated fields."""
+    Returns data encapulated in a list and the associated fields.
+    
+    :arg report: whether to report warnings about not finding data
+        default True
+    :type report: bool
+    """
 
     if not isinstance(key, str):
         raise TypeError("key should be a string")
@@ -1077,6 +1082,8 @@ def parseSTARSection(lines, key):
         else:
             data = [loop_dict["data"]]
     else:
-        raise ValueError("Could not find {0} in lines.".format(key))
+        if report:
+            LOGGER.warn("Could not find {0} in lines.".format(key))
+        return []
 
     return data

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for analyzing normal modes obtained 
+"""This module defines functions for signature dynamics (SignDy), analyzing normal modes obtained 
 for conformations in an ensemble."""
 
 import time
@@ -546,20 +546,20 @@ class ModeEnsemble(object):
         reweightingstatus.extend(reweighted)
         self._reweighted = reweightingstatus
 
-        if self._labels is not None or label is not None:
-            if label is None:
-                labels = ['']*len(modesets)
-            elif np.isscalar(label):
-                labels = [label]
-            else:
-                labels = label
-            if len(labels) != len(modesets):
-                raise ValueError('labels should have the same length as modesets')
+        if label is None:
+            labels = ['']*len(modesets)
+        elif np.isscalar(label):
+            labels = [label]
+        else:
+            labels = label
+            
+        if len(labels) != len(modesets):
+            raise ValueError('labels should have the same length as modesets')
 
-            if self._labels is None:
-                self._labels = ['']*len(self._modesets)
+        if self._labels is None:
+            self._labels = ['']*len(self._modesets)
 
-            self._labels.extend(labels)
+        self._labels.extend(labels)
 
         for i in range(len(modesets)):
             modeset = modesets[i]
@@ -1473,6 +1473,8 @@ def calcSignatureModes(mode_ensemble):
         ret = GNM('mean of ' + mode_ensemble.getTitle())
     elif isinstance(mode_ensemble[0].getModel(), ANM):
         ret = ANM('mean of ' + mode_ensemble.getTitle())
+    else:
+        ret = NMA('mean of ' + mode_ensemble.getTitle())
 
     ret.setEigens(eigvecs, eigvals)
     return ret
@@ -1646,7 +1648,7 @@ def showSignatureDistribution(signature, **kwargs):
     bins = kwargs.pop('bins', 'auto')
     if bins == 'auto':
         _, bins = np.histogram(W.flatten(), bins='auto')
-    elif np.isscalar(bins) and isinstance(bins, (int, np.integer)):
+    elif np.isscalar(bins) and isinstance(bins, int):
         step = (W.max() - W.min())/bins
         bins = np.arange(W.min(), W.max(), step)
 

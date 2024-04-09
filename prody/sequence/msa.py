@@ -6,9 +6,6 @@ from numbers import Integral
 from numpy import all, zeros, dtype, array, char, cumsum, ceil, reshape
 from numpy import where, sort, concatenate, vstack, isscalar, chararray
 
-from Bio import AlignIO
-from Bio import pairwise2
-
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
 from prody.utilities import toChararray, pystr, splitSeqLabel
@@ -157,7 +154,7 @@ class MSA(object):
         if isinstance(rows, list):
             rows = self.getIndex(rows) or rows
         elif isinstance(rows, int):
-            return Sequence(self._msa[rows, cols].tostring(),
+            return Sequence(self._msa[rows, cols].tobytes(),
                             self._labels[rows])
         elif isinstance(rows, str):
             try:
@@ -167,7 +164,7 @@ class MSA(object):
                                .format(index))
             else:
                 if isinstance(rows, int):
-                    return Sequence(self._msa[rows, cols].tostring(),
+                    return Sequence(self._msa[rows, cols].tobytes(),
                                     self._labels[rows])
 
         if cols is None:
@@ -545,15 +542,15 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                 before = arr.shape[1]
                 LOGGER.timeit('_refine')
                 
-                from Bio import pairwise2
-                from prody.utilities import MATCH_SCORE, MISMATCH_SCORE
+                from prody.utilities import MATCH_SCORE, MISMATCH_SCORE, alignBioPairwise
                 from prody.utilities import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
 
                 chseq = chain.getSequence()
-                algn = pairwise2.align.localms(pystr(arr[index].tostring().upper()), pystr(chseq),
-                                         MATCH_SCORE, MISMATCH_SCORE,
-                                         GAP_PENALTY, GAP_EXT_PENALTY,
-                                         one_alignment_only=1)
+                algn = alignBioPairwise(pystr(arr[index].tobytes().upper()), pystr(chseq),
+                                        "local",
+                                        MATCH_SCORE, MISMATCH_SCORE,
+                                        GAP_PENALTY, GAP_EXT_PENALTY,
+                                        max_alignments=1)
                 torf = []
                 for s, c in zip(*algn[0][:2]):
                     if s == '-':
@@ -659,7 +656,19 @@ def mergeMSA(*msa, **kwargs):
     based on protein identifiers found in the sequence labels.  Order of
     sequences in the merged MSA will follow the order of sequences in the
     first *msa* instance.  Note that protein identifiers that map to multiple
-    sequences will be excluded."""
+    sequences will be excluded.
+    
+    MSAs with different identifiers can be merged with the *ignore_ids* kwarg.
+    This only works when all MSAs have the same number of sequences.
+    
+    :arg msa: a set of :class:`.MSA` objects to be analysed
+    :type msa: list, tuple, :class:`~numpy.ndarray`
+    
+    :arg ignore_ids: where to ignore identifiers instead of matching them
+        Default is False
+    :type ignore_ids: bool
+    """
+    ignore_ids = kwargs.pop('ignore_ids', False)
 
     if len(msa) <= 1:
         raise ValueError('more than one msa instances are needed')
@@ -677,11 +686,20 @@ def mergeMSA(*msa, **kwargs):
     except AttributeError:
         raise TypeError('all msa arguments must be MSA instances')
 
+    num_seqs = [len(aset) for aset in sets]
     sets = iter(sets)
     common = next(sets)
+    if not all(array(num_seqs) == num_seqs[0]):
+        LOGGER.warn("Can only ignore identifiers if all MSAs have the same number of sequences")
+        return None
+    
     for aset in sets:
-        common = common.intersection(aset)
+        if not ignore_ids:
+            common = common.intersection(aset)
+        else:
+            [common.add(item) for item in aset]
     if not common:
+        LOGGER.warn("No sequences with common identifiers to merge")
         return None
 
     lens = [m.numResidues() for m in msa]
@@ -689,17 +707,25 @@ def mergeMSA(*msa, **kwargs):
     rngs.extend(cumsum(lens))
     rngs = [(start, end) for start, end in zip(rngs[:-1], rngs[1:])]
 
-    idx_arr_rng = list(zip([m.getIndex for m in msa], arrs, rngs))
-
-    merger = zeros((len(common), sum(lens)), '|S1')
-    labels = []
-    for index, label in enumerate(common):
-        if label not in common:
-            continue
-        for idx, arr, (start, end) in idx_arr_rng:
-            merger[index, start:end] = arr[idx(label)]
-
-        labels.append(label)
+    if not ignore_ids:
+        idx_arr_rng = list(zip([m.getIndex for m in msa], arrs, rngs))
+        merger = zeros((len(common), sum(lens)), '|S1')
+        labels = []
+        for index, label in enumerate(common):
+            if label not in common:
+                continue
+            for idx, arr, (start, end) in idx_arr_rng:
+                merger[index, start:end] = arr[idx(label)]
+            labels.append(label)
+    else:
+        idx_arr_rng = list(zip([i for i in range(len(msa))], arrs, rngs))
+        merger = zeros((len(num_seqs), sum(lens)), '|S1')
+        labels = msa[0].getLabels()
+        for index, label in enumerate(msa[0].getLabels()):
+            for i, arr, (start, end) in idx_arr_rng:
+                    merger[index, start:end] = arr[index]
+            labels[index] += '_' + msa[i].getLabels()[index]
+            
     merger = MSA(merger, labels=labels,
                  title=' + '.join([m.getTitle() for m in msa]))
     return merger

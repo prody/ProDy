@@ -6,7 +6,7 @@ import numpy as np
 from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset
 from prody.atomic import Selection, SELECT, sliceAtoms, extendAtoms
 from prody.measure import calcDistance
-from prody.utilities import importLA, isListLike
+from prody.utilities import importLA, isListLike, getCoords
 from prody import _PY3K, LOGGER
 
 from .nma import NMA
@@ -39,7 +39,7 @@ def extendModel(model, nodes, atoms, norm=False):
         raise ValueError('model must be an NMA instance')
 
     if model.numAtoms() != nodes.numAtoms():
-        raise ValueError('mode and nodes atom numbers must be the same')
+        raise ValueError('atom numbers must be the same')
 
     indices, atommap = extendAtoms(nodes, atoms, model.is3d())
 
@@ -92,7 +92,7 @@ def extendVector(vector, nodes, atoms):
         raise ValueError('vector must be a Vector instance')
 
     if vector.numAtoms() != nodes.numAtoms():
-        raise ValueError('vector and nodes atom numbers must be the same')
+        raise ValueError('atom numbers must be the same')
 
     indices, atommap = extendAtoms(nodes, atoms, vector.is3d())
     extended = Vector(vec[indices], 'Extended ' + str(vector), vector.is3d())
@@ -124,10 +124,14 @@ def sliceVector(vector, atoms, select):
 
     which, sel = sliceAtoms(atoms, select)
 
-    vec = Vector(vector.getArrayNx3()[
-                 which, :].flatten(),
-                 '{0} slice {1}'.format(str(vector), select),
-                 vector.is3d())
+    if vector.is3d():
+        vec = Vector(vector.getArrayNx3()[which, :].flatten(),
+                    '{0} slice {1}'.format(str(vector), select),
+                    vector.is3d())
+    else:
+        vec = Vector(vector.getArray()[which].flatten(),
+                    '{0} slice {1}'.format(str(vector), select),
+                    vector.is3d())
     return (vec, sel)
 
 def trimModel(model, atoms, select):
@@ -176,7 +180,7 @@ def trimModelByMask(model, mask):
 
     if not isListLike(mask):
         raise TypeError('mask must be either a list or a numpy.ndarray, not {0}'
-                        .format(type(model)))
+                        .format(type(mask)))
     
     is_bool = mask.dtype is np.dtype('bool')
 
@@ -262,15 +266,20 @@ def sliceMode(mode, atoms, select):
 
     which, sel = sliceAtoms(atoms, select)
 
-    vec = Vector(mode.getArrayNx3()[which, :].flatten() *
-                 mode.getVariance()**0.5,
-                 '{0} slice {1}'.format(str(mode), select), mode.is3d())
+    if mode.is3d():
+        vec = Vector(mode.getArrayNx3()[which, :].flatten() *
+                     mode.getVariance()**0.5,
+                    '{0} slice {1}'.format(str(mode), select), mode.is3d())
+    else:
+        vec = Vector(mode.getArray()[which].flatten() *
+                     mode.getVariance()**0.5,
+                    '{0} slice {1}'.format(str(mode), select), mode.is3d())
     return (vec, sel)
 
 
 def sliceModel(model, atoms, select, norm=False):
     """Returns a part of the *model* (modes calculated) for *atoms* matching *select*. 
-    Note that normal modes are sliced instead the connectivity matrix. Sliced normal 
+    Note that normal modes are sliced instead of the connectivity matrix. Sliced normal 
     modes (eigenvectors) are not normalized unless *norm* is **True**.
 
     :arg mode: NMA model instance to be sliced
@@ -319,7 +328,7 @@ def sliceModelByMask(model, mask, norm=False):
 
     if not isListLike(mask):
         raise TypeError('mask must be either a list or a numpy.ndarray, not {0}'
-                        .format(type(model)))
+                        .format(type(mask)))
     
     is_bool = mask.dtype is np.dtype('bool')
 
@@ -416,7 +425,7 @@ def reduceModelByMask(model, mask):
     
     if not isListLike(mask):
         raise TypeError('mask must be either a list or a numpy.ndarray, not {0}'
-                        .format(type(model)))
+                        .format(type(mask)))
     
     is_bool = mask.dtype is np.dtype('bool')
 
@@ -489,11 +498,19 @@ def _reduceModel(matrix, system):
     return matrix
 
 
-def interpolateModel(model, nodes, atoms, norm=False, **kwargs):
-    """Interpolate a coarse grained *model* built for *nodes* to *atoms*.  
+def interpolateModel(model, nodes, coords, norm=False, **kwargs):
+    """Interpolate a coarse grained *model* built for *nodes* to *coords*.  
     
     *model* may be :class:`.ANM`, :class:`.PCA`, or :class:`.NMA`
-    instance. *model* should have all modes calculated.
+    instance
+
+    :arg nodes: the coordinate set or object with :meth:`getCoords` method
+        that corresponds to the model
+    :type nodes: :class:`.Atomic`, :class:`~numpy.ndarray`
+
+    :arg coords: a coordinate set or an object with :meth:`getCoords` method
+        onto which the model should be interpolated
+    :type coords: :class:`.Atomic`, :class:`~numpy.ndarray`
     
     This function will take the part of the normal modes for each node
     (i.e. Cα atoms) and extend it to nearby atoms. 
@@ -539,7 +556,7 @@ def interpolateModel(model, nodes, atoms, norm=False, **kwargs):
         raise TypeError('model must be an NMA instance')
 
     if model.numAtoms() != nodes.numAtoms():
-        raise ValueError('model and nodes atom numbers must be the same')
+        raise ValueError('atom numbers must be the same')
 
     if not model.is3d():
         raise ValueError('model must be 3D')
@@ -547,8 +564,8 @@ def interpolateModel(model, nodes, atoms, norm=False, **kwargs):
     cg_coords = nodes.getCoords()
     len_cg = nodes.numAtoms()
 
-    fg_coords = atoms.getCoords()
-    len_fg = atoms.numAtoms()
+    fg_coords = getCoords(coords)
+    len_fg = fg_coords.shape[0]
 
     n_modes = model.numModes()
 
@@ -626,4 +643,4 @@ def interpolateModel(model, nodes, atoms, norm=False, **kwargs):
             
     interpolated = NMA('Interpolated ' + str(model))
     interpolated.setEigens(eigvecs_fg, eigvals)
-    return interpolated, atoms
+    return interpolated, coords

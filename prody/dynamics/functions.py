@@ -12,7 +12,7 @@ import numpy as np
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import Atomic, AtomSubset
 from prody.utilities import openFile, openSQLite, isExecutable, which, PLATFORM, addext, wrapModes
-from prody.proteins import parseSTAR, writeSTAR, alignChains, parsePDB
+from prody.proteins import parseSTAR, writeSTAR, StarDict, alignChains, parsePDB
 from prody.ensemble import PDBEnsemble
 
 from .nma import NMA, MaskedNMA
@@ -24,6 +24,7 @@ from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
 from .rtb import RTB
 from .pca import PCA, EDA
+from .lda import LDA
 from .imanm import imANM
 from .exanm import exANM
 from .mode import Vector, Mode, VectorBase
@@ -82,6 +83,10 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         type_ = 'EDA'
     elif isinstance(nma, PCA):
         type_ = 'PCA'
+    elif isinstance(nma, LDA):
+        type_ = 'LDA'
+        attr_list.append('_labels')
+        attr_list.append('_shuffled_ldas')
     else:
         type_ = 'NMA'
 
@@ -177,6 +182,8 @@ def loadModel(filename, **kwargs):
             nma = NMA(title)
         elif type_ == 'RTB':
             nma = RTB(title)
+        elif type_ == 'LDA':
+            nma = LDA(title)
         else:
             raise IOError('NMA model type is not recognized: {0}'.format(type_))
 
@@ -315,52 +322,133 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def parseScipionModes(run_path, title=None, pdb=None):
-    """Returns :class:`.NMA` containing eigenvectors and eigenvalues 
-    parsed from a ContinuousFlex FlexProtNMA Run directory.
+def parseScipionModes(metadata_file, title=None, pdb=None, parseIndices=False):
+    """Returns :class:`.NMA` or :class:`.GNM` containing eigenvectors and eigenvalues 
+    parsed from an NMA, GNM or PCA protocol path from ContinuousFlex or Scipion-EM-ProDy.
 
-    :arg run_path: path to the Run directory
-    :type run_path: str
+    :arg metadata_file: metadata sqlite file in Scipion protocol path
+        The location of this file is currently limited to the top level of the project path
+        and not to deep directories like the extra path.
+    :type metadata_file: str
     
     :arg title: title for :class:`.NMA` object
     :type title: str
-    """
-    if run_path.endswith("/"):
-        run_path = run_path[:-1]
-    run_name = os.path.split(run_path)[-1]
-    top_dirs = os.path.split(run_path)[0][:-4] # exclude "Runs"
 
-    star_data = parseSTAR(run_path + '/modes.xmd')
+    :arg pdb: pdb file to help define dof
+    :type pdb: str
+
+    :arg parseIndices: whether to parse indices and output a ModeSet
+        default *False*
+    :type parseIndices: bool
+    """
+    # Fill variables about how to find files based on the assumed location
+    # It may be a good idea to make this more general somehow, 
+    # but it shouldn't be too hard to keep the sqlite in the right place.
+    run_path = os.path.split(metadata_file)[0]
+    top_dirs = os.path.split(run_path)[0][:-4]
+    run_name = os.path.split(run_path)[-1]
+
+    if metadata_file.endswith('.xmd'):
+        star_data = parseSTAR(metadata_file)
+        
+    elif metadata_file.endswith('.sqlite'):
+        # reconstruct star data from sqlite
+
+        sql_con = openSQLite(metadata_file)
+        cursor = sql_con.cursor()
+
+        star_dict = OrderedDict()
+        star_block_dict = OrderedDict()
+        
+        star_loop_dict = OrderedDict()
+        star_loop_dict["fields"] = OrderedDict([(0, '_enabled'),
+                                            (1, '_nmaCollectivity'),
+                                            (2, '_nmaModefile'),
+                                            (3, '_nmaScore'),
+                                            (4, '_nmaEigenval'),
+                                            (5, '_order_')])
+        star_loop_dict["data"] = OrderedDict()
+
+        for row in cursor.execute("SELECT * FROM Objects;"):
+        
+            id_ = row[0]
+            key = id_ - 1 # sqlite ids start from 1 not 0
+
+            star_loop_dict["data"][key] = OrderedDict()
+
+            star_loop_dict["data"][key]['_order_'] = id_
+
+            star_loop_dict["data"][key]['_enabled'] = row[1]
+
+            star_loop_dict["data"][key]['_nmaCollectivity'] = row[6]
+
+            star_loop_dict["data"][key]['_nmaModefile'] = row[5]
+
+            star_loop_dict["data"][key]['_nmaScore'] = row[7]
+
+            if len(row) > 8:
+                star_loop_dict["data"][key]['_nmaEigenval'] = row[8]
+
+        star_block_dict[0] = star_loop_dict
+        star_dict[0] = star_block_dict
+
+        star_data = StarDict(star_dict, prog='XMIPP')
+
+    else:
+        raise ValueError("Metadata file should be an xmd or sqlite file")
+
     star_loop = star_data[0][0]
     
     n_modes = star_loop.numRows()
     
-    atoms = parsePDB(pdb)
-    n_atoms = atoms.numAtoms()
-
     row1 = star_loop[0]
     mode1 = parseArray(top_dirs + row1['_nmaModefile']).reshape(-1)
     dof = mode1.shape[0]
 
+    if pdb is not None:
+        atoms = parsePDB(pdb)
+        n_atoms = atoms.numAtoms()
+    else:
+        # assume standard NMA
+        n_atoms = dof//3
+
     vectors = np.zeros((dof, n_modes))
     vectors[:, 0] = mode1
 
-    eigvals = np.zeros(n_modes)
+    eigvals = {}
+    indices = []
 
     try:
-        eigvals[0] = float(row1['_nmaEigenval'])
+        indices.append(int(row1['_order_'])-1)
+        if parseIndices:
+            found_indices = True
+        else:
+            found_indices = False
+    except KeyError:
+        found_indices = False
+
+    try:
+        if found_indices:
+            eigvals[indices[0]] = float(row1['_nmaEigenval'])
+        else:
+            eigvals[0] = float(row1['_nmaEigenval'])
         found_eigvals = True
-    except:
+    except KeyError:
         found_eigvals = False
 
     for i, row in enumerate(star_loop[1:]):
         vectors[:, i+1] = parseArray(top_dirs + row['_nmaModefile']).reshape(-1)
-        if found_eigvals:
+        if found_eigvals and not found_indices:
             eigvals[i+1] = float(row['_nmaEigenval'])
+        if found_indices:
+            index = int(row['_order_'])-1
+            indices.append(index)
+            if found_eigvals:
+                eigvals[index] = float(row['_nmaEigenval'])
     
     if not found_eigvals:
-        log_fname = run_path + '/logs/run.stdout'
-        fi = open(log_fname, 'r')
+        logFileName = run_path + '/logs/run.stdout'
+        fi = open(logFileName, 'r')
         lines = fi.readlines()
         fi.close()
 
@@ -384,7 +472,22 @@ def parseScipionModes(run_path, title=None, pdb=None):
     else:
         nma = GNM(title)
 
-    nma.setEigens(vectors, eigvals)
+    nma.setEigens(vectors, np.array(list(eigvals.values())))
+
+    if found_indices:
+        n_modes = np.max(indices) + 1
+        vectors2 = np.ones((dof, n_modes))
+        eigvals2 = np.ones((n_modes))
+
+        for i, index in enumerate(indices):
+            vectors2[:, index] = vectors[:, i]
+            eigvals2[index] = eigvals[index]
+
+        nma2 = type(nma)(title)
+        nma2.setEigens(vectors2, eigvals2)
+
+        nma = nma2[indices]
+
     return nma
 
 
@@ -452,7 +555,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         raise TypeError('norm should be boolean, not {0}'
                         .format(type(norm)))    
 
-    if modes.numModes() == 1 and not isinstance(modes, NMA):
+    if modes.numModes() == 1 and not isinstance(modes, (NMA, ModeSet)):
         old_modes = modes
         modes = NMA(old_modes)
         modes.setEigens(old_modes.getArray().reshape(-1, 1))
@@ -509,10 +612,11 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     classes = [(1, 'self', 'c00', 'NormalMode'),
                (2, '_modeFile', 'c01', 'String'),
                (3, '_collectivity', 'c02', 'Float'),
-               (4, '_score', 'c03', 'Float')]
+               (4, '_score', 'c03', 'Float'),
+               (5, '_eigenval', 'c04', 'Float')]
     cursor.executemany('''INSERT INTO Classes VALUES(?,?,?,?);''', classes);
     
-    cursor.execute('''CREATE TABLE Objects(id primary key, enabled, label, comment, creation, c01, c02, c03)''')
+    cursor.execute('''CREATE TABLE Objects(id primary key, enabled, label, comment, creation, c01, c02, c03, c04)''')
     
     star_dict = OrderedDict()
 
@@ -552,14 +656,14 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         c03 = scores[i]
         loop_dict['data'][i]['_nmaScore'] = '%8.6f' % c03
 
-        eigval = eigvals[i]
-        if float('%9.6f' % eigval) > 0:
-            loop_dict['data'][i]['_nmaEigenval'] = '%9.6f' % eigval
+        c04 = eigvals[i]
+        if float('%9.6f' % c04) > 0:
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6f' % c04
         else:
-            loop_dict['data'][i]['_nmaEigenval'] = '%9.6e' % eigval
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6e' % c04
         
-        cursor.execute('''INSERT INTO Objects VALUES(?,?,?,?,?,?,?,?)''',
-                       (id, enab, label, comment, creation, c01, c02, c03))
+        cursor.execute('''INSERT INTO Objects VALUES(?,?,?,?,?,?,?,?,?)''',
+                       (id, enab, label, comment, creation, c01, c02, c03, c04))
 
     if write_star:
         writeSTAR(output_path + '/modes.xmd', star_dict)

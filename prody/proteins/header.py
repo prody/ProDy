@@ -11,7 +11,7 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import Atomic, AtomGroup
 from prody.atomic import getSequence
 from prody.measure import Transformation
-from prody.utilities import openFile
+from prody.utilities import openFile, decToHybrid36
 
 from .localpdb import fetchPDB
 
@@ -1111,10 +1111,13 @@ def buildBiomolecules(header, atoms, biomol=None):
             translation[2] = line2[3]
             t = Transformation(rotation, translation)
 
-            newag = atoms.select('chain ' + ' '.join(mt[times*4+0])).copy()
+            newag = atoms.select('chain ' + ' or chain '.join(mt[times*4+0]))
             if newag is None:
                 continue
-            newag.all.setSegnames(segnm.pop(0))
+            newag = newag.copy()
+            segnames = newag.all.getSegnames()
+            newag.all.setSegnames(np.array([segname + decToHybrid36(times+1, resnum=True) 
+                                            for segname in segnames]))
             for acsi in range(newag.numCoordsets()):
                 newag.setACSIndex(acsi)
                 newag = t.apply(newag)

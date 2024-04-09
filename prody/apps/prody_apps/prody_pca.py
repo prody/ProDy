@@ -47,7 +47,6 @@ def prody_pca(coords, **kwargs):
     prefix = kwargs.get('prefix')
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
-    quiet = kwargs.pop('quiet', False)
     altloc = kwargs.get('altloc')
 
     ext = splitext(coords)[1].lower()
@@ -60,7 +59,7 @@ def prody_pca(coords, **kwargs):
             if splitext(pdb)[1].lower() == '.psf':
                 pdb = prody.parsePSF(pdb)
             else:
-                pdb = prody.parsePDB(pdb, altlocs=altlocs)
+                pdb = prody.parsePDB(pdb, altloc=altloc)
         dcd = prody.DCDFile(coords)
         if prefix == '_pca' or prefix == '_eda':
             prefix = dcd.getTitle() + prefix
@@ -90,33 +89,19 @@ def prody_pca(coords, **kwargs):
 
         nproc = kwargs.get('nproc')
         if nproc:
-            try:
-                from threadpoolctl import threadpool_limits
-            except ImportError:
-                raise ImportError('Please install threadpoolctl to control threads')
-
-            with threadpool_limits(limits=6, user_api="blas"):
-                if len(dcd) > 1000:
-                    pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
-                    pca.calcModes(nmodes)
-                    ensemble = dcd
-                else:
-                    ensemble = dcd[:]
-                    if not kwargs.get('aligned'):
-                        ensemble.iterpose(quiet=quiet)
-                    pca.performSVD(ensemble)
-                nmodes = pca.numModes()
+            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
+            pca.calcModes(nmodes, nproc=nproc)
+            ensemble = dcd
         else:
             if len(dcd) > 1000:
-                pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
+                pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
                 pca.calcModes(nmodes)
                 ensemble = dcd
             else:
                 ensemble = dcd[:]
                 if not kwargs.get('aligned'):
-                    ensemble.iterpose(quiet=quiet)
+                    ensemble.iterpose(quiet=True)
                 pca.performSVD(ensemble)
-            nmodes = pca.numModes()
 
     else:
         pdb = prody.parsePDB(coords)
@@ -146,15 +131,16 @@ def prody_pca(coords, **kwargs):
             except ImportError:
                 raise ImportError('Please install threadpoolctl to control threads')
 
-            with threadpool_limits(limits=6, user_api="blas"):
-                pca.performSVD(ensemble)
+            with threadpool_limits(limits=nproc, user_api="blas"):
+                pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'))
+                pca.calcModes(nmodes)
         else:
             pca.performSVD(ensemble)
 
-
     LOGGER.info('Writing numerical output.')
     if kwargs.get('outnpz'):
-        prody.saveModel(pca, join(outdir, prefix))
+        prody.saveModel(pca, join(outdir, prefix), 
+                        matrices=kwargs.get('npzmatrices'))
 
     if kwargs.get('outscipion'):
         prody.writeScipionModes(outdir, pca)
@@ -231,7 +217,7 @@ def prody_pca(coords, **kwargs):
             format = format.lower()
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                prody.showCrossCorr(pca)
+                prody.showCrossCorr(pca, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cc.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')
@@ -282,7 +268,7 @@ def addCommand(commands):
     subparser = commands.add_parser('pca',
         help='perform principal component analysis calculations')
 
-    subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    subparser.add_argument('--quiet', help='suppress info messages to stderr',
         action=Quiet, nargs=0)
 
     subparser.add_argument('--examples', action=UsageExample, nargs=0,

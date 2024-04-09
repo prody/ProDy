@@ -75,46 +75,6 @@ class GNMBase(NMA):
 
         return self._kirchhoff
 
-
-def checkENMParameters(cutoff, gamma):
-    """Check type and values of *cutoff* and *gamma*."""
-
-    if not isinstance(cutoff, (float, int)):
-        raise TypeError('cutoff must be a float or an integer')
-    elif cutoff < 4:
-        raise ValueError('cutoff must be greater or equal to 4')
-    if isinstance(gamma, Gamma):
-        gamma_func = gamma.gamma
-    elif isinstance(gamma, FunctionType):
-        gamma_func = gamma
-    else:
-        if not isinstance(gamma, (float, int)):
-            raise TypeError('gamma must be a float, an integer, derived '
-                            'from Gamma, or a function')
-        elif gamma <= 0:
-            raise ValueError('gamma must be greater than 0')
-        gamma = float(gamma)
-        gamma_func = lambda dist2, i, j: gamma
-    return cutoff, gamma, gamma_func
-
-
-class GNM(GNMBase):
-
-    """A class for Gaussian Network Model (GNM) analysis of proteins
-    ([IB97]_, [TH97]_).
-
-    See example :ref:`gnm`.
-
-    .. [IB97] Bahar I, Atilgan AR, Erman B. Direct evaluation of thermal
-       fluctuations in protein using a single parameter harmonic potential.
-       *Folding & Design* **1997** 2:173-181.
-
-    .. [TH97] Haliloglu T, Bahar I, Erman B. Gaussian dynamics of folded
-       proteins. *Phys. Rev. Lett.* **1997** 79:3090-3093."""
-
-    def __init__(self, name='Unknown'):
-        super(GNM, self).__init__(name)
-
     def setKirchhoff(self, kirchhoff):
         """Set Kirchhoff matrix."""
 
@@ -230,7 +190,7 @@ class GNM(GNMBase):
         self._n_atoms = n_atoms
         self._dof = n_atoms
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, **kwargs):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Kirchhoff matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
@@ -258,7 +218,7 @@ class GNM(GNMBase):
         self._clear()
         LOGGER.timeit('_gnm_calc_modes')
         values, vectors, vars = solveEig(self._kirchhoff, n_modes=n_modes, zeros=zeros, 
-                                         turbo=turbo, expct_n_zeros=1)
+                                         turbo=turbo, expct_n_zeros=1, **kwargs)
 
         self._eigvals = values
         self._array = vectors
@@ -324,7 +284,48 @@ class GNM(GNMBase):
 
     def setEigens(self, vectors, values=None):
         self._clear()
-        super(GNM, self).setEigens(vectors, values)
+        super(GNMBase, self).setEigens(vectors, values)
+
+
+def checkENMParameters(cutoff, gamma):
+    """Check type and values of *cutoff* and *gamma*."""
+
+    if not isinstance(cutoff, (float, int)):
+        raise TypeError('cutoff must be a float or an integer')
+    elif cutoff < 4:
+        raise ValueError('cutoff must be greater or equal to 4')
+    if isinstance(gamma, Gamma):
+        gamma_func = gamma.gamma
+    elif isinstance(gamma, FunctionType):
+        gamma_func = gamma
+    else:
+        if not isinstance(gamma, (float, int)):
+            raise TypeError('gamma must be a float, an integer, derived '
+                            'from Gamma, or a function')
+        elif gamma <= 0:
+            raise ValueError('gamma must be greater than 0')
+        gamma = float(gamma)
+        gamma_func = lambda dist2, i, j: gamma
+    return cutoff, gamma, gamma_func
+
+
+class GNM(GNMBase):
+
+    """A class for Gaussian Network Model (GNM) analysis of proteins
+    ([IB97]_, [TH97]_).
+
+    See example :ref:`gnm`.
+
+    .. [IB97] Bahar I, Atilgan AR, Erman B. Direct evaluation of thermal
+       fluctuations in protein using a single parameter harmonic potential.
+       *Folding & Design* **1997** 2:173-181.
+
+    .. [TH97] Haliloglu T, Bahar I, Erman B. Gaussian dynamics of folded
+       proteins. *Phys. Rev. Lett.* **1997** 79:3090-3093."""
+
+    def __init__(self, name='Unknown'):
+        super(GNM, self).__init__(name)
+
 
 class MaskedGNM(GNM, MaskedNMA):
     def __init__(self, name='Unknown', mask=False, masked=True):
