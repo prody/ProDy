@@ -2,6 +2,7 @@
 import prody
 if prody.PY3K:
     from prody.tests import unittest
+    from prody.tests.datafiles import pathDatafile
     from prody.database.bioexcel import (fetchBioexcelPDB, parseBioexcelPDB, convertXtcToDcd,
                                         fetchBioexcelTrajectory, parseBioexcelTrajectory,
                                         fetchBioexcelTopology, parseBioexcelTopology,
@@ -554,3 +555,43 @@ if prody.PY3K:
             os.chdir('..')
             shutil.rmtree(cls.workdir)
 
+    class TestOnlyConvertParseBioexcel(unittest.TestCase):
+        
+        @classmethod
+        def setUpClass(cls):
+            cls.query = 'MCV1900370'
+            cls.psfPath = pathDatafile(cls.query + '.psf')
+            cls.xtcPath = pathDatafile(cls.query + '.xtc')
+            cls.dcdPath = pathDatafile(cls.query + '.dcd')
+
+        def testParseBioexcelTop(self):
+            ag = parseBioexcelTopology(self.psfPath)
+            self.assertIsInstance(ag, prody.AtomGroup,
+                'parseBioexcelTopology failed to return an AtomGroup from data files')
+            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS, 
+                            'parseBioexcelTopology data files output does not have correct number of atoms')
+            
+        def testConvertToDCD(self):
+            a = convertXtcToDcd(self.xtcPath, top=self.psfPath)
+            self.assertTrue(os.path.isfile(a),
+                            'convertXtcToDcd failed to return a file')
+            self.assertTrue(a.endswith('.dcd'),
+                            'convertXtcToDcd output file does not end with .dcd')
+
+        def testParseConvertBioexcelTraj(self):
+            ens = parseBioexcelTrajectory(self.xtcPath, top=self.psfPath)
+            self.assertIsInstance(ens, prody.Ensemble,
+                'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
+            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
+                            'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of atoms')
+            self.assertEqual(ens.numCoordsets(), N_FRAMES_2, 
+                            'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of frames')
+            
+        def testOnlyParseBioexcelTraj(self):
+            ens = parseBioexcelTrajectory(self.dcdPath, top=self.psfPath)
+            self.assertIsInstance(ens, prody.Ensemble,
+                'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
+            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
+                            'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of atoms')
+            self.assertEqual(ens.numCoordsets(), N_FRAMES_2, 
+                            'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of frames')
