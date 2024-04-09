@@ -539,12 +539,16 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         line = lines[i]
         if not isPDB:
             fields = line.split()
-            if len(fields) == 10:
+            if fields[5].find('.') != -1:
+                # coords too early as no chid
                 fields.insert(4, '')
-            elif len(fields) != 11:
-                LOGGER.warn('wrong number of fields for PQR format at line %d'%i)
-                i += 1
-                continue
+            if len(fields) != 11:
+                try:
+                    fields = fields[:6] + [line[30:38].strip(), line[38:46].strip(), line[46:54].strip()] + line[54:].split()
+                except:
+                    LOGGER.warn('wrong number of fields for PQR format at line %d'%i)
+                    i += 1
+                    continue
 
         if isPDB:
             startswith = line[0:6].strip()
