@@ -411,12 +411,15 @@ if prody.PY3K:
             cls.frames1 = '1-5,11-15'
             cls.frames2 = '10:20:2'
 
+            cls.timeout = 10000 # really big on purpose
+
         def testFetchFrames1(self):
             """Test the outcome of a simple fetch scenario using 
             default options."""
 
             a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                        frames=self.frames1)
+                                        frames=self.frames1,
+                                        timeout=self.timeout)
 
             self.assertIsInstance(a, str,
                 'fetchBioexcelTrajectory failed to return a str instance')
@@ -444,7 +447,8 @@ if prody.PY3K:
             using selection='_C'."""
 
             a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                    selection='_C', frames=self.frames2)
+                                        selection='_C', frames=self.frames2,
+                                        timeout=self.timeout)
             
             ens = prody.parseDCD(a)
             self.assertIsInstance(ens, prody.Ensemble,
@@ -459,7 +463,8 @@ if prody.PY3K:
             convert=False."""
 
             a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                    convert=False, frames=self.frames1)
+                                        convert=False, frames=self.frames1,
+                                        timeout=self.timeout)
 
             self.assertIsInstance(a, str,
                 'fetchBioexcelTrajectory failed to return a str instance')
@@ -478,7 +483,8 @@ if prody.PY3K:
             with default parameters."""
 
             ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                        frames=self.frames1)
+                                          frames=self.frames1,
+                                          timeout=self.timeout)
 
             self.assertIsInstance(ens, prody.Ensemble,
                 'parseBioexcelTrajectory failed to return an Ensemble instance')
@@ -492,7 +498,8 @@ if prody.PY3K:
             using selection='_C'."""
 
             ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                        selection='_C', frames=self.frames2)
+                                          selection='_C', frames=self.frames2,
+                                          timeout=self.timeout)
             
             self.assertIsInstance(ens, prody.Ensemble,
                 'parseBioexcelTrajectory with selection failed to return an Ensemble')
@@ -505,7 +512,8 @@ if prody.PY3K:
             """Test the outcome of a simple fetch and parse scenario"""
 
             a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                        frames=self.frames1)
+                                        frames=self.frames1,
+                                        timeout=self.timeout)
             
             ens = parseBioexcelTrajectory(a, folder=self.workdir)
             
@@ -520,7 +528,8 @@ if prody.PY3K:
             """Test the outcome of a simple fetch, then internally convert and parse scenario."""
 
             a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                        convert=False, frames=self.frames1)
+                                        convert=False, frames=self.frames1,
+                                        timeout=self.timeout)
             
             ens = parseBioexcelTrajectory(a)
             
@@ -535,7 +544,8 @@ if prody.PY3K:
             """Test the outcome of a simple fetch, externally convert and then parse scenario."""
 
             a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                        convert=False, frames=self.frames1)
+                                        convert=False, frames=self.frames1,
+                                        timeout=self.timeout)
             b = convertXtcToDcd(a)
             ens = parseBioexcelTrajectory(b)
             
@@ -548,7 +558,8 @@ if prody.PY3K:
 
         def testConvertWrongType(self):
             with self.assertRaises(TypeError):
-                fetchBioexcelTrajectory(self.query, folder=self.workdir, convert='False')
+                fetchBioexcelTrajectory(self.query, folder=self.workdir, convert='False',
+                                        timeout=self.timeout)
 
         @classmethod
         def tearDownClass(cls):
