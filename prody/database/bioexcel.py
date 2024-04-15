@@ -210,21 +210,17 @@ def parseBioexcelTopology(query, **kwargs):
         ag._n_csets = 1
         ag._acsi = 0
 
-        nodes = ag.select('name N')
+        indices = np.ix_(*[np.array(data['atom_residue_indices'])])
 
-        residue_chids = [data['chain_names'][chain_index] for chain_index in data['residue_chain_indices']]
-        chids, _ = extendAtomicData(residue_chids, nodes, ag)
-        ag.setChids(chids)
+        chids = np.array([data['chain_names'][chain_index]
+                          for chain_index in data['residue_chain_indices']])
+        ag.setChids(chids[indices])
 
-        resnames, _ = extendAtomicData(data['residue_names'], nodes, ag)
-        ag.setResnames(resnames)
-
-        resnums, _ = extendAtomicData(data['residue_numbers'], nodes, ag)
-        ag.setResnums(resnums)
+        ag.setResnames(np.array(data['residue_names'])[indices])
+        ag.setResnums(np.array(data['residue_numbers'])[indices])
 
         if data['residue_icodes'] is not None:
-            icodes, _ = extendAtomicData(data['residue_icodes'], nodes, ag)
-            ag.setIcodes(icodes)
+            ag.setIcodes(np.array(data['residue_icodes'])[indices])
 
         # restore acsi and n_csets to defaults
         ag._acsi = None
