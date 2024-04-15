@@ -564,12 +564,25 @@ if prody.PY3K:
             cls.xtcPath = pathDatafile(cls.query + '.xtc')
             cls.dcdPath = pathDatafile(cls.query + '.dcd')
 
+            cls.jsonPath = pathDatafile('MCV1900193.json')
+            cls.PROTEIN_GLYCAN_N_ATOMS = 72759
+            cls.CA_N_ATOMS = 3768
+
         def testParseBioexcelTop(self):
             ag = parseBioexcelTopology(self.psfPath)
             self.assertIsInstance(ag, prody.AtomGroup,
                 'parseBioexcelTopology failed to return an AtomGroup from data files')
             self.assertEqual(ag.numAtoms(), FULL_N_ATOMS, 
                             'parseBioexcelTopology data files output does not have correct number of atoms')
+
+        def testParseBioexcelTopJsonGlycan(self):
+            ag = parseBioexcelTopology(self.jsonPath)
+            self.assertIsInstance(ag, prody.AtomGroup,
+                'parseBioexcelTopology failed to return an AtomGroup from data files')
+            self.assertEqual(ag.numAtoms(), self.PROTEIN_GLYCAN_N_ATOMS, 
+                            'parseBioexcelTopology data files output using MCV1900193 with glycans does not have correct number of atoms')
+            self.assertEqual(ag.ca.numAtoms(), self.CA_N_ATOMS, 
+                            'parseBioexcelTopology data files output using MCV1900193 with glycans does not have correct number of CA atoms')
             
         def testConvertToDCD(self):
             a = convertXtcToDcd(self.xtcPath, top=self.psfPath)
