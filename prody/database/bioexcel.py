@@ -320,7 +320,7 @@ def requestFromUrl(url, timeout, source=None):
                 ftmp = tempfile.NamedTemporaryFile()
                 ftmp.write(response, 'wb')
                 ftmp.close()
-                top = mdtraj.load_psf(fetchBioexcelTopology(acc))
+                top = mdtraj.load_psf(fetchBioexcelTopology(acc, timeout=timeout))
                 mdtraj.load_xtc(ftmp.name, top=top)
 
             elif source == 'pdb':
