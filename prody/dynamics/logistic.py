@@ -132,7 +132,7 @@ class LRA(NMA):
             rng = np.random.default_rng()
             rng.shuffle(labelsNew) # in place
 
-            self._shuffled_lras[n].calcModes(self._coordsets_reshaped, 
+            self._shuffled_lras[n].calcModes(self._coordsets_reshaped,
                                              labelsNew, quiet=True)
             
             if np.allclose(abs(np.dot(self._shuffled_lras[n].getEigvecs()[0],
