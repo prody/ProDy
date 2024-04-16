@@ -257,8 +257,7 @@ def parseBioexcelPDB(query, **kwargs):
     ag = parsePDB(filename)
     if ag is None:
         filename = fetchBioexcelPDB(query, **kwargs)
-
-    ag = parsePDB(filename)
+        ag = parsePDB(filename)
 
     acc = basename(splitext(filename)[0])
     ag2 = parseBioexcelTopology(acc, **kwargs)
