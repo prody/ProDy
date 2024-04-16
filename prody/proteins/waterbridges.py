@@ -467,7 +467,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     :arg atoms: Atomic object from which atoms are considered
     :type atoms: :class:`.Atomic`
 
-    :arg trajectory: trajectory object, DCD or multimodal PDB
+    :arg trajectory: Trajectory data coming from a DCD or multi-model PDB file.
+    :type trajectory: :class:`.Trajectory', :class:`.Ensemble`, :class:`.Atomic`
 
     :arg start_frame: frame to start from
     :type start_frame: int
@@ -486,7 +487,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
 
         # nfi = trajectory._nfi
         # trajectory.reset()
-        numFrames = trajectory._n_csets
+        # numFrames = trajectory._n_csets
 
         if stop_frame == -1:
             traj = trajectory[start_frame:]
