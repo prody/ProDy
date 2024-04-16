@@ -385,9 +385,17 @@ def calcWaterBridges(atoms, **kwargs):
     if outputType not in ['info', 'atomic', 'indices']:
         raise TypeError('Output can be info, atomic or indices.')
 
+    water = atoms.select('water')
+    if water is None:
+        raise ValueError('atoms has no water so cannot be analysed with WatFinder')
+
     relations = RelationList(len(atoms))
-    consideredAtoms = ~atoms.select(
+    tooFarAtoms = atoms.select(
         f'water and not within {distWR} of protein')
+    if tooFarAtoms is None:
+        consideredAtoms = atoms
+    else:
+        consideredAtoms = ~tooFarAtoms
 
     waterHydrogens = consideredAtoms.select('water and hydrogen') or []
     waterOxygens = consideredAtoms.select('water and oxygen')
