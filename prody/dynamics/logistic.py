@@ -97,9 +97,9 @@ class LRA(NMA):
             else:
                 LOGGER.warn('using provided solver kwarg instead of liblinear from lasso')
 
-        self._lrc = LogisticRegression(**kwargs)
-        self._projection = self._lrc.fit(self._coordsets, self._labels)
-        self._array = self._lrc.coef_.T/np.linalg.norm(self._lrc.coef_)
+        self._lra = LogisticRegression(**kwargs)
+        self._projection = self._lra.fit(self._coordsets, self._labels)
+        self._array = self._lra.coef_.T/np.linalg.norm(self._lra.coef_)
         self._eigvals = np.ones(1)
         self._vars = np.ones(1)
 
@@ -121,7 +121,7 @@ class LRA(NMA):
                     LOGGER.debug('Calculating {0} mode for {1} shuffles.'
                         .format(self._n_modes, self._n_shuffles))
             
-        self._shuffled_lrcs = [LRA('shuffle '+str(n)) for n in range(self._n_shuffles)]
+        self._shuffled_lras = [LRA('shuffle '+str(n)) for n in range(self._n_shuffles)]
         self._coordsets_reshaped = self._coordsets.reshape(self._coordsets.shape[0], self._n_atoms, -1)
 
         n = 0
@@ -132,10 +132,10 @@ class LRA(NMA):
             rng = np.random.default_rng()
             rng.shuffle(labelsNew) # in place
 
-            self._shuffled_lrcs[n].calcModes(self._coordsets_reshaped, 
+            self._shuffled_lras[n].calcModes(self._coordsets_reshaped,
                                              labelsNew, quiet=True)
             
-            if np.allclose(abs(np.dot(self._shuffled_lrcs[n].getEigvecs()[0],
+            if np.allclose(abs(np.dot(self._shuffled_lras[n].getEigvecs()[0],
                                       self.getEigvecs()[0])), 
                            1):
                 # LDA has flipped direction as labels match or are exactly flipped
@@ -168,10 +168,10 @@ class LRA(NMA):
         self._vars = self._eigvals
 
     def getShuffledModes(self):
-        return self._shuffled_lrcs.copy()
+        return self._shuffled_lras.copy()
     
     def getShuffledEigvecs(self):
-        return np.array([lda.getEigvecs() for lda in self._shuffled_lrcs])
+        return np.array([lda.getEigvecs() for lda in self._shuffled_lras])
 
     def getShuffledPercentile(self, percentile, take_abs=True):
         shuffles = self.getShuffledEigvecs()
