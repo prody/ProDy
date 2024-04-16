@@ -11,7 +11,6 @@ from prody import LOGGER, PY3K
 from prody.utilities import makePath
 
 from prody.atomic.atomgroup import AtomGroup
-from prody.atomic.functions import extendAtomicData
 from prody.proteins.pdbfile import parsePDB, _parsePDBLines
 from prody.trajectory.psffile import parsePSF, writePSF
 from prody.trajectory.dcdfile import parseDCD
@@ -331,7 +330,7 @@ def requestFromUrl(url, timeout, source=None):
         else:
             break
         
-        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        sleep = 100 if int(sleep * 1.5) >= 100 else int(sleep * 1.5)
         LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
     return response
@@ -365,7 +364,7 @@ def checkConvert(**kwargs):
     return convert
 
 def checkTimeout(**kwargs):
-    timeout = kwargs.get('timeout', 60)
+    timeout = kwargs.get('timeout', 200)
     if not isinstance(timeout, (Number, type(None))):
         raise TypeError('timeout should be number')
     return timeout
