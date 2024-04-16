@@ -22,6 +22,7 @@ from .analysis import calcProjection
 from .analysis import calcCollectivity
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
+from .exgnm import exGNM
 from .rtb import RTB
 from .pca import PCA, EDA
 from .lda import LDA
@@ -86,12 +87,14 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         type_ = 'PCA'
     elif isinstance(nma, LDA):
         type_ = 'LDA'
+        attr_list.append('_lda')
         attr_list.append('_labels')
         attr_list.append('_shuffled_ldas')
     elif isinstance(nma, LRA):
         type_ = 'LRA'
+        attr_list.append('_lra')
         attr_list.append('_labels')
-        attr_list.append('_shuffled_lrcs')
+        attr_list.append('_shuffled_lras')
     else:
         type_ = 'NMA'
 
@@ -124,6 +127,9 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
+
+    if isinstance(nma, exGNM):
+        attr_dict['type'] = 'exGNM'
 
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
@@ -183,6 +189,8 @@ def loadModel(filename, **kwargs):
             nma = exANM(title)
         elif type_ == 'imANM':
             nma = imANM(title)
+        elif type_ == 'exGNM':
+            nma = exGNM(title)
         elif type_ == 'NMA':
             nma = NMA(title)
         elif type_ == 'RTB':
@@ -211,6 +219,11 @@ def loadModel(filename, **kwargs):
                     dict_[attr] = attr_dict[attr]
             else:
                 dict_[attr] = attr_dict[attr]
+
+    if '_shuffled_ldas' in nma.__dict__:
+        nma._shuffled_ldas = [arr[0].getModel() for arr in nma._shuffled_ldas]
+    elif '_shuffled_lras' in nma.__dict__:
+        nma._shuffled_lras = [arr[0].getModel() for arr in nma._shuffled_lras]
 
     return nma
 
@@ -941,8 +954,8 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     if isfile(eigval_fname):
         vals_fname = eigval_fname
-    elif isfile(run_path + eigval_fname):
-        vals_fname = run_path + eigval_fname
+    elif isfile(join(run_path, eigval_fname)):
+        vals_fname = join(run_path, eigval_fname)
     else:
         raise ValueError('eigval_fname should point be a path to a file '
                          'either relative to run_path or an absolute one')
@@ -954,8 +967,8 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     if isfile(eigvec_fname):
         vecs_fname = eigval_fname
-    elif isfile(run_path + eigvec_fname):
-        vecs_fname = run_path + eigvec_fname
+    elif isfile(join(run_path, eigvec_fname)):
+        vecs_fname = join(run_path, eigvec_fname)
     else:
         raise ValueError('eigvec_fname should point be a path to a file '
                          'either relative to run_path or an absolute one')
@@ -967,8 +980,8 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     if isfile(pdb_fname):
         pdb = eigval_fname
-    elif isfile(run_path + pdb_fname):
-        pdb = run_path + pdb_fname
+    elif isfile(join(run_path, pdb_fname)):
+        pdb = join(run_path, pdb_fname)
     else:
         raise ValueError('pdb_fname should point be a path to a file '
                          'either relative to run_path or an absolute one')
