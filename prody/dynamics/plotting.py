@@ -24,6 +24,7 @@ from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
 from .lda import LDA
+from .logistic import LRA
 
 __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showCumulOverlap', 'showFractVars',
@@ -274,11 +275,11 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
 
     use_labels = kwargs.pop('use_labels', True)
     labels = kwargs.pop('label', None)
-    if labels is None and use_labels and modes is not None:
-        if isinstance(modes, LDA):
+    if labels is None and  use_labels and modes is not None:
+        if isinstance(modes, (LDA, LRA)):
             labels = modes._labels.tolist()
             LOGGER.info('using labels from LDA modes')
-        elif isinstance(modes.getModel(), LDA):
+        elif isinstance(modes.getModel(), (LDA, LRA)):
             labels = modes.getModel()._labels.tolist()
             LOGGER.info('using labels from LDA model')
 
