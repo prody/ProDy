@@ -385,9 +385,17 @@ def calcWaterBridges(atoms, **kwargs):
     if outputType not in ['info', 'atomic', 'indices']:
         raise TypeError('Output can be info, atomic or indices.')
 
+    water = atoms.select('water')
+    if water is None:
+        raise ValueError('atoms has no water so cannot be analysed with WatFinder')
+
     relations = RelationList(len(atoms))
-    consideredAtoms = ~atoms.select(
+    tooFarAtoms = atoms.select(
         f'water and not within {distWR} of protein')
+    if tooFarAtoms is None:
+        consideredAtoms = atoms
+    else:
+        consideredAtoms = ~tooFarAtoms
 
     waterHydrogens = consideredAtoms.select('water and hydrogen') or []
     waterOxygens = consideredAtoms.select('water and oxygen')
@@ -467,7 +475,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     :arg atoms: Atomic object from which atoms are considered
     :type atoms: :class:`.Atomic`
 
-    :arg trajectory: trajectory object, DCD or multimodal PDB
+    :arg trajectory: Trajectory data coming from a DCD or multi-model PDB file.
+    :type trajectory: :class:`.Trajectory', :class:`.Ensemble`, :class:`.Atomic`
 
     :arg start_frame: frame to start from
     :type start_frame: int
@@ -486,7 +495,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
 
         # nfi = trajectory._nfi
         # trajectory.reset()
-        numFrames = trajectory._n_csets
+        # numFrames = trajectory._n_csets
 
         if stop_frame == -1:
             traj = trajectory[start_frame:]
@@ -1126,6 +1135,9 @@ def findClusterCenters(file_pattern, **kwargs):
             sel_waters.append(j)
 
     coords_wat = np.array([sel_waters], dtype=float)
+    if coords_wat.shape[0] == 0:
+        raise ValueError('No waters were selected. You may need to align your trajectory')
+    
     selectedWaters.setCoords(coords_wat)
     selectedWaters.setNames(['DUM']*len(selectedWaters))
     selectedWaters.setResnums(range(1, len(selectedWaters)+1))
