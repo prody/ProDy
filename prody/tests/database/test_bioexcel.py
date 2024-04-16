@@ -411,16 +411,13 @@ if prody.PY3K:
             cls.frames1 = '1-5,11-15'
             cls.frames2 = '10:20:2'
 
-            cls.timeout = 10000 # really big on purpose
-
         def testFetchFrames1(self):
             """Test the outcome of a simple fetch scenario using 
             default options."""
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                            frames=self.frames1,
-                                            timeout=self.timeout)
+                                            frames=self.frames1)
             except OSError:
                 pass
             else:
@@ -451,8 +448,7 @@ if prody.PY3K:
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            selection='_C', frames=self.frames2,
-                                            timeout=self.timeout)
+                                            selection='_C', frames=self.frames2)
             except OSError:
                 pass
             else:
@@ -470,8 +466,7 @@ if prody.PY3K:
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                            convert=False, frames=self.frames1,
-                                            timeout=self.timeout)
+                                            convert=False, frames=self.frames1)
             except OSError:
                 pass
             else:
@@ -493,8 +488,7 @@ if prody.PY3K:
 
             try:
                 ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                            frames=self.frames1,
-                                            timeout=self.timeout)
+                                            frames=self.frames1)
             except OSError:
                 pass
             else:
@@ -510,8 +504,7 @@ if prody.PY3K:
             using selection='_C'."""
             try:
                 ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                            selection='_C', frames=self.frames2,
-                                            timeout=self.timeout)
+                                            selection='_C', frames=self.frames2)
             except OSError:
                 pass
             else:
@@ -526,8 +519,7 @@ if prody.PY3K:
             """Test the outcome of a simple fetch and parse scenario"""
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            frames=self.frames1,
-                                            timeout=self.timeout)
+                                            frames=self.frames1)
             except OSError:
                 pass
             else:
@@ -544,8 +536,7 @@ if prody.PY3K:
             """Test the outcome of a simple fetch, then internally convert and parse scenario."""
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                            convert=False, frames=self.frames1,
-                                            timeout=self.timeout)
+                                            convert=False, frames=self.frames1)
             except OSError:
                 pass
             else:
@@ -562,8 +553,7 @@ if prody.PY3K:
             """Test the outcome of a simple fetch, externally convert and then parse scenario."""
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                            convert=False, frames=self.frames1,
-                                            timeout=self.timeout)
+                                            convert=False, frames=self.frames1)
             except OSError:
                 pass
             else:
