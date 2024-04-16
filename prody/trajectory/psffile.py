@@ -328,10 +328,10 @@ def writePSF(filename, atoms):
                         types[i], charges[i], masses[i], 0))
 
     bonds = list(atoms._iterBonds())
+    write('\n')
+    write('{0:8d} !NBOND: bonds\n'.format(len(bonds)))
     if len(bonds) > 0:
         bonds = array(bonds, int) + 1
-        write('\n')
-        write('{0:8d} !NBOND: bonds\n'.format(len(bonds)))
         for i, bond in enumerate(bonds):
             write('%8s%8s' % (bond[0], bond[1]))
             if i % 4 == 3:
@@ -339,11 +339,13 @@ def writePSF(filename, atoms):
         if i % 4 != 3:
             write('\n')
 
+    write('\n')
+
     angles = list(atoms._iterAngles())
+    write('\n')
+    write('{0:8d} !NTHETA: angles\n'.format(len(angles)))
     if len(angles) > 0:
         angles = array(angles, int) + 1
-        write('\n')
-        write('{0:8d} !NTHETA: angles\n'.format(len(angles)))
         for i, angle in enumerate(angles):
             write('%8s%8s%8s' % (angle[0], angle[1], angle[2]))
             if i % 3 == 2:
@@ -351,11 +353,13 @@ def writePSF(filename, atoms):
         if i % 3 != 2:
             write('\n')
 
+    write('\n')
+
     dihedrals = list(atoms._iterDihedrals())
+    write('\n')
+    write('{0:8d} !NPHI: dihedrals\n'.format(len(dihedrals)))
     if len(dihedrals) > 0:
         dihedrals = array(dihedrals, int) + 1
-        write('\n')
-        write('{0:8d} !NPHI: dihedrals\n'.format(len(dihedrals)))
         for i, dihedral in enumerate(dihedrals):
             write('%8s%8s%8s%8s' % (dihedral[0], dihedral[1], dihedral[2], dihedral[3]))
             if i % 4 == 3:
@@ -363,11 +367,13 @@ def writePSF(filename, atoms):
         if i % 4 != 3:
             write('\n')
 
+    write('\n')
+
     impropers = list(atoms._iterImpropers())
+    write('\n')
+    write('{0:8d} !NIMPHI: impropers\n'.format(len(impropers)))
     if len(impropers) > 0:
         impropers = array(impropers, int) + 1
-        write('\n')
-        write('{0:8d} !NIMPHI: impropers\n'.format(len(impropers)))
         for i, improper in enumerate(impropers):
             write('%8s%8s%8s%8s' % (improper[0], improper[1], improper[2], improper[3]))
             if i % 2 == 1:
@@ -378,57 +384,52 @@ def writePSF(filename, atoms):
     write('\n')
 
     donors = list(atoms._iterDonors())
+    write('\n')
+    write('{0:8d} !NDON: donors\n'.format(len(donors)))
     if len(donors) > 0:
         donors = array(donors, int) + 1
-        write('\n')
-        write('{0:8d} !NDON: donors\n'.format(len(donors)))
         for i, donor in enumerate(donors):
             write('%8s%8s' % (donor[0], donor[1]))
             if i % 4 == 3:
                 write('\n')
         if i % 4 != 3:
             write('\n')
-    else:
-        write('{0:8d} !NDON: donors\n'.format(0))
-        write('\n')
     
     write('\n')
 
     acceptors = list(atoms._iterAcceptors())
+    write('\n')
+    write('{0:8d} !NACC: acceptors\n'.format(len(acceptors)))
     if len(acceptors) > 0:
         acceptors = array(acceptors, int) + 1
-        write('\n')
-        write('{0:8d} !NACC: acceptors\n'.format(len(acceptors)))
         for i, acceptor in enumerate(acceptors):
             write('%8s%8s' % (acceptor[0], acceptor[1]))
             if i % 4 == 3:
                 write('\n')
         if i % 4 != 3:
             write('\n')
-    else:
-        write('{0:8d} !NACC: acceptors\n'.format(0))
-        write('\n')
+
+    write('\n')
 
     nbexclusions = list(atoms._iterNBExclusions())
+    write('\n')
+    write('{0:8d} !NNB\n'.format(len(nbexclusions)))
     if len(nbexclusions) > 0:
         nbexclusions = array(nbexclusions, int) + 1
-        write('\n')
-        write('{0:8d} !NNB\n'.format(len(nbexclusions)))
         for i, nbexclusion in enumerate(nbexclusions):
             write('%8s%8s' % (nbexclusion[0], nbexclusion[1]))
             if i % 4 == 3:
                 write('\n')
         if i % 4 != 3:
             write('\n')
-    else:
-        write('{0:8d} !NNB\n'.format(0))
-        write('\n')
+
+    write('\n')
 
     crossterms = list(atoms._iterCrossterms())
+    write('\n')
+    write('{0:8d} !NCRTERM: crossterms\n'.format(len(crossterms)))
     if len(crossterms) > 0:
         crossterms = array(crossterms, int) + 1
-        write('\n')
-        write('{0:8d} !NCRTERM: crossterms\n'.format(len(crossterms)))
         for i, crossterm in enumerate(crossterms):
             write('%8s%8s%8s%8s' % (crossterm[0], crossterm[1], crossterm[2], crossterm[3]))
             if i % 2 == 1:

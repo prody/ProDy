@@ -1,8 +1,5 @@
 """This module contains unit tests for :mod:`prody.database.pfam` module."""
 
-from numpy import tile, array, arange, ones
-from numpy.testing import assert_allclose
-
 from prody.tests import unittest
 from prody.database.pfam import searchPfam
 from prody.database.pfam import fetchPfamMSA
@@ -91,7 +88,7 @@ class TestFetchPfamMSA(unittest.TestCase):
         self.assertIsInstance(b, str,
             'fetchPfamMSA failed to return a str instance')
         
-        self.assertEqual(b, 'PF00822_full.sth')
+        self.assertEqual(b, 'PF00822_seed.sth')
         
         self.assertTrue(os.path.exists(b))
 
@@ -120,7 +117,7 @@ class TestFetchPfamMSA(unittest.TestCase):
         self.assertIsInstance(b, str,
             'fetchPfamMSA failed to return a str instance')
         
-        self.assertEqual(b, 'new_folder/PF00822_full.sth')
+        self.assertEqual(b, 'new_folder/PF00822_seed.sth')
         
         self.assertTrue(os.path.exists(b))
     
