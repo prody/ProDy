@@ -258,7 +258,13 @@ def parseBioexcelPDB(query, **kwargs):
     if ag is None:
         filename = fetchBioexcelPDB(query, **kwargs)
 
-    return parsePDB(filename)
+    ag = parsePDB(filename)
+
+    acc = basename(splitext(filename)[0])
+    ag2 = parseBioexcelTopology(acc, **kwargs)
+
+    ag.setElements(ag2.getElements())
+    return ag
 
 def convertXtcToDcd(filepath, **kwargs):
     """Convert xtc trajectories to dcd files using mdtraj.
