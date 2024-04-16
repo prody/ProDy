@@ -1091,7 +1091,7 @@ def findClusterCenters(file_pattern, **kwargs):
     :type file_pattern: str
     
     :arg selection: selection string
-        by default water and name OH2 is used
+        by default 'water and name OH2' is used
     :type selection: str
     
     :arg distC: distance to other molecules
