@@ -11,7 +11,8 @@ from prody import LOGGER, PY3K
 from prody.utilities import makePath
 
 from prody.atomic.atomgroup import AtomGroup
-from prody.proteins.pdbfile import parsePDB, _parsePDBLines
+from prody.atomic.functions import extendAtomicData
+from prody.proteins.pdbfile import parsePDB
 from prody.trajectory.psffile import parsePSF, writePSF
 from prody.trajectory.dcdfile import parseDCD
 
@@ -57,14 +58,7 @@ def fetchBioexcelPDB(acc, **kwargs):
     if selection is not None:
         url += '?selection=' + selection.replace(" ","%20")
     
-    response = requestFromUrl(url, timeout, source='pdb')
-
-    if PY3K:
-        response = response.decode()
-
-    fo = open(filepath, 'w')
-    fo.write(response)
-    fo.close()
+    filepath = requestFromUrl(url, timeout, filepath, source='pdb')
 
     return filepath
 
@@ -117,11 +111,7 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     if selection is not None:
         url += '&selection=' + selection.replace(" ","%20")
 
-    response = requestFromUrl(url, timeout, source='xtc')
-
-    fo = open(filepath, 'wb')
-    fo.write(response)
-    fo.close()
+    filepath = requestFromUrl(url, timeout, filepath, source='xtc')
 
     if convert:
         filepath = convertXtcToDcd(filepath, **kwargs)
@@ -161,14 +151,7 @@ def fetchBioexcelTopology(acc, **kwargs):
 
     if not isfile(filepath):
         url = prefix + acc + "/topology"
-        response = requestFromUrl(url, timeout, source='json')
-
-        if PY3K:
-            response = response.decode()
-
-        fo = open(filepath, 'w')
-        fo.write(response)
-        fo.close()
+        filepath = requestFromUrl(url, timeout, filepath, source='json')
 
     if convert:
         ag = parseBioexcelTopology(filepath, **kwargs)
@@ -264,10 +247,16 @@ def parseBioexcelPDB(query, **kwargs):
     fetching it if needed using **kwargs
     """
     kwargs['convert'] = True
-    if not isfile(query):
-        filename = fetchBioexcelPDB(query, **kwargs)
-    else:
+    if isfile(query):
         filename = query
+    elif isfile(query + '.pdb'):
+        filename = query + '.pdb'
+    else:
+        filename = fetchBioexcelPDB(query, **kwargs)
+
+    ag = parsePDB(filename)
+    if ag is None:
+        filename = fetchBioexcelPDB(query, **kwargs)
 
     return parsePDB(filename)
 
@@ -296,7 +285,7 @@ def convertXtcToDcd(filepath, **kwargs):
 
     return filepath
 
-def requestFromUrl(url, timeout, source=None):
+def requestFromUrl(url, timeout, filepath, source=None):
     """Helper function to make a request from a url and return the response"""
     import requests
     import json
@@ -315,15 +304,31 @@ def requestFromUrl(url, timeout, source=None):
             if source == 'json':
                 json.loads(response)
 
+                if PY3K:
+                    response = response.decode()
+
+                fo = open(filepath, 'w')
+                fo.write(response)
+                fo.close()
+
             elif source == 'xtc':
-                ftmp = tempfile.NamedTemporaryFile()
-                ftmp.write(response, 'wb')
-                ftmp.close()
+                fo = open(filepath, 'wb')
+                fo.write(response)
+                fo.close()
+                
                 top = mdtraj.load_psf(fetchBioexcelTopology(acc, timeout=timeout))
-                mdtraj.load_xtc(ftmp.name, top=top)
+                mdtraj.load_xtc(filepath, top=top)
 
             elif source == 'pdb':
-                _parsePDBLines(response)
+                if PY3K:
+                    response = response.decode()
+
+                fo = open(filepath, 'w')
+                fo.write(response)
+                fo.close()
+
+                ag = parsePDB(filepath)
+                numAtoms = ag.numAtoms()
 
         except Exception:
             pass
@@ -333,7 +338,7 @@ def requestFromUrl(url, timeout, source=None):
         sleep = 100 if int(sleep * 1.5) >= 100 else int(sleep * 1.5)
         LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
-    return response
+    return filepath
 
 def checkSelection(**kwargs):
     """Helper function to check selection"""
