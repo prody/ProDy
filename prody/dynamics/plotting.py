@@ -275,7 +275,7 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
 
     use_labels = kwargs.pop('use_labels', True)
     labels = kwargs.pop('label', None)
-    if labels is None and  use_labels:
+    if labels is None and  use_labels and modes is not None:
         if isinstance(modes, (LDA, LRA)):
             labels = modes._labels.tolist()
             LOGGER.info('using labels from LDA modes')
