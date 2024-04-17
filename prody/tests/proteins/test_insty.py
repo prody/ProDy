@@ -12,6 +12,8 @@ from prody.proteins.interactions import calcRepulsiveIonicBondingTrajectory, cal
 from prody.proteins.interactions import calcPiCationTrajectory, calcHydrophobicTrajectory
 from prody.proteins.interactions import calcDisulfideBondsTrajectory, calcProteinInteractions
 
+import sys
+
 class TestInteractions(unittest.TestCase):
 
     def setUp(self):
@@ -132,4 +134,20 @@ class TestInteractions(unittest.TestCase):
              assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if i]),
                           'failed to get correct disulfide bonds')
         
-                     
+    def testImportHpb(self):
+        imported_hpb = False
+
+        try:
+            import prody.proteins.hpb as hpb
+            imported_hpb = True
+        except ImportError:
+            try:
+                import hpb
+                imported_hpb = True
+            except ImportError:
+                raise ImportError('Please provide hpb.so file.')
+            
+        if sys.version_info[1] < 11:
+            self.assertTrue(imported_hpb)
+        else:
+            self.assertFalse(imported_hpb)
