@@ -50,6 +50,7 @@ def fetchPDBLigand(cci, filename=None):
     ideal (energy minimized) coordinate sets:
 
     .. ipython:: python
+       :okexcept:
 
        from prody import *
        ligand_data = fetchPDBLigand('STI')
