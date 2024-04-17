@@ -20,6 +20,8 @@ if prody.PY3K:
     N_FRAMES_1 = 10
     N_FRAMES_2 = 6
 
+    TIMEOUT = 120
+
     class TestFetchParseBioexcelPDB(unittest.TestCase):
         
         @classmethod
@@ -420,7 +422,7 @@ if prody.PY3K:
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
                                             frames=self.frames1,
-                                            timeout=self.timeout)
+                                            timeout=TIMEOUT)
             except OSError:
                 pass
             else:
@@ -452,7 +454,7 @@ if prody.PY3K:
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
                                             selection='_C', frames=self.frames2,
-                                            timeout=self.timeout)
+                                            timeout=TIMEOUT)
             except OSError:
                 pass
             else:
@@ -471,7 +473,7 @@ if prody.PY3K:
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
                                             convert=False, frames=self.frames1,
-                                            timeout=self.timeout)
+                                            timeout=TIMEOUT)
             except OSError:
                 pass
             else:
@@ -494,7 +496,7 @@ if prody.PY3K:
             try:
                 ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
                                             frames=self.frames1,
-                                            timeout=self.timeout)
+                                            timeout=TIMEOUT)
             except OSError:
                 pass
             else:
@@ -511,7 +513,7 @@ if prody.PY3K:
             try:
                 ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
                                             selection='_C', frames=self.frames2,
-                                            timeout=self.timeout)
+                                            timeout=TIMEOUT)
             except OSError:
                 pass
             else:
@@ -527,7 +529,7 @@ if prody.PY3K:
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
                                             frames=self.frames1,
-                                            timeout=self.timeout)
+                                            timeout=TIMEOUT)
             except OSError:
                 pass
             else:
@@ -545,7 +547,7 @@ if prody.PY3K:
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
                                             convert=False, frames=self.frames1,
-                                            timeout=self.timeout)
+                                            timeout=TIMEOUT)
             except OSError:
                 pass
             else:
@@ -563,7 +565,7 @@ if prody.PY3K:
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
                                             convert=False, frames=self.frames1,
-                                            timeout=self.timeout)
+                                            timeout=TIMEOUT)
             except OSError:
                 pass
             else:
@@ -580,7 +582,7 @@ if prody.PY3K:
         def testConvertWrongType(self):
             with self.assertRaises(TypeError):
                 fetchBioexcelTrajectory(self.query, folder=self.workdir, convert='False',
-                                        timeout=self.timeout)
+                                        timeout=TIMEOUT)
 
         @classmethod
         def tearDownClass(cls):
