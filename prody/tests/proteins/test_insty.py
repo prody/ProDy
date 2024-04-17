@@ -135,7 +135,6 @@ class TestInteractions(unittest.TestCase):
                           'failed to get correct disulfide bonds')
         
     def testImportHpb(self):
-        imported_hpb = False
 
         try:
             import prody.proteins.hpb as hpb
@@ -145,7 +144,7 @@ class TestInteractions(unittest.TestCase):
                 import hpb
                 imported_hpb = True
             except ImportError:
-                raise ImportError('Please provide hpb.so file.')
+                imported_hpb = False
             
         if sys.version_info[1] < 11:
             self.assertTrue(imported_hpb)
