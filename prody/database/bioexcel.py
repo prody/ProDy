@@ -192,21 +192,17 @@ def parseBioexcelTopology(query, **kwargs):
         ag._n_csets = 1
         ag._acsi = 0
 
-        nodes = ag.select('name N')
+        indices = np.ix_(*[np.array(data['atom_residue_indices'])])
 
-        residue_chids = [data['chain_names'][chain_index] for chain_index in data['residue_chain_indices']]
-        chids, _ = extendAtomicData(residue_chids, nodes, ag)
-        ag.setChids(chids)
+        chids = np.array([data['chain_names'][chain_index]
+                          for chain_index in data['residue_chain_indices']])
+        ag.setChids(chids[indices])
 
-        resnames, _ = extendAtomicData(data['residue_names'], nodes, ag)
-        ag.setResnames(resnames)
-
-        resnums, _ = extendAtomicData(data['residue_numbers'], nodes, ag)
-        ag.setResnums(resnums)
+        ag.setResnames(np.array(data['residue_names'])[indices])
+        ag.setResnums(np.array(data['residue_numbers'])[indices])
 
         if data['residue_icodes'] is not None:
-            icodes, _ = extendAtomicData(data['residue_icodes'], nodes, ag)
-            ag.setIcodes(icodes)
+            ag.setIcodes(np.array(data['residue_icodes'])[indices])
 
         # restore acsi and n_csets to defaults
         ag._acsi = None
@@ -261,8 +257,13 @@ def parseBioexcelPDB(query, **kwargs):
     ag = parsePDB(filename)
     if ag is None:
         filename = fetchBioexcelPDB(query, **kwargs)
+        ag = parsePDB(filename)
 
-    return parsePDB(filename)
+    acc = basename(splitext(filename)[0])
+    ag2 = parseBioexcelTopology(acc, **kwargs)
+
+    ag.setElements(ag2.getElements())
+    return ag
 
 def convertXtcToDcd(filepath, **kwargs):
     """Convert xtc trajectories to dcd files using mdtraj.
@@ -320,7 +321,7 @@ def requestFromUrl(url, timeout, filepath, source=None):
                 fo.write(response)
                 fo.close()
                 
-                top = mdtraj.load_psf(fetchBioexcelTopology(acc))
+                top = mdtraj.load_psf(fetchBioexcelTopology(acc, timeout=timeout))
                 mdtraj.load_xtc(filepath, top=top)
 
             elif source == 'pdb':
@@ -339,7 +340,7 @@ def requestFromUrl(url, timeout, filepath, source=None):
         else:
             break
         
-        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        sleep = 100 if int(sleep * 1.5) >= 100 else int(sleep * 1.5)
         LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
     return filepath
@@ -373,7 +374,7 @@ def checkConvert(**kwargs):
     return convert
 
 def checkTimeout(**kwargs):
-    timeout = kwargs.get('timeout', 60)
+    timeout = kwargs.get('timeout', 200)
     if not isinstance(timeout, (Number, type(None))):
         raise TypeError('timeout should be number')
     return timeout
