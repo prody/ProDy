@@ -411,8 +411,6 @@ if prody.PY3K:
             cls.frames1 = '1-5,11-15'
             cls.frames2 = '10:20:2'
 
-            cls.timeout = 1000 # really big on purpose
-
         def testFetchFrames1(self):
             """Test the outcome of a simple fetch scenario using 
             default options."""

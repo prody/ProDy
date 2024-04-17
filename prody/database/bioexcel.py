@@ -257,8 +257,13 @@ def parseBioexcelPDB(query, **kwargs):
     ag = parsePDB(filename)
     if ag is None:
         filename = fetchBioexcelPDB(query, **kwargs)
+        ag = parsePDB(filename)
 
-    return parsePDB(filename)
+    acc = basename(splitext(filename)[0])
+    ag2 = parseBioexcelTopology(acc, **kwargs)
+
+    ag.setElements(ag2.getElements())
+    return ag
 
 def convertXtcToDcd(filepath, **kwargs):
     """Convert xtc trajectories to dcd files using mdtraj.
@@ -335,7 +340,7 @@ def requestFromUrl(url, timeout, filepath, source=None):
         else:
             break
         
-        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        sleep = 100 if int(sleep * 1.5) >= 100 else int(sleep * 1.5)
         LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
     return filepath
@@ -369,7 +374,7 @@ def checkConvert(**kwargs):
     return convert
 
 def checkTimeout(**kwargs):
-    timeout = kwargs.get('timeout', 60)
+    timeout = kwargs.get('timeout', 200)
     if not isinstance(timeout, (Number, type(None))):
         raise TypeError('timeout should be number')
     return timeout
