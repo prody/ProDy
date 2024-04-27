@@ -109,7 +109,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
             show = child
             break
     if show is None:
-        show = cf.add_subplot(projection="3d")
+        show = cf.add_subplot(1,1,1,projection="3d")
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
         onto = list(onto)
@@ -408,7 +408,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 show = child
                 break
         if show is None:
-            show = cf.add_subplot(projection="3d")
+            show = cf.add_subplot(1,1,1,projection="3d")
         plot = show.plot
         text = show.text
 
