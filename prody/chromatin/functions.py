@@ -212,7 +212,7 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
         X, Y, Z = V[:,:3].T
         
         f = figure()
-        ax = f.add_subplot(1,1,1,projection="3d")
+        ax = f.add_subplot(projection="3d")
         if trace:
             ax.plot(X, Y, Z, ':', color=[0.3, 0.3, 0.3])
         if labels is None:

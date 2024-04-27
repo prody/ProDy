@@ -122,6 +122,7 @@ def parsePDB(*pdb, **kwargs):
         if isListLike(pdb[0]) or isinstance(pdb[0], dict):
             pdb = pdb[0]
             n_pdb = len(pdb)
+
     if n_pdb == 1:
         return _parsePDB(pdb[0], **kwargs)
     else:
@@ -229,7 +230,8 @@ def _parsePDB(pdb, **kwargs):
         if len(title) == 7 and title.startswith('pdb'):
             title = title[3:]
         kwargs['title'] = title
-    if pdb.endswith('.pdb') or pdb.endswith('.pdb.gz') or pdb.endswith('.coor'):
+
+    if pdb.endswith('.pdb') or pdb.endswith('.pdb.gz'):
         stream = openFile(pdb, 'rt')
         if chain != '':
             kwargs['chain'] = chain
