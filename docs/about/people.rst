@@ -70,7 +70,7 @@ insights.
 
 .. _Ahmet Bakan: https://scholar.google.com/citations?user=-QAYVgMAAAAJ&hl=en
 .. _Cihan Kaya: https://www.linkedin.com/in/cihan-kaya/
-.. _Bahar Lab: http://www.ccbb.pitt.edu/faculty/bahar/
+.. _Bahar Lab: http://www.bahargroup.org/Faculty/bahar/
 .. _University of Pittsburgh: http://www.pitt.edu/
 .. _Anindita Dutta: http://www.linkedin.com/pub/anindita-dutta/5a/568/a90
 .. _Wenzhi Mao: http://www.linkedin.com/pub/wenzhi-mao/2a/29a/29
