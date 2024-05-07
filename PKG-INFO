@@ -92,7 +92,7 @@ Classifier: Programming Language :: Python :: 3
 Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
 Classifier: Topic :: Scientific/Engineering :: Chemistry
 Requires: numpy (>=1.10)
-Requires: pyparsing
+Requires: pyparsing (<=3.1.1)
 Requires: biopython
 Requires: scipy
-Provides: prody (2.1.2)
+Provides: prody

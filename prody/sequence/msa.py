@@ -154,7 +154,7 @@ class MSA(object):
         if isinstance(rows, list):
             rows = self.getIndex(rows) or rows
         elif isinstance(rows, int):
-            return Sequence(self._msa[rows, cols].tostring(),
+            return Sequence(self._msa[rows, cols].tobytes(),
                             self._labels[rows])
         elif isinstance(rows, str):
             try:
@@ -164,7 +164,7 @@ class MSA(object):
                                .format(index))
             else:
                 if isinstance(rows, int):
-                    return Sequence(self._msa[rows, cols].tostring(),
+                    return Sequence(self._msa[rows, cols].tobytes(),
                                     self._labels[rows])
 
         if cols is None:
@@ -546,7 +546,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                 from prody.utilities import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
 
                 chseq = chain.getSequence()
-                algn = alignBioPairwise(pystr(arr[index].tostring().upper()), pystr(chseq),
+                algn = alignBioPairwise(pystr(arr[index].tobytes().upper()), pystr(chseq),
                                         "local",
                                         MATCH_SCORE, MISMATCH_SCORE,
                                         GAP_PENALTY, GAP_EXT_PENALTY,
