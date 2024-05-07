@@ -78,13 +78,13 @@ insights.
 .. _Ying Liu: http://www.linkedin.com/pub/ying-liu/15/48b/5a9
 .. _Kian Ho: https://github.com/kianho
 .. _Gökçen Eraslan: http://blog.yeredusuncedernegi.com/
-.. _Tim Lezon: http://www.csb.pitt.edu/Faculty/Lezon/
+.. _Tim Lezon: https://scholar.google.pl/citations?user=1MwNI3EAAAAJ&hl=pl&oi=ao
 .. _Chakra Chennubhotla: http://www.csb.pitt.edu/Faculty/Chakra/
 .. _She (John) Zhang: https://www.linkedin.com/in/she-zhang-49164399/
 .. _Hongchun Li: http://www.pitt.edu/~hongchun/
 .. _James Krieger: https://scholar.google.pl/citations?user=DoiCjkUAAAAJ&hl=pl
-.. _Yan Zhang: https://www.csb.pitt.edu/Faculty/bahar/lab.html
-.. _Burak Kaynak: https://www.csb.pitt.edu/Faculty/bahar/lab.html
+.. _Yan Zhang: https://scholar.google.pl/citations?user=VxwU0pgAAAAJ&hl=pl&oi=sra
+.. _Burak Kaynak: https://scholar.google.pl/citations?user=gP8RokwAAAAJ&hl=pl&oi=ao
 .. _Karolina Mikulska-Ruminska: https://scholar.google.pl/citations?user=IpyPHRwAAAAJ&hl=pl
 .. _Anthony Bogetti: https://scholar.google.pl/citations?hl=pl&user=9qQClIcAAAAJ
 .. _Frane Doljanin: https://github.com/fdoljanin
