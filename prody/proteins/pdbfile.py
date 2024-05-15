@@ -537,23 +537,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     dec = True
     while i < stop:
         line = lines[i]
-        if not isPDB:
-            fields = line.split()
-            if fields[5].find('.') != -1:
-                # coords too early as no chid
-                fields.insert(4, '')
-            if len(fields) != 11:
-                try:
-                    fields = fields[:6] + [line[30:38].strip(), line[38:46].strip(), line[46:54].strip()] + line[54:].split()
-                except:
-                    LOGGER.warn('wrong number of fields for PQR format at line %d'%i)
-                    i += 1
-                    continue
-
-        if isPDB:
-            startswith = line[0:6].strip()
-        else:
-            startswith = fields[0]
+        startswith = line[0:6].strip()
 
         if startswith == 'ATOM' or startswith == 'HETATM':
             if isPDB:
@@ -564,6 +548,17 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 else:
                     resname = line[17:20].strip()
             else:
+                fields = line.split()
+                if fields[5].find('.') != -1:
+                    # coords too early as no chid
+                    fields.insert(4, '')
+                if len(fields) != 11:
+                    try:
+                        fields = fields[:6] + [line[30:38].strip(), line[38:46].strip(), line[46:54].strip()] + line[54:].split()
+                    except:
+                        LOGGER.warn('wrong number of fields for PQR format at line %d'%i)
+                        i += 1
+                        continue
                 atomname= fields[2]
                 resname = fields[3]
 
