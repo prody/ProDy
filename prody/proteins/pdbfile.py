@@ -1688,7 +1688,10 @@ def writePQRStream(stream, atoms, **kwargs):
     write = stream.write
 
     calphas = atoms.ca
-    ssa = calphas.getSecstrs()
+    if calphas is not None:
+        ssa = calphas.getSecstrs()
+    else:
+        ssa = None
     helix = []
     sheet = []
     if ssa is not None:
