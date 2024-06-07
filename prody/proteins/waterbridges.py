@@ -8,6 +8,7 @@ __credits__ = ['Frane Doljanin', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
 import numpy as np
+import os
 
 from itertools import combinations
 from collections import deque
@@ -28,7 +29,8 @@ __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInf
            'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
            'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory',
-           'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters']
+           'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters',
+           'filterStructuresWithoutWater']
 
 
 class ResType(Enum):
@@ -1122,8 +1124,8 @@ def findClusterCenters(file_pattern, **kwargs):
     removeCoords = []
     for ii in range(len(coords_all)):
         sel = coords_all.select('water within '+str(distC)+' of center', 
-                    center=coords_all.getCoords()[ii])
-        if len(sel) <= int(numC):
+                                center=coords_all.getCoords()[ii])
+        if sel is not None and len(sel) <= int(numC):
             removeResid.append(coords_all.getResnums()[ii])
             removeCoords.append(list(coords_all.getCoords()[ii]))
 
@@ -1149,3 +1151,67 @@ def findClusterCenters(file_pattern, **kwargs):
         filename = 'clusters.pdb'
     writePDB(filename, selectedWaters)
     LOGGER.info("Results are saved in {0}.".format(filename))
+
+def filterStructuresWithoutWater(structures, min_water=0, filenames=None):
+    """This function will filter out structures from *structures* that have no water 
+    or fewer water molecules than *min_water*.
+    
+    :arg structures: list of :class:`.Atomic` structures to be filtered
+    :type structures: list
+
+    :arg min_water: minimum number of water O atoms, 
+        default is 0
+    :type min_water: int
+
+    :arg filenames: an optional list of filenames to filter too
+        This is an output argument
+    :type filenames: list
+    """
+
+    if not isinstance(structures, list):
+        raise TypeError('structures should be a list')
+    
+    if not np.alltrue([isinstance(struct, Atomic) for struct in structures]):
+        raise ValueError('elements of structures should be Atomic objects')
+    
+    if not isinstance(min_water, int):
+        raise TypeError('min_water should be an integer')
+    
+    if filenames is None: filenames = []
+
+    if not isinstance(filenames, list):
+        raise TypeError('filenames should be None or a list')
+    
+    if len(filenames) not in [0, len(structures)]:
+        raise TypeError('filenames should have the same length as structures')
+    
+    if not np.alltrue([isinstance(filename, str) for filename in filenames]):
+        raise ValueError('elements of filenames should be strings')
+    
+    if not np.alltrue([os.path.exists(filename) for filename in filenames]):
+        raise ValueError('at least one of the filenames does not exist')
+    
+    have_filenames = len(filenames)>0
+
+    new_structures = []
+    numStructures = len(structures)
+    for i, struct in enumerate(reversed(structures)):
+        title = struct.getTitle()
+        waters = struct.select('water and name O')
+    
+        if waters == None:
+            LOGGER.warn(title+" doesn't contain water molecules")
+            if have_filenames:
+                filenames.pop(numStructures-i-1)
+            continue
+    
+        numWaters = waters.numAtoms()
+        if numWaters < min_water:
+            LOGGER.warn(title+" doesn't contain enough water molecules ({0})".format(numWaters))
+            if have_filenames:
+                filenames.pop(numStructures-i-1)
+            continue
+
+        new_structures.append(struct)
+
+    return list(reversed(new_structures))
