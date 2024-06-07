@@ -1194,6 +1194,7 @@ def filterStructuresWithoutWater(structures, min_water=0, filenames=None):
     have_filenames = len(filenames)>0
 
     new_structures = []
+    numStructures = len(structures)
     for i, struct in enumerate(reversed(structures)):
         title = struct.getTitle()
         waters = struct.select('water and name O')
@@ -1201,16 +1202,16 @@ def filterStructuresWithoutWater(structures, min_water=0, filenames=None):
         if waters == None:
             LOGGER.warn(title+" doesn't contain water molecules")
             if have_filenames:
-                filenames.pop(-i)
+                filenames.pop(numStructures-i-1)
             continue
     
         numWaters = waters.numAtoms()
         if numWaters < min_water:
             LOGGER.warn(title+" doesn't contain enough water molecules ({0})".format(numWaters))
             if have_filenames:
-                filenames.pop(-i)
+                filenames.pop(numStructures-i-1)
             continue
 
         new_structures.append(struct)
 
-    return new_structures
+    return list(reversed(new_structures))
