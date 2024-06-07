@@ -149,8 +149,8 @@ Set overwrite=True to overwrite it'.format(outfile))
 
 
 def fixStructuresMissingAtoms(infiles, method='openbabel', pH=7.0, outfiles=None, **kwargs):
-    """This function will add hydrogens to the protein and ligand structure using Openbabel [NO11]_
-    or PDBFixer with OpenMM.
+    """This function will add hydrogens to the protein and ligand structure from a set of files
+    using Openbabel [NO11]_ or PDBFixer with OpenMM.
     
     There are also options whether to *model_residues* (default False), *remove_heterogens* 
     (default False) and *keep_waters* (default True).
