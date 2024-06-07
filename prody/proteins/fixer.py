@@ -28,7 +28,7 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     or PDBFixer with OpenMM. 
     
     There are also options whether to *model_residues* (default False), *remove_heterogens* 
-    (default False) and *keep_waters* (default True).
+    (default False), *keep_waters* (default True), *overwrite* (default False).
     
     :arg infile: PDB file name
     :type infile: str
@@ -57,6 +57,7 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     model_residues = kwargs.get("model_residues", False)
     remove_heterogens = kwargs.get("remove_heterogens", False)
     keep_water = kwargs.get("keep_water", True)
+    overwrite = kwargs.get("overwrite", False)
 
     import os
 
@@ -68,6 +69,9 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
 
     if not isinstance(keep_water, bool):
         raise TypeError('keep_water should be True or False')
+
+    if not isinstance(overwrite, bool):
+        raise TypeError('overwrite should be True or False')
     
     if not isinstance(infile, str):
         raise TypeError('infile should be a string pointing to a file')
@@ -79,7 +83,13 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
         raise TypeError('pH should be a number')
 
     if outfile == None:
-        outfile = os.path.join(os.path.split(infile)[0], "addH_" + os.path.split(infile)[1])
+        outfile = os.path.join(os.path.split(infile)[0],
+                               "addH_" + os.path.split(infile)[1])
+
+    if os.path.exists(outfile) and not overwrite:
+        LOGGER.warn('outfile {0} already exists, so returning it. \
+Set overwrite=True to overwrite it'.format(outfile))
+        return outfile
         
     if outfile == infile:
         raise ValueError('outfile cannot be the same as infile')
