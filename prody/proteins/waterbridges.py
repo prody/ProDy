@@ -1124,8 +1124,8 @@ def findClusterCenters(file_pattern, **kwargs):
     removeCoords = []
     for ii in range(len(coords_all)):
         sel = coords_all.select('water within '+str(distC)+' of center', 
-                    center=coords_all.getCoords()[ii])
-        if len(sel) <= int(numC):
+                                center=coords_all.getCoords()[ii])
+        if sel is not None and len(sel) <= int(numC):
             removeResid.append(coords_all.getResnums()[ii])
             removeCoords.append(list(coords_all.getCoords()[ii]))
 
