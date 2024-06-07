@@ -28,7 +28,8 @@ __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInf
            'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
            'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory',
-           'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters']
+           'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters',
+           'filterStructuresWithoutWater']
 
 
 class ResType(Enum):
@@ -1149,3 +1150,21 @@ def findClusterCenters(file_pattern, **kwargs):
         filename = 'clusters.pdb'
     writePDB(filename, selectedWaters)
     LOGGER.info("Results are saved in {0}.".format(filename))
+
+def filterStructuresWithoutWater(structures, min_water=0):
+    new_structures = []
+    for struct in structures:
+        title = struct.getTitle()
+        waters = struct.select('water')
+    
+        if waters == None:
+            LOGGER.warn(title+" doesn't contain water molecules")
+            continue
+    
+        numWaters = waters.numAtoms()
+        if numWaters < min_water:
+            LOGGER.warn(title+" doesn't contain enough water molecules ({0})".format(numWaters))
+        else:
+            new_structures.append(struct)
+
+    return new_structures
