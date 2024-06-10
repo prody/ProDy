@@ -9,12 +9,18 @@ import numpy as np
 from prody.proteins import alignChains
 from prody.utilities import openFile, showFigure, copy, isListLike, pystr, DTYPE
 from prody import LOGGER, SETTINGS
-from prody.atomic import Atomic, AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
+from prody.atomic import Atomic, AtomGroup
 from prody.sequence import buildSeqidMatrix
 
-from .ensemble import *
-from .pdbensemble import *
-from .conformation import *
+have_openmm = True
+try:
+    import openmm
+except ImportError:
+    have_openmm = False
+
+from .ensemble import Ensemble
+from .pdbensemble import PDBEnsemble
+from .conformation import PDBConformation
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies',
@@ -47,6 +53,8 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
                           '_maxIterations', '_sim', '_temp', '_t_steps', '_outlier',
                           '_mzscore', '_v1', '_parallel', '_idx_cg', '_n_cg', '_cycle',
                           '_time', '_targeted', '_tmdk', '_cc'])
+        if have_openmm:
+            attr_list.extend(['_topology', '_positions'])
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
@@ -158,7 +166,10 @@ def loadEnsemble(filename, **kwargs):
                     '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
                     '_sim', '_temp', '_t_steps', '_outlier', '_mzscore', '_v1',
                     '_parallel', '_idx_ca', '_n_ca', '_cycle', '_time', '_targeted',
-                    '_tmdk', '_topology', '_positions', '_cc']
+                    '_tmdk', '_cc']
+        if have_openmm:
+            attrs.extend(['_topology', '_position'])
+            
             
             for attr in attrs:
                 if attr in attr_dict.files:
