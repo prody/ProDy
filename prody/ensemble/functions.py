@@ -46,7 +46,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
                           '_padding', '_ionicStrength', '_force_field', '_tolerance',
                           '_maxIterations', '_sim', '_temp', '_t_steps', '_outlier',
                           '_mzscore', '_v1', '_parallel', '_idx_cg', '_n_cg', '_cycle',
-                          '_time', '_targeted', '_tmdk', '_topology', '_positions', '_cc'])
+                          '_time', '_targeted', '_tmdk', '_cc'])
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
