@@ -8,6 +8,7 @@ import numpy as np
 from prody import LOGGER, SETTINGS, getPackagePath, PY3K
 from prody.atomic import AtomGroup, ATOMIC_FIELDS
 from prody.utilities import openFile, makePath, openURL
+from .ccd import parseCCD
 
 __all__ = ['PDBLigandRecord', 'fetchPDBLigand', 'parsePDBLigand']
 
@@ -18,7 +19,11 @@ class PDBLigandRecord(object):
         self._rawdata = data
 
     def getCanonicalSMILES(self):
-        return self._rawdata['CACTVS_SMILES_CANONICAL']
+        canonical = None
+        for row in self._rawdata[2].data:
+            if row['_pdbx_chem_comp_descriptor.type'] == 'SMILES_CANONICAL':
+                canonical = row['_pdbx_chem_comp_descriptor.descriptor']
+        return canonical
 
 
 def fetchPDBLigand(cci, filename=None):
@@ -233,8 +238,8 @@ def fetchPDBLigand(cci, filename=None):
     return dict_
 
 
-def parsePDBLigand(cci, filename=None):
+def parsePDBLigand(cci):
     """See :func:`.fetchPDBLigand`"""
-    lig_dict = fetchPDBLigand(cci, filename)
+    lig_dict = parseCCD(cci)
     return PDBLigandRecord(lig_dict)
 
