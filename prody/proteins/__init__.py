@@ -260,7 +260,7 @@ try:
 except SyntaxError:
     import logging
     logger = logging.getLogger()
-    logger.warn("Cannot import waterbridges in python 2")
+    logger.warn("Cannot import waterbridges")
 else:
     __all__.extend(waterbridges.__all__)
 
