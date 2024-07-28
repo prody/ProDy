@@ -7,6 +7,8 @@ __author__ = 'Karolina Mikulska-Ruminska'
 __credits__ = ['Frane Doljanin', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
+import multiprocessing as mp
+
 from numbers import Number
 import numpy as np
 import os
@@ -525,22 +527,42 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
 
         atoms_copy = atoms.copy()
-        for j0, frame0 in enumerate(traj, start=start_frame):
+        def analyseFrame(j0, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
 
             interactions = calcWaterBridges(
                 atoms_copy, isInfoLog=False, **kwargs)
             interactions_all.append(interactions)
+
+        jobs = []
+        for j0, frame0 in enumerate(traj, start=start_frame):
+            p = mp.Process(target=analyseFrame, args=(j0, frame0,
+                                                      interactions_all))
+            p.start()
+            jobs.append(p)
+
+        for proc in jobs:
+            proc.join()
         # trajectory._nfi = nfi
 
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+            def analyseFrame(i, interactions_all):
                 LOGGER.info('Model: {0}'.format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
-                interactions = calcWaterBridges(atoms, **kwargs)
+                interactions = calcWaterBridges(
+                    atoms, isInfoLog=False, **kwargs)
                 interactions_all.append(interactions)
+
+            jobs = []
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                p.start()
+                jobs.append(p)
+
+            for proc in jobs:
+                proc.join()
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
