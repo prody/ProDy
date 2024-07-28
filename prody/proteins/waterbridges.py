@@ -392,7 +392,7 @@ def calcWaterBridges(atoms, **kwargs):
     waterHydrogens = consideredAtoms.select('water and hydrogen') or []
     waterOxygens = consideredAtoms.select('water and oxygen')
     waterHydroOxyPairs = findNeighbors(
-        waterOxygens, DIST_COVALENT_H, waterHydrogens)
+        waterOxygens, DIST_COVALENT_H, waterHydrogens) if waterHydrogens else []
     for oxygen in waterOxygens:
         relations.addNode(oxygen, ResType.WATER)
     for pair in waterHydroOxyPairs:
@@ -404,7 +404,7 @@ def calcWaterBridges(atoms, **kwargs):
 
     proteinHydrogens = consideredAtoms.select(f'protein and hydrogen') or []
     proteinHydroPairs = findNeighbors(
-        proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens)
+        proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens) if proteinHydrogens else []
     for hydrophilic in proteinHydrophilic:
         relations.addNode(hydrophilic, ResType.PROTEIN)
     for pair in proteinHydroPairs:
