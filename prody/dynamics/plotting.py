@@ -2360,7 +2360,7 @@ def checkColors(colors, num, labels, allowNumbers=False):
     """Check colors and process them if needed"""
 
     from matplotlib.colors import is_color_like
-    
+
     colors_dict = {}
 
     if isinstance(colors, np.ndarray):
@@ -2370,6 +2370,12 @@ def checkColors(colors, num, labels, allowNumbers=False):
         colors = [colors] * num
     elif isListLike(colors):
         colors = list(colors)
+
+    if isinstance(colors, dict):
+        if labels is None:
+            raise TypeError('color must be a string or a list unless labels are provided')
+        colors_dict = colors
+        colors = [colors_dict[label] for label in labels]
 
     if isinstance(colors, list):
         if len(colors) != num and not is_color_like(colors):
@@ -2381,19 +2387,10 @@ def checkColors(colors, num, labels, allowNumbers=False):
             elif np.any([not isinstance(color, Number) for color in colors]):
                 raise ValueError('each element of colors should be a number or satisfy matplotlib color rules')
 
-    elif isinstance(colors, dict):
-        if labels is None:
-            raise TypeError('color must be a string or a list unless labels are provided')
-        colors_dict = colors
-        colors = [colors_dict[label] for label in labels]
+        if len(colors) > 1 and np.any([not isinstance(color, type(colors[0])) for color in colors]):
+            raise TypeError('each element of colors should have the same type')
 
-        if np.any([not is_color_like(color) for color in colors]):
-            if not allowNumbers:
-                raise ValueError('each element of colors should satisfy matplotlib color rules')
-            elif np.any([not isinstance(color, Number) for color in colors]):
-                raise ValueError('each element of colors should be a number or satisfy matplotlib color rules')
-
-    elif not (isinstance(colors, Number) or is_color_like(colors)):
+    elif not ((allowNumbers and isinstance(colors, Number)) or is_color_like(colors)):
         raise TypeError('color must be a number, string, list, matplotlib color spec, or a dict if labels are provided')
 
     return colors, colors_dict
