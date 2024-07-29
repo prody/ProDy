@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: ProDy
-Version: 2.0
+Version: 2.4.1
 Summary: A Python Package for Protein Dynamics Analysis
 Home-page: http://www.csb.pitt.edu/ProDy
 Author: James Krieger, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan, and others
@@ -92,7 +92,7 @@ Classifier: Programming Language :: Python :: 3
 Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
 Classifier: Topic :: Scientific/Engineering :: Chemistry
 Requires: numpy (>=1.10)
-Requires: pyparsing
+Requires: pyparsing (<=3.1.1)
 Requires: biopython
 Requires: scipy
-Provides: prody (2.0)
+Provides: prody

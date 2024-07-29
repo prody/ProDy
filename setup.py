@@ -11,15 +11,14 @@ if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
     sys.exit()
 
-if sys.version_info[:2] == (2, 7):
-    INSTALL_REQUIRES=['numpy>=1.10', 'biopython<=1.76', 'pyparsing', 'scipy']
+if sys.version_info[:2] == (2, 7) or sys.version_info[:2] <= (3, 5):
+    INSTALL_REQUIRES=['numpy>=1.10,<1.25', 'biopython<=1.76', 'pyparsing', 'scipy']
 else:
-    INSTALL_REQUIRES=['numpy>=1.10', 'biopython', 'pyparsing', 'scipy']
+    INSTALL_REQUIRES=['numpy>=1.10,<1.24', 'biopython', 'pyparsing<=3.1.1', 'scipy<=1.13.1', 'setuptools']
 
-if sys.version_info[0] == 3:
-    if sys.version_info[1] < 5:
-        sys.stderr.write('Python 3.4 and older is not supported\n')
-        sys.exit()
+if sys.version_info[0] == 3 and sys.version_info[1] < 6:
+    sys.stderr.write('Python 3.5 and older is not supported\n')
+    sys.exit()
 
 if os.name == 'java':
     sys.stderr.write('JavaOS is not supported\n')
@@ -85,7 +84,8 @@ PACKAGE_DATA = {
                     'datafiles/*.coo',
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
-                    'datafiles/msa*',]
+                    'datafiles/msa*',
+                    'datafiles/mmcif*cif',]
 }
 
 PACKAGE_DIR = {}
@@ -94,6 +94,7 @@ for pkg in PACKAGES:
     
 from glob import glob
 tntDir = join('prody', 'utilities', 'tnt')
+hpbDir = join('prody', 'proteins', 'hpbmodule')
 
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
@@ -125,6 +126,12 @@ if platform.system() == 'Darwin':
     #extra_compile_args.append('-stdlib=libc++')
 
 
+# extra compilation of reg_tet.f (hpb):
+# import subprocess
+# subprocess.call(['gfortran', '-O3', '-fPIC', '-c',
+#                  join('prody', 'proteins', 'hpbmodule', 'reg_tet.f'),
+#                  '-o', join('prody', 'proteins', 'hpbmodule', 'reg_tet.o')])
+
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
@@ -132,8 +139,13 @@ CONTRIBUTED = [
               include_dirs=[numpy.get_include()]),
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
-              include_dirs=[tntDir], language='c++',
-              )
+              include_dirs=[tntDir], language='c++'),
+    #Extension('prody.proteins.hpb',
+    #          [join('prody', 'proteins', 'hpbmodule', 'reg_tet.c')],
+    #          include_dirs=[hpbDir], language='c++',
+    #          extra_compile_args=['-O3', '-fPIC'],
+    #          extra_objects=[join(hpbDir, 'libf2c', 'libf2c.a')]
+    #          )
 ]
 
 for ext in CONTRIBUTED:

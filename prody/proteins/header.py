@@ -11,7 +11,7 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import Atomic, AtomGroup
 from prody.atomic import getSequence
 from prody.measure import Transformation
-from prody.utilities import openFile
+from prody.utilities import openFile, decToHybrid36
 
 from .localpdb import fetchPDB
 
@@ -113,9 +113,9 @@ class Polymer(object):
     sequence    str     polymer chain sequence (SEQRES)
     dbrefs      list    sequence database records (DBREF[1|2] and SEQADV),
                         see :class:`DBRef`
-    modified    list    | modified residues (SEQMOD)
+    modified    list    | modified residues (MODRES)
                         | when modified residues are present, each will be
-                          represented as: ``(resname, resnum, icode, stdname,
+                          represented as: ``(resname, chid, resnum, icode, stdname,
                           comment)``
     pdbentry    str     PDB entry that polymer data is extracted from
     ==========  ======  ======================================================
@@ -185,7 +185,8 @@ _PDB_DBREF = {
     'UNP': 'UniProt',
     'NORINE': 'Norine',
     'UNIMES': 'UNIMES',
-    'EMDB': 'EMDB'
+    'EMDB': 'EMDB',
+    'BMRB': 'BMRB'
 }
 
 
@@ -469,8 +470,8 @@ def _getSheet(lines):
     for i, line in lines['SHEET ']:
         try:
             chid = line[21]
-            value = (int(line[38:40]), int(line[7:10]),
-                     line[11:14].strip())
+                     # sense           # strand num     # sheet id
+            value = (int(line[38:40]), int(line[7:10]), line[11:14].strip())
         except:
             continue
 
@@ -707,8 +708,9 @@ def _getPolymers(lines):
         polymers[ch] = poly
         if poly.modified is None:
             poly.modified = []
-        poly.modified.append((line[12:15].strip(), line[18:22].strip() +
-                              line[22].strip(), line[24:27].strip(),
+        poly.modified.append((line[12:15].strip(), line[16],
+                              line[18:22].strip() + line[22].strip(), 
+                              line[24:27].strip(),
                               line[29:70].strip()))
 
     for i, line in lines['SEQADV']:
@@ -716,7 +718,7 @@ def _getPolymers(lines):
         ch = line[16]
         if ch == ' ':
             if not len(polymers) == 1:
-                LOGGER.warn('MODRES chain identifier is not specified '
+                LOGGER.warn('SEQADV chain identifier is not specified '
                             '({0}:{1})'.format(pdbid, i))
                 continue
             else:
@@ -825,7 +827,7 @@ def _getChemicals(lines):
         chem_names[chem] += line[15:70].rstrip()
     for i, line in lines['HETSYN']:
         chem = line[11:14].strip()
-        chem_synonyms[chem] += line[15:70].rstrip()
+        chem_synonyms[chem] += line[15:70].strip()
     for i, line in lines['FORMUL']:
         chem = line[12:15].strip()
         chem_formulas[chem] += line[18:70].rstrip()
@@ -833,7 +835,7 @@ def _getChemicals(lines):
     for chem, name in chem_names.items():  # PY3K: OK
         name = cleanString(name)
         for chem in chemicals[chem]:
-            chem.name = name
+            chem.name = cleanString(name, nows=True)
     for chem, formula in chem_formulas.items():  # PY3K: OK
         formula = cleanString(formula)
         for chem in chemicals[chem]:
@@ -842,7 +844,7 @@ def _getChemicals(lines):
         synonyms = cleanString(synonyms)
         synonyms = synonyms.split(';')
         for chem in chemicals[chem]:
-            chem.synonyms = synonyms
+            chem.synonyms = [syn.strip() for syn in synonyms]
 
     alist = []
     for chem in chemicals.values():  # PY3K: OK
@@ -936,7 +938,7 @@ def isSheet(secstrs):
     torf = secstrs == 'E'
     return torf
 
-def assignSecstr(header, atoms, coil=False):
+def assignSecstr(header, atoms, coil=True):
     """Assign secondary structure from *header* dictionary to *atoms*.
     *header* must be a dictionary parsed using the :func:`.parsePDB`.
     *atoms* may be an instance of :class:`.AtomGroup`, :class:`.Selection`,
@@ -1002,7 +1004,7 @@ def assignSecstr(header, atoms, coil=False):
                       ATOMIC_FIELDS['secindex'].dtype))  
 
     prot = atoms.select('protein')
-    if prot is not None:
+    if prot is not None and coil:
         prot.setSecstrs('C')
     hierview = atoms.getHierView()
     count = 0
@@ -1109,10 +1111,13 @@ def buildBiomolecules(header, atoms, biomol=None):
             translation[2] = line2[3]
             t = Transformation(rotation, translation)
 
-            newag = atoms.select('chain ' + ' '.join(mt[times*4+0])).copy()
+            newag = atoms.select('chain ' + ' or chain '.join(mt[times*4+0]))
             if newag is None:
                 continue
-            newag.all.setSegnames(segnm.pop(0))
+            newag = newag.copy()
+            segnames = newag.all.getSegnames()
+            newag.all.setSegnames(np.array([segname + decToHybrid36(times+1, resnum=True) 
+                                            for segname in segnames]))
             for acsi in range(newag.numCoordsets()):
                 newag.setACSIndex(acsi)
                 newag = t.apply(newag)

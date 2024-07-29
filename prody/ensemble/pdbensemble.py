@@ -521,6 +521,10 @@ class PDBEnsemble(Ensemble):
         for i in index:
             self._labels.pop(i)
 
+        if self._trans is not None:
+            for i in index:
+                self._trans = np.delete(self._trans, i, 0)
+
         if self._msa is not None:
             rest = []
             for i in range(self._msa.numSequences()):

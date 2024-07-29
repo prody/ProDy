@@ -21,7 +21,8 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'checkIdentifiers', 'split', 'mad']
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'checkIdentifiers', 'split', 'mad',
+           'importDec']
 
 DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
@@ -740,13 +741,8 @@ def hybrid36ToDec(x, resnum=False):
 
 def split(string, shlex=False):
     if shlex:
-        try:
-            import shlex
-        except ImportError:
-            raise ImportError('Use of the shlex option requires the '
-                              'installation of the shlex package.')
-        else:
-            return shlex.split(string)
+        import shlex
+        return shlex.split(string)
     else:
         return string.split()
 
@@ -789,3 +785,20 @@ def mad(x):
                 return median(abs(x - med))
     
     return _mad(x)
+
+
+def importDec():
+    """Returns one of :mod:`scipy.linalg` or :mod:`numpy.linalg`."""
+
+    try:
+        import numpy.testing.decorators as dec
+    except ImportError:
+        try:
+            from numpy.testing import dec
+        except ImportError:
+            try:
+                import numpy.testing._private.decorators as dec
+            except ImportError:
+                from pytest import mark as dec    
+
+    return dec

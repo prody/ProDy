@@ -112,6 +112,8 @@ class Atomic(object):
                                                  ' from ' + str(self))
                         else:
                             return None
+                elif name == '_anisous':
+                    return None
                 else:
                     selstr = name
                     items = name.split('_')
@@ -255,7 +257,7 @@ class Atomic(object):
         return seq
 
     def toTEMPyAtoms(self):
-        """Returns a BioPy.PDB Atom or Structure object as appropriate"""
+        """Returns a :class:`TEMPy.protein.prot_rep_biopy.Atom` or list of them as appropriate"""
         try:
             from TEMPy.protein.prot_rep_biopy import Atom as TEMPyAtom
         except ImportError:
@@ -267,10 +269,152 @@ class Atomic(object):
             return [self.toTEMPyAtom()]
 
     def toTEMPyStructure(self):
-        """Returns a BioPy.PDB Atom or Structure object as appropriate""" 
+        """Returns a :class:`.protein.prot_rep_biopy.Structure` object""" 
         try:
             from TEMPy.protein.prot_rep_biopy import BioPy_Structure
         except ImportError:
             raise ImportError('TEMPy is needed for this functionality')
 
         return BioPy_Structure(self.toTEMPyAtoms())
+
+    def numResidues(self):
+        """Returns number of residues."""
+
+        return len(set(self._getResindices()))
+
+
+    def toBioPythonStructure(self, header=None, **kwargs):
+        """Returns a :class:`Bio.PDB.Structure` object
+
+        :arg atoms: an object with atom and coordinate data
+        :type atoms: :class:`.Atomic`
+
+        :arg csets: coordinate set indices, default is all coordinate sets
+        """ 
+        try:
+            from Bio.PDB.Structure import Structure
+            from Bio.PDB.StructureBuilder import StructureBuilder
+            from Bio.PDB.PDBParser import PDBParser
+            from Bio.PDB.PDBExceptions import PDBConstructionException
+        except ImportError:
+            raise ImportError('Bio StructureBuilder could not be imported. '
+                'Reinstall ProDy or install Biopython '
+                'to solve the problem.')
+
+        origACSI = self.getACSIndex()
+
+        csets = kwargs.get('csets', None)
+        if csets is None:
+            csets = range(self.numCoordsets())
+
+        structure_builder = StructureBuilder()
+        structure_builder.init_structure(self.getTitle())
+        if header is not None:
+            structure_builder.set_header(header)
+
+        result = structure_builder.get_structure()
+        result.is_pqr = (self.getCharges() is not None 
+                         and self.getRadii() is not None)
+        
+        for i in csets:
+            self.setACSIndex(i)
+            structure_builder.init_model(i)
+
+            current_segid = None
+            current_chain_id = None
+            current_residue_id = None
+
+            for global_line_counter, atom in enumerate(self):
+                segid = atom.getSegname()
+                if current_segid != segid:
+                    current_segid = segid
+                    structure_builder.init_seg(current_segid)
+
+                chainid = atom.getChid()
+                resname = atom.getResname()
+
+                if atom.getFlag('hetatm'):
+                    if atom.getFlag('water'):
+                        hetero_flag = 'W'
+                    else:
+                        hetero_flag = 'H'
+                else:
+                    hetero_flag = ' '
+
+                resseq = atom.getResnum()
+                icode = atom.getIcode()
+                if len(icode) == 0:
+                    icode = ' '
+                residue_id = (hetero_flag, resseq, icode)
+
+                if current_chain_id != chainid:
+                    current_chain_id = chainid
+                    structure_builder.init_chain(current_chain_id)
+                    
+                    current_residue_id = residue_id
+                    current_resname = resname
+                    try:
+                        structure_builder.init_residue(
+                            resname, hetero_flag, resseq, icode
+                        )
+                    except PDBConstructionException as message:
+                        result._handle_PDB_exception(message, global_line_counter)
+                elif current_residue_id != residue_id or current_resname != resname:
+                    current_residue_id = residue_id
+                    current_resname = resname
+                    try:
+                        structure_builder.init_residue(
+                            resname, hetero_flag, resseq, icode
+                        )
+                    except PDBConstructionException as message:
+                        result._handle_PDB_exception(message, global_line_counter)
+
+                name = atom.getName()
+                coord = atom.getCoords()
+                altloc = atom.getAltloc()
+                fullname = atom.getName()
+                serial_number = atom.getSerial()
+                element = atom.getElement()
+
+                if not result.is_pqr:
+                    # init atom with pdb fields
+                    try:
+                        structure_builder.init_atom(
+                            name,
+                            coord,
+                            atom.getBeta(),
+                            atom.getOccupancy(),
+                            altloc,
+                            fullname,
+                            serial_number,
+                            element,
+                        )
+                    except PDBConstructionException as message:
+                        result._handle_PDB_exception(message, global_line_counter)
+                else:
+                    try:
+                        structure_builder.init_atom(
+                            name,
+                            coord,
+                            atom.getCharge(),
+                            atom.getRadius(),
+                            altloc,
+                            fullname,
+                            serial_number,
+                            element,
+                            atom.getCharge(),
+                            atom.getRadius(),
+                            result.is_pqr,
+                        )
+                    except PDBConstructionException as message:
+                        result._handle_PDB_exception(message, global_line_counter)
+
+                if atom.getAnisou() is not None:
+                    structure_builder.set_anisou(atom.getAnisou())
+
+                if atom.getAnistd() is not None:
+                    structure_builder.set_siguij(atom.getAnistd())
+
+        self.setACSIndex(origACSI)
+
+        return result

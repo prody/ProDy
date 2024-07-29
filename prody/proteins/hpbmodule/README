@@ -1,0 +1,32 @@
+
+hpb is a python module written for calculating the hydrophobic interactions and solvent
+accessible surface area using geometric method. The original program is in C++, so the
+module is an interface to call functions in C++.
+
+Follow the stpes to compile the C++ code into the *.so file of module (note that the 
+directory to include python may need change):
+
+Step 1:
+gfortran -O3 -fPIC -c reg_tet.f
+
+Step 2:
+g++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/usr/include/python2.7/
+or to compile the program for python 3.X use:
+g++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/usr/include/python3.X/ 
+instead
+
+If we ae using Anaconda we might have such pathway to python:
+g++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/home/user_name/anaconda3/envs/name_of_environment/include/python3.9/
+
+user_name, name_of_environment - need to be replaced
+
+Step 3:
+g++ -shared -Wl,-soname,hpb.so -o hpb.so hpbmodule.o reg_tet.o -lgfortran
+
+Note: You will need C++ compiler and Fortran compiler.
+
+############################
+After compiling the code, the module 'hpb.so' file is created and user can import 
+the module to ProDy or copy the file in the local directory to use it with calcSASA(), 
+calcVolume(), calcHydrophobicOverlapingAreas(), or calcHydrophobic().
+

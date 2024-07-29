@@ -156,7 +156,8 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5, **kwargs):
 
     :arg n_steps: number of steps to take along each direction,
         for example, for ``n_steps=10``, 20 conformations will be
-        generated along the first mode, default is 10.
+        generated along *mode* with structure *atoms* in between, 
+        default is 10.
     :type n_steps: int
 
     :arg rmsd: maximum RMSD that the conformations will have with
@@ -169,7 +170,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5, **kwargs):
 
     :arg neg: whether to include steps in the negative mode
         direction, default is **True**
-    :type pos: bool
+    :type neg: bool
 
     :arg reverse: whether to reverse the direction
         default is **False**

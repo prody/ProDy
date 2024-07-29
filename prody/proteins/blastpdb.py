@@ -27,7 +27,7 @@ def blastPDB(sequence, filename=None, **kwargs):
 
     :arg sequence: an object with an associated sequence string 
          or a sequence string itself
-    :type sequence: :class:`Atomic`, :class:`Sequence`, or str
+    :type sequence: :class:`.Atomic`, :class:`.Sequence`, str
 
     :arg filename: a *filename* to save the results in XML format
     :type filename: str
@@ -100,7 +100,7 @@ class PDBBlastRecord(object):
 
         :arg sequence: an object with an associated sequence string 
             or a sequence string itself
-        :type sequence: :class:`Atomic`, :class:`Sequence`, or str
+        :type sequence: :class:`.Atomic`, :class:`.Sequence`, str
 
         :arg xml: blast search results in XML format or an XML file that
             contains the results or a filename for saving the results or None
@@ -264,7 +264,7 @@ class PDBBlastRecord(object):
                             query_len)
                 data['percent_coverage'] = p_overlap
                 
-                for item in (hit['id'] + hit['def']).split('>gi'):
+                for item in (hit['id'] + hit['def']).split('>pdb'):
                     head, title = item.split(None, 1)
                     head = head.split('|')
                     pdb_id = head[-2].lower()
@@ -297,10 +297,10 @@ class PDBBlastRecord(object):
             to or higher than this value will be returned, default is ``0.``
         :type percent_identity: float
         :arg percent_overlap: PDB hits with percent coverage of the query
-          sequence equivalent or better will be returned, default is ``0.``
+            sequence equivalent or better will be returned, default is ``0.``
         :type percent_overlap: float
         :arg chain: if chain is **True**, individual chains in a PDB file
-          will be considered as separate hits , default is **False**
+            will be considered as separate hits, default is **False**
         :type chain: bool"""
 
         assert isinstance(percent_identity, (float, int)), \

@@ -18,6 +18,7 @@ from prody import parsePDB, writePDBStream
 from prody.ensemble import Ensemble
 from prody.ensemble import PDBEnsemble
 import os
+import math
 
 __all__ = ['DaliRecord', 'searchDali', 
            'daliFilterMultimer', 'daliFilterMultimers']
@@ -153,8 +154,8 @@ class DaliRecord(object):
         """
 
         self._url = url
-        self._pdbId = pdbId
-        self._chain = chain
+        self._pdbId = pdbId.lower()
+        self._chain = chain.upper()
         subset = subset.upper()
         if subset == "FULLPDB" or subset not in ["PDB25", "PDB50", "PDB90"]:
             self._subset = ""
@@ -162,7 +163,7 @@ class DaliRecord(object):
             self._subset = "-"+subset[3:]
         timeout = kwargs.pop('timeout', 120)
 
-        self._title = pdbId + '-' + chain
+        self._title = self._pdbId + '-' + self._chain
         self._alignPDB = None
         self._filterDict = None
         self._max_index = None
@@ -373,13 +374,24 @@ class DaliRecord(object):
 
     mappings = property(getMappings)
 
-    def filter(self, cutoff_len=None, cutoff_rmsd=None, cutoff_Z=None, cutoff_identity=None):
-        """Filters out PDBs from the PDBList and returns the PDB list.
-        PDBs that satisfy any of the following criterion will be filtered out.
+    def filter(self, cutoff_len=None, cutoff_rmsd=None, cutoff_Z=None, cutoff_identity=None, stringency=False):
+        """Filters a PDBList by a given set of cutoffs and returns a list of PDB IDs where
+        PDBs that matched have been removed.
+        PDBs that satisfy _any_ of the following criteria will be filtered out.
         (1) Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1);
         (2) RMSD < cutoff_rmsd (must be a positive number);
         (3) Z score < cutoff_Z (must be a positive number);
         (4) Identity > cutoff_identity (must be an integer or a float between 0 and 1).
+
+        Setting the stringency flag to True changes the behavior so that all filtering is by
+        stringency. In this case, PDBs that satisfy _any_ of the following criteria will be filtered out:
+
+        (1) Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1); (unchanged)
+        (2) RMSD > cutoff_rmsd (must be a positive number); (inverted)
+        (3) Z score < cutoff_Z (must be a positive number); (unchanged)
+        (4) Identity < cutoff_identity (must be an integer or a float between 0 and 1). (inverted)
+
+        Leaving stringency False maintains old behavior. 
         """
         if self._max_index is None:
             LOGGER.warn('DaliRecord has no data. Please use the fetch() method.')
@@ -390,15 +402,19 @@ class DaliRecord(object):
             cutoff_len = 0
         elif not isinstance(cutoff_len, (float, int)):
             raise TypeError('cutoff_len must be a float or an integer')
-        elif cutoff_len <= 1 and cutoff_len > 0:
+        elif cutoff_len <= 1 and cutoff_len >= 0:
             cutoff_len = int(cutoff_len*self._max_index)
-        elif cutoff_len <= self._max_index and cutoff_len > 0:
+        elif cutoff_len <= self._max_index and cutoff_len > 1:
             cutoff_len = int(cutoff_len)
         else:
             raise ValueError('cutoff_len must be a float between 0 and 1, or an int not greater than the max length')
             
+        
         if cutoff_rmsd == None:
-            cutoff_rmsd = 0
+            if stringency:
+                cutoff_rmsd = math.inf
+            else:
+                cutoff_rmsd = 0
         elif not isinstance(cutoff_rmsd, (float, int)):
             raise TypeError('cutoff_rmsd must be a float or an integer')
         elif cutoff_rmsd >= 0:
@@ -416,7 +432,10 @@ class DaliRecord(object):
             raise ValueError('cutoff_Z must be a number not less than 0')
             
         if cutoff_identity == None or cutoff_identity == 0:
-            cutoff_identity = 100
+            if stringency:
+                cutoff_identity = 0
+            else:
+                cutoff_identity = 100
         elif not isinstance(cutoff_identity, (float, int)):
             raise TypeError('cutoff_identity must be a float or an integer')
         elif cutoff_identity <= 1 and cutoff_identity > 0:
@@ -436,31 +455,43 @@ class DaliRecord(object):
         pdbListAll = self._pdbListAll
         missing_ind_dict = dict()
         ref_indices_set = set(range(self._max_index))
+        query = self._pdbId+self._chain
         filterListLen = []
         filterListRMSD = []
         filterListZ = []
         filterListIdentity = []
         
-        # keep the first PDB (query PDB)
-        for pdb_chain in pdbListAll[1:]:
+        for pdb_chain in pdbListAll:
             temp_dict = daliInfo[pdb_chain]
             # filter: len_align, identity, rmsd, Z
             if temp_dict['len_align'] < cutoff_len:
                 # print('Filter out ' + pdb_chain + ', len_align: ' + str(temp_dict['len_align']))
                 filterListLen.append(pdb_chain)
                 continue
-            if temp_dict['rmsd'] < cutoff_rmsd:
-                # print('Filter out ' + pdb_chain + ', rmsd: ' + str(temp_dict['rmsd']))
-                filterListRMSD.append(pdb_chain)
-                continue
+            if stringency:
+                if temp_dict['rmsd'] > cutoff_rmsd:
+                    # print('Filter out ' + pdb_chain + ', rmsd: ' + str(temp_dict['rmsd']))
+                    filterListRMSD.append(pdb_chain)
+                    continue
+            else:
+                if temp_dict['rmsd'] < cutoff_rmsd:
+                    # print('Filter out ' + pdb_chain + ', rmsd: ' + str(temp_dict['rmsd']))
+                    filterListRMSD.append(pdb_chain)
+                    continue
             if temp_dict['Z'] < cutoff_Z:
                 # print('Filter out ' + pdb_chain + ', Z: ' + str(temp_dict['Z']))
                 filterListZ.append(pdb_chain)
                 continue
-            if temp_dict['identity'] > cutoff_identity:
-                # print('Filter out ' + pdb_chain + ', identity: ' + str(temp_dict['identity']))
-                filterListIdentity.append(pdb_chain)
-                continue
+            if stringency:
+                if temp_dict['identity'] < cutoff_identity:
+                    # print('Filter out ' + pdb_chain + ', identity: ' + str(temp_dict['identity']))
+                    filterListIdentity.append(pdb_chain)
+                    continue
+            else:
+                if temp_dict['identity'] > cutoff_identity:
+                    # print('Filter out ' + pdb_chain + ', identity: ' + str(temp_dict['identity']))
+                    filterListIdentity.append(pdb_chain)
+                    continue
             temp_diff = list(ref_indices_set - set(temp_dict['map_ref']))
             for diff_i in temp_diff:
                 if not diff_i in missing_ind_dict:
@@ -472,7 +503,10 @@ class DaliRecord(object):
         filterDict = {'len': filterListLen, 'rmsd': filterListRMSD, 'Z': filterListZ, 'identity': filterListIdentity}
         self._filterList = filterList
         self._filterDict = filterDict
-        self._pdbList = [self._pdbListAll[0]] + [item for item in self._pdbListAll[1:] if not item in filterList]
+        if query in self._pdbListAll:
+            self._pdbList = [query] + [item for item in self._pdbListAll if item not in filterList]
+        else:
+            self._pdbList = [item for item in self._pdbListAll if item not in filterList]
         LOGGER.info(str(len(filterList)) + ' PDBs have been filtered out from '+str(len(pdbListAll))+' Dali hits (remaining: '+str(len(pdbListAll)-len(filterList))+').')
         return self._pdbList
     

@@ -159,7 +159,7 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
 
     :arg modes: modes in which loci are embedded. It can only have 2 or 3 modes for the purpose 
     of visualization.
-    :type modes: :class:`ModeSet`
+    :type modes: :class:`.ModeSet`
 
     :arg labels: a list of integers indicating the segmentation of the sequence.
     :type labels: list
@@ -212,7 +212,7 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
         X, Y, Z = V[:,:3].T
         
         f = figure()
-        ax = Axes3D(f)
+        ax = f.add_subplot(projection="3d")
         if trace:
             ax.plot(X, Y, Z, ':', color=[0.3, 0.3, 0.3])
         if labels is None:

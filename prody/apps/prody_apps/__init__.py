@@ -1,6 +1,7 @@
 """This module defines structure and dynamics analysis applications."""
 
 import imp
+import importlib
 import sys
 
 try:
@@ -10,12 +11,16 @@ except ImportError:
 
 from ..apptools import *
 
-path_prody = imp.find_module('prody')[1]
+if sys.version_info[0] == 2:
+    path_prody = imp.find_module('prody')[1]
+else:
+    path_prody = importlib.util.find_spec("prody").submodule_search_locations[0]
 path_apps = imp.find_module('apps', [path_prody])[1]
 path_apps = imp.find_module('prody_apps', [path_apps])[1]
 
 PRODY_APPS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol',
-                  'catdcd', 'contacts', 'fetch', 'select',]
+                  'catdcd', 'contacts', 'fetch', 'select', 'energy', 
+                  'clustenm']
 
 __all__ = ['prody_main']
 

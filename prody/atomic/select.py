@@ -441,7 +441,12 @@ all alphanumeric characters."""
 
 import sys
 from re import compile as re_compile
-from collections import Iterable
+try:
+   # for python>=3.3
+   from collections.abc import Iterable
+except ImportError:
+   # for python<3.3
+   from collections import Iterable
 
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange
@@ -831,7 +836,8 @@ class Select(object):
             'x': self._generic, 'y': self._generic, 'z': self._generic,
             'chid': self._generic, 'secstr': self._generic,
             'fragment': self._generic, 'fragindex': self._generic,
-            'segment': self._generic, 'sequence': self._sequence, }
+            'segment': self._generic, 'segname': self._generic,
+            'sequence': self._sequence, }
 
 
     def _reset(self):
@@ -1335,6 +1341,7 @@ class Select(object):
         isDataLabel = atoms.isDataLabel
         append = None
         wasand = False
+        wasdata = False
         while tokens:
             # check whether token is an array to avoid array == str comparison
             token = tokens.pop(0)
@@ -1348,9 +1355,10 @@ class Select(object):
                             .format(repr('and ... and')), ['and', 'and'])
                     append = None
                     wasand = True
+                    wasdata = False
                     continue
 
-                elif isFlagLabel(token):
+                elif isFlagLabel(token) and not wasdata:
                     flags.append(token)
                     append = None
 
@@ -1390,10 +1398,12 @@ class Select(object):
                         evals.append([])
                         append = evals[-1].append
                     append(token)
+                    wasdata = True
 
                 elif token in UNARY:
                     unary.append([])
                     append = unary[-1].append
+                    wasdata = False
 
                     if token == 'not':
                         append((token,))
@@ -2414,3 +2424,10 @@ class Select(object):
         if self._coords is None:
             self._coords = self._atoms._getCoords()
         return self._coords
+
+    def _getAnisous(self):
+        """Returns anisotropic temperature factors of atoms."""
+
+        if self._anisous is None:
+            self._anisous = self._atoms._getAnisous()
+        return self._anisous
