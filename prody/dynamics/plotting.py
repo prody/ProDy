@@ -218,12 +218,19 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
         Default is to use ensemble.getData('size')
     :type weights: int, list, :class:`~numpy.ndarray`
     
-    :keyword color: a color name or a list of color names or values, 
+    :keyword color: a color name or value or a list of length ensemble.numConfs() of these, 
+        or a dictionary with these with keys corresponding to labels provided by keyword label
         default is ``'blue'``
+        Color values can have 1 element to be mapped with cmap or 3 as RGB or 4 as RGBA.
+        See https://matplotlib.org/stable/users/explain/colors/colors.html#colors-def
     :type color: str, list
 
-    :keyword label: label or a list of labels
+    :keyword label: label or a list of labels 
     :type label: str, list
+
+    :keyword use_labels: whether to use labels for coloring subsets.
+        These can also be taken from an LDA or LRA model.
+    :type use_labels: bool
 
     :keyword marker: a marker or a list of markers, default is ``'o'``
     :type marker: str, list
@@ -278,10 +285,10 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
     if labels is None and  use_labels and modes is not None:
         if isinstance(modes, (LDA, LRA)):
             labels = modes._labels.tolist()
-            LOGGER.info('using labels from LDA modes')
+            LOGGER.info('using labels from {0} modes'.format(type(modes)))
         elif isinstance(modes.getModel(), (LDA, LRA)):
             labels = modes.getModel()._labels.tolist()
-            LOGGER.info('using labels from LDA model')
+            LOGGER.info('using labels from {0} modes'.format(type(modes.getModel())))
 
     if labels is not None and len(labels) != num:
         raise ValueError('label should have the same length as ensemble')
