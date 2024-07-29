@@ -502,6 +502,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     :type scalar: float
 
     :keyword color: a color spec or a list of color specs, default is ``'blue'``
+        See https://matplotlib.org/stable/users/explain/colors/colors.html#colors-def
     :type color: str, list
 
     :keyword label: label or a list of labels
