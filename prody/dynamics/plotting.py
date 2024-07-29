@@ -7,6 +7,8 @@ and are prefixed with ``show``.  Function documentations refers to the
 and keyword arguments are passed to the Matplotlib functions."""
 
 from collections import defaultdict
+from matplotlib.colors import is_color_like
+
 from numbers import Number
 import numpy as np
 
@@ -218,14 +220,14 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
         Default is to use ensemble.getData('size')
     :type weights: int, list, :class:`~numpy.ndarray`
     
-    :keyword color: a color name or value or a list of length ensemble.numConfs() of these, 
+    :keyword color: a color name or value or a list of length ensemble.numConfs() or projection.shape[0] of these,
         or a dictionary with these with keys corresponding to labels provided by keyword label
         default is ``'blue'``
         Color values can have 1 element to be mapped with cmap or 3 as RGB or 4 as RGBA.
         See https://matplotlib.org/stable/users/explain/colors/colors.html#colors-def
     :type color: str, list
 
-    :keyword label: label or a list of labels 
+    :keyword label: label or a list of labels
     :type label: str, list
 
     :keyword use_labels: whether to use labels for coloring subsets.
@@ -295,21 +297,7 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
 
     c = kwargs.pop('c', 'b')
     colors = kwargs.pop('color', c)
-    colors_dict = {}
-    if isinstance(colors, np.ndarray):
-        colors = tuple(colors)
-    if isinstance(colors, (str, tuple)) or colors is None:
-        colors = [colors] * num
-    elif isinstance(colors, list):
-        if len(colors) != num:
-            raise ValueError('length of color must be {0}'.format(num))
-    elif isinstance(colors, dict):
-        if labels is None:
-            raise TypeError('color must be a string or a list unless labels are provided')
-        colors_dict = colors
-        colors = [colors_dict[label] for label in labels]
-    else:
-        raise TypeError('color must be a string or a list or a dict if labels are provided')
+    colors, colors_dict = checkColors(colors, num, labels, allowNumbers=True)
 
     if labels is not None and len(colors_dict) == 0:
         cycle_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -363,21 +351,6 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
             raise ValueError('length of marker must be {0}'.format(num))
     else:
         raise TypeError('marker must be a string or a list')
-
-    c = kwargs.pop('c', 'blue')
-    colors = kwargs.pop('color', c)
-
-    if isListLike(colors) and len(colors) == 2:
-        raise ValueError('each entry of color should have 1, 3 or 4 values not 2')
-    elif isListLike(colors) and not len(colors) in [3, 4]:
-        colors = list(colors)
-    elif isinstance(colors, str) or colors is None or isListLike(colors):
-        colors = [colors] * num
-    else:
-        raise TypeError('color must be string or list-like or None')
-
-    if len(colors) != num:
-        raise ValueError('final length of color must be {0}'.format(num))
 
     color_norm = None
     if isinstance(colors[0], Number):
@@ -529,7 +502,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     :keyword scalar: scalar factor for projection onto selected mode
     :type scalar: float
 
-    :keyword color: a color name or a list of color name, default is ``'blue'``
+    :keyword color: a color spec or a list of color specs, default is ``'blue'``
     :type color: str, list
 
     :keyword label: label or a list of labels
@@ -578,13 +551,6 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         raise TypeError('marker must be a string or a list')
 
     colors = kwargs.pop('color', 'blue')
-    if isinstance(colors, str) or colors is None:
-        colors = [colors] * num
-    elif isinstance(colors, list):
-        if len(colors) != num:
-            raise ValueError('length of color must be {0}'.format(num))
-    else:
-        raise TypeError('color must be a string or a list')
 
     labels = kwargs.pop('label', None)
     if isinstance(labels, str) or labels is None:
@@ -597,21 +563,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
 
     kwargs['ls'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
 
-    colors_dict = {}
-    if isinstance(colors, np.ndarray):
-        colors = tuple(colors)
-    if isinstance(colors, (str, tuple)) or colors is None:
-        colors = [colors] * num
-    elif isinstance(colors, list):
-        if len(colors) != num:
-            raise ValueError('length of color must be {0}'.format(num))
-    elif isinstance(colors, dict):
-        if labels is None:
-            raise TypeError('color must be a string or a list unless labels are provided')
-        colors_dict = colors
-        colors = [colors_dict[label] for label in labels]
-    else:
-        raise TypeError('color must be a string or a list or a dict if labels are provided')
+    colors, colors_dict = checkColors(colors, num, labels)
 
     if labels is not None and len(colors_dict) == 0:
         cycle_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -2403,3 +2355,44 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
         showFigure()
 
     return mpl.gca()
+
+
+def checkColors(colors, num, labels, allowNumbers=False):
+    """Check colors and process them if needed"""
+
+    colors_dict = {}
+
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+
+    if is_color_like(colors) or colors is None:
+        colors = [colors] * num
+    elif isListLike(colors):
+        colors = list(colors)
+
+    if isinstance(colors, list):
+        if len(colors) != num and not is_color_like(colors):
+            raise ValueError('colors should have the length of the set to be colored or satisfy matplotlib color rules')
+
+        if np.any([not is_color_like(color) for color in colors]):
+            if not allowNumbers:
+                raise ValueError('each element of colors should satisfy matplotlib color rules')
+            elif np.any([not isinstance(color, Number) for color in colors]):
+                raise ValueError('each element of colors should be a number or satisfy matplotlib color rules')
+
+    elif isinstance(colors, dict):
+        if labels is None:
+            raise TypeError('color must be a string or a list unless labels are provided')
+        colors_dict = colors
+        colors = [colors_dict[label] for label in labels]
+
+        if np.any([not is_color_like(color) for color in colors]):
+            if not allowNumbers:
+                raise ValueError('each element of colors should satisfy matplotlib color rules')
+            elif np.any([not isinstance(color, Number) for color in colors]):
+                raise ValueError('each element of colors should be a number or satisfy matplotlib color rules')
+
+    elif not (isinstance(colors, Number) or is_color_like(colors)):
+        raise TypeError('color must be a number, string, list, matplotlib color spec, or a dict if labels are provided')
+
+    return colors, colors_dict
