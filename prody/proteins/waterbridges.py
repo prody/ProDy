@@ -7,6 +7,9 @@ __author__ = 'Karolina Mikulska-Ruminska'
 __credits__ = ['Frane Doljanin', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'fdoljanin@pmfst.hr']
 
+import multiprocessing as mp
+
+from numbers import Number
 import numpy as np
 import os
 
@@ -30,7 +33,7 @@ __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInf
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
            'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory',
            'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters',
-           'filterStructuresWithoutWater']
+           'filterStructuresWithoutWater', 'selectSurroundingsBox']
 
 
 class ResType(Enum):
@@ -366,6 +369,15 @@ def calcWaterBridges(atoms, **kwargs):
     :arg isInfoLog: should log information
         default is True
     :type output: bool
+
+    :arg selstr: selection string for focusing analysis
+        default of **None** focuses on everything
+    :type selstr: str
+
+    :arg expand_selection: whether to expand the selection with 
+        :func:`.selectSurroundingsBox`, selecting a box surrounding it.
+        Default is **False**
+    :type expand_selection: bool
     """
 
     method = kwargs.pop('method', 'chain')
@@ -387,6 +399,16 @@ def calcWaterBridges(atoms, **kwargs):
     if outputType not in ['info', 'atomic', 'indices']:
         raise TypeError('Output can be info, atomic or indices.')
 
+    selstr = kwargs.pop('selstr', None)
+    if selstr is not None:
+        selection = atoms.select(selstr).copy()
+
+        expand_selection = kwargs.pop('expand_selection', False)
+        if expand_selection:
+            atoms = selectSurroundingsBox(atoms, selection).copy()
+        else:
+            atoms = selection.copy()
+
     water = atoms.select('water')
     if water is None:
         raise ValueError('atoms has no water so cannot be analysed with WatFinder')
@@ -402,7 +424,7 @@ def calcWaterBridges(atoms, **kwargs):
     waterHydrogens = consideredAtoms.select('water and hydrogen') or []
     waterOxygens = consideredAtoms.select('water and oxygen')
     waterHydroOxyPairs = findNeighbors(
-        waterOxygens, DIST_COVALENT_H, waterHydrogens)
+        waterOxygens, DIST_COVALENT_H, waterHydrogens) if waterHydrogens else []
     for oxygen in waterOxygens:
         relations.addNode(oxygen, ResType.WATER)
     for pair in waterHydroOxyPairs:
@@ -414,7 +436,7 @@ def calcWaterBridges(atoms, **kwargs):
 
     proteinHydrogens = consideredAtoms.select(f'protein and hydrogen') or []
     proteinHydroPairs = findNeighbors(
-        proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens)
+        proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens) if proteinHydrogens else []
     for hydrophilic in proteinHydrophilic:
         relations.addNode(hydrophilic, ResType.PROTEIN)
     for pair in proteinHydroPairs:
@@ -505,21 +527,42 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
 
         atoms_copy = atoms.copy()
-        for j0, frame0 in enumerate(traj, start=start_frame):
+        def analyseFrame(j0, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
+
             interactions = calcWaterBridges(
                 atoms_copy, isInfoLog=False, **kwargs)
             interactions_all.append(interactions)
+
+        jobs = []
+        for j0, frame0 in enumerate(traj, start=start_frame):
+            p = mp.Process(target=analyseFrame, args=(j0, frame0,
+                                                      interactions_all))
+            p.start()
+            jobs.append(p)
+
+        for proc in jobs:
+            proc.join()
         # trajectory._nfi = nfi
 
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+            def analyseFrame(i, interactions_all):
                 LOGGER.info('Model: {0}'.format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
-                interactions = calcWaterBridges(atoms, **kwargs)
+                interactions = calcWaterBridges(
+                    atoms, isInfoLog=False, **kwargs)
                 interactions_all.append(interactions)
+
+            jobs = []
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                p.start()
+                jobs.append(p)
+
+            for proc in jobs:
+                proc.join()
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
@@ -1215,3 +1258,36 @@ def filterStructuresWithoutWater(structures, min_water=0, filenames=None):
         new_structures.append(struct)
 
     return list(reversed(new_structures))
+
+
+def selectSurroundingsBox(atoms, select, padding=0, return_selstr=False):
+    """Select the surroundings of *select* within *atoms* using
+    a bounding box with optional *padding*."""
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms should be an Atomic object')
+
+    if isinstance(select, str):
+        select = atoms.select(select)
+
+    if not isinstance(select, Atomic):
+        raise TypeError('select should be a valid selection or selection string')
+
+    if not isinstance(padding, Number):
+        raise TypeError('padding should be a number')
+    if padding < 0:
+        raise ValueError('padding should be a positive number')
+
+    minCoords = select.getCoords().min(axis=0)
+    maxCoords = select.getCoords().max(axis=0)
+
+    if padding > 0:
+        minCoords -= padding
+        maxCoords += padding
+
+    selstr = '(x `{0} to {1}`) and (y `{2} to {3}`) and (z `{4} to {5}`)'.format(
+        minCoords[0], maxCoords[0], minCoords[1], maxCoords[1], minCoords[2], maxCoords[2])
+
+    if return_selstr:
+        return selstr
+    return atoms.select(selstr)
