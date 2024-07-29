@@ -7,7 +7,6 @@ and are prefixed with ``show``.  Function documentations refers to the
 and keyword arguments are passed to the Matplotlib functions."""
 
 from collections import defaultdict
-from matplotlib.colors import is_color_like
 
 from numbers import Number
 import numpy as np
@@ -2360,6 +2359,8 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
 def checkColors(colors, num, labels, allowNumbers=False):
     """Check colors and process them if needed"""
 
+    from matplotlib.colors import is_color_like
+    
     colors_dict = {}
 
     if isinstance(colors, np.ndarray):
