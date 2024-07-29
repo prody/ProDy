@@ -2364,22 +2364,18 @@ def checkColors(colors, num, labels, allowNumbers=False):
 
     colors_dict = {}
 
-    if isinstance(colors, np.ndarray):
-        colors = tuple(colors)
-
-    if is_color_like(colors) or colors is None:
+    if is_color_like(colors) or colors is None or isinstance(colors, Number):
         colors = [colors] * num
     elif isListLike(colors):
         colors = list(colors)
-
-    if isinstance(colors, dict):
+    elif isinstance(colors, dict):
         if labels is None:
-            raise TypeError('color must be a string or a list unless labels are provided')
+            raise TypeError('color cannot be a dict unless labels are provided')
         colors_dict = colors
         colors = [colors_dict[label] for label in labels]
 
     if isinstance(colors, list):
-        if len(colors) != num and not is_color_like(colors):
+        if len(colors) != num:
             raise ValueError('colors should have the length of the set to be colored or satisfy matplotlib color rules')
 
         if np.any([not is_color_like(color) for color in colors]):
@@ -2388,10 +2384,9 @@ def checkColors(colors, num, labels, allowNumbers=False):
             elif np.any([not isinstance(color, Number) for color in colors]):
                 raise ValueError('each element of colors should be a number or satisfy matplotlib color rules')
 
-        if len(colors) > 1 and np.any([not isinstance(color, type(colors[0])) for color in colors]):
+        if np.any([not isinstance(color, type(colors[0])) for color in colors]):
             raise TypeError('each element of colors should have the same type')
-
-    elif not ((allowNumbers and isinstance(colors, Number)) or is_color_like(colors)):
-        raise TypeError('color must be a number, string, list, matplotlib color spec, or a dict if labels are provided')
+    else:
+        raise TypeError('colors should be a colour spec or a list of color specs')
 
     return colors, colors_dict
