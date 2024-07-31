@@ -2379,7 +2379,7 @@ def checkColors(colors, num, labels, allowNumbers=False):
             raise ValueError('colors should have the length of the set to be colored or satisfy matplotlib color rules')
 
         for color in colors:
-            if not is_color_like(color):
+            if not is_color_like(color) and color is not None:
                 if not allowNumbers:
                     raise ValueError('each element of colors should satisfy matplotlib color rules')
                 elif not isinstance(color, Number):
