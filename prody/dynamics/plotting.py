@@ -2388,6 +2388,6 @@ def checkColors(colors, num, labels, allowNumbers=False):
             if not isinstance(color, type(colors[0])):
                 raise TypeError('each element of colors should have the same type')
     else:
-        raise TypeError('colors should be a colour spec or convertible to a list of color specs')
+        raise TypeError('colors should be a color spec or convertible to a list of color specs')
 
     return colors, colors_dict
