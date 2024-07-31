@@ -2378,15 +2378,16 @@ def checkColors(colors, num, labels, allowNumbers=False):
         if len(colors) != num:
             raise ValueError('colors should have the length of the set to be colored or satisfy matplotlib color rules')
 
-        if np.any([not is_color_like(color) for color in colors]):
-            if not allowNumbers:
-                raise ValueError('each element of colors should satisfy matplotlib color rules')
-            elif np.any([not isinstance(color, Number) for color in colors]):
-                raise ValueError('each element of colors should be a number or satisfy matplotlib color rules')
+        for color in colors:
+            if not is_color_like(color):
+                if not allowNumbers:
+                    raise ValueError('each element of colors should satisfy matplotlib color rules')
+                elif not isinstance(color, Number):
+                    raise ValueError('each element of colors should be a number or satisfy matplotlib color rules')
 
-        if np.any([not isinstance(color, type(colors[0])) for color in colors]):
-            raise TypeError('each element of colors should have the same type')
+            if not isinstance(color, type(colors[0])):
+                raise TypeError('each element of colors should have the same type')
     else:
-        raise TypeError('colors should be a colour spec or a list of color specs')
+        raise TypeError('colors should be a colour spec or convertible to a list of color specs')
 
     return colors, colors_dict
