@@ -393,6 +393,7 @@ def calcWaterBridges(atoms, **kwargs):
     outputType = kwargs.pop('output', 'atomic')
     isInfoLog = kwargs.pop('isInfoLog', True)
     DIST_COVALENT_H = 1.4
+    prefix = kwargs.pop('prefix', '')
 
     if method not in ['chain', 'cluster']:
         raise TypeError('Method should be chain or cluster.')
@@ -472,8 +473,11 @@ def calcWaterBridges(atoms, **kwargs):
         waterBridgesWithIndices = getUniqueElements(
             waterBridgesWithIndices, getChainBridgeTuple)
 
-    LOGGER.info(
-        f'{len(waterBridgesWithIndices)} water bridges detected using method {method}.')
+    log_string = f'{len(waterBridgesWithIndices)} water bridges detected using method {method}'
+    if prefix != '':
+        log_string += ' for ' + prefix
+    LOGGER.info(log_string)
+
     if method == 'atomic':
         LOGGER.info('Call getInfoOutput to convert atomic to info output.')
 
@@ -530,7 +534,9 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             atoms_copy.setCoords(frame0.getCoords())
 
             interactions = calcWaterBridges(
-                atoms_copy, isInfoLog=False, **kwargs)
+                atoms_copy, isInfoLog=False, 
+                prefix='frame {0}'.format(j0),
+                **kwargs)
             interactions_all[j0-start_frame] = interactions
 
         with mp.Manager() as manager:
@@ -556,10 +562,12 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     else:
         if atoms.numCoordsets() > 1:
             def analyseFrame(i, interactions_all):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
+                frameNum = i+start_frame
+                LOGGER.info('Model: {0}'.format(frameNum))
                 atoms.setACSIndex(i+start_frame)
                 interactions = calcWaterBridges(
-                    atoms, isInfoLog=False, **kwargs)
+                    atoms, isInfoLog=False, prefix='frame {0}'.format(frameNum),
+                    **kwargs)
                 interactions_all[i] = interactions
 
             with mp.Manager() as manager:
