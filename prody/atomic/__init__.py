@@ -186,6 +186,7 @@ atomic.isSelectionMacro = isSelectionMacro
 atomic.AtomMap = AtomMap
 atomic.AtomGroup = AtomGroup
 atomic.Selection = Selection
+atomic.HierView = HierView
 
 atomgroup.isReserved = isReserved
 atomgroup.HierView = HierView
