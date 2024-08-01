@@ -8,6 +8,7 @@ import numpy as np
 from prody import LOGGER, SETTINGS, getPackagePath, PY3K
 from prody.atomic import AtomGroup, ATOMIC_FIELDS
 from prody.utilities import openFile, makePath, openURL
+from .ccd import parseCCD
 
 __all__ = ['PDBLigandRecord', 'fetchPDBLigand', 'parsePDBLigand']
 
@@ -18,13 +19,20 @@ class PDBLigandRecord(object):
         self._rawdata = data
 
     def getCanonicalSMILES(self):
-        return self._rawdata['CACTVS_SMILES_CANONICAL']
+        canonical = None
+        for row in self._rawdata[2].data:
+            if row['_pdbx_chem_comp_descriptor.type'] == 'SMILES_CANONICAL':
+                canonical = row['_pdbx_chem_comp_descriptor.descriptor']
+        return canonical
 
 
 def fetchPDBLigand(cci, filename=None):
-    """Fetch PDB ligand data from PDB_ for chemical component *cci*.
+    """Handle PDB ligand data from PDB_ for chemical component *cci*.
     *cci* may be 3-letter chemical component identifier or a valid XML
-    filename.  If *filename* is given, XML file will be saved with that name.
+    filename. If *filename* is given, XML file will be saved with that name.
+
+    This function may not work as _PDB is not hosting ligand XML files anymore.
+    It is kept for use with existing ligand XML files.
 
     If you query ligand data frequently, you may configure ProDy to save XML
     files in your computer.  Set ``ligand_xml_save`` option **True**, i.e.
@@ -50,6 +58,7 @@ def fetchPDBLigand(cci, filename=None):
     ideal (energy minimized) coordinate sets:
 
     .. ipython:: python
+       :okexcept:
 
        from prody import *
        ligand_data = fetchPDBLigand('STI')
@@ -233,8 +242,8 @@ def fetchPDBLigand(cci, filename=None):
     return dict_
 
 
-def parsePDBLigand(cci, filename=None):
+def parsePDBLigand(cci):
     """See :func:`.fetchPDBLigand`"""
-    lig_dict = fetchPDBLigand(cci, filename)
+    lig_dict = parseCCD(cci)
     return PDBLigandRecord(lig_dict)
 
