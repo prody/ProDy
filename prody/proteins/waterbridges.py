@@ -508,8 +508,6 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     :arg stop_frame: frame to stop
     :type stop_frame: int
     """
-
-    interactions_all = []
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
 
@@ -535,15 +533,21 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                 atoms_copy, isInfoLog=False, **kwargs)
             interactions_all.append(interactions)
 
-        jobs = []
-        for j0, frame0 in enumerate(traj, start=start_frame):
-            p = mp.Process(target=analyseFrame, args=(j0, frame0,
-                                                      interactions_all))
-            p.start()
-            jobs.append(p)
+        with mp.Manager() as manager:
+            interactions_all = manager.list()
+            processes = []
+            for j0, frame0 in enumerate(traj, start=start_frame):
+                p = mp.Process(target=analyseFrame, args=(j0, 
+                                                         frame0,
+                                                         interactions_all))
+                p.start()
+                processes.append(p)
 
-        for proc in jobs:
-            proc.join()
+            for p in processes:
+                p.join()
+
+            interactions_all = interactions_all[:]
+
         # trajectory._nfi = nfi
 
     else:
@@ -555,14 +559,18 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                     atoms, isInfoLog=False, **kwargs)
                 interactions_all.append(interactions)
 
-            jobs = []
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                p = mp.Process(target=analyseFrame, args=(i, interactions_all))
-                p.start()
-                jobs.append(p)
+            with mp.Manager() as manager:
+                interactions_all = manager.list()
+                processes = []
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                    p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                    p.start()
+                    processes.append(p)
 
-            for proc in jobs:
-                proc.join()
+                for p in processes:
+                    p.join()
+
+                interactions_all = interactions_all[:]
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
