@@ -525,21 +525,24 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
 
         atoms_copy = atoms.copy()
-        def analyseFrame(j0, frame0, interactions_all):
+        def analyseFrame(j0, start_frame, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
 
             interactions = calcWaterBridges(
                 atoms_copy, isInfoLog=False, **kwargs)
-            interactions_all.append(interactions)
+            interactions_all[j0-start_frame] = interactions
 
         with mp.Manager() as manager:
             interactions_all = manager.list()
+            for j0, frame0 in enumerate(traj, start=start_frame):
+                interactions_all.append([])
+
             processes = []
             for j0, frame0 in enumerate(traj, start=start_frame):
-                p = mp.Process(target=analyseFrame, args=(j0, 
-                                                         frame0,
-                                                         interactions_all))
+                p = mp.Process(target=analyseFrame, args=(j0, start_frame,
+                                                          frame0,
+                                                          interactions_all))
                 p.start()
                 processes.append(p)
 
@@ -557,10 +560,13 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                 atoms.setACSIndex(i+start_frame)
                 interactions = calcWaterBridges(
                     atoms, isInfoLog=False, **kwargs)
-                interactions_all.append(interactions)
+                interactions_all[i] = interactions
 
             with mp.Manager() as manager:
                 interactions_all = manager.list()
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                    interactions_all.append([])
+
                 processes = []
                 for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
                     p = mp.Process(target=analyseFrame, args=(i, interactions_all))
