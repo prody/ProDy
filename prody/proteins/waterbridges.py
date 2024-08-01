@@ -1176,6 +1176,7 @@ def findClusterCenters(file_pattern, **kwargs):
     selection = kwargs.pop('selection', 'water and name OH2')
     distC = kwargs.pop('distC', 0.3)
     numC = kwargs.pop('numC', 3)
+    filename = kwargs.pop('filename', None)
     
     matching_files = glob.glob(file_pattern)
     matching_files.sort()
@@ -1210,10 +1211,12 @@ def findClusterCenters(file_pattern, **kwargs):
     selectedWaters.setResnums(range(1, len(selectedWaters)+1))
     selectedWaters.setResnames(['DUM']*len(selectedWaters))
 
-    try:
-        filename = 'clusters_'+file_pattern.split("*")[0]+'.pdb'
-    except:
-        filename = 'clusters.pdb'
+    if filename is None:
+        try:
+            filename = 'clusters_'+file_pattern.split("*")[0]+'.pdb'
+        except:
+            filename = 'clusters.pdb'
+
     writePDB(filename, selectedWaters)
     LOGGER.info("Results are saved in {0}.".format(filename))
 
