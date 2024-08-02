@@ -511,9 +511,14 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
 
     :arg stop_frame: frame to stop
     :type stop_frame: int
+
+    :arg max_proc: maximum number of processes to use
+        default is half of the number of CPUs
+    :type max_proc: int
     """
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
+    max_proc = kwargs.pop('max_proc', mp.cpu_count()//2)
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -544,16 +549,24 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             for j0, frame0 in enumerate(traj, start=start_frame):
                 interactions_all.append([])
 
-            processes = []
-            for j0, frame0 in enumerate(traj, start=start_frame):
-                p = mp.Process(target=analyseFrame, args=(j0, start_frame,
-                                                          frame0,
-                                                          interactions_all))
-                p.start()
-                processes.append(p)
+            j0 = start_frame
+            while j0 < traj.numConfs():
+                frame0 = traj[j0]
 
-            for p in processes:
-                p.join()
+                processes = []
+                for i in range(max_proc):
+                    p = mp.Process(target=analyseFrame, args=(j0, start_frame,
+                                                              frame0,
+                                                              interactions_all))
+                    p.start()
+                    processes.append(p)
+
+                    j0 += 1
+                    if j0 >= traj.numConfs():
+                        break
+
+                for p in processes:
+                    p.join()
 
             interactions_all = interactions_all[:]
 
@@ -575,14 +588,20 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                 for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
                     interactions_all.append([])
 
-                processes = []
-                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                    p = mp.Process(target=analyseFrame, args=(i, interactions_all))
-                    p.start()
-                    processes.append(p)
+                i = start_frame
+                while i < stop_frame:
+                    processes = []
+                    for i in range(max_proc):
+                        p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                        p.start()
+                        processes.append(p)
 
-                for p in processes:
-                    p.join()
+                        i += 1
+                        if i >= stop_frame:
+                            break
+
+                    for p in processes:
+                        p.join()
 
                 interactions_all = interactions_all[:]
         else:
