@@ -1195,6 +1195,9 @@ def findClusterCenters(file_pattern, **kwargs):
             removeResid.append(coords_all.getResnums()[ii])
             removeCoords.append(list(coords_all.getCoords()[ii]))
 
+    if len(removeCoords) == coords_all.numAtoms():
+        raise ValueError('No waters were selected. You may need to align your trajectory')
+
     selectedWaters = AtomGroup()
     sel_waters = [] 
 
@@ -1203,9 +1206,6 @@ def findClusterCenters(file_pattern, **kwargs):
             sel_waters.append(j)
 
     coords_wat = np.array([sel_waters], dtype=float)
-    if coords_wat.shape[1] == 0:
-        raise ValueError('No waters were selected. You may need to align your trajectory')
-    
     selectedWaters.setCoords(coords_wat)
     selectedWaters.setNames(['DUM']*len(selectedWaters))
     selectedWaters.setResnums(range(1, len(selectedWaters)+1))
