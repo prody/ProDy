@@ -393,6 +393,7 @@ def calcWaterBridges(atoms, **kwargs):
     outputType = kwargs.pop('output', 'atomic')
     isInfoLog = kwargs.pop('isInfoLog', True)
     DIST_COVALENT_H = 1.4
+    prefix = kwargs.pop('prefix', '')
 
     if method not in ['chain', 'cluster']:
         raise TypeError('Method should be chain or cluster.')
@@ -472,8 +473,11 @@ def calcWaterBridges(atoms, **kwargs):
         waterBridgesWithIndices = getUniqueElements(
             waterBridgesWithIndices, getChainBridgeTuple)
 
-    LOGGER.info(
-        f'{len(waterBridgesWithIndices)} water bridges detected using method {method}.')
+    log_string = f'{len(waterBridgesWithIndices)} water bridges detected using method {method}'
+    if prefix != '':
+        log_string += ' for ' + prefix
+    LOGGER.info(log_string)
+
     if method == 'atomic':
         LOGGER.info('Call getInfoOutput to convert atomic to info output.')
 
@@ -507,11 +511,14 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
 
     :arg stop_frame: frame to stop
     :type stop_frame: int
-    """
 
-    interactions_all = []
+    :arg max_proc: maximum number of processes to use
+        default is half of the number of CPUs
+    :type max_proc: int
+    """
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
+    max_proc = kwargs.pop('max_proc', mp.cpu_count()//2)
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -527,42 +534,76 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
 
         atoms_copy = atoms.copy()
-        def analyseFrame(j0, frame0, interactions_all):
+        def analyseFrame(j0, start_frame, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
 
             interactions = calcWaterBridges(
-                atoms_copy, isInfoLog=False, **kwargs)
-            interactions_all.append(interactions)
+                atoms_copy, isInfoLog=False, 
+                prefix='frame {0}'.format(j0),
+                **kwargs)
+            interactions_all[j0-start_frame] = interactions
 
-        jobs = []
-        for j0, frame0 in enumerate(traj, start=start_frame):
-            p = mp.Process(target=analyseFrame, args=(j0, frame0,
-                                                      interactions_all))
-            p.start()
-            jobs.append(p)
+        with mp.Manager() as manager:
+            interactions_all = manager.list()
+            for j0, frame0 in enumerate(traj, start=start_frame):
+                interactions_all.append([])
 
-        for proc in jobs:
-            proc.join()
+            j0 = start_frame
+            while j0 < traj.numConfs():
+                frame0 = traj[j0]
+
+                processes = []
+                for i in range(max_proc):
+                    p = mp.Process(target=analyseFrame, args=(j0, start_frame,
+                                                              frame0,
+                                                              interactions_all))
+                    p.start()
+                    processes.append(p)
+
+                    j0 += 1
+                    if j0 >= traj.numConfs():
+                        break
+
+                for p in processes:
+                    p.join()
+
+            interactions_all = interactions_all[:]
+
         # trajectory._nfi = nfi
 
     else:
         if atoms.numCoordsets() > 1:
             def analyseFrame(i, interactions_all):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
+                frameNum = i+start_frame
+                LOGGER.info('Model: {0}'.format(frameNum))
                 atoms.setACSIndex(i+start_frame)
                 interactions = calcWaterBridges(
-                    atoms, isInfoLog=False, **kwargs)
-                interactions_all.append(interactions)
+                    atoms, isInfoLog=False, prefix='frame {0}'.format(frameNum),
+                    **kwargs)
+                interactions_all[i] = interactions
 
-            jobs = []
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                p = mp.Process(target=analyseFrame, args=(i, interactions_all))
-                p.start()
-                jobs.append(p)
+            with mp.Manager() as manager:
+                interactions_all = manager.list()
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                    interactions_all.append([])
 
-            for proc in jobs:
-                proc.join()
+                i = start_frame
+                while i < stop_frame:
+                    processes = []
+                    for i in range(max_proc):
+                        p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                        p.start()
+                        processes.append(p)
+
+                        i += 1
+                        if i >= stop_frame:
+                            break
+
+                    for p in processes:
+                        p.join()
+
+                interactions_all = interactions_all[:]
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
@@ -1154,13 +1195,14 @@ def findClusterCenters(file_pattern, **kwargs):
     selection = kwargs.pop('selection', 'water and name OH2')
     distC = kwargs.pop('distC', 0.3)
     numC = kwargs.pop('numC', 3)
+    filename = kwargs.pop('filename', None)
     
     matching_files = glob.glob(file_pattern)
     matching_files.sort()
     coords_all = parsePDB(matching_files[0]).select(selection).toAtomGroup()
 
     for i in matching_files[1:]:
-        coords = parsePDB(i).select('water').toAtomGroup()
+        coords = parsePDB(i).select(selection).toAtomGroup()
         coords_all += coords
 
     removeResid = []
@@ -1172,6 +1214,9 @@ def findClusterCenters(file_pattern, **kwargs):
             removeResid.append(coords_all.getResnums()[ii])
             removeCoords.append(list(coords_all.getCoords()[ii]))
 
+    if len(removeCoords) == coords_all.numAtoms():
+        raise ValueError('No waters were selected. You may need to align your trajectory')
+
     selectedWaters = AtomGroup()
     sel_waters = [] 
 
@@ -1180,18 +1225,17 @@ def findClusterCenters(file_pattern, **kwargs):
             sel_waters.append(j)
 
     coords_wat = np.array([sel_waters], dtype=float)
-    if coords_wat.shape[0] == 0:
-        raise ValueError('No waters were selected. You may need to align your trajectory')
-    
     selectedWaters.setCoords(coords_wat)
     selectedWaters.setNames(['DUM']*len(selectedWaters))
     selectedWaters.setResnums(range(1, len(selectedWaters)+1))
     selectedWaters.setResnames(['DUM']*len(selectedWaters))
 
-    try:
-        filename = 'clusters_'+file_pattern.split("*")[0]+'.pdb'
-    except:
-        filename = 'clusters.pdb'
+    if filename is None:
+        try:
+            filename = 'clusters_'+file_pattern.split("*")[0]+'.pdb'
+        except:
+            filename = 'clusters.pdb'
+
     writePDB(filename, selectedWaters)
     LOGGER.info("Results are saved in {0}.".format(filename))
 
