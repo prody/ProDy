@@ -544,31 +544,38 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                 **kwargs)
             interactions_all[j0-start_frame] = interactions
 
-        with mp.Manager() as manager:
-            interactions_all = manager.list()
+        if max_proc == 1:
+            interactions_all = []
             for j0, frame0 in enumerate(traj, start=start_frame):
                 interactions_all.append([])
+                analyseFrame(j0, start_frame, frame0, interactions_all)
+        else:
+            with mp.Manager() as manager:
+                interactions_all = manager.list()
+                for j0, frame0 in enumerate(traj, start=start_frame):
+                    interactions_all.append([])
 
-            j0 = start_frame
-            while j0 < traj.numConfs():
+                j0 = start_frame
+                while j0 < traj.numConfs():
 
-                processes = []
-                for i in range(max_proc):
-                    frame0 = traj[j0]
-                    p = mp.Process(target=analyseFrame, args=(j0, start_frame,
-                                                              frame0,
-                                                              interactions_all))
-                    p.start()
-                    processes.append(p)
+                    processes = []
+                    for i in range(max_proc):
+                        frame0 = traj[j0]
+                        
+                        p = mp.Process(target=analyseFrame, args=(j0, start_frame,
+                                                                frame0,
+                                                                interactions_all))
+                        p.start()
+                        processes.append(p)
 
-                    j0 += 1
-                    if j0 >= traj.numConfs():
-                        break
+                        j0 += 1
+                        if j0 >= traj.numConfs():
+                            break
 
-                for p in processes:
-                    p.join()
+                    for p in processes:
+                        p.join()
 
-            interactions_all = interactions_all[:]
+                interactions_all = interactions_all[:]
 
         # trajectory._nfi = nfi
 
@@ -583,27 +590,33 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                     **kwargs)
                 interactions_all[i] = interactions
 
-            with mp.Manager() as manager:
-                interactions_all = manager.list()
-                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+            if max_proc == 1:
+                interactions_all = []
+                for j0, frame0 in enumerate(traj, start=start_frame):
                     interactions_all.append([])
+                    analyseFrame(j0, start_frame, frame0, interactions_all)
+            else:
+                with mp.Manager() as manager:
+                    interactions_all = manager.list()
+                    for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                        interactions_all.append([])
 
-                i = start_frame
-                while i < stop_frame:
-                    processes = []
-                    for i in range(max_proc):
-                        p = mp.Process(target=analyseFrame, args=(i, interactions_all))
-                        p.start()
-                        processes.append(p)
+                    i = start_frame
+                    while i < stop_frame:
+                        processes = []
+                        for i in range(max_proc):
+                            p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                            p.start()
+                            processes.append(p)
 
-                        i += 1
-                        if i >= stop_frame:
-                            break
+                            i += 1
+                            if i >= stop_frame:
+                                break
 
-                    for p in processes:
-                        p.join()
+                        for p in processes:
+                            p.join()
 
-                interactions_all = interactions_all[:]
+                    interactions_all = interactions_all[:]
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
