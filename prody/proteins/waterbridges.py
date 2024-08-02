@@ -1183,7 +1183,7 @@ def findClusterCenters(file_pattern, **kwargs):
     coords_all = parsePDB(matching_files[0]).select(selection).toAtomGroup()
 
     for i in matching_files[1:]:
-        coords = parsePDB(i).select('water').toAtomGroup()
+        coords = parsePDB(i).select(selection).toAtomGroup()
         coords_all += coords
 
     removeResid = []
