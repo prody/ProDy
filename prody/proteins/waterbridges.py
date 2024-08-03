@@ -573,7 +573,9 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy = atoms.copy()
             atoms_copy.setCoords(frame0.getCoords())
-            atoms_copy = atoms_copy[indices]
+
+            if indices is not None:
+                atoms_copy = atoms_copy[indices]
 
             kwargs['selstr'] = atoms_copy.getSelstr()
 
