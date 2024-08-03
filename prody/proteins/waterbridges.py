@@ -504,7 +504,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     :arg atoms: Atomic object from which atoms are considered
     :type atoms: :class:`.Atomic`
 
-    :arg trajectory: Trajectory data coming from a DCD or multi-model PDB file.
+    :arg trajectory: Trajectory data coming from a DCD, ensemble or multi-model PDB file.
     :type trajectory: :class:`.Trajectory', :class:`.Ensemble`, :class:`.Atomic`
 
     :arg start_frame: frame to start from
@@ -516,10 +516,29 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     :arg max_proc: maximum number of processes to use
         default is half of the number of CPUs
     :type max_proc: int
+
+    :arg selstr: selection string for focusing analysis
+        default of **None** focuses on everything
+    :type selstr: str
+
+    :arg expand_selection: whether to expand the selection with 
+        :func:`.selectSurroundingsBox`, selecting a box surrounding it.
+        Default is **False**
+    :type expand_selection: bool
+
+    If selstr is provided, a common selection will be found across all frames
+    combining selections satifying the criteria in each.
+
+    :arg return_selection: whether to return the combined common selection
+        Default is **False**
+    :type return_selection: bool    
     """
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
     max_proc = kwargs.pop('max_proc', mp.cpu_count()//2)
+    selstr = kwargs.pop('selstr', None)
+    expand_selection = kwargs.pop('expand_selection', False)
+    return_selection = kwargs.pop('return_selection', False)
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -533,11 +552,29 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:]
         else:
             traj = trajectory[start_frame:stop_frame+1]
+        
+        if selstr is not None:
+            indices = []
+            for frame0 in traj:
+                atoms_copy = atoms.copy()
+                atoms_copy.setCoords(frame0.getCoords())
+                selection = atoms_copy.select(selstr)
 
-        atoms_copy = atoms.copy()
+                if expand_selection:
+                    selection = selectSurroundingsBox(atoms_copy, selection)
+
+                indices.extend(list(selection.getIndices()))
+
+            indices = np.unique(indices)
+
+
         def analyseFrame(j0, start_frame, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
+            atoms_copy = atoms.copy()
             atoms_copy.setCoords(frame0.getCoords())
+            atoms_copy = atoms_copy[indices]
+
+            kwargs['selstr'] = atoms_copy.getSelstr()
 
             interactions = calcWaterBridges(
                 atoms_copy, isInfoLog=False, 
@@ -621,6 +658,9 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
+    if return_selection:
+        return interactions_all, atoms_copy
+    
     return interactions_all
 
 
@@ -1074,7 +1114,8 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
     :arg filename: name of file to be saved; must end in .pdb
     :type filename: string
 
-    :arg trajectory: DCD trajectory (not needed for multimodal PDB)
+    :arg trajectory: trajectory data (not needed for multi-model PDB)
+    :type trajectory: :class:`.Trajectory', :class:`.Ensemble`, :class:`.Atomic`
     """
     if not trajectory and atoms.numCoordsets() < len(bridgeFrames):
         raise TypeError('Provide parsed trajectory!')
