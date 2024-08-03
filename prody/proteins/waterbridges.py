@@ -564,8 +564,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                         frame0 = traj[j0]
                         
                         p = mp.Process(target=analyseFrame, args=(j0, start_frame,
-                                                                frame0,
-                                                                interactions_all))
+                                                                 frame0,
+                                                                 interactions_all))
                         p.start()
                         processes.append(p)
 
@@ -864,7 +864,8 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
     residuesWithCount = {}
     for frame in frames:
         frameResidues = set(reduceTo1D(
-            frame, lambda x: getResidueName(x, use_segname=use_segname), lambda wb: wb.proteins))
+            frame, lambda x: getResidueName(x, use_segname=use_segname),
+            lambda wb: wb.proteins))
 
         for res in frameResidues:
             residuesWithCount[res] = residuesWithCount.get(res, 0) + 1
