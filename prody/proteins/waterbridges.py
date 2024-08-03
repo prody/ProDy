@@ -576,8 +576,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
 
             if indices is not None:
                 atoms_copy = atoms_copy[indices]
-
-            kwargs['selstr'] = atoms_copy.getSelstr()
+                kwargs['selstr'] = atoms_copy.getSelstr()
 
             interactions = calcWaterBridges(
                 atoms_copy, isInfoLog=False, 
