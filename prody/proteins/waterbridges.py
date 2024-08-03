@@ -1353,7 +1353,7 @@ def selectSurroundingsBox(atoms, select, padding=0, return_selstr=False):
         minCoords -= padding
         maxCoords += padding
 
-    selstr = '(x `{0} to {1}`) and (y `{2} to {3}`) and (z `{4} to {5}`)'.format(
+    selstr = 'same residue as ((x `{0} to {1}`) and (y `{2} to {3}`) and (z `{4} to {5}`))'.format(
         minCoords[0], maxCoords[0], minCoords[1], maxCoords[1], minCoords[2], maxCoords[2])
 
     if return_selstr:
