@@ -552,7 +552,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:]
         else:
             traj = trajectory[start_frame:stop_frame+1]
-        
+
+        indices = None
         if selstr is not None:
             indices = []
             for frame0 in traj:
