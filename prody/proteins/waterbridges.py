@@ -29,7 +29,8 @@ from prody.utilities import showFigure, showMatrix
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInfoOutput',
-           'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
+           'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo',
+           'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
            'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory',
            'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters',
@@ -623,8 +624,12 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     return interactions_all
 
 
-def getResidueName(atom):
-    return f'{atom.getResname()}{atom.getResnum()}{atom.getChid()}'
+def getResidueName(atom, use_segname=False):
+    result = f'{atom.getResname()}{atom.getResnum()}{atom.getChid()}'
+    if use_segname:
+        result += f'{atom.getSegname()}'
+
+    return result
 
 
 class DictionaryList:
@@ -843,9 +848,14 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
     :arg clip: maximal number of residues on graph; to represent all set None
         default is 20
     :type clip: int
+
+    :arg use_segname: whether to use segname to label residues
+        default is False, because then the labels get long
+    :type use_segname: bool
     """
 
     show_plot = kwargs.pop('show_plot', False)
+    use_segname = kwargs.get('use_segname', False)
 
     clip = kwargs.pop('clip', 20)
     if clip == None:
@@ -854,7 +864,7 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
     residuesWithCount = {}
     for frame in frames:
         frameResidues = set(reduceTo1D(
-            frame, getResidueName, lambda wb: wb.proteins))
+            frame, lambda x: getResidueName(x, use_segname=use_segname), lambda wb: wb.proteins))
 
         for res in frameResidues:
             residuesWithCount[res] = residuesWithCount.get(res, 0) + 1
