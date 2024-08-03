@@ -954,7 +954,7 @@ def getDistanceDistribution(frames, res_a, res_b, trajectory):
     return distances
 
 
-def getResidueLocationDistrubtion(frames, res_a, res_b):
+def getResidueLocationDistribution(frames, res_a, res_b):
     locationInfo = {"backbone": 0, "side": 0}
     result = {res_a: locationInfo.copy(), res_b: locationInfo.copy()}
 
@@ -1012,7 +1012,7 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
         'residues': lambda: getBridgingResidues(frames, res_a),
         'waters': lambda: getWaterCountDistribution(frames, res_a, res_b),
         'distance': lambda: getDistanceDistribution(frames, res_a, res_b, trajectory),
-        'location': lambda: getResidueLocationDistrubtion(frames, res_a, res_b)
+        'location': lambda: getResidueLocationDistribution(frames, res_a, res_b)
     }
 
     result = methods[metric]()
