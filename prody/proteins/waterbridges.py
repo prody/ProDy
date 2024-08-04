@@ -1258,6 +1258,11 @@ def findClusterCenters(file_pattern, **kwargs):
     :arg numC: min number of molecules in a cluster
         default is 3
     :type numC: int
+
+    :arg filename: filename for output pdb file with clusters
+        Default of **None** leads to
+        'clusters_'+file_pattern.split("*")[0]+'.pdb'
+    :type filename: str
     """
     
     import glob
