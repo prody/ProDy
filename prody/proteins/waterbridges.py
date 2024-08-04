@@ -29,7 +29,8 @@ from prody.utilities import showFigure, showMatrix
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInfoOutput',
-           'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo', 'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
+           'calcWaterBridgesStatistics', 'getWaterBridgeStatInfo',
+           'calcWaterBridgeMatrix', 'showWaterBridgeMatrix',
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
            'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory',
            'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters',
@@ -503,7 +504,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     :arg atoms: Atomic object from which atoms are considered
     :type atoms: :class:`.Atomic`
 
-    :arg trajectory: Trajectory data coming from a DCD or multi-model PDB file.
+    :arg trajectory: Trajectory data coming from a DCD, ensemble or multi-model PDB file.
     :type trajectory: :class:`.Trajectory', :class:`.Ensemble`, :class:`.Atomic`
 
     :arg start_frame: frame to start from
@@ -515,10 +516,29 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     :arg max_proc: maximum number of processes to use
         default is half of the number of CPUs
     :type max_proc: int
+
+    :arg selstr: selection string for focusing analysis
+        default of **None** focuses on everything
+    :type selstr: str
+
+    :arg expand_selection: whether to expand the selection with 
+        :func:`.selectSurroundingsBox`, selecting a box surrounding it.
+        Default is **False**
+    :type expand_selection: bool
+
+    If selstr is provided, a common selection will be found across all frames
+    combining selections satifying the criteria in each.
+
+    :arg return_selection: whether to return the combined common selection
+        Default is **False**
+    :type return_selection: bool    
     """
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
     max_proc = kwargs.pop('max_proc', mp.cpu_count()//2)
+    selstr = kwargs.pop('selstr', None)
+    expand_selection = kwargs.pop('expand_selection', False)
+    return_selection = kwargs.pop('return_selection', False)
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -533,10 +553,30 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
         else:
             traj = trajectory[start_frame:stop_frame+1]
 
-        atoms_copy = atoms.copy()
+        indices = None
+        if selstr is not None:
+            indices = []
+            for frame0 in traj:
+                atoms_copy = atoms.copy()
+                atoms_copy.setCoords(frame0.getCoords())
+                selection = atoms_copy.select(selstr)
+
+                if expand_selection:
+                    selection = selectSurroundingsBox(atoms_copy, selection)
+
+                indices.extend(list(selection.getIndices()))
+
+            indices = np.unique(indices)
+
+
         def analyseFrame(j0, start_frame, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
+            atoms_copy = atoms.copy()
             atoms_copy.setCoords(frame0.getCoords())
+
+            if indices is not None:
+                atoms_copy = atoms_copy[indices]
+                kwargs['selstr'] = atoms_copy.getSelstr()
 
             interactions = calcWaterBridges(
                 atoms_copy, isInfoLog=False, 
@@ -556,20 +596,20 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                     interactions_all.append([])
 
                 j0 = start_frame
-                while j0 < traj.numConfs():
+                while j0 < traj.numConfs()+start_frame:
 
                     processes = []
                     for i in range(max_proc):
-                        frame0 = traj[j0]
+                        frame0 = traj[j0-start_frame]
                         
                         p = mp.Process(target=analyseFrame, args=(j0, start_frame,
-                                                                frame0,
-                                                                interactions_all))
+                                                                 frame0,
+                                                                 interactions_all))
                         p.start()
                         processes.append(p)
 
                         j0 += 1
-                        if j0 >= traj.numConfs():
+                        if j0 >= traj.numConfs()+start_frame:
                             break
 
                     for p in processes:
@@ -602,7 +642,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                         interactions_all.append([])
 
                     i = start_frame
-                    while i < stop_frame:
+                    while i < len(atoms.getCoordsets()[start_frame:stop_frame]):
                         processes = []
                         for i in range(max_proc):
                             p = mp.Process(target=analyseFrame, args=(i, interactions_all))
@@ -610,7 +650,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                             processes.append(p)
 
                             i += 1
-                            if i >= stop_frame:
+                            if i >= len(atoms.getCoordsets()[start_frame:stop_frame]):
                                 break
 
                         for p in processes:
@@ -620,11 +660,22 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
+    if return_selection:
+        if indices is not None:
+            atoms_copy = atoms_copy[indices]
+            kwargs['selstr'] = atoms_copy.getSelstr()
+
+        return interactions_all, atoms_copy
+    
     return interactions_all
 
 
-def getResidueName(atom):
-    return f'{atom.getResname()}{atom.getResnum()}{atom.getChid()}'
+def getResidueName(atom, use_segname=False):
+    result = f'{atom.getResname()}{atom.getResnum()}{atom.getChid()}'
+    if use_segname:
+        result += f'{atom.getSegname()}'
+
+    return result
 
 
 class DictionaryList:
@@ -843,9 +894,14 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
     :arg clip: maximal number of residues on graph; to represent all set None
         default is 20
     :type clip: int
+
+    :arg use_segname: whether to use segname to label residues
+        default is False, because then the labels get long
+    :type use_segname: bool
     """
 
     show_plot = kwargs.pop('show_plot', False)
+    use_segname = kwargs.get('use_segname', False)
 
     clip = kwargs.pop('clip', 20)
     if clip == None:
@@ -854,7 +910,8 @@ def calcBridgingResiduesHistogram(frames, **kwargs):
     residuesWithCount = {}
     for frame in frames:
         frameResidues = set(reduceTo1D(
-            frame, getResidueName, lambda wb: wb.proteins))
+            frame, lambda x: getResidueName(x, use_segname=use_segname),
+            lambda wb: wb.proteins))
 
         for res in frameResidues:
             residuesWithCount[res] = residuesWithCount.get(res, 0) + 1
@@ -944,7 +1001,7 @@ def getDistanceDistribution(frames, res_a, res_b, trajectory):
     return distances
 
 
-def getResidueLocationDistrubtion(frames, res_a, res_b):
+def getResidueLocationDistribution(frames, res_a, res_b):
     locationInfo = {"backbone": 0, "side": 0}
     result = {res_a: locationInfo.copy(), res_b: locationInfo.copy()}
 
@@ -1002,7 +1059,7 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
         'residues': lambda: getBridgingResidues(frames, res_a),
         'waters': lambda: getWaterCountDistribution(frames, res_a, res_b),
         'distance': lambda: getDistanceDistribution(frames, res_a, res_b, trajectory),
-        'location': lambda: getResidueLocationDistrubtion(frames, res_a, res_b)
+        'location': lambda: getResidueLocationDistribution(frames, res_a, res_b)
     }
 
     result = methods[metric]()
@@ -1063,7 +1120,8 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
     :arg filename: name of file to be saved; must end in .pdb
     :type filename: string
 
-    :arg trajectory: DCD trajectory (not needed for multimodal PDB)
+    :arg trajectory: trajectory data (not needed for multi-model PDB)
+    :type trajectory: :class:`.Trajectory', :class:`.Ensemble`, :class:`.Atomic`
     """
     if not trajectory and atoms.numCoordsets() < len(bridgeFrames):
         raise TypeError('Provide parsed trajectory!')
@@ -1200,6 +1258,11 @@ def findClusterCenters(file_pattern, **kwargs):
     :arg numC: min number of molecules in a cluster
         default is 3
     :type numC: int
+
+    :arg filename: filename for output pdb file with clusters
+        Default of **None** leads to
+        'clusters_'+file_pattern.split("*")[0]+'.pdb'
+    :type filename: str
     """
     
     import glob
@@ -1342,7 +1405,7 @@ def selectSurroundingsBox(atoms, select, padding=0, return_selstr=False):
         minCoords -= padding
         maxCoords += padding
 
-    selstr = '(x `{0} to {1}`) and (y `{2} to {3}`) and (z `{4} to {5}`)'.format(
+    selstr = 'same residue as ((x `{0} to {1}`) and (y `{2} to {3}`) and (z `{4} to {5}`))'.format(
         minCoords[0], maxCoords[0], minCoords[1], maxCoords[1], minCoords[2], maxCoords[2])
 
     if return_selstr:
