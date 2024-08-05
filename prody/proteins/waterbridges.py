@@ -263,8 +263,8 @@ def getInfoOutput(waterBridgesAtomic):
         bridgeOutput = []
 
         for atom in bridge.proteins:
-            residueInfo = f"{atom.getResname()}{atom.getResnum()}"
-            atomInfo = f"{atom.getName()}_{atom.getIndex()}"
+            residueInfo = "{atom.getResname()}{atom.getResnum()}"
+            atomInfo = "{atom.getName()}_{atom.getIndex()}"
             chainInfo = atom.getChid()
             bridgeOutput += [residueInfo, atomInfo, chainInfo]
 
@@ -273,7 +273,7 @@ def getInfoOutput(waterBridgesAtomic):
 
         bridgeOutput += [len(bridge.waters)]
         bridgeOutput += [
-            list(map(lambda w: f"{w.getChid()}_{w.getIndex()}", bridge.waters))]
+            list(map(lambda w: "{w.getChid()}_{w.getIndex()}", bridge.waters))]
 
         output.append(bridgeOutput)
 
@@ -314,7 +314,7 @@ def getAtomicOutput(waterBridges, relations):
 
 
 def getElementsRegex(elements):
-    return f'[{"|".join(elements)}].*'
+    return '[{"|".join(elements)}].*'
 
 
 def calcWaterBridges(atoms, **kwargs):
