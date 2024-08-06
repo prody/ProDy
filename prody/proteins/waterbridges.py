@@ -1104,7 +1104,7 @@ def savePDBWaterBridges(bridges, atoms, filename):
     return writePDB(filename, atomsToSave)
 
 
-def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None):
+def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None, max_proc=1):
     """Saves one PDB per frame with occupancy and beta on protein atoms and waters forming bridges in frame.
 
     :arg bridgeFrames: atomic output from calcWaterBridgesTrajectory
@@ -1127,7 +1127,7 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
     atoms = atoms.copy()
     mofifyBeta(bridgeFrames, atoms)
 
-    for frameIndex, frame in enumerate(bridgeFrames):
+    def saveBridgesFrame(trajectory, atoms, frameIndex, frame):
         if trajectory:
             coords = trajectory[frameIndex].getCoords()
             atoms.setCoords(coords)
@@ -1153,6 +1153,26 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
             writePDB(f'{filename}_{frameIndex}.pdb',
                      atomsToSave, csets=frameIndex)
 
+    if max_proc == 1:
+        for frameIndex, frame in enumerate(bridgeFrames):
+            saveBridgesFrame(trajectory, atoms, frameIndex, frame)
+    else:
+        frameIndex = 0
+        numFrames = len(bridgeFrames)
+        while frameIndex < numFrames:
+            processes = []
+            for _ in range(max_proc):
+                p = mp.Process(target=saveBridgesFrame, args=(trajectory, atoms, frameIndex,
+                                                              bridgeFrames[frameIndex]))
+                p.start()
+                processes.append(p)
+
+                j0 += 1
+                if j0 >= numFrames:
+                    break
+
+            for p in processes:
+                p.join()
 
 def getBridgeIndicesString(bridge):
     return ' '.join(map(lambda a: str(a.getIndex()), bridge.proteins))\
