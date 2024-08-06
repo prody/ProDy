@@ -599,7 +599,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                 while j0 < traj.numConfs()+start_frame:
 
                     processes = []
-                    for i in range(max_proc):
+                    for _ in range(max_proc):
                         frame0 = traj[j0-start_frame]
                         
                         p = mp.Process(target=analyseFrame, args=(j0, start_frame,
@@ -644,7 +644,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                     i = start_frame
                     while i < len(atoms.getCoordsets()[start_frame:stop_frame]):
                         processes = []
-                        for i in range(max_proc):
+                        for _ in range(max_proc):
                             p = mp.Process(target=analyseFrame, args=(i, interactions_all))
                             p.start()
                             processes.append(p)
