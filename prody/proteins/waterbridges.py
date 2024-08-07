@@ -1128,6 +1128,7 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
     mofifyBeta(bridgeFrames, atoms)
 
     def saveBridgesFrame(trajectory, atoms, frameIndex, frame):
+        LOGGER.info('Frame: {0}'.format(frameIndex))
         if trajectory:
             coords = trajectory[frameIndex].getCoords()
             atoms.setCoords(coords)
@@ -1167,8 +1168,8 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
                 p.start()
                 processes.append(p)
 
-                j0 += 1
-                if j0 >= numFrames:
+                frameIndex += 1
+                if frameIndex >= numFrames:
                     break
 
             for p in processes:
