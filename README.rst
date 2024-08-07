@@ -1,5 +1,5 @@
-.. image:: https://img.shields.io/travis/prody/ProDy.svg
-   :target: http://travis-ci.org/#!/prody/ProDy
+.. image:: https://img.shields.io/github/actions/workflow/status/prody/prody/main.yml
+   :target: https://github.com/prody/ProDy/actions/workflows/main.yml
 
 .. image:: https://img.shields.io/pypi/v/ProDy.svg
    :target: https://pypi.org/project/ProDy/
@@ -8,7 +8,7 @@
    :target: https://github.com/prody/ProDy/commits/master
 
 .. image:: https://img.shields.io/pypi/dm/ProDy.svg
-   :target: http://prody.csb.pitt.edu/downloads/
+   :target: http://www.bahargroup.org/prody/downloads/
 
 SYNOPSIS
 --------
@@ -78,23 +78,23 @@ GETTING PRODY
 You can run ProDy on all major platforms.  For download and installation
 instructions see:
 
-* http://prody.csb.pitt.edu/downloads
+* http://www.bahargroup.org/prody/downloads/
 
 
 DOCUMENTATION
 -------------
 
-* Homepage: http://prody.csb.pitt.edu/
+* Homepage: http://www.bahargroup.org/prody/
 
-* Tutorials: http://prody.csb.pitt.edu/tutorials
+* Tutorials: http://www.bahargroup.org/prody/tutorials
 
-* Reference: http://prody.csb.pitt.edu/manual
+* Reference: http://www.bahargroup.org/prody/manual
 
-* Applications: http://prody.csb.pitt.edu/manual/apps
+* Applications: http://www.bahargroup.org/prody/manual/apps
 
-* NMWiz GUI: http://prody.csb.pitt.edu/nmwiz
+* NMWiz GUI: http://www.bahargroup.org/prody/nmwiz
 
-* Changes: http://prody.csb.pitt.edu/manual/release
+* Changes: http://www.bahargroup.org/prody/manual/release
 
 See also https://github.com/prody/ProDy-website for latest versions.
 
@@ -136,6 +136,7 @@ is used to perform calulations. The precompiled versions for Python 2.7,
 3.8, 3.9, and 3.10 are availabe in prody/proteins/hpbmodule. The user can
 choose the correct version of hpb.so and copy to the prody/proteins or
 local directory.
+
 C++ code of hpb.so was developed by Xin Cao and Fortran code by Xin Cao, 
 Michelle H. Hummel, Bihua Yu, and Evangelos A. Coutsias (License in 
 prody/proteins/hpbmodule folder). Details of the method can be found 
