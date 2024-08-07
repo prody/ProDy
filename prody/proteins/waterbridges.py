@@ -530,7 +530,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     combining selections satifying the criteria in each.
 
     :arg return_selection: whether to return the combined common selection
-        Default is **False**
+        Default is **False** to keep expected behaviour.
+        However, this output is required when using selstr.
     :type return_selection: bool    
     """
     start_frame = kwargs.pop('start_frame', 0)
@@ -554,7 +555,9 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
 
         indices = None
+        selection = atoms
         if selstr is not None:
+            LOGGER.info('Finding common selection')
             indices = []
             for frame0 in traj:
                 atoms_copy = atoms.copy()
@@ -568,6 +571,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
 
             indices = np.unique(indices)
 
+            LOGGER.info('Common selection found with {0} atoms and {1} protein chains'.format(selection.numAtoms(),
+                                                                                              len(list(selection.protein.getHierView()))))
 
         def analyseFrame(j0, start_frame, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
