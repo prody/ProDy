@@ -661,6 +661,11 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
     if return_selection:
+        if indices is not None:
+            atoms_copy = atoms_copy[indices]
+            kwargs['selstr'] = atoms_copy.getSelstr()
+
+    if return_selection:
         return interactions_all, atoms_copy
     
     return interactions_all
