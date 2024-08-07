@@ -570,6 +570,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                 indices.extend(list(selection.getIndices()))
 
             indices = np.unique(indices)
+            selection = atoms_copy[indices]
 
             LOGGER.info('Common selection found with {0} atoms and {1} protein chains'.format(selection.numAtoms(),
                                                                                               len(list(selection.protein.getHierView()))))
