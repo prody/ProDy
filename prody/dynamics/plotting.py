@@ -24,6 +24,7 @@ from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
 from .lda import LDA
+from .logistic import LRA
 
 __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showCumulOverlap', 'showFractVars',
@@ -274,11 +275,11 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
 
     use_labels = kwargs.pop('use_labels', True)
     labels = kwargs.pop('label', None)
-    if labels is None and use_labels and modes is not None:
-        if isinstance(modes, LDA):
+    if labels is None and  use_labels and modes is not None:
+        if isinstance(modes, (LDA, LRA)):
             labels = modes._labels.tolist()
             LOGGER.info('using labels from LDA modes')
-        elif isinstance(modes.getModel(), LDA):
+        elif isinstance(modes.getModel(), (LDA, LRA)):
             labels = modes.getModel()._labels.tolist()
             LOGGER.info('using labels from LDA model')
 
@@ -1996,7 +1997,7 @@ def showAtomicLines(*args, **kwargs):
                         last += len(resnums)
                     else:
                         x.extend(resnums + last)
-                        last = resnums[-1]
+                        last += resnums[-1]
                     
         if gap:
             if overlay:
@@ -2354,7 +2355,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
     networkx.draw_networkx_edges(G, pos=layout)
     
     if np.isscalar(node_shape):
-        networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=sizes, 
+        networkx.draw_networkx_nodes(G, pos=layout, label=None, node_size=sizes, 
                                         node_shape=node_shape, node_color=colors)
     else:
         for shape in shape_groups:
@@ -2362,7 +2363,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
             nodesizes = [sizes[i] for i in shape_groups[shape]]
             nodecolors = [colors[i] for i in shape_groups[shape]]
             if not nodelist: continue
-            networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=nodesizes, 
+            networkx.draw_networkx_nodes(G, pos=layout, label=None, node_size=nodesizes, 
                                         node_shape=shape, node_color=nodecolors, 
                                         nodelist=nodelist)
 
