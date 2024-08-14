@@ -30,7 +30,7 @@ jobs:
         conda create --yes -n test python=${{ matrix.python-version }}
         source activate test
         conda install --yes numpy scipy nose requests
-        if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; else conda install --yes pdbfixer; fi
+        if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; else conda install --yes pdbfixer mdtraj; fi
         pip install mmtf-python scikit-learn
         pip install .
         python setup.py build_ext --inplace --force

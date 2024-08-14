@@ -811,7 +811,7 @@ def buildADPMatrix(atoms):
         element[0, 1] = element[1, 0] = anisou[3]
         element[0, 2] = element[2, 0] = anisou[4]
         element[1, 2] = element[2, 1] = anisou[5]
-        adp[i*3:i*3, i*3:i*3] = element
+        adp[i*3:i*3+3, i*3:i*3+3] = element
     return adp
 
 

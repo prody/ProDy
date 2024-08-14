@@ -7,20 +7,13 @@ import re
 from numbers import Integral
 
 import numpy as np
-from os.path import join, isfile
+from os.path import join
 from io import BytesIO
 
 from prody import LOGGER, PY3K
-from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
+from prody.utilities import makePath, gunzip
 from prody.utilities import relpath
 from prody.proteins import parsePDB
-
-if PY3K:
-    import urllib.parse as urllib
-    import urllib.request as urllib2
-else:
-    import urllib
-    import urllib2
 
 import json
 
@@ -183,16 +176,17 @@ def searchPfam(query, **kwargs):
     return matches
 
 
-def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
+def fetchPfamMSA(acc, alignment='seed', compressed=False, **kwargs):
     """Returns a path to the downloaded Pfam MSA file.
 
     :arg acc: Pfam ID or Accession Code
     :type acc: str
 
-    :arg alignment: alignment type, one of ``'full'`` (default), ``'seed'``,
+    :arg alignment: alignment type, one of ``'full'``, ``'seed'`` (default),
          ``'ncbi'``, ``'metagenomics'``, ``'rp15'``, ``'rp35'``, ``'rp55'``,
          ``'rp75'`` or ``'uniprot'`` where rp stands for representative 
-         proteomes
+         proteomes. InterPro Pfam seems to only have seed alignments
+         easily accessible in most cases
 
     :arg compressed: gzip the downloaded MSA file, default is **False**
 
@@ -200,8 +194,11 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
         is 60
 
     :arg outname: out filename, default is input ``'acc_alignment.format'``
+    :type outname: str
 
-    :arg folder: output folder, default is ``'.'``"""
+    :arg folder: output folder, default is ``'.'``
+    :type folder: str
+    """
     
     import requests
 

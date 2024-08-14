@@ -375,3 +375,7 @@ functions.CoMD = CoMD
 from . import lda
 from .lda import *
 __all__.extend(lda.__all__)
+
+from . import logistic
+from .logistic import *
+__all__.extend(logistic.__all__)
