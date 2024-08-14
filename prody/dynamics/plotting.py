@@ -1971,7 +1971,7 @@ def showAtomicLines(*args, **kwargs):
                         last += len(resnums)
                     else:
                         x.extend(resnums + last)
-                        last = resnums[-1]
+                        last += resnums[-1]
                     
         if gap:
             if overlay:
