@@ -11,8 +11,8 @@ from .logger import LOGGER
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
-           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters',
-           'calcKmedoidClusters']
+           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters', 
+           'printAtomicMatrix', 'calcKmedoidClusters']
 
 class LinkageError(Exception):
     pass
@@ -988,6 +988,117 @@ def findSubgroups(tree, c, method='naive', **kwargs):
     return subgroups
 
 
+def getAtomicTable(matrix, atoms_i=None, atoms_j=None, 
+                   fmt='%5d', sep='\t'):
+    """Generates a new table for a matrix with atom labels along 
+    the top and at the beginning of each line for :func:`.printAtomicTable`.
+
+    :arg matrix: any square 2D data with a size matching atoms
+    :type matrix: tuple, list, :class:`~numpy.ndarray`
+
+    :arg atoms_i: any :class:`.Atomic` object to label the rows
+    :type atoms_i: :class:`.Atomic`
+
+    :arg atoms_j: any :class:`.Atomic` object to label the columns
+        uses atoms_i by default
+    :type atoms_j: :class:`.Atomic`
+
+    :arg fmt: format string for formatting numbers
+    :type fmt: str
+    """
+    if not isListLike(matrix):
+        raise TypeError('matrix should be list-like')
+
+    matrix = np.array(matrix)
+    if matrix.ndim != 2:
+        raise ValueError('matrix should be 2-dimensional')
+
+    if atoms_j is None:
+        atoms_j = atoms_i
+
+    if matrix.shape[0] != atoms_i.numAtoms():
+        raise ValueError('number of rows should be number of atoms_i')
+
+    if matrix.shape[1] != atoms_j.numAtoms():
+        raise ValueError('number of cols should be number of atoms_j')
+
+    if not isinstance(fmt, str):
+        raise TypeError('fmt should be a string')
+
+    chars = [list(item) for item in fmt.split('.')]
+    nums = []
+    for item in chars:
+        num_str = ''
+        for char in item:
+            if char.isnumeric():
+                num_str += char
+        nums.append(int(num_str))
+
+    if len(nums) == 1:
+        length = nums[0]
+    else:
+        if nums[0] >= nums[1] + 2:
+            length = nums[0]
+        else:
+            length = nums[1] + 2
+
+    table = ''
+    table += ' '*length
+
+    resnum_length = max(len(str(max(atoms_i.getResnums()))),
+                        len(str(max(atoms_j.getResnums()))))
+    chid_length = max(max([len(chid) for chid in atoms_i.getChids()]),
+                      max([len(chid) for chid in atoms_j.getChids()]))
+    
+    for j in range(matrix.shape[1]):
+        table += sep
+        if length >= resnum_length + chid_length:
+            chid = atoms_j[j].getChid()
+            table += ' '*(chid_length - len(chid)) + chid
+        if length >= resnum_length + chid_length + 1:
+            table += ' '
+        
+        if length >= resnum_length + chid_length + 2:
+            table += AAMAP.get(atoms_j[j].getResname(), 'X')
+
+        table += '%{0}d'.format(resnum_length) % atoms_j[j].getResnum()
+    table += '\n'
+
+    for i, row in enumerate(matrix):
+        if atoms_i is not None:
+            table += '\t{} {}'.format(atoms_i[i].getChid(),
+                                      atoms_i[i].getResname())
+            table += fmt % atoms_i[i].getResnum()
+        for element in row:
+            table += fmt % element
+        table += '\n'
+
+    return table
+
+
+def printAtomicMatrix(matrix, atoms=None, step=10):
+    """Prints a new table for a matrix with
+    atom labels along the top and at the 
+    beginning of each line.
+
+    :arg matrix: any square 2D data with a size matching atoms
+    :type matrix: tuple, list, :class:`~numpy.ndarray`
+
+    :arg atoms: any :class:`.Atomic` object to label the data
+    :type atoms: :class:`.Atomic`
+    """
+    attempts = len(matrix)//step
+    if len(matrix) > step * attempts:
+        attempts += 1
+    for i in range(attempts):
+        start = step * i
+        stop = step * (i+1)
+        submatrix = matrix[:,start:stop,]
+        atoms_i = atoms
+        atoms_j = atoms[start:stop]
+        print(getAtomicTable(submatrix, atoms_i, atoms_j))
+
+    return
 def calcRMSDclusters(rmsd_matrix, c, labels=None):
     """
     Divide **rmsd_matrix** into clusters using the gromos method 
