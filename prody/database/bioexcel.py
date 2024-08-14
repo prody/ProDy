@@ -58,14 +58,7 @@ def fetchBioexcelPDB(acc, **kwargs):
     if selection is not None:
         url += '?selection=' + selection.replace(" ","%20")
     
-    response = requestFromUrl(url, timeout)
-
-    if PY3K:
-        response = response.decode()
-
-    fo = open(filepath, 'w')
-    fo.write(response)
-    fo.close()
+    filepath = requestFromUrl(url, timeout, filepath, source='pdb')
 
     return filepath
 
@@ -118,11 +111,7 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     if selection is not None:
         url += '&selection=' + selection.replace(" ","%20")
 
-    response = requestFromUrl(url, timeout)
-
-    fo = open(filepath, 'wb')
-    fo.write(response)
-    fo.close()
+    filepath = requestFromUrl(url, timeout, filepath, source='xtc')
 
     if convert:
         filepath = convertXtcToDcd(filepath, **kwargs)
@@ -150,20 +139,19 @@ def fetchBioexcelTopology(acc, **kwargs):
 
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
-    acc, convert, _, filepath, timeout, _ = checkInputs(acc, **kwargs)
-    if not filepath.endswith('.json'):
-        filepath += '.json'
+    if isfile(acc):
+        filepath = acc
+    else:
+        acc, convert, _, filepath, timeout, _ = checkInputs(acc, **kwargs)
+        if not filepath.endswith('.json') and not filepath.endswith('.psf'):
+            filepath += '.json'
 
-    url = prefix + acc + "/topology"
+    if filepath.endswith('.psf'):
+        convert = False
 
-    response = requestFromUrl(url, timeout)
-
-    if PY3K:
-        response = response.decode()
-
-    fo = open(filepath, 'w')
-    fo.write(response)
-    fo.close()
+    if not isfile(filepath):
+        url = prefix + acc + "/topology"
+        filepath = requestFromUrl(url, timeout, filepath, source='json')
 
     if convert:
         ag = parseBioexcelTopology(filepath, **kwargs)
@@ -204,21 +192,17 @@ def parseBioexcelTopology(query, **kwargs):
         ag._n_csets = 1
         ag._acsi = 0
 
-        nodes = ag.select('name N')
+        indices = np.ix_(*[np.array(data['atom_residue_indices'])])
 
-        residue_chids = [data['chain_names'][chain_index] for chain_index in data['residue_chain_indices']]
-        chids, _ = extendAtomicData(residue_chids, nodes, ag)
-        ag.setChids(chids)
+        chids = np.array([data['chain_names'][chain_index]
+                          for chain_index in data['residue_chain_indices']])
+        ag.setChids(chids[indices])
 
-        resnames, _ = extendAtomicData(data['residue_names'], nodes, ag)
-        ag.setResnames(resnames)
-
-        resnums, _ = extendAtomicData(data['residue_numbers'], nodes, ag)
-        ag.setResnums(resnums)
+        ag.setResnames(np.array(data['residue_names'])[indices])
+        ag.setResnums(np.array(data['residue_numbers'])[indices])
 
         if data['residue_icodes'] is not None:
-            icodes, _ = extendAtomicData(data['residue_icodes'], nodes, ag)
-            ag.setIcodes(icodes)
+            ag.setIcodes(np.array(data['residue_icodes'])[indices])
 
         # restore acsi and n_csets to defaults
         ag._acsi = None
@@ -240,6 +224,9 @@ def parseBioexcelTopology(query, **kwargs):
 def parseBioexcelTrajectory(query, **kwargs):
     """Parse a BioExcel-CV19 topology json into an :class:`.Ensemble`,
     fetching it if needed using **kwargs
+
+    :arg top: topology filename
+    :type top: str
     """
     kwargs['convert'] = True
     if isfile(query) and query.endswith('.dcd'):
@@ -260,18 +247,37 @@ def parseBioexcelPDB(query, **kwargs):
     fetching it if needed using **kwargs
     """
     kwargs['convert'] = True
-    if not isfile(query):
-        filename = fetchBioexcelPDB(query, **kwargs)
-    else:
+    if isfile(query):
         filename = query
+    elif isfile(query + '.pdb'):
+        filename = query + '.pdb'
+    else:
+        filename = fetchBioexcelPDB(query, **kwargs)
 
-    return parsePDB(filename)
+    ag = parsePDB(filename)
+    if ag is None:
+        filename = fetchBioexcelPDB(query, **kwargs)
+        ag = parsePDB(filename)
+
+    acc = basename(splitext(filename)[0])
+    ag2 = parseBioexcelTopology(acc, **kwargs)
+
+    ag.setElements(ag2.getElements())
+    return ag
 
 def convertXtcToDcd(filepath, **kwargs):
     """Convert xtc trajectories to dcd files using mdtraj.
     Returns path to output dcd file.
+
+    :arg top: topology filename
+    :type top: str    
     """
-    acc = basename(splitext(filepath)[0])
+    topFile = kwargs.get('top', None)
+    if topFile is not None:
+        acc = topFile
+    else:
+        acc = basename(splitext(filepath)[0])
+
     try:
         import mdtraj
     except ImportError:
@@ -284,9 +290,14 @@ def convertXtcToDcd(filepath, **kwargs):
 
     return filepath
 
-def requestFromUrl(url, timeout):
+def requestFromUrl(url, timeout, filepath, source=None):
     """Helper function to make a request from a url and return the response"""
     import requests
+    import json
+    import mdtraj
+    import tempfile
+
+    acc = url.split(prefix)[1].split('/')[0]
 
     LOGGER.timeit('_bioexcel')
     response = None
@@ -294,15 +305,45 @@ def requestFromUrl(url, timeout):
     while LOGGER.timing('_bioexcel') < timeout:
         try:
             response = requests.get(url).content
+
+            if source == 'json':
+                json.loads(response)
+
+                if PY3K:
+                    response = response.decode()
+
+                fo = open(filepath, 'w')
+                fo.write(response)
+                fo.close()
+
+            elif source == 'xtc':
+                fo = open(filepath, 'wb')
+                fo.write(response)
+                fo.close()
+                
+                top = mdtraj.load_psf(fetchBioexcelTopology(acc, timeout=timeout))
+                mdtraj.load_xtc(filepath, top=top)
+
+            elif source == 'pdb':
+                if PY3K:
+                    response = response.decode()
+
+                fo = open(filepath, 'w')
+                fo.write(response)
+                fo.close()
+
+                ag = parsePDB(filepath)
+                numAtoms = ag.numAtoms()
+
         except Exception:
             pass
         else:
             break
         
-        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        sleep = 100 if int(sleep * 1.5) >= 100 else int(sleep * 1.5)
         LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
-    return response
+    return filepath
 
 def checkSelection(**kwargs):
     """Helper function to check selection"""
@@ -333,7 +374,7 @@ def checkConvert(**kwargs):
     return convert
 
 def checkTimeout(**kwargs):
-    timeout = kwargs.get('timeout', 60)
+    timeout = kwargs.get('timeout', 200)
     if not isinstance(timeout, (Number, type(None))):
         raise TypeError('timeout should be number')
     return timeout

@@ -154,8 +154,8 @@ class DaliRecord(object):
         """
 
         self._url = url
-        self._pdbId = pdbId
-        self._chain = chain
+        self._pdbId = pdbId.lower()
+        self._chain = chain.upper()
         subset = subset.upper()
         if subset == "FULLPDB" or subset not in ["PDB25", "PDB50", "PDB90"]:
             self._subset = ""
@@ -163,7 +163,7 @@ class DaliRecord(object):
             self._subset = "-"+subset[3:]
         timeout = kwargs.pop('timeout', 120)
 
-        self._title = pdbId + '-' + chain
+        self._title = self._pdbId + '-' + self._chain
         self._alignPDB = None
         self._filterDict = None
         self._max_index = None
