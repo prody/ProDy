@@ -49,9 +49,9 @@ class Sequence(object):
     def __str__(self):
 
         if PY3K:
-            return self._array.tostring().decode()
+            return self._array.tobytes().decode()
         else:
-            return self._array.tostring()
+            return self._array.tobytes()
 
     def __len__(self):
 

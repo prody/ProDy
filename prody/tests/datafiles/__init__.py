@@ -368,6 +368,20 @@ DATA_FILES = {
     '2k39_all2': {
         'file': '2k39_all2.npy'
     },
+    'pdb4ake_fixed': {
+        'file': '4akeA_alg_fixed.pdb'
+    },
+    'mrc1ake': {
+        'file': '1ake.mrc'
+    },
+    'pdb1ake': {
+        'file': 'pdb1ake.pdb'
+    },
+    'pdb7pbl': {
+        'file': 'pdb7pbl.pdb',
+        'atoms': 31396,
+        'nucleoside': 252
+    }
 }
 
 

@@ -47,7 +47,7 @@ The following classes are designed for modeling and analysis of protein dynamics
 
 Usage of these classes are shown in :ref:`exanm` and :ref:`imanm` examples.
 
-SignDy
+Signature Dynamics (SignDy)
 ===============
 
 The following classes are designed for signature dynamics analysis of protein/domain families, 
@@ -363,3 +363,7 @@ functions.ClustENM = ClustENM
 from . import lda
 from .lda import *
 __all__.extend(lda.__all__)
+
+from . import logistic
+from .logistic import *
+__all__.extend(logistic.__all__)

@@ -41,7 +41,12 @@ for key, txt, val in [
     ('t_steps_i', 'number of 2.0 fs MD time steps for initial structure', 1000),
     ('t_steps_g', 'number of 2.0 fs MD time steps in each generation, can be tuple of floats', '7500'),
     ('multiple', 'whether each conformer will be saved as a separate PDB file', False),
-    ('write_params', 'whether to write parameters', False)]:
+    ('write_params', 'whether to write parameters', False),
+    ('fitmap', 'map to fit by filtering conformations like MDeNMD-EMFit', None),
+    ('fit_resolution', 'resolution for blurring structures for fitting cc', 5),
+    ('map_cutoff', 'min_cutoff for passing map for fitting', 0),
+    ('replace_filtered', 'whether to keep sampling again to replace filtered conformers', False),
+    ('platform', 'openmm platform (OpenCL, CUDA, CPU or None)', None)]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
@@ -67,6 +72,13 @@ def prody_clustenm(pdb, **kwargs):
     import prody
     LOGGER = prody.LOGGER
 
+    fitmap = kwargs.pop('fitmap')
+    map_cutoff = kwargs.pop('map_cutoff')
+    if fitmap is not None:
+        fitmap = prody.parseEMD(fitmap, min_cutoff=map_cutoff)
+
+    fit_resolution = kwargs.pop('fit_resolution')
+
     selstr = kwargs.pop('select')
     prefix = kwargs.pop('prefix')
     sparse = kwargs.pop('sparse')
@@ -75,6 +87,7 @@ def prody_clustenm(pdb, **kwargs):
     model = kwargs.pop('model')
     altloc = kwargs.pop('altloc')
     turbo = kwargs.pop('turbo')
+    nproc = kwargs.pop('nproc')
 
     ngens = kwargs.pop('ngens')
     nconfs = kwargs.pop('nconfs')
@@ -142,7 +155,9 @@ def prody_clustenm(pdb, **kwargs):
             t_steps_g=eval(t_steps_g),
             outlier=outlier, mzscore=mzscore,
             sparse=sparse, kdtree=kdtree, turbo=turbo,
-            parallel=parallel, **kwargs)
+            parallel=parallel, fitmap=fitmap, 
+            fit_resolution=fit_resolution,
+            nproc=nproc, **kwargs)
 
     single = not kwargs.pop('multiple')
     outname = join(outdir, prefix)
@@ -188,7 +203,7 @@ graphical output files:
   $ prody clustenm 1aar -s "calpha and chain A and resnum < 70" -A""",
   test_examples=[0, 1])
 
-    group = addNMAParameters(subparser, include_nproc=False)
+    group = addNMAParameters(subparser, include_nproc=True)
 
     group.add_argument('-c', '--cutoff', dest='cutoff', type=str,
         default=DEFAULTS['cutoff'], metavar='FLOAT',
@@ -256,7 +271,7 @@ graphical output files:
         default=DEFAULTS['ionicStrength'], metavar='FLOAT',
         help=HELPTEXT['ionicStrength'] + ' (default: %(default)s)')
     
-    group.add_argument('-P', '--padding', dest='padding', type=float,
+    group.add_argument('-Q', '--padding', dest='padding', type=float,
         default=DEFAULTS['padding'], metavar='FLOAT',
         help=HELPTEXT['padding'] + ' (default: %(default)s)')
 
@@ -307,6 +322,26 @@ graphical output files:
     group.add_argument('-p', '--file-prefix', dest='prefix', type=str,
         default=DEFAULTS['prefix'], metavar='STR',
         help=HELPTEXT['prefix'] + ' (default: pdb%(default)s)')
+    
+    group.add_argument('-q', '--fitmap', dest='fitmap', type=str,
+        default=DEFAULTS['fitmap'], metavar='STR',
+        help=HELPTEXT['fitmap'] + ' (default: %(default)s)')
+    
+    group.add_argument('-r', '--fit_resolution', dest='fit_resolution', type=float,
+        default=DEFAULTS['fit_resolution'], metavar='FLOAT',
+        help=HELPTEXT['fit_resolution'] + ' (default: %(default)s)')
+    
+    group.add_argument('-u', '--map_cutoff', dest='map_cutoff', type=float,
+        default=DEFAULTS['map_cutoff'], metavar='FLOAT',
+        help=HELPTEXT['map_cutoff'] + ' (default: %(default)s)')
+
+    group.add_argument('-O', '--replace_filtered', dest='replace_filtered',
+        action='store_true',
+        default=DEFAULTS['replace_filtered'], help=HELPTEXT['replace_filtered'])
+
+    group.add_argument('-V', '--platform', dest='platform', type=str,
+        default=DEFAULTS['platform'], metavar='STR',
+        help=HELPTEXT['platform'] + ' (default: %(default)s)')
 
     subparser.add_argument('pdb', help='PDB identifier or filename')
 

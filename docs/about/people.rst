@@ -29,8 +29,15 @@ including *SignDy* and Adaptive ANM.
 the *cryo-EM* module, :mod:`.protein.emdmap`.
 
 `Burak Kaynak`_ contributed significantly to the development of 
-:mod:`.domain_decomposition` and :mod:`.dynamics.essa`, 
-and is in the process of adding other modules too.
+:mod:`.domain_decomposition`, :mod:`.dynamics.essa`, and
+:mod:`.dynamics.clustenm`. 
+
+`Karolina Mikulska-Ruminska`_ contributed significantly to the development of 
+:mod:`.protein.interactions` (*InSty*), :mod:`.protein.waterbridges`
+(*WatFinder*), and :mod:`.dynamics.mechstiff` (*MechStiff*).
+
+`Anthony Bogetti`_ is overseeing the overall development of *ProDy* since 
+2024.
 
 `Anindita Dutta`_ contributed to the development of *Evol*,
 :mod:`.database` and :mod:`.sequence` modules.
@@ -52,15 +59,18 @@ contributions and feedback from the following individuals:
 
 `Ying Liu`_ provided the code for Perturbation Response Scanning method.
 
+`Frane Doljanin`_ provided the code for the water bridge detection.
+
 `Kian Ho`_ contributed with bug fixes and unit tests for DSSP functions.
 
 `Gökçen Eraslan`_ contributed with bug fixes and development and maintenance
 insights.
 
 
+
 .. _Ahmet Bakan: https://scholar.google.com/citations?user=-QAYVgMAAAAJ&hl=en
 .. _Cihan Kaya: https://www.linkedin.com/in/cihan-kaya/
-.. _Bahar Lab: http://www.ccbb.pitt.edu/faculty/bahar/
+.. _Bahar Lab: http://www.bahargroup.org/Faculty/bahar/
 .. _University of Pittsburgh: http://www.pitt.edu/
 .. _Anindita Dutta: http://www.linkedin.com/pub/anindita-dutta/5a/568/a90
 .. _Wenzhi Mao: http://www.linkedin.com/pub/wenzhi-mao/2a/29a/29
@@ -68,10 +78,13 @@ insights.
 .. _Ying Liu: http://www.linkedin.com/pub/ying-liu/15/48b/5a9
 .. _Kian Ho: https://github.com/kianho
 .. _Gökçen Eraslan: http://blog.yeredusuncedernegi.com/
-.. _Tim Lezon: http://www.csb.pitt.edu/Faculty/Lezon/
+.. _Tim Lezon: https://scholar.google.pl/citations?user=1MwNI3EAAAAJ&hl=pl&oi=ao
 .. _Chakra Chennubhotla: http://www.csb.pitt.edu/Faculty/Chakra/
 .. _She (John) Zhang: https://www.linkedin.com/in/she-zhang-49164399/
 .. _Hongchun Li: http://www.pitt.edu/~hongchun/
-.. _James Krieger: http://www.csb.pitt.edu/Faculty/bahar/lab.html
-.. _Yan Zhang: https://www.csb.pitt.edu/Faculty/bahar/lab.html
-.. _Burak Kaynak: https://www.csb.pitt.edu/Faculty/bahar/lab.html
+.. _James Krieger: https://scholar.google.pl/citations?user=DoiCjkUAAAAJ&hl=pl
+.. _Yan Zhang: https://scholar.google.pl/citations?user=VxwU0pgAAAAJ&hl=pl&oi=sra
+.. _Burak Kaynak: https://scholar.google.pl/citations?user=gP8RokwAAAAJ&hl=pl&oi=ao
+.. _Karolina Mikulska-Ruminska: https://scholar.google.pl/citations?user=IpyPHRwAAAAJ&hl=pl
+.. _Anthony Bogetti: https://scholar.google.pl/citations?hl=pl&user=9qQClIcAAAAJ
+.. _Frane Doljanin: https://github.com/fdoljanin

@@ -20,6 +20,57 @@ API is for interactive usage as well as application development.  ProDy also
 comes with several analysis applications and a graphical user interface for
 visual analysis.
 
+Further details are described in the ProDy papers:
+
+  | Bakan A, Meireles LM, Bahar I.
+  | *ProDy*: Protein Dynamics Inferred from Theory and Experiments.
+  | *Bioinformatics* **2011** 27(11):1575-1577.
+
+  | Bakan A, Dutta A, Mao W, Liu Y, Chennubhotla C, Lezon TR, Bahar I.
+  | *Evol* and *ProDy* for Bridging Protein Sequence Evolution and Structural Dynamics.
+  | *Bioinformatics* **2014** 30(18):2681-2683.
+
+  | Zhang S, Krieger JM, Zhang Y, Kaya C, Kaynak B, Mikulska-Ruminska K, Doruker P, Li H, Bahar I.
+  | *ProDy* 2.0: Increased Scale and Scope after 10 Years of Protein Dynamics Modelling with Python.
+  | *Bioinformatics* **2021** 37(20):3657-3659.
+
+MODULES
+--------
+
+ProDy has a modular structure with modules inside various subpackages.
+
+The main ones are:
+
+- :mod:`~prody.atomic`` handles all :class:`~prody.atomic.Atomic` objects including :class:`~prody.atomic.AtomGroup` and :class:`.Selection`
+
+- :mod:`~prody.database` interfaces with databases such as CATH, DALI, UniProt and Pfam
+
+- :mod:`~prody.dynamics` provides all the modules for normal mode analysis with various elastic network models, 
+as well as PCA, SignDy (:mod:`~prody.dynamics.signature`), hybrid methods such as :mod:`~prody.dynamics.clustenm`, 
+allosteric signal propagation methods :mod:`~prody.dynamics.perturb` (PRS) and :func:`~prody.dynamics.analysis.calcHitTime` (Markovian hitting time),
+and various analysis and plotting functions.
+
+- :mod:`~prody.ensemble` enables construction of heterogeneous structural ensembles for exploring dynamics from experiments and simulations
+
+- :mod:`~prody.proteins` provides various modules for parsing different kinds of protein structure files including PDB, mmCIF, MMTF and maps,
+as well as tools to align and compare structures, and analysis of :mod:`~prody.proteins.interactions` within and between proteins (InSty) and 
+find :mod:`~prody.proteins.waterbridges` (WatFinder).
+
+- :mod:`~prody.sequence` has all the sequence alignment and evolutionary analysis tools of Evol
+
+
+Smaller ones include:
+
+- :mod:`~prody.chromatin` specific to chromatin dynamics (ChromDy) including :mod:`~prody.chromatin.hic` and :mod:`~prody.chromatin.cluster`
+
+- :mod:`~prody.compounds` for parsing small molecule compounds/ligands from the PDB and related databases
+
+- :mod:`~prody.domain_decomposition` for Spectrus dynamical domain decomposition 
+
+- :mod:`~prody.trajectory` for trajectories in DCD format
+
+- :mod:`~prody.utilities`
+
 
 GETTING PRODY
 -------------
@@ -44,6 +95,8 @@ DOCUMENTATION
 * NMWiz GUI: http://prody.csb.pitt.edu/nmwiz
 
 * Changes: http://prody.csb.pitt.edu/manual/release
+
+See also https://github.com/prody/ProDy-website for latest versions.
 
 
 SOURCE CODE
