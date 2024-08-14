@@ -7,7 +7,7 @@ from numbers import Integral
 import os
 
 from numpy import dtype, zeros, empty, ones, where, ceil, dot
-from numpy import indices, tril_indices, array, ndarray, isscalar, unique
+from numpy import indices, tril_indices, array, isscalar, unique
 
 from prody import LOGGER
 from prody.utilities import which, MATCH_SCORE, MISMATCH_SCORE
@@ -588,8 +588,8 @@ def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
     refine = 1 if refine else 0
     # msadipretest get some parameter from msa to set matrix size
     length, q = msadipretest(msa, refine=refine)
-    c = dot(ndarray(zeros((length*q, 1), float)),
-            ndarray(zeros((1, length*q), float)))
+    c = dot(array(zeros((length*q, 1), float)),
+            array(zeros((1, length*q), float)))
     prob = zeros((length, q+1), float)
     # msadirectinfo1 return c to be inversed and prob to be used
     meff, n, length, c, prob = msadirectinfo1(msa, c, prob, theta=1.-seqid,
