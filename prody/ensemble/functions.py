@@ -183,21 +183,9 @@ def loadEnsemble(filename, **kwargs):
                     '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
                     '_sim', '_temp', '_t_steps', '_outlier', '_mzscore', '_v1',
                     '_parallel', '_idx_ca', '_n_ca', '_cycle', '_time', '_targeted',
-<<<<<<< HEAD
-                    '_tmdk', '_topology', '_positions']
-            
-            for attr in attrs:
-                if attr in attr_dict.files:
-                    setattr(ensemble, attr, attr_dict[attr])
-
-        if type_ == 'AdaptiveHybrid':
-            attrs = ['_atomsB', '_defvecs', '_resetFmin', '_rmsds', '_cc']
-=======
                     '_tmdk', '_cc']
         if have_openmm:
             attrs.extend(['_topology', '_position'])
-            
->>>>>>> 34fa7bec368b27d09ade3c7b4f9b3ad428f4e1a6
             
             for attr in attrs:
                 if attr in attr_dict.files:
