@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module defines functions for calculating different types of interactions 
+"""This module called InSty defines functions for calculating different types of interactions 
 in protein structure, between proteins or between protein and ligand.
 The following interactions are available for protein interactions:
         (1) Hydrogen bonds
@@ -45,7 +45,8 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
-           'calcSminaBindingAffinity']
+           'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
+           'showSminaTermValues']
 
 
 def cleanNumbers(listContacts):
@@ -2358,9 +2359,48 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     LOGGER.info("TCL file saved")
 
 
+def SMINA_extract_data(result):
+    """Supporting function for analysis of the SMINA results."""
+    import re
+    
+    data = {}
+
+    # Extracting Affinity from SMINA output
+    affinity_match = re.search(r'Affinity: ([0-9.-]+) \(kcal/mol\)', result)
+    if affinity_match:
+        data['Affinity'] = float(affinity_match.group(1))
+
+    # Extracting Intramolecular energy from SMINA output
+    intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
+    if intramolecular_energy_match:
+        data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
+
+    # Extracting Weights and Terms from SMINA output
+    weights_terms_match = re.search(r'Weights\s+Terms\s*([\s\S]*?)## Name', result, re.DOTALL)
+    if weights_terms_match:
+        weights_terms_text = weights_terms_match.group(1)
+        term_lines = weights_terms_text.strip().split('\n')
+        term_dict = {}
+        for line in term_lines:
+            parts = line.split()
+            if len(parts) >= 2: 
+                weight = float(parts[0])
+                term = ' '.join(parts[1:])
+                term_dict[term] = weight
+        data.update(term_dict)
+        
+    term_values_match = re.search(r'Term values, before weighting:\n##\s+(.*?)\n', result, re.DOTALL)
+    if term_values_match:
+        term_values_text = term_values_match.group(1)
+        term_values_array = np.array([float(value) for value in term_values_text.split()])
+        data['Term values, before weighting'] = term_values_array.tolist()           
+        
+    return data
+
+
 def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
     """Computing binding affinity of ligand toward protein structure
-    usig SMINA package [DRK13]_.
+    using SMINA package [DRK13]_.
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
@@ -2380,6 +2420,14 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                            by default is "vina"
     
     :type ligand_selection: str
+    
+    :arg atom_terms: write per-atom interaction term values.
+                     It will provide more information as dictionary for each frame/model,
+                     and details for atom terms will be saved in terms_*frame_number*.txt,    
+                     by default is False
+
+    :type atom_terms: bool
+     
 
     SMINA installation is required to compute ligand binding affinity:
     >> conda install -c conda-forge smina       (for Anaconda)
@@ -2414,6 +2462,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
     protein_selection = kwargs.pop('protein_selection', "protein")
     ligand_selection = kwargs.pop('ligand_selection', "all not protein")
     scoring_function = kwargs.pop('scoring_function', 'vina')
+    atom_terms = kwargs.pop('atom_terms', False)
     bindingAffinity = []
 
     if trajectory is not None:
@@ -2431,7 +2480,8 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
 
         atoms_copy = atoms.copy()
-
+        data_final = []
+        
         for j0, frame0 in enumerate(traj, start=start_frame):
             atoms_copy.setCoords(frame0.getCoords())        
             protein = atoms_copy.select(protein_selection)
@@ -2444,24 +2494,18 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 writePDB(temp_pdb_file.name, protein)
                 writePDB(temp_pdb_file_lig.name, ligand)
 
-                data = {}
-                command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
+                if atom_terms == False:
+                    command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function)
+                else:
+                    command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms_{}.txt".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function, j0)
+                
                 result = subprocess.check_output(command, shell=True, text=True)
-
-                result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
-
-                matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
-                for match in matches:
-                    key = match.group('key')
-                    value = float(match.group(2))
-                    data[key] = value
-
-                intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
-                if intramolecular_energy_match:
-                    data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
-
+                data = SMINA_extract_data(result)
                 LOGGER.info('Frame {0}: {1} kcal/mol'.format(j0, data['Affinity']))
                 bindingAffinity.append(data['Affinity'])
+                data_final.append(data)
         
         trajectory._nfi = nfi
                 
@@ -2477,27 +2521,22 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 writePDB(temp_pdb_file.name, protein)
                 writePDB(temp_pdb_file_lig.name, ligand)
 
-                data = {}
-                command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
+                if atom_terms == False:
+                    command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function)
+                else:
+                    command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms.txt".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function)
+               
                 result = subprocess.check_output(command, shell=True, text=True)
-
-                result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
-
-                matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
-                for match in matches:
-                    key = match.group('key')
-                    value = float(match.group(2))
-                    data[key] = value
-
-                intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
-                if intramolecular_energy_match:
-                    data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
-
+                data = SMINA_extract_data(result)
+                data_final = data
                 bindingAffinity.append(data['Affinity'])
 
         if atoms.numCoordsets() > 1:
             # Multi-model PDB
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+            data_final = []
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
                 atoms.setACSIndex(i+start_frame) 
                 protein = atoms.select(protein_selection)
                 ligand = atoms.select(ligand_selection)        
@@ -2508,29 +2547,136 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                     writePDB(temp_pdb_file.name, protein, csets=atoms.getACSIndex())
                     writePDB(temp_pdb_file_lig.name, ligand, csets=atoms.getACSIndex())
 
-                    data = {}
-                    command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, temp_pdb_file_lig.name, scoring_function)
+                    if atom_terms == False:
+                        command = "smina -r {} -l {} --score_only --scoring {}".format(temp_pdb_file.name, 
+                                                            temp_pdb_file_lig.name, scoring_function)
+                    else:
+                        command = "smina -r {} -l {} --score_only --scoring {} --atom_terms terms_{}.txt".format(temp_pdb_file.name, 
+                                                        temp_pdb_file_lig.name, scoring_function, i+start_frame)
+               
                     result = subprocess.check_output(command, shell=True, text=True)
-
-                    result = re.sub(r".*Affinity:", "Affinity:", result, flags=re.DOTALL)
-
-                    matches = re.finditer(r'(?P<key>[\w\s]+):\s+([0-9.-]+)\s+\(kcal/mol\)', result)
-                    for match in matches:
-                        key = match.group('key')
-                        value = float(match.group(2))
-                        data[key] = value
-
-                    intramolecular_energy_match = re.search(r'Intramolecular energy: ([0-9.-]+)', result)
-                    if intramolecular_energy_match:
-                        data['Intramolecular energy'] = float(intramolecular_energy_match.group(1))
-
+                    data = SMINA_extract_data(result)
                     LOGGER.info('Model {0}: {1} kcal/mol'.format(i+start_frame, data['Affinity']))
                     bindingAffinity.append(data['Affinity'])
+                    data_final.append(data)
 
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.') 
 
-    return bindingAffinity
+    if atom_terms == False:
+        return bindingAffinity
+    else:
+        return data_final
+
+
+def calcSminaPerAtomInteractions(atoms, list_terms):
+    """Computing the summary of per-atom interaction term values
+    using SMINA package [DRK13]_. It will return dictionary with per-atom interaction term values.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+    
+    :arg list_terms: List of *terms.txt* files obtained from meth:`.calcSminaBindingAffinity`
+                     using *atom_terms = True*
+    :type list_terms: list 
+    
+    Important: First text file in the list should be reference structure which correspond to the 
+    provided coordinates as atoms.
+    """
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+    
+    if not isinstance(list_terms, list):
+        raise TypeError('list_terms must be a list of text files with per-atom interaction term values.')
+    
+    LOGGER.info('Reference file: {}'.format(list_terms[0]))
+    ref_file = open(list_terms[0], 'r').readlines()
+    dict_terms = {}
+    for nr_j, j in enumerate(ref_file[1:-2]):
+            inter_type = j.split()[0]
+            xyz = j.split()[1].strip('<').strip('>').split(',')
+            try:
+                xyz_atom = (atoms.select('x `'+str(xyz[0])+'` y `'+str(xyz[1])+'` z `'+str(xyz[2])+'`')).getNames()[0]
+            except:
+                xyz_atom = ' '
+
+            sum_of_energy = np.sum([float(i) for i in j.split()[2:]])
+            atom_name_with_type = inter_type+ ' '+xyz_atom
+            dict_terms[atom_name_with_type] = [sum_of_energy]            
+
+            # Checking by specific line each file
+            for i in list_terms[1:]:
+                an_line = open(i, 'r').readlines()[nr_j+1]
+                sum_of_energy_line = np.sum([float(i) for i in an_line.split()[2:]])
+                dict_terms[atom_name_with_type].append(sum_of_energy_line)
+    
+    return dict_terms
+
+
+def calcSminaTermValues(data):
+    """Computing weights multiplied by term values, before weighting for each Term.
+    As a results will are obtaining a dictionary.
+    
+    :arg data: List of results provided by Smina using meth:`.calcSminaBindingAffinity`
+                     with *atom_terms = True*
+    :type data: list 
+    """
+    
+    if not isinstance(data, list):
+        raise TypeError('data must be a list')
+
+    result_dict = {key: [] for key in list(data[0].keys())[2:-1]}
+
+    for i in data:
+        weights = i['Term values, before weighting']
+        for idx, key in enumerate(result_dict.keys()):
+            result_dict[key].append(i[key] * weights[idx] if key in i else None)
+
+    return result_dict
+
+
+def showSminaTermValues(data):
+    """Display a histogram of weights multiplied by term values, before weighting for each Term.
+    As a results will are obtaining a dictionary.
+    
+    :arg data: List of results provided by Smina using meth:`.calcSminaBindingAffinity`
+                     with *atom_terms = True*
+    :type data: list 
+    """
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    if not isinstance(data, list):
+        raise TypeError('data must be a list')
+
+    term_values = calcSminaTermValues(data)
+    non_zero_values = {key: [v for v in value if v != 0] for key, value in term_values.items()}
+
+    fig, ax = plt.subplots()
+    colors = ['blue', 'orange', 'red', 'green', 'purple', 'silver', 'cyan', 'magenta', 'yellow']
+    alpha = 0.5
+
+    for i, (key, values) in enumerate(non_zero_values.items()):
+        if values:
+            show = ax.hist(values, bins=10, alpha=alpha, label=key, color=colors[i % len(colors)])
+
+    ax.legend()
+    ax.set_xlabel('Energy [kcal/mol]')
+    ax.set_ylabel('# counts')
+
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
+
 
 
 class Interactions(object):
@@ -3914,7 +4060,7 @@ class LigandInteractionsTrajectory(object):
 
         else:
             if atoms.numCoordsets() > 1:
-                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
                     LOGGER.info(' ')
                     LOGGER.info('Model: {0}'.format(i+start_frame))
                     atoms.setACSIndex(i+start_frame) 

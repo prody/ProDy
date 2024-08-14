@@ -180,7 +180,7 @@ def trimModelByMask(model, mask):
 
     if not isListLike(mask):
         raise TypeError('mask must be either a list or a numpy.ndarray, not {0}'
-                        .format(type(model)))
+                        .format(type(mask)))
     
     is_bool = mask.dtype is np.dtype('bool')
 
@@ -328,7 +328,7 @@ def sliceModelByMask(model, mask, norm=False):
 
     if not isListLike(mask):
         raise TypeError('mask must be either a list or a numpy.ndarray, not {0}'
-                        .format(type(model)))
+                        .format(type(mask)))
     
     is_bool = mask.dtype is np.dtype('bool')
 
@@ -425,7 +425,7 @@ def reduceModelByMask(model, mask):
     
     if not isListLike(mask):
         raise TypeError('mask must be either a list or a numpy.ndarray, not {0}'
-                        .format(type(model)))
+                        .format(type(mask)))
     
     is_bool = mask.dtype is np.dtype('bool')
 

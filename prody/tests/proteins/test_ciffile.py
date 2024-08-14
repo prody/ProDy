@@ -5,10 +5,9 @@ import os
 
 import numpy as np
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    from numpy.testing import dec
+
+from prody.utilities import importDec
+dec = importDec()
 
 from prody import *
 from prody import LOGGER
@@ -25,6 +24,9 @@ class TestParseMMCIF(unittest.TestCase):
         self.multi = DATA_FILES['multi_model_cif']
         self.no_pdb = DATA_FILES['long_chid_cif']
         self.biomols = DATA_FILES['biomols_cif']
+
+        self.altlocs = DATA_FILES['cif_6flr']
+        self.his_selstr = 'resname HIS and chain B and resnum 234 and name CA'
 
     def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""
@@ -233,3 +235,58 @@ class TestParseMMCIF(unittest.TestCase):
                         self.biomols['unobs_B_start'],
                         'failed to parse unobserved alignment correctly')
 
+    def testAltlocAllToMultiAtoms(self):
+        """Test number of coordinate sets and atoms with altloc='all'."""
+
+        path = pathDatafile(self.altlocs['file'])
+
+        ag = parsePDB(path, altloc="all")
+        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_altloc'],
+            'parsePDB failed to parse correct number of atoms with altloc "all"')
+        self.assertEqual(ag.numCoordsets(), 1,
+            'parsePDB failed to parse correct number of coordsets (1) with altloc "all"')
+
+        hisB234 = ag.select(self.his_selstr)
+        self.assertEqual(hisB234.numAtoms(), self.altlocs['num_altlocs'],
+            'parsePDB failed to parse correct number of His B234 CA atoms (2) with altloc "all"')
+
+        self.assertEqual(hisB234.getAnisous().shape, (self.altlocs['num_altlocs'], 6),
+            'parsePDB failed to have right shape for His B234 CA atoms getAnisous (2, 6) with altloc "all"')
+
+        assert_allclose(hisB234.getAnisous()[0], self.altlocs['anisousA'][0],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous A with altloc "all"')
+
+        assert_allclose(hisB234.getAnisous()[1], self.altlocs['anisousB'][0],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc "all"')
+        
+    def testAltlocNoneToLessAtoms(self):
+        """Test number of coordinate sets and atoms with altloc=None."""
+
+        path = pathDatafile(self.altlocs['file'])
+
+        ag = parsePDB(path, altloc=None)
+        self.assertEqual(ag.numAtoms(), self.altlocs['atoms_single'],
+            'parsePDB failed to parse correct number of atoms with altloc None')
+        self.assertEqual(ag.numCoordsets(), 1,
+            'parsePDB failed to parse correct number of coordsets (1) with altloc None')
+
+        hisB234 = ag.select(self.his_selstr)
+        self.assertEqual(hisB234.numAtoms(), 1,
+            'parsePDB failed to parse correct number of His B234 CA atoms (1) with altloc None')
+
+        self.assertEqual(hisB234.getAnisous().shape, (1, 6),
+            'parsePDB failed to have right shape for His B234 CA atoms getAnisous (1, 6) with altloc None')
+
+        assert_allclose(hisB234.getAnisous(), self.altlocs['anisousA'],
+            err_msg='parsePDB failed to have right His B234 CA atoms getAnisous A with altloc "all"')
+
+    def testAltlocAllMultiModels(self):
+        """Test number of coordinate sets and atoms for multi-model case with altloc='all'."""
+
+        path = pathDatafile(self.multi['file'])
+
+        ag = parsePDB(path, altloc="all")
+        self.assertEqual(ag.numAtoms(), self.multi['atoms'],
+            'parsePDB failed to parse correct number of atoms for multi-model with altloc "all"')
+        self.assertEqual(ag.numCoordsets(), self.multi['models'],
+            'parsePDB failed to parse correct number of coordsets ({0}) with altloc "all"'.format(self.multi['models']))

@@ -7,20 +7,13 @@ import re
 from numbers import Integral
 
 import numpy as np
-from os.path import join, isfile
+from os.path import join
 from io import BytesIO
 
 from prody import LOGGER, PY3K
-from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
+from prody.utilities import makePath, gunzip
 from prody.utilities import relpath
 from prody.proteins import parsePDB
-
-if PY3K:
-    import urllib.parse as urllib
-    import urllib.request as urllib2
-else:
-    import urllib
-    import urllib2
 
 import json
 
@@ -60,7 +53,6 @@ def searchPfam(query, **kwargs):
 
     seq = ''.join(query.split())
 
-    import xml.etree.cElementTree as ET
     LOGGER.timeit('_pfam')
     timeout = int(kwargs.get('timeout', 60))
 
@@ -139,26 +131,41 @@ def searchPfam(query, **kwargs):
         try:
             metadata = entry["metadata"]
             accession = metadata["accession"]
+            if isinstance(metadata["member_databases"], dict):
+                accessions2 = [list(value.keys())
+                               for value in metadata["member_databases"].values()]
+            else:
+                accessions2 = []
         except KeyError:
             raise ValueError('failed to parse accessions from results, check URL: ' + url)
 
-        if not re.search('PF[0-9]{5}$', accession):
+        pfamAccessions = []
+        if re.search('PF[0-9]{5}$', accession):
+            pfamAccessions.append(accession)
+        else:
+            for accession in np.array(accessions2).flatten():
+                if (re.search('PF[0-9]{5}$', accession) and
+                    entry["proteins"][0]["entry_protein_locations"] is not None):
+                    pfamAccessions.append(accession)
+
+        if len(pfamAccessions) == 0:
             continue
 
-        match = matches.setdefault(accession, dict(metadata.items()))
-        
-        other_data = entry["proteins"]
-        locations = match.setdefault("locations", [])
-        for item1 in other_data:
-            for key, value in item1.items():
-                if key == "entry_protein_locations":
-                    for item2 in value:
-                        new_dict = {}
-                        for item3 in value[0]["fragments"]:
-                            new_dict["start"] = item3["start"]
-                            new_dict["end"] = item3["end"]
-                            new_dict["score"] = item2["score"]
-                            locations.append(new_dict)    
+        for accession in pfamAccessions:
+            match = matches.setdefault(accession, dict(metadata.items()))
+            
+            other_data = entry["proteins"]
+            locations = match.setdefault("locations", [])
+            for item1 in other_data:
+                for key, value in item1.items():
+                    if key == "entry_protein_locations":
+                        for item2 in value:
+                            new_dict = {}
+                            for item3 in value[0]["fragments"]:
+                                new_dict["start"] = item3["start"]
+                                new_dict["end"] = item3["end"]
+                                new_dict["score"] = item2["score"]
+                                locations.append(new_dict)    
 
     query = 'Query ' + repr(query)
 
@@ -169,16 +176,17 @@ def searchPfam(query, **kwargs):
     return matches
 
 
-def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
+def fetchPfamMSA(acc, alignment='seed', compressed=False, **kwargs):
     """Returns a path to the downloaded Pfam MSA file.
 
     :arg acc: Pfam ID or Accession Code
     :type acc: str
 
-    :arg alignment: alignment type, one of ``'full'`` (default), ``'seed'``,
+    :arg alignment: alignment type, one of ``'full'``, ``'seed'`` (default),
          ``'ncbi'``, ``'metagenomics'``, ``'rp15'``, ``'rp35'``, ``'rp55'``,
          ``'rp75'`` or ``'uniprot'`` where rp stands for representative 
-         proteomes
+         proteomes. InterPro Pfam seems to only have seed alignments
+         easily accessible in most cases
 
     :arg compressed: gzip the downloaded MSA file, default is **False**
 
@@ -186,8 +194,11 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
         is 60
 
     :arg outname: out filename, default is input ``'acc_alignment.format'``
+    :type outname: str
 
-    :arg folder: output folder, default is ``'.'``"""
+    :arg folder: output folder, default is ``'.'``
+    :type folder: str
+    """
     
     import requests
 

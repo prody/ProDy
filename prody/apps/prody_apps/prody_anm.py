@@ -258,7 +258,7 @@ for key in _:
 def addCommand(commands):
 
     subparser = commands.add_parser('anm',
-        help='perform anisotropic network model calculations')
+        help='perform anisotropic network model normal mode analysis calculations')
 
     subparser.add_argument('--quiet', help="suppress info messages to stderr",
         action=Quiet, nargs=0)

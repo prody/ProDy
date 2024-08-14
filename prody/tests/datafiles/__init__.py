@@ -167,6 +167,12 @@ DATA_FILES = {
     'pca2k39_vectors': {
         'file': 'pca2k39_vectors.dat'
     },
+    'lda2k39_evalues': {
+        'file': 'lda2k39_evalues.dat',
+    },
+    'lda2k39_vectors': {
+        'file': 'lda2k39_vectors.dat'
+    },
     'commute1ubi': {
         'file': 'commute1ubi.dat'
     },
@@ -196,6 +202,9 @@ DATA_FILES = {
     },
     'MSA': {
         'file': 'msa_3hsyA_3o21A.fasta'
+    },
+    'MSA_MEW': {
+        'file': 'msa_3hsyA_3o21A_new.fasta'
     },
     'RTER': {
         'file': 'pdbRTER.pdb'
@@ -245,6 +254,16 @@ DATA_FILES = {
         'atoms': 165175,
         'segment_SX0_atoms': 1089,
     },
+    '6zu5_sel': {
+        'pdb': '6zu5',
+        'file': '6zu5_sel_SE0_SF0_10-20.pdb',
+        'atoms': 22,
+        'segment_SF0_atoms': 11,
+        'chid_order': ['Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z',
+                       'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'],
+        'sorted_order': ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B',
+                         'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z']
+    },
     '3hsy': {
         'pdb': '3hsy',
         'file': 'pdb3hsy.pdb',
@@ -288,6 +307,18 @@ DATA_FILES = {
         'atoms': 1,
         'ca_atoms': 1,
         'models': 2,
+        'biomols': 1,
+        'anisousA': array([[1.3327, 0.8826, 0.7048, 0.0444, 0.3365, 0.1618]]),
+        'anisousB': array([[1.3306, 0.8825, 0.7058, 0.0438, 0.338 , 0.1608]])
+    },
+    'cif_6flr': {
+        'pdb': '6flr',
+        'file': 'cif_6flr.cif',
+        'atoms_single': 6073,
+        'ca_atoms_single': 741,
+        'atoms_altloc': 6086,
+        'ca_atoms_altloc': 743,
+        'num_altlocs': 2,
         'biomols': 1,
         'anisousA': array([[1.3327, 0.8826, 0.7048, 0.0444, 0.3365, 0.1618]]),
         'anisousB': array([[1.3306, 0.8825, 0.7058, 0.0438, 0.338 , 0.1608]])
@@ -337,6 +368,20 @@ DATA_FILES = {
     '2k39_all2': {
         'file': '2k39_all2.npy'
     },
+    'pdb4ake_fixed': {
+        'file': '4akeA_alg_fixed.pdb'
+    },
+    'mrc1ake': {
+        'file': '1ake.mrc'
+    },
+    'pdb1ake': {
+        'file': 'pdb1ake.pdb'
+    },
+    'pdb7pbl': {
+        'file': 'pdb7pbl.pdb',
+        'atoms': 31396,
+        'nucleoside': 252
+    }
 }
 
 

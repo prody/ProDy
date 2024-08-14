@@ -15,11 +15,11 @@ from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
-from .starfile import parseSTARLines, StarDict, parseSTARSection
+from .starfile import parseSTARSection
 from .cifheader import getCIFHeaderDict
-from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
+from .header import buildBiomolecules, assignSecstr
 
-__all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF']
+__all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF', 'writeMMCIF']
 
 
 class MMCIFParseError(Exception):
@@ -170,6 +170,7 @@ def parseMMCIFStream(stream, **kwargs):
     unite_chains = kwargs.get('unite_chains', False)
     altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
+    report = kwargs.get('report', False)
     assert isinstance(header, bool), 'header must be a boolean'
 
     if model is not None:
@@ -235,7 +236,7 @@ def parseMMCIFStream(stream, **kwargs):
             hd = getCIFHeaderDict(lines)
 
         _parseMMCIFLines(ag, lines, model, chain, subset, altloc, 
-                         segment, unite_chains)
+                         segment, unite_chains, report)
 
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -281,7 +282,7 @@ parseMMCIFStream.__doc__ += _parseMMCIFdoc
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                      altloc_torf, segment, unite_chains,
-                     report=False):
+                     report):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
@@ -365,12 +366,12 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         elif altloc_torf.strip() != 'A':
             LOGGER.info('Parsing alternate locations {0}.'
                         .format(altloc_torf))
-            which_altlocs = '.' + ''.join(altloc_torf.split())
+            which_altlocs = ' ' + ''.join(altloc_torf.split())
         else:
-            which_altlocs = '.A'
+            which_altlocs = ' A'
         altloc_torf = False
     else:
-        which_altlocs = '.A'
+        which_altlocs = ' A'
         altloc_torf = True
 
     coordinates = np.zeros((asize, 3), dtype=float)
@@ -487,13 +488,14 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     else:
         modelSize = acount
 
-    mask = np.full(modelSize, True, dtype=bool)
+    mask = np.full(acount, True, dtype=bool)
     if which_altlocs != 'all':
         #mask out any unwanted alternative locations
-        mask = (altlocs == '') | (altlocs == which_altlocs)
+        mask = (altlocs == ' ') | np.logical_or(*[(altlocs == altloc)
+                                                  for altloc in which_altlocs])
 
     if np.all(mask == False):
-        mask = (altlocs == '') | (altlocs == altlocs[0])
+        mask = (altlocs == altlocs[0])
 
     if addcoords:
         atomgroup.addCoordset(coordinates[mask][:modelSize])
@@ -523,7 +525,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     data = parseSTARSection(lines, "_atom_site_anisotrop", report=report)
     if len(data) > 0:
         anisou = np.zeros((acount, 6),
-                          dtype=float)
+                           dtype=float)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
             siguij = np.zeros((acount, 6),
@@ -531,7 +533,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
         for entry in data:
             try:
-                index = np.where(atomgroup.getSerials() == int(
+                index = np.where(serials == int(
                     entry["_atom_site_anisotrop.id"]))[0][0]
             except:
                 continue
@@ -554,13 +556,47 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 except:
                     pass
 
-        atomgroup.setAnisous(anisou) # no division needed anymore
+        atomgroup.setAnisous(anisou[mask][:modelSize]) # no division needed anymore
 
-        if not np.any(siguij):
-            atomgroup.setAnistds(siguij)  # no division needed anymore
+        if np.any(siguij):
+            atomgroup.setAnistds(siguij[mask][:modelSize])  # no division needed anymore
 
     if model is None:
         for n in range(1, nModels):
             atomgroup.addCoordset(coordinates[mask][n*modelSize:(n+1)*modelSize])
 
     return atomgroup
+
+
+def writeMMCIF(filename, atoms, csets=None, autoext=True, **kwargs):
+    """Write *atoms* in MMTF format to a file with name *filename* and return
+    *filename*.  If *filename* ends with :file:`.gz`, a compressed file will
+    be written.
+    
+    :arg atoms: an object with atom and coordinate data
+    :type atoms: :class:`.Atomic`
+
+    :arg csets: coordinate set indices, default is all coordinate sets
+
+    :arg autoext: when not present, append extension :file:`.cif` to *filename*
+
+    :keyword header: header to write too
+    :type header: dict
+    """
+    try:
+        from Bio.PDB import MMCIFIO
+    except ImportError:
+        raise ImportError('Biopython MMCIFIO could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+
+    header = kwargs.get('header', None)
+
+    if autoext and not filename.lower().endswith('.cif'):
+        filename += '.cif'
+
+    structure = atoms.toBioPythonStructure(header=header, csets=csets)
+    io=MMCIFIO()
+    io.set_structure(structure)
+    io.save(filename)
+    return filename

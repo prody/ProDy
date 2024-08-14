@@ -91,16 +91,33 @@ def alignBioPairwise(a_sequence, b_sequence,
 
             split_aln = aln.format().split('\n')
 
-            begin = split_aln[1].find('|')
-            end = len(split_aln[1])
+            if split_aln[0].startswith('target'):
+                # new biopython
+                import re
 
-            row_1 = split_aln[0].replace(" ", "-")
-            row_2 = split_aln[2].replace(" ", "-")
+                m1 = re.search('[0-9]+', split_aln[0])
+                begin = m1.group()
 
-            if len(row_1) < len(row_2):
-                row_1 += "-"*(len(row_2)-len(row_1))
-            elif len(row_2) < len(row_1):
-                row_2 += "-"*(len(row_1)-len(row_2))
+                m2 = re.search('[0-9]+', split_aln[-4])
+                m3 = re.search('[0-9]+', split_aln[-4][m2.end():])
+                end = m3.group()
+
+                row_1 = ''.join([line[m1.end()+1:] for line in split_aln[0:-4:4]])
+                row_1 += split_aln[-4][m2.end()+1:m2.end()+m3.start()-1]
+
+                row_2 = ''.join([line[m1.end()+1:] for line in split_aln[2:-4:4]])
+                row_2 += split_aln[-2][m2.end()+1:m2.end()+m3.start()-1]
+            else:
+                begin = split_aln[1].find('|')
+                end = len(split_aln[1])-1
+
+                row_1 = split_aln[0].replace(" ", "-")
+                row_2 = split_aln[2].replace(" ", "-")
+
+                if len(row_1) < len(row_2):
+                    row_1 += "-"*(len(row_2)-len(row_1))
+                elif len(row_2) < len(row_1):
+                    row_2 += "-"*(len(row_1)-len(row_2))
 
             results.append((row_1, row_2, aln.score, begin, end))
 

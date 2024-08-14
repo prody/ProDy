@@ -770,7 +770,7 @@ def _getPolymers(lines):
     items1 = parseSTARSection(lines, '_entity_poly', report=False)
 
     for item in items1:
-        chains = item['_entity_poly.pdbx_strand_id']
+        chains = item['_entity_poly.pdbx_strand_id'].replace(';','').replace(' ', '')
         entity = item['_entity_poly.entity_id']
         
         for ch in chains.split(","):
@@ -1272,15 +1272,15 @@ def _getUnobservedSeq(lines):
         return None
 
     alns = OrderedDict()
-    for k, (key, seq) in enumerate(full_seqs.items()):
+    for _, (key, seq) in enumerate(full_seqs.items()):
         if key in unobs_seqs.keys():
             unobs_seq = unobs_seqs[key]
             # initialise alignment (quite possibly incorrect)
             aln = list(alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
-                                   MISMATCH_SCORE=-1000,
-                                   ALIGNMENT_METHOD='global',
-                                   GAP_PENALTY=GAP_PENALTY,
-                                   GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2])
+                                        MISMATCH_SCORE=-1000,
+                                        ALIGNMENT_METHOD='global',
+                                        GAP_PENALTY=-2,
+                                        GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2])
             
             # fix it
             prev_chid = unobs[0]['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']

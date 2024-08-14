@@ -729,7 +729,7 @@ def calcADPAxes(atoms, **kwargs):
         # Make sure the direction that correlates with the previous atom
         # is selected
         vals = vals * sign((vecs * axes[(i-1)*3:(i)*3, :]).sum(0))
-        axes[i*3:(i+spacing)*3, :] = vals * vecs
+        axes[i*3:i*3, :] = vals * vecs
     # Resort the columns before returning array
     axes = axes[:, [2, 1, 0]]
     torf = None
@@ -811,7 +811,7 @@ def buildADPMatrix(atoms):
         element[0, 1] = element[1, 0] = anisou[3]
         element[0, 2] = element[2, 0] = anisou[4]
         element[1, 2] = element[2, 1] = anisou[5]
-        adp[i*3:(i+spacing)*3, i*3:(i+spacing)*3] = element
+        adp[i*3:i*3+3, i*3:i*3+3] = element
     return adp
 
 
@@ -869,7 +869,7 @@ def calcDistanceMatrix(coords, cutoff=None):
         r += 1
 
     for i in range(n_atoms):
-        for j in range(i+spacing, n_atoms):
+        for j in range(i, n_atoms):
             if dist_mat[i, j] == 0.:
                 dist_mat[i, j] = dist_mat[j, i] = max(dists)
 
@@ -1034,7 +1034,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
                 blocks[where(blocks == i)[0]] = i-1
             elif dist_fwd < min_dist_cutoff:
                 # join onto next block
-                blocks[where(blocks == i)[0]] = i+spacing                
+                blocks[where(blocks == i)[0]] = i
 
     blocks, amap = extendAtomicData(blocks, sel_ca, atoms)
 

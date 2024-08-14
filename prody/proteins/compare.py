@@ -997,8 +997,8 @@ def mapChainOntoChain(mobile, target, **kwargs):
         simple_target, simple_mobile)
     _seqid, _cover = calcScores(n_match, n_mapped, len(simple_target))
 
-    trivial_seqid = GOOD_SEQID if pwalign else seqid
-    trivial_cover = GOOD_COVERAGE if pwalign else coverage
+    trivial_seqid = max(GOOD_SEQID, seqid) if pwalign else seqid
+    trivial_cover = max(GOOD_COVERAGE, coverage) if pwalign else coverage
     if _seqid >= trivial_seqid and _cover >= trivial_cover:
         LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
                 'sequence identity and {2:.0f}% overlap.'
