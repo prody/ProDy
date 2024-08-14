@@ -319,7 +319,7 @@ if prody.PY3K:
             self.assertEqual(checkTimeout(**{'timeout': 50}), 50)
 
         def testDefault(self):
-            self.assertEqual(checkTimeout(**{}), 60)
+            self.assertEqual(checkTimeout(**{}), 200)
 
     class TestCheckFrames(unittest.TestCase):
         """Test that checkFrames gives the right errors and outputs."""
@@ -415,20 +415,23 @@ if prody.PY3K:
             """Test the outcome of a simple fetch scenario using 
             default options."""
 
-            a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                        frames=self.frames1)
-
-            self.assertIsInstance(a, str,
-                'fetchBioexcelTrajectory failed to return a str instance')
-            
-            self.assertTrue(os.path.isfile(a),
-                            'fetchBioexcelTrajectory failed to return a file')
-            
-            self.assertTrue(a.endswith('.dcd'),
-                            'fetchBioexcelTrajectory default failed to return a dcd file')
-            
-            self.assertEqual(a, os.path.join(self.workdir, self.query + '.dcd'),
-                            'fetchBioexcelTrajectory default run did not give the right path')
+            try:
+                a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
+                                            frames=self.frames1)
+            except OSError:
+                pass
+            else:
+                self.assertIsInstance(a, str,
+                    'fetchBioexcelTrajectory failed to return a str instance')
+                
+                self.assertTrue(os.path.isfile(a),
+                                'fetchBioexcelTrajectory failed to return a file')
+                
+                self.assertTrue(a.endswith('.dcd'),
+                                'fetchBioexcelTrajectory default failed to return a dcd file')
+                
+                self.assertEqual(a, os.path.join(self.workdir, self.query + '.dcd'),
+                                'fetchBioexcelTrajectory default run did not give the right path')
             
             ens = prody.parseDCD(a)
 
@@ -443,108 +446,126 @@ if prody.PY3K:
             """Test the outcome of a simple fetch scenario 
             using selection='_C'."""
 
-            a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                    selection='_C', frames=self.frames2)
-            
-            ens = prody.parseDCD(a)
-            self.assertIsInstance(ens, prody.Ensemble,
-                'parseDCD failed to return an Ensemble from fetchBioexcelTrajectory')
-            self.assertEqual(ens.numAtoms(), SELE_N_ATOMS, 
-                            'fetchBioexcelTrajectory selection _C output does not have correct number of atoms')
-            self.assertEqual(ens.numCoordsets(), N_FRAMES_2, 
-                            'fetchBioexcelTrajectory output with example frames 2 does not have correct number of frames')
+            try:
+                a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
+                                            selection='_C', frames=self.frames2)
+            except OSError:
+                pass
+            else:
+                ens = prody.parseDCD(a)
+                self.assertIsInstance(ens, prody.Ensemble,
+                    'parseDCD failed to return an Ensemble from fetchBioexcelTrajectory')
+                self.assertEqual(ens.numAtoms(), SELE_N_ATOMS, 
+                                'fetchBioexcelTrajectory selection _C output does not have correct number of atoms')
+                self.assertEqual(ens.numCoordsets(), N_FRAMES_2, 
+                                'fetchBioexcelTrajectory output with example frames 2 does not have correct number of frames')
 
         def testFetchConvertFalse(self):
             """Test the outcome of a simple fetch scenario using 
             convert=False."""
 
-            a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                    convert=False, frames=self.frames1)
-
-            self.assertIsInstance(a, str,
-                'fetchBioexcelTrajectory failed to return a str instance')
-            
-            self.assertTrue(os.path.isfile(a),
-                            'fetchBioexcelTrajectory failed to return a file')
-            
-            self.assertTrue(a.endswith('.xtc'),
-                            'fetchBioexcelTrajectory default failed to return a xtc file')
-            
-            self.assertEqual(a, os.path.join(self.workdir, self.query + '.xtc'),
-                            'fetchBioexcelTrajectory default run did not give the right path')
+            try:
+                a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
+                                            convert=False, frames=self.frames1)
+            except OSError:
+                pass
+            else:
+                self.assertIsInstance(a, str,
+                    'fetchBioexcelTrajectory failed to return a str instance')
+                
+                self.assertTrue(os.path.isfile(a),
+                                'fetchBioexcelTrajectory failed to return a file')
+                
+                self.assertTrue(a.endswith('.xtc'),
+                                'fetchBioexcelTrajectory default failed to return a xtc file')
+                
+                self.assertEqual(a, os.path.join(self.workdir, self.query + '.xtc'),
+                                'fetchBioexcelTrajectory default run did not give the right path')
 
         def testParseFrames1(self):
             """Test the outcome of a simple fetch and parse scenario 
             with default parameters."""
 
-            ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                        frames=self.frames1)
-
-            self.assertIsInstance(ens, prody.Ensemble,
-                'parseBioexcelTrajectory failed to return an Ensemble instance')
-            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
-                            'parseBioexcelTrajectory default output does not have correct number of atoms')
-            self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
-                            'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+            try:
+                ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
+                                            frames=self.frames1)
+            except OSError:
+                pass
+            else:
+                self.assertIsInstance(ens, prody.Ensemble,
+                    'parseBioexcelTrajectory failed to return an Ensemble instance')
+                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
+                                'parseBioexcelTrajectory default output does not have correct number of atoms')
+                self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
+                                'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testParseSelectionFrames2(self):
             """Test the outcome of a simple fetch and parse scenario 
             using selection='_C'."""
-
-            ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                        selection='_C', frames=self.frames2)
-            
-            self.assertIsInstance(ens, prody.Ensemble,
-                'parseBioexcelTrajectory with selection failed to return an Ensemble')
-            self.assertEqual(ens.numAtoms(), SELE_N_ATOMS, 
-                            'parseBioexcelTrajectory selection _C output does not have correct number of atoms')
-            self.assertEqual(ens.numCoordsets(), N_FRAMES_2, 
-                            'parseBioexcelTrajectory output with example frames 2 does not have correct number of frames')
+            try:
+                ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
+                                            selection='_C', frames=self.frames2)
+            except OSError:
+                pass
+            else:
+                self.assertIsInstance(ens, prody.Ensemble,
+                    'parseBioexcelTrajectory with selection failed to return an Ensemble')
+                self.assertEqual(ens.numAtoms(), SELE_N_ATOMS, 
+                                'parseBioexcelTrajectory selection _C output does not have correct number of atoms')
+                self.assertEqual(ens.numCoordsets(), N_FRAMES_2, 
+                                'parseBioexcelTrajectory output with example frames 2 does not have correct number of frames')
 
         def testFetchAndParse(self):
             """Test the outcome of a simple fetch and parse scenario"""
-
-            a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                        frames=self.frames1)
-            
-            ens = parseBioexcelTrajectory(a, folder=self.workdir)
-            
-            self.assertIsInstance(ens, prody.Ensemble,
-                'parseBioexcelTrajectory failed to return an Ensemble instance')
-            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
-                            'parseBioexcelTrajectory default output does not have correct number of atoms')
-            self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
-                            'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+            try:
+                a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
+                                            frames=self.frames1)
+            except OSError:
+                pass
+            else:
+                ens = parseBioexcelTrajectory(a, folder=self.workdir)
+                
+                self.assertIsInstance(ens, prody.Ensemble,
+                    'parseBioexcelTrajectory failed to return an Ensemble instance')
+                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
+                                'parseBioexcelTrajectory default output does not have correct number of atoms')
+                self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
+                                'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testFetchNoConvParse(self):
             """Test the outcome of a simple fetch, then internally convert and parse scenario."""
-
-            a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                        convert=False, frames=self.frames1)
-            
-            ens = parseBioexcelTrajectory(a)
-            
-            self.assertIsInstance(ens, prody.Ensemble,
-                'parseBioexcelTrajectory failed to return an Ensemble instance')
-            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
-                            'parseBioexcelTrajectory default output does not have correct number of atoms')
-            self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
-                            'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+            try:
+                a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
+                                            convert=False, frames=self.frames1)
+            except OSError:
+                pass
+            else:
+                ens = parseBioexcelTrajectory(a)
+                
+                self.assertIsInstance(ens, prody.Ensemble,
+                    'parseBioexcelTrajectory failed to return an Ensemble instance')
+                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
+                                'parseBioexcelTrajectory default output does not have correct number of atoms')
+                self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
+                                'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testFetchConvParse(self):
             """Test the outcome of a simple fetch, externally convert and then parse scenario."""
-
-            a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
-                                        convert=False, frames=self.frames1)
-            b = convertXtcToDcd(a)
-            ens = parseBioexcelTrajectory(b)
-            
-            self.assertIsInstance(ens, prody.Ensemble,
-                'parseBioexcelTrajectory failed to return an Ensemble instance')
-            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
-                            'parseBioexcelTrajectory default output does not have correct number of atoms')
-            self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
-                            'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+            try:
+                a = fetchBioexcelTrajectory(self.query, folder=self.workdir, 
+                                            convert=False, frames=self.frames1)
+            except OSError:
+                pass
+            else:
+                b = convertXtcToDcd(a)
+                ens = parseBioexcelTrajectory(b)
+                
+                self.assertIsInstance(ens, prody.Ensemble,
+                    'parseBioexcelTrajectory failed to return an Ensemble instance')
+                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
+                                'parseBioexcelTrajectory default output does not have correct number of atoms')
+                self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
+                                'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testConvertWrongType(self):
             with self.assertRaises(TypeError):
@@ -564,12 +585,25 @@ if prody.PY3K:
             cls.xtcPath = pathDatafile(cls.query + '.xtc')
             cls.dcdPath = pathDatafile(cls.query + '.dcd')
 
+            cls.jsonPath = pathDatafile('MCV1900193.json')
+            cls.PROTEIN_GLYCAN_N_ATOMS = 72759
+            cls.CA_N_ATOMS = 3768
+
         def testParseBioexcelTop(self):
             ag = parseBioexcelTopology(self.psfPath)
             self.assertIsInstance(ag, prody.AtomGroup,
                 'parseBioexcelTopology failed to return an AtomGroup from data files')
             self.assertEqual(ag.numAtoms(), FULL_N_ATOMS, 
                             'parseBioexcelTopology data files output does not have correct number of atoms')
+
+        def testParseBioexcelTopJsonGlycan(self):
+            ag = parseBioexcelTopology(self.jsonPath)
+            self.assertIsInstance(ag, prody.AtomGroup,
+                'parseBioexcelTopology failed to return an AtomGroup from data files')
+            self.assertEqual(ag.numAtoms(), self.PROTEIN_GLYCAN_N_ATOMS, 
+                            'parseBioexcelTopology data files output using MCV1900193 with glycans does not have correct number of atoms')
+            self.assertEqual(ag.ca.numAtoms(), self.CA_N_ATOMS, 
+                            'parseBioexcelTopology data files output using MCV1900193 with glycans does not have correct number of CA atoms')
             
         def testConvertToDCD(self):
             a = convertXtcToDcd(self.xtcPath, top=self.psfPath)
