@@ -24,6 +24,7 @@ from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
 from .lda import LDA
+from .logistic import LRA
 
 __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showCumulOverlap', 'showFractVars',
@@ -189,7 +190,7 @@ def showCumulFractVars(modes, *args, **kwargs):
     return show
 
 
-def showProjection(ensemble, modes, *args, **kwargs):
+def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
     """Show a projection of conformational deviations onto up to three normal
     modes from the same model.
 
@@ -252,26 +253,35 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     if SETTINGS['auto_show']:
         fig = plt.figure()
- 
-    projection = calcProjection(ensemble, modes, 
-                                kwargs.pop('rmsd', True), 
-                                kwargs.pop('norm', False))
+
+    rmsd = kwargs.pop('rmsd', True)
+    norm = kwargs.pop('norm', False)
+
+    if projection is None:
+        projection = calcProjection(ensemble, modes, 
+                                    rmsd, norm)
     
     use_weights = kwargs.pop('use_weights', False)
-    weights = kwargs.pop('weights', ensemble.getData('size'))
+    if use_weights:
+        if ensemble is not None:
+            weights = kwargs.pop('weights', ensemble.getData('size'))
+        else:
+            weights = kwargs.pop('weights', None)
+    else:
+        weights = kwargs.pop('weights', None)
+        weights = None
 
     num = projection.shape[0]
 
     use_labels = kwargs.pop('use_labels', True)
     labels = kwargs.pop('label', None)
-    if labels is None:
-        if  use_labels:
-            if isinstance(modes, LDA):
-                labels = modes._labels.tolist()
-                LOGGER.info('using labels from LDA modes')
-            elif isinstance(modes.getModel(), LDA):
-                labels = modes.getModel()._labels.tolist()
-                LOGGER.info('using labels from LDA model')
+    if labels is None and  use_labels and modes is not None:
+        if isinstance(modes, (LDA, LRA)):
+            labels = modes._labels.tolist()
+            LOGGER.info('using labels from LDA modes')
+        elif isinstance(modes.getModel(), (LDA, LRA)):
+            labels = modes.getModel()._labels.tolist()
+            LOGGER.info('using labels from LDA model')
 
     if labels is not None and len(labels) != num:
         raise ValueError('label should have the same length as ensemble')
@@ -375,7 +385,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
     for i, opts in enumerate(zip(markers, colors, labels)):  # PY3K: OK
         indict[opts].append(i)
 
-    modes = [m for m in modes]
+    if modes is None:
+        modes = list(range(projection.shape[1]))
+    else:
+        modes = [m for m in modes]
     if len(modes) == 2:
         show_density = kwargs.pop("show_density", False)
         if show_density:
@@ -1984,7 +1997,7 @@ def showAtomicLines(*args, **kwargs):
                         last += len(resnums)
                     else:
                         x.extend(resnums + last)
-                        last = resnums[-1]
+                        last += resnums[-1]
                     
         if gap:
             if overlay:
@@ -2342,7 +2355,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
     networkx.draw_networkx_edges(G, pos=layout)
     
     if np.isscalar(node_shape):
-        networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=sizes, 
+        networkx.draw_networkx_nodes(G, pos=layout, label=None, node_size=sizes, 
                                         node_shape=node_shape, node_color=colors)
     else:
         for shape in shape_groups:
@@ -2350,7 +2363,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
             nodesizes = [sizes[i] for i in shape_groups[shape]]
             nodecolors = [colors[i] for i in shape_groups[shape]]
             if not nodelist: continue
-            networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=nodesizes, 
+            networkx.draw_networkx_nodes(G, pos=layout, label=None, node_size=nodesizes, 
                                         node_shape=shape, node_color=nodecolors, 
                                         nodelist=nodelist)
 

@@ -4,10 +4,9 @@ from os.path import isfile, join, split, splitext
 from prody.tests import TestCase, skipIf, skipUnless
 
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    from numpy.testing import dec
+
+from prody.utilities import importDec
+dec = importDec()
 
 from prody import parsePDB, DCDFile, parseDCD
 

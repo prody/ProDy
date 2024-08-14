@@ -80,8 +80,9 @@ def prody_catdcd(*dcd, **kwargs):
     out = prody.DCDFile(output, 'w')
     count = 0
     stride = kwargs.get('stride', 1)
-    goto = stride != 1
-    slc = slice(kwargs.get('first', 0), kwargs.get('last', -1),
+    first = kwargs.get('first', 0)
+    goto = stride != 1 or first != 0
+    slc = slice(first, kwargs.get('last', -1),
                 stride).indices(len(traj)+1)
     for i in range(*slc):
         if goto:
