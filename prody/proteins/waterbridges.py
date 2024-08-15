@@ -545,7 +545,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     combining selections satifying the criteria in each.
 
     :arg return_selection: whether to return the combined common selection
-        Default is **False**
+        Default is **False** to keep expected behaviour.
+        However, this output is required when using selstr.
     :type return_selection: bool    
     """
     start_frame = kwargs.pop('start_frame', 0)
@@ -569,7 +570,9 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
 
         indices = None
+        selection = atoms
         if selstr is not None:
+            LOGGER.info('Finding common selection')
             indices = []
             for frame0 in traj:
                 atoms_copy = atoms.copy()
@@ -582,7 +585,10 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                 indices.extend(list(selection.getIndices()))
 
             indices = np.unique(indices)
+            selection = atoms_copy[indices]
 
+            LOGGER.info('Common selection found with {0} atoms and {1} protein chains'.format(selection.numAtoms(),
+                                                                                              len(list(selection.protein.getHierView()))))
 
         def analyseFrame(j0, start_frame, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
@@ -614,7 +620,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                 while j0 < traj.numConfs()+start_frame:
 
                     processes = []
-                    for i in range(max_proc):
+                    for _ in range(max_proc):
                         frame0 = traj[j0-start_frame]
                         
                         p = mp.Process(target=analyseFrame, args=(j0, start_frame,
@@ -659,7 +665,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                     i = start_frame
                     while i < len(atoms.getCoordsets()[start_frame:stop_frame]):
                         processes = []
-                        for i in range(max_proc):
+                        for _ in range(max_proc):
                             p = mp.Process(target=analyseFrame, args=(i, interactions_all))
                             p.start()
                             processes.append(p)
@@ -1128,7 +1134,7 @@ def savePDBWaterBridges(bridges, atoms, filename):
     return writePDB(filename, atomsToSave)
 
 
-def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None):
+def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None, max_proc=1):
     """Saves one PDB per frame with occupancy and beta on protein atoms and waters forming bridges in frame.
 
     :arg bridgeFrames: atomic output from calcWaterBridgesTrajectory
@@ -1151,7 +1157,8 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
     atoms = atoms.copy()
     mofifyBeta(bridgeFrames, atoms)
 
-    for frameIndex, frame in enumerate(bridgeFrames):
+    def saveBridgesFrame(trajectory, atoms, frameIndex, frame):
+        LOGGER.info('Frame: {0}'.format(frameIndex))
         if trajectory:
             coords = trajectory[frameIndex].getCoords()
             atoms.setCoords(coords)
@@ -1177,6 +1184,26 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
             writePDB('{filename}_{frameIndex}.pdb',
                      atomsToSave, csets=frameIndex)
 
+    if max_proc == 1:
+        for frameIndex, frame in enumerate(bridgeFrames):
+            saveBridgesFrame(trajectory, atoms, frameIndex, frame)
+    else:
+        frameIndex = 0
+        numFrames = len(bridgeFrames)
+        while frameIndex < numFrames:
+            processes = []
+            for _ in range(max_proc):
+                p = mp.Process(target=saveBridgesFrame, args=(trajectory, atoms, frameIndex,
+                                                              bridgeFrames[frameIndex]))
+                p.start()
+                processes.append(p)
+
+                frameIndex += 1
+                if frameIndex >= numFrames:
+                    break
+
+            for p in processes:
+                p.join()
 
 def getBridgeIndicesString(bridge):
     return ' '.join(map(lambda a: str(a.getIndex()), bridge.proteins))\
