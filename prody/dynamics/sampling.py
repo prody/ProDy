@@ -51,9 +51,14 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
 
     RMSD of the new TEST conformation from :math:`R_0` can be calculated as
 
+
     .. math::
 
+<<<<<<< HEAD
       RMSD^k = \\sqrt{ { \\left( s \\sum_{i=1}^{m} r_i^k \\lambda^{-0.5}_i u_i  \\right ) }^{2} / N } = \\frac{s}{ \\sqrt{N}} \\sqrt{ \\sum_{i=1}^{m} (r_i^k)^2 \\lambda^{-1}_i  }
+=======
+      RMSD^k = \\sqrt{  \\left[ s \\sum_{i=1}^{m} r_i^k \\lambda^{-0.5}_i u_i \\right] ^{2} / N } = \\frac{s}{ \\sqrt{N}} \\sqrt{ \\sum_{i=1}^{m} (r_i^k)^2 \\lambda^{-1}_i  }
+>>>>>>> 4444f17f192dd0e9957c3eb63e5851ccafabd339
 
 
     Average :math:`RMSD` of the generated conformations from the initial conformation is:
