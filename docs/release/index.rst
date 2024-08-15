@@ -9,12 +9,8 @@ Release Notes
 .. toctree::
    :maxdepth: 2
    :glob:
-<<<<<<< HEAD
 
-=======
-   
->>>>>>> fd07b1ddad9b500e4536af16fe13d0b2f357cf60
-   v2.4_series
+
    v2.3_series
    v2.2_series
    v2.1_series
