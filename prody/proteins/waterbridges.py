@@ -484,16 +484,11 @@ def calcWaterBridges(atoms, **kwargs):
         waterBridgesWithIndices = getUniqueElements(
             waterBridgesWithIndices, getChainBridgeTuple)
 
-<<<<<<< HEAD
-    LOGGER.info(
-        '{len(waterBridgesWithIndices)} water bridges detected using method {method}.')
-=======
     log_string = f'{len(waterBridgesWithIndices)} water bridges detected using method {method}'
     if prefix != '':
         log_string += ' for ' + prefix
     LOGGER.info(log_string)
 
->>>>>>> 922b42658bcb002f4d54572ba2795f290c656ec9
     if method == 'atomic':
         LOGGER.info('Call getInfoOutput to convert atomic to info output.')
 
@@ -691,17 +686,12 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     return interactions_all
 
 
-<<<<<<< HEAD
-def getResidueName(atom):
-    return '{atom.getResname()}{atom.getResnum()}{atom.getChid()}'
-=======
 def getResidueName(atom, use_segname=False):
     result = f'{atom.getResname()}{atom.getResnum()}{atom.getChid()}'
     if use_segname:
         result += f'{atom.getSegname()}'
 
     return result
->>>>>>> 922b42658bcb002f4d54572ba2795f290c656ec9
 
 
 class DictionaryList:
