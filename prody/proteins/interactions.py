@@ -32,14 +32,6 @@ from prody.ensemble import Ensemble
 
 import multiprocessing
 
-import subprocess
-import heapq
-import open3d as o3d
-from collections import deque
-from scipy.interpolate import CubicSpline
-from scipy.spatial import Voronoi, Delaunay
-from pathlib import Path
-
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBonding', 'calcPiStacking', 'calcPiCation',
            'calcHydrophobic', 'calcDisulfideBonds', 'calcMetalInteractions',
@@ -53,7 +45,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
-           'showSminaTermValues', 'run_vmd_script', 'detect_channels']
+           'showSminaTermValues', 'runVmdScript', 'calcChannels', 'getChannelsParameters']
 
 
 def cleanNumbers(listContacts):
@@ -4359,7 +4351,21 @@ class LigandInteractionsTrajectory(object):
         
         
         
-def run_vmd_script(vmd_path, file_path, script_path = None, output_path = None):
+import logging
+import importlib.util
+       
+class Channel:
+    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck):
+        self.tetrahedra = tetrahedra
+        self.centerline_spline = centerline_spline
+        self.radius_spline = radius_spline
+        self.length = length
+        self.bottleneck = bottleneck
+            
+    def get_splines(self):
+        return self.centerline_spline, self.radius_spline
+    
+def runVmdScript(vmd_path, file_path, script_path = None, output_path = None):
     """Executes a VMD script to create a mesh representation of a protein and save it as a .stl file.
 
     This function runs a VMD (Visual Molecular Dynamics) script using the specified VMD executable and input file.
@@ -4380,24 +4386,16 @@ def run_vmd_script(vmd_path, file_path, script_path = None, output_path = None):
     :type output_path: str or None
 
     :returns: None
-
-    This function performs the following steps:
-    1. **Path Handling:** Resolves the paths for the VMD script and output file. If not provided, default paths are
-       used. Creates the output directory if it does not exist.
-    2. **Command Execution:** Constructs the command to run the VMD script with the specified arguments. Executes the
-       command using `subprocess.run()` and checks for any errors during execution. The sript creates mesh representation 
-       of the protein to be further visualized.
-    3. **Error Handling:** Catches and prints errors if the VMD script fails or if any unexpected exceptions occur.
-
-    Note: Ensure that VMD is correctly installed and accessible via the provided `vmd_path`, and that the script and
-    file paths are valid for successful execution.
     """
+    
+    import subprocess
+    from pathlib import Path
+    
     script_path = Path(script_path or 'vmd_script.tcl').resolve()
     if not script_path.is_file():
         raise FileNotFoundError("Script does not exist.")
     
-    output_path = Path(output_path or 'output/protein.stl').resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path = Path(output_path)
 
     command = [vmd_path, '-e', str(script_path), '-args', str(file_path), str(output_path)]
     
@@ -4407,8 +4405,10 @@ def run_vmd_script(vmd_path, file_path, script_path = None, output_path = None):
         print(f"VMD caused an error: {e}")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        
+    print("File successfully created.")
 
-def detect_channels(protein, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15, output_path=None, visualizer=None, stl_path=None):
+def calcChannels(atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15, output_path=None, visualizer=None, stl_path=None, vis_channels = None, surface=None):
     """Detects channels in a protein structure and visualizes or saves the results based on the given criteria.
 
     This function processes the provided protein structure to identify channels, cavities, and surface, and
@@ -4468,6 +4468,36 @@ def detect_channels(protein, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity
     execute correctly.
     """
     
+    import logging
+    import importlib.util
+    
+    LOGGER = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
+    
+    def check_and_import(package_name):
+        if importlib.util.find_spec(package_name) is None:
+            LOGGER.error(f"Package '{package_name}' is not installed. Please install it to use this function.")
+            return False
+        return True
+    
+    import heapq
+    import open3d as o3d
+    from collections import deque
+    from scipy.interpolate import CubicSpline
+    from scipy.spatial import Voronoi, Delaunay
+    from pathlib import Path
+    
+    if not check_and_import('heapq'):
+        return
+    if not check_and_import('open3d'):
+        return
+    if not check_and_import('collections'):
+        return
+    if not check_and_import('scipy'):
+        return
+    if not check_and_import('pathlib'):
+        return
+    
     class State:
         def __init__(self, simplices, neighbors, vertices):
             self.simp = simplices
@@ -4512,17 +4542,6 @@ def detect_channels(protein, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity
             
         def add_channel(self, channel):
             self.channels.append(channel)
-            
-    class Channel:
-        def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck):
-            self.tetrahedra = tetrahedra
-            self.centerline_spline = centerline_spline
-            self.radius_spline = radius_spline
-            self.length = length
-            self.bottleneck = bottleneck
-            
-        def get_splines(self):
-            return self.centerline_spline, self.radius_spline
 
     def visualize_external_grid(points, simp, stl_file=None, other_mesh=None, channel_mesh=None, ret_lines=None):
         triangles = []
@@ -4974,70 +4993,123 @@ def detect_channels(protein, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity
         lengths = np.linalg.norm(diffs, axis=1)
         return np.sum(lengths)
     
-    protein = protein.select('not hetero')
-    coords = protein.getCoords()
-    vdw_radii = get_vdw_radii(protein.getElements())
+    atoms = atoms.select('not hetero')
+    coords = atoms.getCoords()
     
-    dela = Delaunay(coords)
-    voro = Voronoi(coords)
-    
-    s_prt = State(dela.simplices, dela.neighbors, voro.vertices)
-    s_tmp = State(*s_prt.get_state())
-    s_prv = State(None, None, None) 
-    
-    while True:
-        s_prv.set_state(*s_tmp.get_state())
-        s_tmp.set_state(*delete_simplices3d(coords, *s_tmp.get_state(), vdw_radii, r1, True))
-        if s_tmp == s_prv:
-            break
-    
-    s_srf = State(*s_tmp.get_state())
-    s_inr = State(*delete_simplices3d(coords, *s_srf.get_state(), vdw_radii, r2, False))
-    
-    l_first_layer_simp, l_second_layer_simp = surface_layer(s_srf.simp, s_inr.simp, s_srf.neigh)
-    s_clr = State(*delete_section(l_first_layer_simp, *s_inr.get_state()))
-    
-    c_cavities = find_groups(s_clr.neigh)
-    c_surface_cavities = get_surface_cavities(c_cavities, s_clr.simp, l_second_layer_simp, s_clr, coords, vdw_radii, sparsity)
-    
-    find_deepest_tetrahedra(c_surface_cavities, s_clr.neigh)
-    c_filtered_cavities = filter_cavities(c_surface_cavities, min_depth)
-    merged_cavities = merge_cavities(c_filtered_cavities, s_clr.simp)
-    
-    for cavity in c_filtered_cavities:
-        dijkstra(cavity, *s_clr.get_state(), coords, vdw_radii)
-       
-    count = 0
-    for cavity in c_filtered_cavities:
-        count = count + len(cavity.end_tetrahedra)
-    print(count)
-    
-    filter_channels_by_bottleneck(c_filtered_cavities, bottleneck)
-    channels = [create_mesh_from_spline(*channel.get_splines()) for cavity in c_filtered_cavities for channel in cavity.channels]
-    
-    no_of_channels = len(channels)
-    print(f"Detected {no_of_channels} channels.")
-    
-    if output_path:
-        print(f"Saving results to {output_path}")
-        save_channels_to_pdb(c_filtered_cavities, Path(output_path), num_samples=5)
-    else:
-        print("No output path given.")
-    
-    if visualizer == 'surface':
-        if stl_path:
-            visualize_external_grid(coords, s_srf.simp, stl_path)
-        else:
-            visualize_external_mesh(coords, s_srf.simp)
-            
-    elif visualizer == 'channels':
-        if stl_path:
-            visualize_channel(channels, stl_path)
-        else:
-            visualize_external_grid(coords, s_srf.simp, channel_mesh=channels)
+    if vis_channels == None:
+        vdw_radii = get_vdw_radii(atoms.getElements())
         
-    elif visualizer == 'cavities':
-        if stl_path:
-            visualize_external_grid(coords, merged_cavities, stl_path)
+        dela = Delaunay(coords)
+        voro = Voronoi(coords)
+        
+        s_prt = State(dela.simplices, dela.neighbors, voro.vertices)
+        s_tmp = State(*s_prt.get_state())
+        s_prv = State(None, None, None) 
+        
+        while True:
+            s_prv.set_state(*s_tmp.get_state())
+            s_tmp.set_state(*delete_simplices3d(coords, *s_tmp.get_state(), vdw_radii, r1, True))
+            if s_tmp == s_prv:
+                break
+        
+        s_srf = State(*s_tmp.get_state())
+        s_inr = State(*delete_simplices3d(coords, *s_srf.get_state(), vdw_radii, r2, False))
+        
+        l_first_layer_simp, l_second_layer_simp = surface_layer(s_srf.simp, s_inr.simp, s_srf.neigh)
+        s_clr = State(*delete_section(l_first_layer_simp, *s_inr.get_state()))
+        
+        c_cavities = find_groups(s_clr.neigh)
+        c_surface_cavities = get_surface_cavities(c_cavities, s_clr.simp, l_second_layer_simp, s_clr, coords, vdw_radii, sparsity)
+        
+        find_deepest_tetrahedra(c_surface_cavities, s_clr.neigh)
+        c_filtered_cavities = filter_cavities(c_surface_cavities, min_depth)
+        merged_cavities = merge_cavities(c_filtered_cavities, s_clr.simp)
+        
+        for cavity in c_filtered_cavities:
+            dijkstra(cavity, *s_clr.get_state(), coords, vdw_radii)
+        
+        filter_channels_by_bottleneck(c_filtered_cavities, bottleneck)
+        channels = [channel for cavity in c_filtered_cavities for channel in cavity.channels]
+        channel_meshes = [create_mesh_from_spline(*channel.get_splines()) for channel in channels]
+        
+        no_of_channels = len(channels)
+        print(f"Detected {no_of_channels} channels.")
+        
+        if output_path:
+            print(f"Saving results to {output_path}")
+            save_channels_to_pdb(c_filtered_cavities, Path(output_path), num_samples=5)
         else:
-            visualize_external_mesh(coords, merged_cavities, lines=visualize_external_grid(coords, s_srf.simp, ret_lines=True))
+            print("No output path given.")
+    
+        if visualizer == 'surface':
+            if stl_path:
+                visualize_external_grid(coords, s_srf.simp, stl_path)
+            else:
+                visualize_external_mesh(coords, s_srf.simp)
+                
+        elif visualizer == 'cavities':
+            if stl_path:
+                visualize_external_grid(coords, merged_cavities, stl_path)
+            else:
+                visualize_external_mesh(coords, merged_cavities, lines=visualize_external_grid(coords, s_srf.simp, ret_lines=True))
+            
+        elif visualizer == 'channels':
+            if stl_path:
+                visualize_channel(channel_meshes, stl_path)
+            else:
+                visualize_external_grid(coords, s_srf.simp, channel_mesh=channel_meshes)
+                
+        return channels, s_srf.simp
+    
+    else:
+        channel_meshes = [create_mesh_from_spline(*channel.get_splines()) for channel in vis_channels]
+        if stl_path:
+            visualize_channel(channel_meshes, stl_path)
+        else:
+            if surface is not None:
+                visualize_external_grid(coords, surface, channel_mesh=channel_meshes)
+            else:
+                visualize_channel(channel_meshes)
+            
+                
+def getChannelsParameters(channels):
+    """
+    Extracts and prints the length and bottleneck of each channel in a given list of channels.
+
+    This function iterates through a list of channel objects, printing the length and bottleneck
+    for each channel. It also collects these values into separate lists, which are returned
+    for further use.
+
+    :arg channels: A list of channel objects, where each channel has attributes
+        `length` and `bottleneck`. These attributes represent the length of the channel
+        and the minimum radius (bottleneck) along its path, respectively.
+    :type channels: list
+
+    :returns: Two lists containing the lengths and bottlenecks of the channels.
+    :rtype: tuple (list, list)
+
+    Example output:
+    ```
+    Channel 0: length 12.34, bottleneck 1.23
+    Channel 1: length 15.67, bottleneck 1.56
+    ```
+
+    Example usage:
+    ```python
+    lengths, bottlenecks = getChannelsParameters(channels)
+    ```
+    """
+    
+    lengths = []
+    bottlenecks = []
+    for i, channel in enumerate(channels):
+        print(f"Channel {i}: length {channel.length}, bottleneck {channel.bottleneck}")
+        lengths.append(channel.length)
+        bottlenecks.append(channel.bottleneck)
+        
+    return lengths, bottlenecks
+            
+    
+
+
+
