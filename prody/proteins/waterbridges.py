@@ -329,7 +329,7 @@ def getAtomicOutput(waterBridges, relations):
 
 
 def getElementsRegex(elements):
-    return '[{"|".join(elements)}].*'
+    return '[{0}].*'.format("|".join(elements))
 
 
 def calcWaterBridges(atoms, **kwargs):
