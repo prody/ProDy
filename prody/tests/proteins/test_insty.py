@@ -57,7 +57,7 @@ class TestInteractions(unittest.TestCase):
             self.data_disu = calcDisulfideBondsTrajectory(self.ATOMS)
             np.save('test_2k39_disu.npy', np.array(self.data_disu, dtype=object), allow_pickle=True)
 
-    def testAllInsteractions(self):
+    def testAllInteractions(self):
         """Test for all types of interactions."""
 
         if prody.PY3K:        
