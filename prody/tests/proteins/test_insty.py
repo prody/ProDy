@@ -31,28 +31,28 @@ class TestInteractions(unittest.TestCase):
             self.DISU_INTERACTIONS = parseDatafile('2k39_disu')
             
             self.INTERACTIONS_ALL = InteractionsTrajectory()
-            self.data_all = self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS)
+            self.data_all = self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS, stop_frame=4, max_proc=2)
             np.save('test_2k39_all.npy', self.data_all, allow_pickle=True)
 
-            self.data_hbs = calcHydrogenBondsTrajectory(self.ATOMS)
+            self.data_hbs = calcHydrogenBondsTrajectory(self.ATOMS, stop_frame=4, max_proc=2)
             np.save('test_2k39_hbs.npy', np.array(self.data_hbs, dtype=object), allow_pickle=True)
 
-            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS)
+            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS, stop_frame=4, max_proc=2)
             np.save('test_2k39_sbs.npy', np.array(self.data_sbs, dtype=object), allow_pickle=True)
 
-            self.data_rib = calcRepulsiveIonicBondingTrajectory(self.ATOMS)
+            self.data_rib = calcRepulsiveIonicBondingTrajectory(self.ATOMS, stop_frame=4, max_proc=2)
             np.save('test_2k39_rib.npy', np.array(self.data_rib, dtype=object), allow_pickle=True)
 
-            self.data_PiStack = calcPiStackingTrajectory(self.ATOMS)
+            self.data_PiStack = calcPiStackingTrajectory(self.ATOMS, stop_frame=4, max_proc=2)
             np.save('test_2k39_PiStack.npy', np.array(self.data_PiStack, dtype=object), allow_pickle=True)
 
-            self.data_PiCat = calcPiCationTrajectory(self.ATOMS)
+            self.data_PiCat = calcPiCationTrajectory(self.ATOMS, stop_frame=4, max_proc=2)
             np.save('test_2k39_PiCat.npy', np.array(self.data_PiCat, dtype=object), allow_pickle=True)
 
-            self.data_hph = calcHydrophobicTrajectory(self.ATOMS)
+            self.data_hph = calcHydrophobicTrajectory(self.ATOMS, stop_frame=4, max_proc=2)
             np.save('test_2k39_hph.npy', np.array(self.data_hph, dtype=object), allow_pickle=True)
 
-            self.data_disu = calcDisulfideBondsTrajectory(self.ATOMS)
+            self.data_disu = calcDisulfideBondsTrajectory(self.ATOMS, stop_frame=4, max_proc=2)
             np.save('test_2k39_disu.npy', np.array(self.data_disu, dtype=object), allow_pickle=True)
 
     def testAllInsteractions(self):
