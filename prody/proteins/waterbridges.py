@@ -15,8 +15,9 @@ import os
 
 from itertools import combinations
 from collections import deque
-import sys
-if sys.version_info[0] == 3:
+
+from prody import PY3K
+if PY3K:
     from enum import Enum, auto
 else:
     from enum import Enum
@@ -25,7 +26,7 @@ else:
     def auto(it=count()):
         return next(it)
     enum.auto=auto
-#from enum import Enum, auto
+
 from copy import copy
 
 from prody import LOGGER, SETTINGS
@@ -273,8 +274,10 @@ def getInfoOutput(waterBridgesAtomic):
         bridgeOutput = []
 
         for atom in bridge.proteins:
-            residueInfo = "{atom.getResname()}{atom.getResnum()}"
-            atomInfo = "{atom.getName()}_{atom.getIndex()}"
+            residueInfo = "{0}{1}".format(atom.getResname(), 
+                                          atom.getResnum())
+            atomInfo = "{0}_{1}".format(atom.getName(),
+                                        atom.getIndex())
             chainInfo = atom.getChid()
             bridgeOutput += [residueInfo, atomInfo, chainInfo]
 
@@ -283,7 +286,9 @@ def getInfoOutput(waterBridgesAtomic):
 
         bridgeOutput += [len(bridge.waters)]
         bridgeOutput += [
-            list(map(lambda w: "{w.getChid()}_{w.getIndex()}", bridge.waters))]
+            list(map(lambda w: "{0}_{1}".format(w.getChid(),
+                                                w.getIndex()), 
+                     bridge.waters))]
 
         output.append(bridgeOutput)
 
@@ -324,7 +329,7 @@ def getAtomicOutput(waterBridges, relations):
 
 
 def getElementsRegex(elements):
-    return '[{"|".join(elements)}].*'
+    return '[{0}].*'.format("|".join(elements))
 
 
 def calcWaterBridges(atoms, **kwargs):
@@ -427,7 +432,7 @@ def calcWaterBridges(atoms, **kwargs):
 
     relations = RelationList(len(atoms))
     tooFarAtoms = atoms.select(
-        'water and not within {distWR} of protein')
+        'water and not within {0} of protein'.format(distWR))
     if tooFarAtoms is None:
         consideredAtoms = atoms
     else:
@@ -444,7 +449,8 @@ def calcWaterBridges(atoms, **kwargs):
         relations[oxygen].hydrogens.append(hydrogen)
 
     proteinHydrophilic = consideredAtoms.select(
-        'protein and name "{getElementsRegex(set(donors+acceptors))}" and within {distWR} of water')
+        'protein and name "{0}" and within {1} of water'.format(
+            getElementsRegex(set(donors+acceptors)), distWR))
 
     proteinHydrogens = consideredAtoms.select('protein and hydrogen') or []
     proteinHydroPairs = findNeighbors(
@@ -484,7 +490,8 @@ def calcWaterBridges(atoms, **kwargs):
         waterBridgesWithIndices = getUniqueElements(
             waterBridgesWithIndices, getChainBridgeTuple)
 
-    log_string = f'{len(waterBridgesWithIndices)} water bridges detected using method {method}'
+    log_string = '{0} water bridges detected using method {1}'.format(
+        len(waterBridgesWithIndices), method)
     if prefix != '':
         log_string += ' for ' + prefix
     LOGGER.info(log_string)
@@ -806,7 +813,8 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     interactionCount.removeDuplicateKeys(
         lambda keys, key: (key[1], key[0]) in keys)
 
-    tableHeader = '{"RES1":<15}{"RES2":<15}{"PERC":<10}{"DIST_AVG":<10}{"DIST_STD":<10}'
+    tableHeader = '{0:<15}{1:<15}{2:<10}{3:<10}{4:<10}'.format(
+        "RES1", "RES2", "PERC", "DIST_AVG", "DIST_STD")
     LOGGER.info(tableHeader)
     info = {}
     file = open(filename, 'w') if filename else None
@@ -829,7 +837,8 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
             key1, key2 = (x, y), (y, x)
             info[key1], info[key2] = pairInfo, pairInfo
 
-        tableRow = '{resNames[x]:<15}{resNames[y]:<15}{percentage:<10.3f}{distAvg:<10.3f}{distStd:<10.3f}'
+        tableRow = '{0:<15}{1:<15}{2:<10.3f}{3:<10.3f}{4:<10.3f}'.format(
+            resNames[x], resNames[y], percentage, distAvg, distStd)
         LOGGER.info(tableRow)
         if file:
             file.write(tableRow + '\n')
@@ -895,7 +904,7 @@ def mofifyBeta(bridgeFrames, atoms):
     atoms.setBetas(0)
     for resnum, value in residueOccurances.items():
         residueAtoms = atoms.select(
-            'resnum {resnum}')
+            'resnum {0}'.format(resnum))
         beta = value/len(bridgeFrames)
 
         residueAtoms.setBetas(beta)
@@ -1085,7 +1094,7 @@ def calcWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
         plt.hist(result, rwidth=0.95, density=True)
         plt.xlabel('Value')
         plt.ylabel('Probability')
-        plt.title('Distribution: {metric}')
+        plt.title('Distribution: {0}'.format(metric))
         if SETTINGS['auto_show']:
             showFigure()
 
@@ -1118,7 +1127,8 @@ def savePDBWaterBridges(bridges, atoms, filename):
     waterOxygens = reduceTo1D(
         bridges, lambda w: w.getIndex(), lambda b: b.waters)
     waterAtoms = atoms.select(
-        'same residue as water within 1.6 of index {" ".join(map(str, waterOxygens))}')
+        'same residue as water within 1.6 of index {0}'.format(
+            " ".join(map(str, waterOxygens))))
 
     atomsToSave = proteinAtoms.toAtomGroup() + waterAtoms.toAtomGroup()
     return writePDB(filename, atomsToSave)
@@ -1157,21 +1167,23 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
 
         waterAtoms = reduceTo1D(frame, sublistSel=lambda b: b.waters)
         waterResidues = atoms.select(
-            'same residue as water within 1.6 of index {" ".join(map(lambda a: str(a.getIndex()), waterAtoms))}')
+            'same residue as water within 1.6 of index {0}'.format(
+                " ".join(map(lambda a: str(a.getIndex()), waterAtoms))))
 
         bridgeProteinAtoms = reduceTo1D(
             frame, lambda p: p.getResnum(), lambda b: b.proteins)
         atoms.setOccupancies(0)
-        atoms.select(
-            'resid {" ".join(map(str, bridgeProteinAtoms))}').setOccupancies(1)
+        atoms.select('resid {0}'.format(
+            " ".join(map(str, bridgeProteinAtoms)))).setOccupancies(1)
 
         atomsToSave = atoms.select(
             'protein').toAtomGroup() + waterResidues.toAtomGroup()
 
         if trajectory:
-            writePDB('{filename}_{frameIndex}.pdb', atomsToSave)
+            writePDB('{0}_{1}.pdb'.format(filename, frameIndex),
+                     atomsToSave)
         else:
-            writePDB('{filename}_{frameIndex}.pdb',
+            writePDB('{0}_{1}.pdb'.format(filename, frameIndex),
                      atomsToSave, csets=frameIndex)
 
     if max_proc == 1:
@@ -1220,7 +1232,7 @@ def saveWaterBridges(atomicBridges, filename):
     if isInfoOutput:
         info = getWaterBridgesInfoOutput(atomicBridges)
         for frameIndex, frame in enumerate(info):
-            file.write('FRAME {frameIndex}\n')
+            file.write('FRAME {0}\n'.format(frameIndex))
             for bridge in frame:
                 file.write(' '.join(map(str, bridge)) + '\n')
 
