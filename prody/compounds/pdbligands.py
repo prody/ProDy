@@ -27,9 +27,12 @@ class PDBLigandRecord(object):
 
 
 def fetchPDBLigand(cci, filename=None):
-    """Fetch PDB ligand data from PDB_ for chemical component *cci*.
+    """Handle PDB ligand data from PDB_ for chemical component *cci*.
     *cci* may be 3-letter chemical component identifier or a valid XML
-    filename.  If *filename* is given, XML file will be saved with that name.
+    filename. If *filename* is given, XML file will be saved with that name.
+
+    This function may not work as _PDB is not hosting ligand XML files anymore.
+    It is kept for use with existing ligand XML files.
 
     If you query ligand data frequently, you may configure ProDy to save XML
     files in your computer.  Set ``ligand_xml_save`` option **True**, i.e.
@@ -55,6 +58,7 @@ def fetchPDBLigand(cci, filename=None):
     ideal (energy minimized) coordinate sets:
 
     .. ipython:: python
+       :okexcept:
 
        from prody import *
        ligand_data = fetchPDBLigand('STI')
