@@ -655,9 +655,9 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
 
             if max_proc == 1:
                 interactions_all = []
-                for j0, frame0 in enumerate(traj, start=start_frame):
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
                     interactions_all.append([])
-                    analyseFrame(j0, start_frame, frame0, interactions_all)
+                    analyseFrame(i, interactions_all)
             else:
                 with mp.Manager() as manager:
                     interactions_all = manager.list()

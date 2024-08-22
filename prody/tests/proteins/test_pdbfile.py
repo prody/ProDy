@@ -19,7 +19,7 @@ LOGGER.verbosity = 'none'
 class TestParsePDB(unittest.TestCase):
 
     def setUp(self):
-        """Set PDB file data and parse the PDB file."""
+        """Set PDB file data."""
 
         self.pdb = DATA_FILES['multi_model_truncated']
         self.one = DATA_FILES['oneatom']
@@ -108,14 +108,22 @@ class TestParsePDB(unittest.TestCase):
                         'failed to parse correct number of "bb" atoms')
 
     def testAgArgument(self):
-        """Test outcome of valid and invalid *ag* arguments."""
+        """Test outcome of 2 invalid and 2 valid *ag* arguments."""
 
         path = pathDatafile(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, ag='AtomGroup')
+
         ag = prody.AtomGroup('One atom')
         ag.setCoords(np.array([[0., 0., 0.]]))
         self.assertRaises(ValueError, parsePDB, path, ag=ag)
+
         ag = prody.AtomGroup('Test')
+        self.assertEqual(parsePDB(path, ag=ag).numAtoms(),
+            self.pdb['atoms'],
+            'parsePDB failed to parse correct number of atoms')
+        
+        ag = prody.AtomGroup('Test')
+        ag.setCoords(np.array([[0., 0., 0.]]*self.pdb['atoms']))
         self.assertEqual(parsePDB(path, ag=ag).numAtoms(),
             self.pdb['atoms'],
             'parsePDB failed to parse correct number of atoms')
