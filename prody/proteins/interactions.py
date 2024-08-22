@@ -31,7 +31,7 @@ from collections import Counter
 from prody.trajectory import TrajBase, Trajectory
 from prody.ensemble import Ensemble
 
-import multiprocessing
+import multiprocessing as mp
 
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBonding', 'calcPiStacking', 'calcPiCation',
@@ -43,7 +43,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcSASA', 'calcVolume','compareInteractions', 'showInteractionsGraph',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
-           'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
+           'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaTermValues']
@@ -845,7 +845,7 @@ def calcPiStacking(atoms, **kwargs):
                                    str(sele2.getResnames()[0])+str(sele2.getResnums()[0]), '_'.join(map(str,sele2.getIndices())), str(sele2.getChids()[0])]])
 
     # create a process pool that uses all cpus
-    with multiprocessing.Pool() as pool:
+    with mp.Pool() as pool:
         # call the function for each item in parallel with multiple arguments
         for result in pool.starmap(calcPiStacking_once, items):
             if result is not None:
@@ -1297,7 +1297,12 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
 
 def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs):
     """Compute selected type interactions for DCD trajectory or multi-model PDB 
-    using default parameters."""
+    using default parameters.
+
+    :arg max_proc: maximum number of processes to use
+        default is half of the number of CPUs
+    :type max_proc: int
+    """
     
     try:
         coords = getCoords(atoms)
@@ -1311,6 +1316,7 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
     interactions_all = []
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
+    max_proc = kwargs.pop('max_proc', mp.cpu_count()//2)
 
     interactions_dic = {
     "HBs": calcHydrogenBonds,
@@ -1336,22 +1342,84 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
             traj = trajectory[start_frame:stop_frame+1]
         
         atoms_copy = atoms.copy()
-        for j0, frame0 in enumerate(traj, start=start_frame):
+        def analyseFrame(j0, start_frame, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             protein = atoms_copy.select('protein')
             interactions = interactions_dic[interaction_type](protein, **kwargs)
             interactions_all.append(interactions)
+
+        if max_proc == 1:
+            interactions_all = []
+            for j0, frame0 in enumerate(traj, start=start_frame):
+                interactions_all.append([])
+                analyseFrame(j0, start_frame, frame0, interactions_all)
+        else:
+            with mp.Manager() as manager:
+                interactions_all = manager.list()
+                for j0, frame0 in enumerate(traj, start=start_frame):
+                    interactions_all.append([])
+
+                j0 = start_frame
+                while j0 < traj.numConfs()+start_frame:
+
+                    processes = []
+                    for _ in range(max_proc):
+                        frame0 = traj[j0-start_frame]
+                        
+                        p = mp.Process(target=analyseFrame, args=(j0, start_frame,
+                                                                 frame0,
+                                                                 interactions_all))
+                        p.start()
+                        processes.append(p)
+
+                        j0 += 1
+                        if j0 >= traj.numConfs()+start_frame:
+                            break
+
+                    for p in processes:
+                        p.join()
+
+                interactions_all = interactions_all[:]
+
         trajectory._nfi = nfi
     
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+            def analyseFrame(i, interactions_all):
                 LOGGER.info('Model: {0}'.format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
                 protein = atoms.select('protein')
                 interactions = interactions_dic[interaction_type](protein, **kwargs)
                 interactions_all.append(interactions)
+
+            if max_proc == 1:
+                interactions_all = []
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                    interactions_all.append([])
+                    analyseFrame(i, interactions_all)
+            else:
+                with mp.Manager() as manager:
+                    interactions_all = manager.list()
+                    for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                        interactions_all.append([])
+
+                    i = start_frame
+                    while i < len(atoms.getCoordsets()[start_frame:stop_frame]):
+                        processes = []
+                        for _ in range(max_proc):
+                            p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                            p.start()
+                            processes.append(p)
+
+                            i += 1
+                            if i >= len(atoms.getCoordsets()[start_frame:stop_frame]):
+                                break
+
+                        for p in processes:
+                            p.join()
+
+                    interactions_all = interactions_all[:]
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
     
