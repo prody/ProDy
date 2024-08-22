@@ -32,23 +32,23 @@ Description: .. image:: https://secure.travis-ci.org/prody/ProDy.png?branch=mast
         You can run ProDy on all major platforms.  For download and installation
         instructions see:
         
-        * http://prody.csb.pitt.edu/downloads
+        * http://www.bahargroup.org/prody/downloads
         
         
         DOCUMENTATION
         -------------
         
-        * Homepage: http://prody.csb.pitt.edu/
+        * Homepage: http://www.bahargroup.org/prody/
         
-        * Tutorials: http://prody.csb.pitt.edu/tutorials
+        * Tutorials: http://www.bahargroup.org/prody/tutorials
         
-        * Reference: http://prody.csb.pitt.edu/manual
+        * Reference: http://www.bahargroup.org/prody/manual
         
-        * Applications: http://prody.csb.pitt.edu/manual/apps
+        * Applications: http://www.bahargroup.org/prody/manual/apps
         
-        * NMWiz GUI: http://prody.csb.pitt.edu/nmwiz
+        * NMWiz GUI: http://www.bahargroup.org/prody/nmwiz
         
-        * Changes: http://prody.csb.pitt.edu/manual/release
+        * Changes: http://www.bahargroup.org/prody/manual/release
         
         
         SOURCE CODE
