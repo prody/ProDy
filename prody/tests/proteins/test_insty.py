@@ -150,3 +150,10 @@ class TestInteractions(unittest.TestCase):
             data_test = np.load('test_2k39_disu.npy', allow_pickle=True)
             assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if i]),
                          'failed to get correct disulfide bonds from saving and loading')
+
+    @classmethod
+    def tearDownClass(cls):
+        if prody.PY3K:
+            import os
+            for filename in ['test_2k39_all.npy', 'test_2k39_sbs.npy', 'test_2k39_disu.npy']:
+                os.remove(filename)
