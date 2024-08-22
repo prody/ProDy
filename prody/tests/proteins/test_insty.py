@@ -153,7 +153,7 @@ class TestInteractions(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if PY3K:
+        if prody.PY3K:
             import os
             for filename in ['test_2k39_all.npy', 'test_2k39_hbs.npy', 'test_2k39_sbs.npy', 
                             'test_2k39_rib.npy', 'test_2k39_PiStack.npy', 'test_2k39_PiCat.npy',
