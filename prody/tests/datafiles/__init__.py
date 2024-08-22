@@ -381,6 +381,26 @@ DATA_FILES = {
         'file': 'pdb7pbl.pdb',
         'atoms': 31396,
         'nucleoside': 252
+    },
+    'pqrUnknown': {
+        'file': 'pqr_snippet1.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'pqrTranscomp': {
+        'file': 'pqr_snippet2_transcomp.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'pqrFpocket': {
+        'file': 'pqr_snippet3_fpocket.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'pqrPymol': {
+        'file': 'pqr_snippet4_pymol.pqr',
+        'atoms': 5,
+        'models': 1
     }
 }
 
