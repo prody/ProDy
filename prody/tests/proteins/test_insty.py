@@ -150,3 +150,11 @@ class TestInteractions(unittest.TestCase):
             self.assertTrue(imported_hpb)
         else:
             self.assertFalse(imported_hpb)
+
+    @classmethod
+    def tearDownClass(cls):
+        import os
+        for filename in ['test_2k39_all.npy', 'test_2k39_hbs.npy', 'test_2k39_sbs.npy', 
+                         'test_2k39_rib.npy', 'test_2k39_PiStack.npy', 'test_2k39_PiCat.npy',
+                         'test_2k39_hph.npy', 'test_2k39_disu.npy']:
+            os.remove(filename)
