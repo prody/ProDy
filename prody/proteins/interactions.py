@@ -163,7 +163,7 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     :arg selection: selection string of hydrophobic residues
     :type selection: str
     
-    :arg hpb_cutoff: cutoff for hydrophobic overlaping area values
+    :arg hpb_cutoff: cutoff for hydrophobic overlapping area values
         default is 0.0
     :type hpb_cutoff: float, int
     
@@ -200,7 +200,7 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
         lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
             
         output = hpb.hpb((lB,lA))
-        LOGGER.info("Hydrophobic Overlaping Areas are computed.")
+        LOGGER.info("Hydrophobic Overlapping Areas are computed.")
         output_final = [i for i in output if i[-1] >= hpb_cutoff]
         
         if cumulative_values == None:            
@@ -1000,11 +1000,11 @@ def calcHydrophobic(atoms, **kwargs):
                         non_standard works too
     :type non_standard_Hph: dict
 
-    :arg zerosHPh: zero values of hydrophobic overlaping areas included
+    :arg zerosHPh: zero values of hydrophobic overlapping areas included
         default is False
     :type zerosHPh: bool
 
-    Last value in the output corresponds to the total hydrophobic overlaping area for two residues
+    Last value in the output corresponds to the total hydrophobic overlapping area for two residues
     not only for the atoms that are included in the list. Atoms that which are listed are the closest
     between two residues and they will be inluded to draw the line in VMD_.
     
@@ -1065,7 +1065,7 @@ def calcHydrophobic(atoms, **kwargs):
     aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
     aromatic = list(set(atoms.aromatic.getResnames()))
     
-    # Computing hydrophobic overlaping areas for pairs of residues:
+    # Computing hydrophobic overlapping areas for pairs of residues:
     try:
         hpb_overlaping_results = calcHydrophobicOverlapingAreas(atoms_hydrophobic, cumulative_values='pairs')
     except: 
