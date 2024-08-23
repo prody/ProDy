@@ -12,6 +12,8 @@ from prody.proteins.interactions import calcRepulsiveIonicBondingTrajectory, cal
 from prody.proteins.interactions import calcPiCationTrajectory, calcHydrophobicTrajectory
 from prody.proteins.interactions import calcDisulfideBondsTrajectory, calcProteinInteractions
 
+import sys
+
 class TestInteractions(unittest.TestCase):
 
     def setUp(self):
@@ -55,7 +57,7 @@ class TestInteractions(unittest.TestCase):
             self.data_disu = calcDisulfideBondsTrajectory(self.ATOMS)
             np.save('test_2k39_disu.npy', np.array(self.data_disu, dtype=object), allow_pickle=True)
 
-    def testAllInsteractions(self):
+    def testAllInteractions(self):
         """Test for all types of interactions."""
 
         if prody.PY3K:        
@@ -132,4 +134,28 @@ class TestInteractions(unittest.TestCase):
              assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if i]),
                           'failed to get correct disulfide bonds')
         
-                     
+    def testImportHpb(self):
+
+        try:
+            import prody.proteins.hpb as hpb
+            imported_hpb = True
+        except ImportError:
+            try:
+                import hpb
+                imported_hpb = True
+            except ImportError:
+                imported_hpb = False
+            
+        if sys.version_info[1] < 11:
+            self.assertTrue(imported_hpb)
+        else:
+            self.assertFalse(imported_hpb)
+
+    @classmethod
+    def tearDownClass(cls):
+        if prody.PY3K:
+            import os
+            for filename in ['test_2k39_all.npy', 'test_2k39_hbs.npy', 'test_2k39_sbs.npy', 
+                            'test_2k39_rib.npy', 'test_2k39_PiStack.npy', 'test_2k39_PiCat.npy',
+                            'test_2k39_hph.npy', 'test_2k39_disu.npy']:
+                os.remove(filename)

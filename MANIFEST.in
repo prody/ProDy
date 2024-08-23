@@ -9,6 +9,7 @@ include prody/*/*.cpp
 include prody/*/*/*.cpp
 include prody/*/*.h
 include prody/*/*/*.h
+include prody/*/*/*/*.so
 include prody/tests/*/*.py
 include prody/tests/datafiles/*.coo
 include prody/tests/datafiles/*.dcd
