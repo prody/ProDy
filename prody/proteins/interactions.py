@@ -4795,8 +4795,15 @@ def calcChannels(atoms, output_path=None, r1=3, r2=1.25, min_depth=10, bottlenec
     LOGGER.info("Detected " + str(no_of_channels) + " channels.")
         
     if output_path:
-        LOGGER.info("Saving results to " + output_path + ".")
-        calculator.save_channels_to_pdb(c_filtered_cavities, Path(output_path), num_samples=5)
+        output_path = Path(output_path)
+        
+        if output_path.is_dir():
+            output_path = output_path / "output.pdb"
+        elif not output_path.suffix == ".pdb":
+            output_path = output_path.with_suffix(".pdb")
+    
+        LOGGER.info("Saving results to " + str(output_path) + ".")
+        calculator.save_channels_to_pdb(c_filtered_cavities, output_path, num_samples=5)
     else:
         LOGGER.info("No output path given.")
                 
@@ -4819,9 +4826,15 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, **kwarg
         radius values, minimum depth, bottleneck values, etc.
     :type kwargs: dict
 
-    :returns: A list of lists, where each inner list contains channels computed for a particular frame or model.
+    :returns: List of channels and surfaces computed for a particular frame or model.
     :rtype: list of lists
     """
+    
+    if not checkAndImport('pathlib'):
+        errorMsg = 'To run showChannels, please install open3d.'
+        raise ImportError(errorMsg)
+            
+    from pathlib import Path
     
     try:
         coords = getCoords(atoms)
@@ -4832,17 +4845,14 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, **kwarg
             raise TypeError('coords must be an object with `getCoords` method')    
 
     channels_all = []
+    surfaces_all = []
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
-
-    calculator_params = {
-        'r1': kwargs.pop('r1', 3),
-        'r2': kwargs.pop('r2', 1.25),
-        'min_depth': kwargs.pop('min_depth', 10),
-        'bottleneck': kwargs.pop('bottleneck', 1),
-        'sparsity': kwargs.pop('sparsity', 15)
-    }
-    calculator = ChannelCalculator(atoms, **calculator_params)
+    
+    if output_path:
+        output_path = Path(output_path)
+        if output_path.suffix == ".pdb":
+            output_path = output_path.with_suffix('')
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -4860,8 +4870,12 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, **kwarg
         for j0, frame0 in enumerate(traj, start=start_frame):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
-            channels = calculator.calcChannels(atoms_copy, output_path / "_{0}.pdb".format(j0), **kwargs)
+            if output_path:
+                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pdb".format(j0), **kwargs)
+            else:
+                channels, surfaces = calcChannels(atoms_copy, **kwargs)
             channels_all.append(channels)
+            surfaces_all.append(surfaces)
         trajectory._nfi = nfi
 
     else:
@@ -4869,12 +4883,16 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, **kwarg
             for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
                 LOGGER.info('Model: {0}'.format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
-                channels = calculator.calcChannels(atoms, output_path / "_{0}.pdb".format(i+start_frame), **kwargs)
+                if output_path:
+                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pdb".format(i+start_frame), **kwargs)
+                else:
+                    channels, surfaces = calcChannels(atoms, **kwargs)
                 channels_all.append(channels)
+                surfaces_all.append(surfaces)
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
 
-    return channels_all
+    return channels_all, surfaces_all
 
 def getChannelsParameters(channels):
     """
