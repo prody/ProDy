@@ -45,7 +45,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
-           'showSminaTermValues', 'getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 'getChannelsParameters', 'showChannels', 'showCavities']
+           'showSminaTermValues', 'getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities']
 
 
 def cleanNumbers(listContacts):
@@ -4807,7 +4807,7 @@ def calcChannels(atoms, output_path=None, r1=3, r2=1.25, min_depth=10, bottlenec
     else:
         LOGGER.info("No output path given.")
                 
-    return channels, [coords, s_srf.simp, merged_cavities]
+    return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
             
 def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, **kwargs):
     """
@@ -4894,7 +4894,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, **kwarg
 
     return channels_all, surfaces_all
 
-def getChannelsParameters(channels):
+def getChannelParameters(channels):
     """
     Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels.
 
@@ -4923,6 +4923,58 @@ def getChannelsParameters(channels):
         volumes.append(channel.volume)
         
     return lengths, bottlenecks, volumes
+
+def getChannelAtoms(channels, num_samples=5):
+    """
+    Generates an Atomic object representing the atoms along the paths of the given channels.
+
+    This function takes a list of channel objects and generates atomic representations of the
+    channels based on their centerline splines and radius splines. The function samples points
+    along each channel's centerline and assigns atom positions at these points with corresponding
+    radii, creating a list of PDB-formatted lines. These lines are then converted into an Atomic
+    object using the ProDy library.
+
+    :param channels: A list of channel objects. Each channel has a method `get_splines()` that
+        returns the centerline spline and radius spline of the channel.
+    :type channels: list
+
+    :param num_samples: The number of atom samples to generate along each segment of the channel.
+        More samples result in a finer representation of the channel. Default is 5.
+    :type num_samples: int
+
+    :returns: An Atomic object representing the atoms along the channels, with coordinates and
+        radii derived from the channel splines.
+    :rtype: prody.atomic.Atomic
+
+    Example usage:
+    atomic_structure = getChannelsAtoms(channels)
+    """
+    def convert_lines_to_atomic(atom_lines):
+        import io
+        from prody import parsePDBStream
+        pdb_text = "\n".join(atom_lines)
+        pdb_stream = io.StringIO(pdb_text)
+        structure = parsePDBStream(pdb_stream)
+        
+        return structure
+
+    atom_index = 1
+    pdb_lines = []
+    
+    if not isinstance(channels, list):
+        channels = [channels]
+        
+    for channel in channels:
+        centerline_spline, radius_spline = channel.get_splines()
+        samples = len(channel.tetrahedra) * num_samples
+        t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
+        centers = centerline_spline(t)
+        radii = radius_spline(t)
+
+        for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
+            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f  1.00  %6.2f\n" % (i, x, y, z, radius))
+        
+    return convert_lines_to_atomic(pdb_lines)
     
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
@@ -5319,11 +5371,11 @@ class ChannelCalculator:
 
                     pdb_lines = []
                     for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                        pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f      %6.2f\n" % (i, x, y, z, radius))
-                    
+                        pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f  1.00  %6.2f\n" % (i, x, y, z, radius))
+
                     for i in range(1, samples):
                         pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
-
+                        
                     pdb_file.writelines(pdb_lines)
                     pdb_file.write("\n")
                     atom_index += samples
