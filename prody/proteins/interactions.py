@@ -4911,7 +4911,7 @@ def getChannelParameters(channels):
     :rtype: tuple (list, list, list)
 
     Example usage:
-    lengths, bottlenecks, volumes = getChannelsParameters(channels)
+    lengths, bottlenecks, volumes = getChannelParameters(channels)
     """
     
     lengths = []
@@ -4947,7 +4947,7 @@ def getChannelAtoms(channels, num_samples=5):
     :rtype: prody.atomic.Atomic
 
     Example usage:
-    atomic_structure = getChannelsAtoms(channels)
+    atomic_structure = getChannelAtoms(channels)
     """
     def convert_lines_to_atomic(atom_lines):
         import io
