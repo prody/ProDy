@@ -4680,34 +4680,40 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
     within the molecular structure. It employs Voronoi and Delaunay tessellations to identify these regions,
     then filters and refines the detected channels based on various parameters such as the minimum depth
-    and bottleneck size. The results can be saved to a PDB file if an output path is provided.
-    
+    and bottleneck size. The results can be saved to a PDB file if an output path is provided. The `separate` 
+    parameter controls whether each detected channel is saved to a separate file or if all channels are saved 
+    in a single file.
+
     The implementation is inspired by the methods described in the publication:
     "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by M. Berka, M. B. G. Czajka,
     J. P. M. T. Doyle, and M. T. L. Smith, published in Nucleic Acids Research, 2014.
 
-    :arg atoms: An object representing the molecular structure, typically containing atomic coordinates
+    :param atoms: An object representing the molecular structure, typically containing atomic coordinates
         and element types.
     :type atoms: `Atoms` object
 
-    :arg output_path: Optional path to save the resulting channels and associated data in PDB format.
+    :param output_path: Optional path to save the resulting channels and associated data in PDB format.
         If None, results are not saved. Default is None.
     :type output_path: str or None
 
-    :arg r1: The first radius threshold used during the deletion of simplices, which is used to define 
+    :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
+        are saved in a single PDB file. Default is False.
+    :type separate: bool
+
+    :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
         the outer surface of the channels. Default is 3.
     :type r1: float
 
-    :arg r2: The second radius threshold used to define the inner surface of the channels. Default is 1.25.
+    :param r2: The second radius threshold used to define the inner surface of the channels. Default is 1.25.
     :type r2: float
 
-    :arg min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
+    :param min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
     :type min_depth: float
 
-    :arg bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
+    :param bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
     :type bottleneck: float
 
-    :arg sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
+    :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
         A higher value results in fewer sampling points. Default is 15.
     :type sparsity: int
 
@@ -4718,9 +4724,6 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
           the atomic coordinates, simplices defining the surface, and merged cavities.
     :rtype: tuple (list, list)
 
-    Example usage:
-    channels, surface = calcChannels(atoms, output_path="channels.pdb", r1=3.5, r2=1.5, min_depth=12, bottleneck=1.2, sparsity=10)
-    
     This function performs the following steps:
     1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, and performs
        3D Delaunay triangulation and Voronoi tessellation on the coordinates.
@@ -4731,6 +4734,9 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
        Dijkstra's algorithm.
     5. **Visualization and Saving:** Generates meshes for the detected channels, filters them by bottleneck size, and either
        saves the results to a PDB file or visualizes them based on the specified parameters.
+       
+    Example usage:
+    channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15)
     """
     
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
@@ -4818,6 +4824,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
 
     This function calculates the channels for each frame in a trajectory or for each model
     in a multi-model PDB file. The `kwargs` can include parameters necessary for channel calculation.
+    If the `separate` parameter is set to True, each detected channel will be saved in a separate PDB file.
 
     :param atoms: Atomic data or object containing atomic coordinates and methods for accessing them.
     :type atoms: object
@@ -4825,12 +4832,25 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     :param trajectory: Trajectory object containing multiple frames or a multi-model PDB file.
     :type trajectory: Atomic or Ensemble object
 
+    :param output_path: Optional path to save the resulting channels and associated data in PDB format.
+        If a directory is specified, each frame/model will have its results saved in separate files. 
+        If None, results are not saved. Default is None.
+    :type output_path: str or None
+
+    :param separate: If True, each detected channel is saved to a separate PDB file for each frame/model.
+        If False, all channels for each frame/model are saved in a single file. Default is False.
+    :type separate: bool
+
     :param kwargs: Additional parameters required for channel calculation. This can include parameters such as
         radius values, minimum depth, bottleneck values, etc.
     :type kwargs: dict
 
-    :returns: List of channels and surfaces computed for a particular frame or model.
+    :returns: List of channels and surfaces computed for each frame or model. Each entry in the list corresponds
+        to a specific frame or model.
     :rtype: list of lists
+
+    Example usage:
+    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15)
     """
     
     if not checkAndImport('pathlib'):
