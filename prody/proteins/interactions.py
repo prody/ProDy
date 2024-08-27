@@ -4369,7 +4369,7 @@ def checkAndImport(package_name):
 
     import importlib.util
     if importlib.util.find_spec(package_name) is None:
-        LOGGER.warn(f"Package '{package_name}' is not installed. Please install it to use this function.")
+        LOGGER.warn("Package " + str(package_name) + " is not installed. Please install it to use this function.")
         return False
     return True
 
