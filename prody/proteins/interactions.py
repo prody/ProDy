@@ -4673,7 +4673,7 @@ def showCavities(surface, show_surface=False):
     vis.run()
     vis.destroy_window()
 
-def calcChannels(atoms, output_path=None, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
+def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
     """
     Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
@@ -4802,14 +4802,17 @@ def calcChannels(atoms, output_path=None, r1=3, r2=1.25, min_depth=10, bottlenec
         elif not output_path.suffix == ".pdb":
             output_path = output_path.with_suffix(".pdb")
     
-        LOGGER.info("Saving results to " + str(output_path) + ".")
-        calculator.save_channels_to_pdb(c_filtered_cavities, output_path, num_samples=5)
+        if not separate:
+            LOGGER.info("Saving results to " + str(output_path) + ".")
+        else:
+            LOGGER.info("Saving multiple results to directory " + str(output_path.parent) + ".")
+        calculator.save_channels_to_pdb(c_filtered_cavities, output_path, separate)
     else:
         LOGGER.info("No output path given.")
                 
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
             
-def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, **kwargs):
+def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, **kwargs):
     """
     Compute channels for each frame in a given trajectory or multi-model PDB file.
 
@@ -4871,7 +4874,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, **kwarg
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             if output_path:
-                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pdb".format(j0), **kwargs)
+                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pdb".format(j0), separate, **kwargs)
             else:
                 channels, surfaces = calcChannels(atoms_copy, **kwargs)
             channels_all.append(channels)
@@ -4884,7 +4887,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, **kwarg
                 LOGGER.info('Model: {0}'.format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
                 if output_path:
-                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pdb".format(i+start_frame), **kwargs)
+                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pdb".format(i+start_frame), separate, **kwargs)
                 else:
                     channels, surfaces = calcChannels(atoms, **kwargs)
                 channels_all.append(channels)
@@ -4924,46 +4927,52 @@ def getChannelParameters(channels):
         
     return lengths, bottlenecks, volumes
 
-def getChannelAtoms(channels, num_samples=5):
+def getChannelAtoms(channels, protein=None, num_samples=5):
     """
-    Generates an Atomic object representing the atoms along the paths of the given channels.
+    Generates an AtomGroup object representing the atoms along the paths of the given channels
+    and optionally combines them with an existing protein structure.
 
     This function takes a list of channel objects and generates atomic representations of the
     channels based on their centerline splines and radius splines. The function samples points
     along each channel's centerline and assigns atom positions at these points with corresponding
-    radii, creating a list of PDB-formatted lines. These lines are then converted into an Atomic
-    object using the ProDy library.
+    radii, creating a list of PDB-formatted lines. These lines are then converted into an AtomGroup
+    object using the ProDy library. If a protein structure is provided, it is combined with the
+    generated channel atoms by merging their respective PDB streams.
 
     :param channels: A list of channel objects. Each channel has a method `get_splines()` that
         returns the centerline spline and radius spline of the channel.
     :type channels: list
 
+    :param protein: An optional AtomGroup object representing a protein structure. If provided, 
+        it will be combined with the generated channel atoms.
+    :type protein: prody.atomic.AtomGroup or None
+
     :param num_samples: The number of atom samples to generate along each segment of the channel.
         More samples result in a finer representation of the channel. Default is 5.
     :type num_samples: int
 
-    :returns: An Atomic object representing the atoms along the channels, with coordinates and
-        radii derived from the channel splines.
-    :rtype: prody.atomic.Atomic
+    :returns: An AtomGroup object representing the combined atoms of the channels and the protein,
+        if a protein is provided.
+    :rtype: prody.atomic.AtomGroup
 
     Example usage:
-    atomic_structure = getChannelAtoms(channels)
+    atomic_structure = getChannelAtoms(channels, protein)
     """
+    import io
+    from prody import parsePDBStream, writePDBStream
+
     def convert_lines_to_atomic(atom_lines):
-        import io
-        from prody import parsePDBStream
         pdb_text = "\n".join(atom_lines)
         pdb_stream = io.StringIO(pdb_text)
         structure = parsePDBStream(pdb_stream)
-        
         return structure
 
     atom_index = 1
     pdb_lines = []
-    
+
     if not isinstance(channels, list):
         channels = [channels]
-        
+    
     for channel in channels:
         centerline_spline, radius_spline = channel.get_splines()
         samples = len(channel.tetrahedra) * num_samples
@@ -4973,8 +4982,25 @@ def getChannelAtoms(channels, num_samples=5):
 
         for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
             pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f  1.00  %6.2f\n" % (i, x, y, z, radius))
+    
+    if protein is not None:
+        protein_stream = io.StringIO()
+        writePDBStream(protein_stream, protein)
         
-    return convert_lines_to_atomic(pdb_lines)
+        protein_stream.seek(0)
+
+        protein_lines = protein_stream.readlines()
+        if protein_lines[-1].strip() == 'END':
+            protein_lines = protein_lines[:-1]
+        
+        combined_pdb_text = "".join(protein_lines) + "\n".join(pdb_lines) + "\nEND\n"
+        combined_stream = io.StringIO(combined_pdb_text)
+        combined_structure = parsePDBStream(combined_stream)
+
+        return combined_structure
+
+    channels_atomic = convert_lines_to_atomic(pdb_lines)
+    return channels_atomic
     
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
@@ -5358,27 +5384,55 @@ class ChannelCalculator:
         for cavity in cavities:
             cavity.channels = [channel for channel in cavity.channels if channel.bottleneck >= bottleneck]
 
-    def save_channels_to_pdb(self, cavities, filename, num_samples=5):
-        with open(filename, 'w') as pdb_file:
-            atom_index = 1
+    def save_channels_to_pdb(self, cavities, filename, separate=False, num_samples=5):
+        filename = str(filename)
+        
+        if separate:
+            channel_index = 0
             for cavity in cavities:
                 for channel in cavity.channels:
-                    centerline_spline, radius_spline = channel.get_splines()
-                    samples = len(channel.tetrahedra) * num_samples
-                    t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
-                    centers = centerline_spline(t)
-                    radii = radius_spline(t)
-
-                    pdb_lines = []
-                    for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                        pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f  1.00  %6.2f\n" % (i, x, y, z, radius))
-
-                    for i in range(1, samples):
-                        pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
+                    channel_filename = filename.replace('.pdb', '_channel{0}.pdb'.format(channel_index))
+                    
+                    with open(channel_filename, 'w') as pdb_file:
+                        atom_index = 1
+                        centerline_spline, radius_spline = channel.get_splines()
+                        samples = len(channel.tetrahedra) * num_samples
+                        t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
+                        centers = centerline_spline(t)
+                        radii = radius_spline(t)
+    
+                        pdb_lines = []
+                        for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
+                            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f  1.00  %6.2f\n" % (i, x, y, z, radius))
+    
+                        for i in range(1, samples):
+                            pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
+                            
+                        pdb_file.writelines(pdb_lines)
                         
-                    pdb_file.writelines(pdb_lines)
-                    pdb_file.write("\n")
-                    atom_index += samples
+                    channel_index += 1
+        else:
+            with open(filename, 'w') as pdb_file:
+                atom_index = 1
+                for cavity in cavities:
+                    for channel in cavity.channels:
+                        centerline_spline, radius_spline = channel.get_splines()
+                        samples = len(channel.tetrahedra) * num_samples
+                        t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
+                        centers = centerline_spline(t)
+                        radii = radius_spline(t)
+    
+                        pdb_lines = []
+                        for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
+                            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f  1.00  %6.2f\n" % (i, x, y, z, radius))
+    
+                        for i in range(1, samples):
+                            pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
+                            
+                        pdb_file.writelines(pdb_lines)
+                        pdb_file.write("\n")
+                        atom_index += samples
+
 
     def calculate_channel_length(self, centerline_spline):
         t_values = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], len(centerline_spline.x) * 10)
