@@ -153,6 +153,28 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
     return final
 
 
+def get_energy(pair, source):
+    """Return energies based on the pairs of interacting residues (without distance criteria)
+    Taking information from tabulated_energies.txt file"""
+
+    import numpy as np
+    import importlib.resources as pkg_resources    
+    
+    with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
+        data = np.loadtxt(file_path, skiprows=1, dtype=str)
+    
+    sources = ["ivet_nosolv", "ivet_solv", "carlos"]
+    aa_pairs = []
+    
+    for row in data:
+        aa_pairs.append(row[0]+row[1])
+    
+    lookup = pair[0]+pair[1]
+    
+    return data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
+    
+
+
 def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     """Provide information about hydrophobic contacts between pairs of residues based on 
     the regsurf program. To use this function compiled hpb.so is needed.
