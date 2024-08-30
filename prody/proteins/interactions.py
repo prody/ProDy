@@ -1986,7 +1986,7 @@ def calcStatisticsInteractions(data, **kwargs):
             stats[element] = {
                 "stddev": np.round(np.std(values),6),
                 "mean": np.round(np.mean(values),6),
-                "weight": np.round(float(len(values))/len(data), 6)
+                "weight": np.round(float(len(values))/len(data), 6),
                 "energy": get_energy([element.split('-')[0][:3], element.split('-')[1][:3]], energy_list_type)
             }
 
