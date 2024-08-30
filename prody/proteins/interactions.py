@@ -46,7 +46,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
-           'showSminaTermValues']
+           'showSminaTermValues', 'showPairEnergy']
 
 
 def cleanNumbers(listContacts):
@@ -163,7 +163,7 @@ def get_energy(pair, source):
     with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
         data = np.loadtxt(file_path, skiprows=1, dtype=str)
     
-    sources = ["ivet_nosolv", "ivet_solv", "carlos"]
+    sources = ["IB_nosolv", "IB_solv", "CS"]
     aa_pairs = []
     
     for row in data:
@@ -172,7 +172,29 @@ def get_energy(pair, source):
     lookup = pair[0]+pair[1]
     
     return data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
+
+
+def showPairEnergy(list_of_interactions, energy_list_type):
+    """Return energies when a list of interactions is given. Energies will be added to each pair of residues 
+    at the last position in the list. Energy is based on the residue types and not on the distances.
+    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv', 'IB_solv' are taken from XX and 
+    'CS' from YY.
     
+    :arg list_of_interactions: list with interactions from calcHydrogenBonds() or other types
+    :type list_of_interactions: list
+    
+    :arg energy_list_type: name of the list with energies 
+    :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+    """
+    
+    energy_type = "IB_solv"
+    
+    for i in list_of_interactions:
+        energy = get_energy([i[0][:3], i[3][:3]], energy_list_type)
+        i.append(float(energy))
+        
+    return list_of_interactions
+
 
 
 def calcHydrophobicOverlapingAreas(atoms, **kwargs):
