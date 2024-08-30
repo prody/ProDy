@@ -1955,6 +1955,11 @@ def calcStatisticsInteractions(data, **kwargs):
         default value is 0.2 (in 20% of conformations contact appeared)
     :type weight_cutoff: int, float 
     
+    :arg energy_list_type: name of the list with energies 
+                            default is 'IB_solv'
+    :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+
+    
     Example of usage: 
     >>> atoms = parsePDB('PDBfile.pdb')
     >>> dcd = Trajectory('DCDfile.dcd')
@@ -1969,6 +1974,7 @@ def calcStatisticsInteractions(data, **kwargs):
     
     interactions_list = [ (jj[0]+jj[2]+'-'+jj[3]+jj[5], jj[6]) for ii in data for jj in ii]
     weight_cutoff = kwargs.pop('weight_cutoff', 0.2)
+    energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
     
     import numpy as np
     elements = [t[0] for t in interactions_list]
@@ -1981,6 +1987,7 @@ def calcStatisticsInteractions(data, **kwargs):
                 "stddev": np.round(np.std(values),6),
                 "mean": np.round(np.mean(values),6),
                 "weight": np.round(float(len(values))/len(data), 6)
+                "energy": get_energy([element.split('-')[0][:3], element.split('-')[1][:3]], energy_list_type)
             }
 
     statistic = []
@@ -1990,7 +1997,8 @@ def calcStatisticsInteractions(data, **kwargs):
             LOGGER.info("  Average [Ang.]: {}".format(value['mean']))
             LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
             LOGGER.info("  Weight: {0}".format(value['weight']))
-            statistic.append([key, value['weight'], value['mean'], value['stddev']])
+            LOGGER.info("  Energy [kcal/mol]: {0}".format(value['energy']))
+            statistic.append([key, value['weight'], value['mean'], value['stddev'], value['energy']])
         else: pass
     
     statistic.sort(key=lambda x: x[1], reverse=True)
