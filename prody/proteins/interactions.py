@@ -1873,7 +1873,7 @@ def showInteractionsGraph(statistics, **kwargs):
               'HIS': 'H', 'HSD': 'H','HSE': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
               'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M'}
     
-    if len(statistics[0]) != 4:
+    if len(statistics[0]) != 5:
         raise TypeError('data must be a list obtained from calcStatisticsInteractions')
     else:
         if isinstance(statistics, int) or isinstance(statistics, str):
