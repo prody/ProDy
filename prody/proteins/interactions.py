@@ -1877,7 +1877,7 @@ def showInteractionsGraph(statistics, **kwargs):
         raise TypeError('data must be a list obtained from calcStatisticsInteractions')
     else:
         if isinstance(statistics, int) or isinstance(statistics, str):
-            raise TypeError('node_size must be a list')
+            raise TypeError('statistics must be a list')
 
     code = kwargs.pop('code', None)
     if code is None:
