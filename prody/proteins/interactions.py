@@ -1873,11 +1873,16 @@ def showInteractionsGraph(statistics, **kwargs):
               'HIS': 'H', 'HSD': 'H','HSE': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
               'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M'}
     
-    if len(statistics[0]) != 5:
-        raise TypeError('data must be a list obtained from calcStatisticsInteractions')
+
+    if isinstance(statistics, int) or isinstance(statistics, str) or isinstance(statistics, Atomic):
+        raise TypeError('input data must be a list, use calcStatisticsInteractions to obtain statistics for a particular interaction type')
+
+    if isinstance(statistics, InteractionsTrajectory) or isinstance(statistics, Interactions):
+        raise TypeError('use calcStatisticsInteractions to obtain statistics for a particular interaction type')
+        
     else:
-        if isinstance(statistics, int) or isinstance(statistics, str):
-            raise TypeError('statistics must be a list')
+        if len(statistics[0]) != 5:
+            raise TypeError('input data must be a list obtained from calcStatisticsInteractions')
 
     code = kwargs.pop('code', None)
     if code is None:
