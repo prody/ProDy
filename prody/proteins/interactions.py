@@ -174,7 +174,7 @@ def get_energy(pair, source):
     return data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
 
 
-def showPairEnergy(list_of_interactions, energy_list_type):
+def showPairEnergy(list_of_interactions, **kwargs):
     """Return energies when a list of interactions is given. Energies will be added to each pair of residues 
     at the last position in the list. Energy is based on the residue types and not on the distances.
     The unit of energy is kcal/mol. The energies defined as 'IB_nosolv', 'IB_solv' are taken from XX and 
@@ -184,10 +184,14 @@ def showPairEnergy(list_of_interactions, energy_list_type):
     :type list_of_interactions: list
     
     :arg energy_list_type: name of the list with energies 
+                            default is 'IB_solv'
     :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
     """
     
-    energy_type = "IB_solv"
+    if not isinstance(list_of_interactions, list):
+        raise TypeError('list_of_interactions must be a list of interactions.')
+
+    energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
     
     for i in list_of_interactions:
         energy = get_energy([i[0][:3], i[3][:3]], energy_list_type)
