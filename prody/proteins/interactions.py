@@ -160,8 +160,17 @@ def get_energy(pair, source):
     import numpy as np
     import importlib.resources as pkg_resources    
     
-    with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
-        data = np.loadtxt(file_path, skiprows=1, dtype=str)
+    try:
+        # Python 3
+        with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
+            data = np.loadtxt(file_path, skiprows=1, dtype=str)
+    except: 
+        # Python 2.7
+        import pkg_resources
+        file_path = pkg_resources.resource_filename('prody.proteins', 'tabulated_energies.txt')
+        with open(file_path) as f:
+            data = np.loadtxt(f, skiprows=1, dtype=str)
+
     
     sources = ["IB_nosolv", "IB_solv", "CS"]
     aa_pairs = []
