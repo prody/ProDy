@@ -3157,6 +3157,40 @@ class Interactions(object):
         return InteractionsMap
 
 
+    def buildInteractionMatrixEnergy(self, **kwargs):
+        """Build matrix with interaction energy comming from energy of pairs of specific residues.
+        
+        :arg energy_list_type: name of the list with energies 
+                            default is 'IB_solv'
+        :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+        """
+        
+        import numpy as np
+        import matplotlib
+        import matplotlib.pyplot as plt
+        from prody.dynamics.plotting import pplot
+        
+        atoms = self._atoms   
+        interactions = self._interactions
+        start_frame = kwargs.pop('energy_list_type', 'IS_solv')
+
+        LOGGER.info('Calculating interactions')
+        InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
+        resIDs = list(atoms.select('name CA').getResnums())
+        resChIDs = list(atoms.select('name CA').getChids())
+        resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
+            
+        for nr_i,i in enumerate(interactions):
+            if i != []:
+                for ii in i: 
+                    m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
+                    m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
+                    scoring = get_energy([ii[0][:3], ii[3][:3]], "IB_solv")
+                    InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = InteractionsMap[m1][m2] + float(scoring) 
+        
+        return InteractionsMap
+
+
     def showInteractors(self, **kwargs):
         """Display protein residues and their number of potential interactions
         with other residues from protein structure. """
