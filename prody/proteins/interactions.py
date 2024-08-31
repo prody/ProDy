@@ -3399,7 +3399,12 @@ class Interactions(object):
         :type HPh: int, float
 
         :arg DiBs: score per disulfide bond
-        :type DiBs: int, float """
+        :type DiBs: int, float 
+        
+        :arg energy: sum of the energy between residues
+                    default is False
+        :type energy: True, False 
+        """
 
         import numpy as np
         import matplotlib
@@ -3412,87 +3417,109 @@ class Interactions(object):
                'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M', 'HSE': 'H', 'HSD': 'H'}
 
         atoms = self._atoms
+        energy = kwargs.pop('energy', False)
 
         ResNumb = atoms.select('protein and name CA').getResnums()
         ResName = atoms.select('protein and name CA').getResnames()
         ResChid = atoms.select('protein and name CA').getChids()
         ResList = [ i[0]+str(i[1])+i[2] for i in list(zip([ aa_dic[i] for i in ResName ], ResNumb, ResChid)) ]
         
-        replace_matrix = kwargs.get('replace_matrix', False)
-        matrix_all = self._interactions_matrix
-
-        HBs = kwargs.get('HBs', 1)
-        SBs = kwargs.get('SBs', 1)
-        RIB = kwargs.get('RIB', 1)
-        PiStack = kwargs.get('PiStack', 1)
-        PiCat = kwargs.get('PiCat', 1)
-        HPh = kwargs.get('HPh', 1)
-        DiBs = kwargs.get('DiBs', 1)
-    
-        matrix_hbs = self.buildInteractionMatrix(HBs=HBs, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
-        matrix_sbs = self.buildInteractionMatrix(HBs=0, SBs=SBs, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
-        matrix_rib = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=RIB,PiStack=0,PiCat=0,HPh=0,DiBs=0)
-        matrix_pistack = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=PiStack,PiCat=0,HPh=0,DiBs=0)
-        matrix_picat = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=PiCat,HPh=0,DiBs=0)
-        matrix_hph = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=HPh,DiBs=0)
-        matrix_dibs = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=DiBs)
-
-        matrix_hbs_sum = np.sum(matrix_hbs, axis=0)
-        matrix_sbs_sum = np.sum(matrix_sbs, axis=0)
-        matrix_rib_sum = np.sum(matrix_rib, axis=0)
-        matrix_pistack_sum = np.sum(matrix_pistack, axis=0)
-        matrix_picat_sum = np.sum(matrix_picat, axis=0)
-        matrix_hph_sum = np.sum(matrix_hph, axis=0)
-        matrix_dibs_sum = np.sum(matrix_dibs, axis=0)
-
-        width = 0.8
-        fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
-        matplotlib.rcParams['font.size'] = '24'
-
-        sum_matrix = np.zeros(matrix_hbs_sum.shape)
-        pplot(sum_matrix, atoms=atoms.ca)
-
-        if HBs != 0:
-            ax.bar(ResList, matrix_hbs_sum, width, color = 'blue', bottom = 0, label='HBs')
-        sum_matrix += matrix_hbs_sum
-
-        if SBs != 0:
-            ax.bar(ResList, matrix_sbs_sum, width, color = 'yellow', bottom = sum_matrix, label='SBs')
-        sum_matrix += matrix_sbs_sum
-
-        if HPh != 0:
-            ax.bar(ResList, matrix_hph_sum, width, color = 'silver', bottom = sum_matrix, label='HPh')
-        sum_matrix += matrix_hph_sum
         
-        if RIB != 0:
-            ax.bar(ResList, matrix_rib_sum, width, color = 'red', bottom = sum_matrix, label='RIB')
-        sum_matrix += matrix_rib_sum
+        if energy == True:
+            matrix_en = self._interactions_matrix_en
+            matrix_en_sum = np.sum(matrix_en, axis=0)
 
-        if PiStack != 0:
-            ax.bar(ResList, matrix_pistack_sum, width, color = 'green', bottom = sum_matrix, label='PiStack')
-        sum_matrix += matrix_pistack_sum
+            width = 0.8
+            fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
+            matplotlib.rcParams['font.size'] = '24'
 
-        if PiCat != 0:
-            ax.bar(ResList, matrix_picat_sum, width, color = 'orange', bottom = sum_matrix, label='PiCat')
-        sum_matrix += matrix_picat_sum
+            ax.bar(ResNumb, matrix_en_sum, width, color='blue')
+            
+            plt.xlim([ResNumb[0]-0.5, ResNumb[-1]+0.5])
+            plt.tight_layout()    
+            plt.xlabel('Residue')
+            plt.ylabel('Cumulative Energy [kcal/mol]')
+            plt.show()
+            
+            return matrix_en_sum
+            
         
-        if DiBs != 0:
-            ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix, label='DiBs')
-        sum_matrix += matrix_dibs_sum
-
-        if replace_matrix:
-            self._interactions_matrix = np.sum([matrix_hbs, matrix_sbs, matrix_rib, matrix_pistack,
-                                                matrix_picat, matrix_hph, matrix_dibs], axis=0)
         else:
-            self._interactions_matrix = matrix_all
+            replace_matrix = kwargs.get('replace_matrix', False)
+            matrix_all = self._interactions_matrix
 
-        ax.legend(ncol=7, loc='upper center')
-        plt.ylim([0,max(sum_matrix)+3])
-        plt.tight_layout()    
-        plt.xlabel('Residue')
-        plt.ylabel('Number of counts')
-       
-        return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
+            HBs = kwargs.get('HBs', 1)
+            SBs = kwargs.get('SBs', 1)
+            RIB = kwargs.get('RIB', 1)
+            PiStack = kwargs.get('PiStack', 1)
+            PiCat = kwargs.get('PiCat', 1)
+            HPh = kwargs.get('HPh', 1)
+            DiBs = kwargs.get('DiBs', 1)
+        
+            matrix_hbs = self.buildInteractionMatrix(HBs=HBs, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
+            matrix_sbs = self.buildInteractionMatrix(HBs=0, SBs=SBs, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
+            matrix_rib = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=RIB,PiStack=0,PiCat=0,HPh=0,DiBs=0)
+            matrix_pistack = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=PiStack,PiCat=0,HPh=0,DiBs=0)
+            matrix_picat = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=PiCat,HPh=0,DiBs=0)
+            matrix_hph = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=HPh,DiBs=0)
+            matrix_dibs = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=DiBs)
+
+            matrix_hbs_sum = np.sum(matrix_hbs, axis=0)
+            matrix_sbs_sum = np.sum(matrix_sbs, axis=0)
+            matrix_rib_sum = np.sum(matrix_rib, axis=0)
+            matrix_pistack_sum = np.sum(matrix_pistack, axis=0)
+            matrix_picat_sum = np.sum(matrix_picat, axis=0)
+            matrix_hph_sum = np.sum(matrix_hph, axis=0)
+            matrix_dibs_sum = np.sum(matrix_dibs, axis=0)
+
+            width = 0.8
+            fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
+            matplotlib.rcParams['font.size'] = '24'
+
+            sum_matrix = np.zeros(matrix_hbs_sum.shape)
+            pplot(sum_matrix, atoms=atoms.ca)
+
+            if HBs != 0:
+                ax.bar(ResList, matrix_hbs_sum, width, color = 'blue', bottom = 0, label='HBs')
+            sum_matrix += matrix_hbs_sum
+
+            if SBs != 0:
+                ax.bar(ResList, matrix_sbs_sum, width, color = 'yellow', bottom = sum_matrix, label='SBs')
+            sum_matrix += matrix_sbs_sum
+
+            if HPh != 0:
+                ax.bar(ResList, matrix_hph_sum, width, color = 'silver', bottom = sum_matrix, label='HPh')
+            sum_matrix += matrix_hph_sum
+            
+            if RIB != 0:
+                ax.bar(ResList, matrix_rib_sum, width, color = 'red', bottom = sum_matrix, label='RIB')
+            sum_matrix += matrix_rib_sum
+
+            if PiStack != 0:
+                ax.bar(ResList, matrix_pistack_sum, width, color = 'green', bottom = sum_matrix, label='PiStack')
+            sum_matrix += matrix_pistack_sum
+
+            if PiCat != 0:
+                ax.bar(ResList, matrix_picat_sum, width, color = 'orange', bottom = sum_matrix, label='PiCat')
+            sum_matrix += matrix_picat_sum
+            
+            if DiBs != 0:
+                ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix, label='DiBs')
+            sum_matrix += matrix_dibs_sum
+
+            if replace_matrix:
+                self._interactions_matrix = np.sum([matrix_hbs, matrix_sbs, matrix_rib, matrix_pistack,
+                                                    matrix_picat, matrix_hph, matrix_dibs], axis=0)
+            else:
+                self._interactions_matrix = matrix_all
+
+            ax.legend(ncol=7, loc='upper center')
+            plt.ylim([0,max(sum_matrix)+3])
+            plt.tight_layout()    
+            plt.xlabel('Residue')
+            plt.ylabel('Number of counts')
+        
+            return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
       
         
 class InteractionsTrajectory(object):
