@@ -2758,6 +2758,7 @@ class Interactions(object):
         self._atoms = None
         self._interactions = None
         self._interactions_matrix = None
+        self._interactions_matrix_en = None
         self._hbs = None
         self._sbs = None
         self._rib = None
@@ -3172,7 +3173,7 @@ class Interactions(object):
         
         atoms = self._atoms   
         interactions = self._interactions
-        start_frame = kwargs.pop('energy_list_type', 'IS_solv')
+        energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
 
         LOGGER.info('Calculating interactions')
         InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
@@ -3185,8 +3186,10 @@ class Interactions(object):
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
-                    scoring = get_energy([ii[0][:3], ii[3][:3]], "IB_solv")
+                    scoring = get_energy([ii[0][:3], ii[3][:3]], energy_list_type)
                     InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = InteractionsMap[m1][m2] + float(scoring) 
+
+        self._interactions_matrix_en = InteractionsMap
         
         return InteractionsMap
 
