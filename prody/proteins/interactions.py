@@ -3234,23 +3234,37 @@ class Interactions(object):
         
         :arg filename: name of the PDB file which will be saved for visualization,
                      it will contain the results in occupancy column.
-        :type filename: str  """
+        :type filename: str  
+        
+        :arg energy: sum of the energy between residues
+                    default is False
+        :type energy: True, False 
+        """
         
         if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
             raise ValueError('Please calculate interactions matrix first.')
-
-        import numpy as np
-        interaction_matrix = self._interactions_matrix
-        atoms = self._atoms     
-        freq_contacts_residues = np.sum(interaction_matrix, axis=0)
         
+        import numpy as np
         from collections import Counter
-        lista_ext = []
+        
+        energy = kwargs.pop('energy', False)
+        
+        atoms = self._atoms 
+        interaction_matrix = self._interactions_matrix
+        interaction_matrix_en = self._interactions_matrix_en
+        
         atoms = atoms.select("protein and noh")
+        lista_ext = []
         aa_counter = Counter(atoms.getResindices())
         calphas = atoms.select('name CA')
+        
         for i in range(calphas.numAtoms()):
-            lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])
+            if energy == True:
+                matrix_en_sum = np.sum(interaction_matrix_en, axis=0)
+                lista_ext.extend(list(aa_counter.values())[i]*[round(matrix_en_sum[i], 8)]) 
+            else:
+                freq_contacts_residues = np.sum(interaction_matrix, axis=0)            
+                lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])        
 
         kw = {'occupancy': lista_ext}
         if 'filename' in kwargs:
@@ -3259,6 +3273,7 @@ class Interactions(object):
         else:
             writePDB('filename', atoms, **kw)
             LOGGER.info('PDB file saved.')
+
 
     def getFrequentInteractors(self, contacts_min=3):
         """Provide a list of residues with the most frequent interactions based 
