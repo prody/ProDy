@@ -110,7 +110,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
             show = child
             break
     if show is None:
-        show = cf.add_subplot(projection="3d")
+        show = cf.add_subplot(111,projection="3d")
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
         onto = list(onto)
@@ -421,7 +421,7 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
                 show = child
                 break
         if show is None:
-            show = cf.add_subplot(projection="3d")
+            show = cf.add_subplot(111,projection="3d")
         plot = show.plot
         text = show.text
 
@@ -1997,7 +1997,7 @@ def showAtomicLines(*args, **kwargs):
                         last += len(resnums)
                     else:
                         x.extend(resnums + last)
-                        last = resnums[-1]
+                        last += resnums[-1]
                     
         if gap:
             if overlay:
@@ -2355,7 +2355,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
     networkx.draw_networkx_edges(G, pos=layout)
     
     if np.isscalar(node_shape):
-        networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=sizes, 
+        networkx.draw_networkx_nodes(G, pos=layout, label=None, node_size=sizes, 
                                         node_shape=node_shape, node_color=colors)
     else:
         for shape in shape_groups:
@@ -2363,7 +2363,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
             nodesizes = [sizes[i] for i in shape_groups[shape]]
             nodecolors = [colors[i] for i in shape_groups[shape]]
             if not nodelist: continue
-            networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=nodesizes, 
+            networkx.draw_networkx_nodes(G, pos=layout, label=None, node_size=nodesizes, 
                                         node_shape=shape, node_color=nodecolors, 
                                         nodelist=nodelist)
 
