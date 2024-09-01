@@ -12,6 +12,8 @@ from prody.proteins.interactions import calcRepulsiveIonicBondingTrajectory, cal
 from prody.proteins.interactions import calcPiCationTrajectory, calcHydrophobicTrajectory
 from prody.proteins.interactions import calcDisulfideBondsTrajectory, calcProteinInteractions
 
+import sys
+
 class TestInteractions(unittest.TestCase):
 
     def setUp(self):
@@ -150,6 +152,23 @@ class TestInteractions(unittest.TestCase):
             data_test = np.load('test_2k39_disu.npy', allow_pickle=True)
             assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if i]),
                          'failed to get correct disulfide bonds from saving and loading')
+            
+    def testImportHpb(self):
+
+        try:
+            import prody.proteins.hpb as hpb
+            imported_hpb = True
+        except ImportError:
+            try:
+                import hpb
+                imported_hpb = True
+            except ImportError:
+                imported_hpb = False
+            
+        if sys.version_info[1] < 11:
+            self.assertTrue(imported_hpb)
+        else:
+            self.assertFalse(imported_hpb)
 
     @classmethod
     def tearDownClass(cls):
