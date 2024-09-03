@@ -1988,12 +1988,20 @@ def calcStatisticsInteractions(data, **kwargs):
     for element in elements:
         if element not in stats:
             values = [t[1] for t in interactions_list if t[0] == element]
-            stats[element] = {
-                "stddev": np.round(np.std(values),6),
-                "mean": np.round(np.mean(values),6),
-                "weight": np.round(float(len(values))/len(data), 6),
-                "energy": get_energy([element.split('-')[0][:3], element.split('-')[1][:3]], energy_list_type)
-            }
+            
+            try:
+                stats[element] = {
+                    "stddev": np.round(np.std(values),6),
+                    "mean": np.round(np.mean(values),6),
+                    "weight": np.round(float(len(values))/len(data), 6),
+                    "energy": get_energy([element.split('-')[0][:3], element.split('-')[1][:3]], energy_list_type)
+                }
+            except:
+                stats[element] = {
+                    "stddev": np.round(np.std(values),6),
+                    "mean": np.round(np.mean(values),6),
+                    "weight": np.round(float(len(values))/len(data), 6)
+                }
 
     statistic = []
     for key, value in stats.items():
@@ -2002,8 +2010,11 @@ def calcStatisticsInteractions(data, **kwargs):
             LOGGER.info("  Average [Ang.]: {}".format(value['mean']))
             LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
             LOGGER.info("  Weight: {0}".format(value['weight']))
-            LOGGER.info("  Energy [kcal/mol]: {0}".format(value['energy']))
-            statistic.append([key, value['weight'], value['mean'], value['stddev'], value['energy']])
+            try:
+                LOGGER.info("  Energy [kcal/mol]: {0}".format(value['energy']))
+                statistic.append([key, value['weight'], value['mean'], value['stddev'], value['energy']])
+            except:
+                statistic.append([key, value['weight'], value['mean'], value['stddev']])
         else: pass
     
     statistic.sort(key=lambda x: x[1], reverse=True)
