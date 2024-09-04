@@ -163,14 +163,13 @@ def get_energy(pair, source):
     try:
         # Python 3
         with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
-            data = np.loadtxt(file_path, skiprows=1, dtype=str)
+            data = np.loadtxt(file_path, dtype=str)
     except: 
         # Python 2.7
         import pkg_resources
         file_path = pkg_resources.resource_filename('prody.proteins', 'tabulated_energies.txt')
         with open(file_path) as f:
-            data = np.loadtxt(f, skiprows=1, dtype=str)
-
+            data = np.loadtxt(f, dtype=str)
     
     sources = ["IB_nosolv", "IB_solv", "CS"]
     aa_pairs = []
@@ -180,7 +179,12 @@ def get_energy(pair, source):
     
     lookup = pair[0]+pair[1]
     
-    return data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
+    try:
+        data_results = data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
+    except ImportError:
+        raise ImportError('Please replace non-standard names of residues with standard names.')
+
+    return data_results
 
 
 def showPairEnergy(data, **kwargs):
