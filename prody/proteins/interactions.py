@@ -235,12 +235,27 @@ def get_energy(pair, source):
 
 
 def checkNonstandardResidues(atoms):
-    """Check whether the aromic structure contain non-standard residues and inform to replace the name 
+    """Check whether the atomic structure contain non-standard residues and inform to replace the name 
     to the standard one to be that non-standard residues are treated in a correct way while computing 
-    interactions."""
+    interactions.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    """
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
     
     amino_acids = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN", "GLY", "HIS", "ILE", 
                    "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
+
     aa_list = atoms.select('name CA').getResnames()
     nonstandard = []
     
