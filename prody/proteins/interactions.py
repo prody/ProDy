@@ -160,6 +160,53 @@ def get_energy(pair, source):
     import numpy as np
     import importlib.resources as pkg_resources    
     
+    aa_correction = {
+        # Histidine (His)
+        'HSD': 'HIS',   # Protonated at ND1 (HID in AMBER)
+        'HSE': 'HIS',   # Protonated at NE2 (HIE in AMBER)
+        'HSP': 'HIS',   # Doubly protonated (HIP in AMBER)
+        'HID': 'HIS',   # AMBER name, protonated at ND1
+        'HIE': 'HIS',   # AMBER name, protonated at NE2
+        'HIP': 'HIS',   # AMBER name, doubly protonated
+        'HISD': 'HIS',  # GROMACS: protonated at ND1
+        'HISE': 'HIS',  # GROMACS: protonated at NE2
+        'HISP': 'HIS',  # GROMACS: doubly protonated
+
+        # Cysteine (Cys)
+        'CYX': 'CYS',   # Cystine (disulfide bridge)
+        'CYM': 'CYS',   # Deprotonated cysteine, anion (GROMACS)
+
+        # Aspartic acid (Asp)
+        'ASH': 'ASP',   # Deprotonated Asp (GROMACS: ASH, AMBER: AS4)
+
+        # Glutamic acid (Glu)
+        'GLH': 'GLU',   # Deprotonated Glu (GROMACS: GLH, AMBER: GL4)
+
+        # Lysine (Lys)
+        'LYN': 'LYS',   # Deprotonated lysine (GROMACS: LYN, AMBER: LYP)
+
+        # Arginine (Arg)
+        'ARN': 'ARG',   # Deprotonated arginine (rare, GROMACS)
+
+        # Tyrosine (Tyr)
+        'TYM': 'TYR',   # Deprotonated tyrosine (GROMACS: TYM)
+
+        # Serine (Ser)
+        'SEP': 'SER',   # Phosphorylated serine (GROMACS/AMBER)
+
+        # Threonine (Thr)
+        'TPO': 'THR',   # Phosphorylated threonine (GROMACS/AMBER)
+
+        # Tyrosine (Tyr)
+        'PTR': 'TYR',   # Phosphorylated tyrosine (GROMACS/AMBER)
+
+        # Non-standard names for aspartic and glutamic acids in low pH environments
+        'ASH': 'ASP',   # Protonated Asp
+        'GLH': 'GLU',   # Protonated Glu
+    }
+    
+    pair = [aa_correction.get(aa, aa) for aa in pair]    
+    
     try:
         # Python 3
         with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
@@ -191,7 +238,7 @@ def showPairEnergy(data, **kwargs):
     """Return energies when a list of interactions is given. Energies will be added to each pair of residues 
     at the last position in the list. Energy is based on the residue types and not on the distances.
     The unit of energy is kcal/mol. The energies defined as 'IB_nosolv', 'IB_solv' are taken from [OK98]_ and 
-    'CS' from InSty paper.
+    'CS' from InSty paper (under preparation). 
     
     :arg data: list with interactions from calcHydrogenBonds() or other types
     :type data: list
@@ -2007,6 +2054,7 @@ def calcStatisticsInteractions(data, **kwargs):
                     "energy": get_energy([element.split('-')[0][:3], element.split('-')[1][:3]], energy_list_type)
                 }
             except:
+                LOGGER.warn('energy information is not available for ', element.split('-')[0][:3], element.split('-')[1][:3])
                 stats[element] = {
                     "stddev": np.round(np.std(values),6),
                     "mean": np.round(np.mean(values),6),
