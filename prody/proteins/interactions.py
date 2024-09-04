@@ -190,8 +190,8 @@ def get_energy(pair, source):
 def showPairEnergy(data, **kwargs):
     """Return energies when a list of interactions is given. Energies will be added to each pair of residues 
     at the last position in the list. Energy is based on the residue types and not on the distances.
-    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv', 'IB_solv' are taken from XX and 
-    'CS' from YY.
+    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv', 'IB_solv' are taken from [OK98]_ and 
+    'CS' from InSty paper.
     
     :arg data: list with interactions from calcHydrogenBonds() or other types
     :type data: list
@@ -199,6 +199,12 @@ def showPairEnergy(data, **kwargs):
     :arg energy_list_type: name of the list with energies 
                             default is 'IB_solv'
     :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+    
+    
+    .. [OK98] Keskin O., Bahar I., Badretdinov A.Y., Ptitsyn O.B., Jernigan R.L., 
+    Empirical solvet-mediated potentials hold for both intra-molecular and 
+    inter-molecular inter-residues interactions,
+    *Protein Science* **1998** 7: 2578–2586.
     """
     
     if not isinstance(data, list):
