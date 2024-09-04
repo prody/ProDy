@@ -46,7 +46,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
-           'showSminaTermValues', 'showPairEnergy']
+           'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues']
 
 
 def cleanNumbers(listContacts):
@@ -232,6 +232,25 @@ def get_energy(pair, source):
         raise ImportError('Please replace non-standard names of residues with standard names.')
 
     return data_results
+
+
+def checkNonstandardResidues(atoms):
+    """Check whether the aromic structure contain non-standard residues and inform to replace the name 
+    to the standard one to be that non-standard residues are treated in a correct way while computing 
+    interactions."""
+    
+    amino_acids = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN", "GLY", "HIS", "ILE", 
+                   "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
+    aa_list = atoms.select('name CA').getResnames()
+    nonstandard = []
+    
+    for i in aa_list:
+        if i not in amino_acids:
+            nonstandard.append(i)
+    
+    LOGGER.info('There are several non-standard residues in the structure.')
+    LOGGER.info('Replace the non-standard name in the PDB file with the equivalent name from the standard one if you want to include them in the interactions.')
+    LOGGER.info("Residues: {0}.".format(' '.join(nonstandard)))   
 
 
 def showPairEnergy(data, **kwargs):
