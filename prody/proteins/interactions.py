@@ -162,9 +162,9 @@ def get_energy(pair, source):
     
     aa_correction = {
         # Histidine (His)
-        'HSD': 'HIS',   # Protonated at ND1 (HID in AMBER)
-        'HSE': 'HIS',   # Protonated at NE2 (HIE in AMBER)
-        'HSP': 'HIS',   # Doubly protonated (HIP in AMBER)
+        'HSD': 'HIS',   # NAMD, protonated at ND1 (HID in AMBER)
+        'HSE': 'HIS',   # NAMD, protonated at NE2 (HIE in AMBER)
+        'HSP': 'HIS',   # NAMD, doubly protonated (HIP in AMBER)
         'HID': 'HIS',   # AMBER name, protonated at ND1
         'HIE': 'HIS',   # AMBER name, protonated at NE2
         'HIP': 'HIS',   # AMBER name, doubly protonated
@@ -174,22 +174,24 @@ def get_energy(pair, source):
 
         # Cysteine (Cys)
         'CYX': 'CYS',   # Cystine (disulfide bridge)
-        'CYM': 'CYS',   # Deprotonated cysteine, anion (GROMACS)
+        'CYM': 'CYS',   # Deprotonated cysteine, anion
 
         # Aspartic acid (Asp)
-        'ASH': 'ASP',   # Deprotonated Asp (GROMACS: ASH, AMBER: AS4)
+        'ASH': 'ASP',   # Protonated Asp
+        'ASPP': 'ASP',
 
         # Glutamic acid (Glu)
-        'GLH': 'GLU',   # Deprotonated Glu (GROMACS: GLH, AMBER: GL4)
+        'GLH': 'GLU',   # Protonated Glu
+        'GLUP': 'GLU',  # Protonated Glu
 
         # Lysine (Lys)
-        'LYN': 'LYS',   # Deprotonated lysine (GROMACS: LYN, AMBER: LYP)
+        'LYN': 'LYS',   # Deprotonated lysine (nautral)
 
         # Arginine (Arg)
         'ARN': 'ARG',   # Deprotonated arginine (rare, GROMACS)
 
         # Tyrosine (Tyr)
-        'TYM': 'TYR',   # Deprotonated tyrosine (GROMACS: TYM)
+        'TYM': 'TYR',   # Deprotonated tyrosine (GROMACS)
 
         # Serine (Ser)
         'SEP': 'SER',   # Phosphorylated serine (GROMACS/AMBER)
