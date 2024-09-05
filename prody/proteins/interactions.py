@@ -271,8 +271,8 @@ def checkNonstandardResidues(atoms):
 def showPairEnergy(data, **kwargs):
     """Return energies when a list of interactions is given. Energies will be added to each pair of residues 
     at the last position in the list. Energy is based on the residue types and not on the distances.
-    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv', 'IB_solv' are taken from [OK98]_ and 
-    'CS' from InSty paper (under preparation). 
+    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated), 'IB_solv' (solvent-mediated) 
+    are taken from [OK98]_ and 'CS' from InSty paper (under preparation). 
     
     :arg data: list with interactions from calcHydrogenBonds() or other types
     :type data: list
@@ -2040,8 +2040,12 @@ def showInteractionsGraph(statistics, **kwargs):
 def calcStatisticsInteractions(data, **kwargs):
     """Return the statistics of interactions from PDB Ensemble or trajectory including:
     (1) the weight for each residue pair: corresponds to the number of counts divided by the 
-    number of frames (values >1 are obtained when residue pair creates multiple contacts); 
-    (2) average distance of interactions for each pair [in Ang] and (3) standard deviation [Ang.].
+    number of frames (values >1 are obtained when the residue pair creates multiple contacts); 
+    (2) average distance of interactions for each pair [in Ang], (3) standard deviation [Ang.],
+    (4) Energy [in kcal/mol] that is not distance dependent. Energy by default is solvent-mediated
+    from [OK98]_ ('IB_solv'). To use non-solvent-mediated entries ('IB_nosolv') from [OK98]_ or
+    solvent-mediated values obtained for InSty paper ('CS', under preparation) change 
+    `energy_list_type` parameter. 
         
     :arg data: list with interactions from calcHydrogenBondsTrajectory() or other types
     :type data: list
