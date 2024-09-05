@@ -273,6 +273,8 @@ def showPairEnergy(data, **kwargs):
     at the last position in the list. Energy is based on the residue types and not on the distances.
     The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated), 'IB_solv' (solvent-mediated) 
     are taken from [OK98]_ and 'CS' from InSty paper (under preparation). 
+    Protonation of resiudues is not distinguished. The protonation of residues is not distinguished. 
+    Known residues such as HSD, HSE, HIE, and HID (used in MD simulations) are treated as HIS.
     
     :arg data: list with interactions from calcHydrogenBonds() or other types
     :type data: list
