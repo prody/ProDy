@@ -46,7 +46,8 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
-           'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues']
+           'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
+           'saveInteractionsAsDummyAtoms']
 
 
 def cleanNumbers(listContacts):
@@ -2196,6 +2197,80 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
             LOGGER.info('Additional contacts for '+residue1+':')
             for i in additional_residues:
                 LOGGER.info(i)
+
+
+def saveInteractionsAsDummyAtoms(atoms, interactions, filename, *kwargs):
+    '''Creates a PDB file which will contain protein structure and dummy atoms that will be placed between pairs
+    of interacting residues.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    
+    :arg interactions: list of interactions
+    :type interactions: list
+
+    :arg filename: name of the PDB file which will contain dummy atoms and protein structure
+    :type filename: str 
+    
+    :arg RESNAME_dummy: resname of the dummy atom, use 3-letter name
+                        be default is 'DUM'
+    :type RESNAME_dummy: str '''
+
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    RESNAME_dummy = kwargs.pop('RESNAME_dummy', 'DUM')
+
+    def putDUMatom(coord1, coord2):
+        midpoint = [
+            (coord1[0] + coord2[0]) / 2,
+            (coord1[1] + coord2[1]) / 2,
+            (coord1[2] + coord2[2]) / 2
+        ]
+        return midpoint
+
+    all_DUMs = []
+    atoms_ = atoms.copy()
+
+    for i in interactions:
+        if len(i[1].split('_')) <= 3:
+            res1_name = 'chain '+i[2]+' resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_')[1:])            
+            res1_coords = calcCenter(atoms.select(res1_name))  
+        
+        if len(i[1].split('_')) > 3:
+            res1_name = 'chain '+i[2]+' resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_'))
+            res1_coords = calcCenter(atoms.select(res1_name))
+
+        if len(i[4].split('_')) <= 3:
+            res2_name = 'chain '+i[5]+' resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_')[1:])
+            res2_coords = calcCenter(atoms.select(res2_name))
+            
+        if len(i[4].split('_')) > 3:     
+            res2_name = 'chain '+i[5]+' resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_'))
+            res2_coords = calcCenter(atoms.select(res2_name))
+
+        all_DUMs.append(putDUMatom(res1_coords, res2_coords))
+    
+    if all_DUMs == []:
+        LOGGER.info('Lack of interactions')
+    else:
+        LOGGER.info('Creating file with dummy atoms')
+        dummyAtoms = AtomGroup()
+        coords = array([all_DUMs], dtype=float)
+        dummyAtoms.setCoords(coords)
+        dummyAtoms.setNames([RESNAME_dummy]*len(dummyAtoms))
+        dummyAtoms.setResnums(range(1, len(dummyAtoms)+1))
+        dummyAtoms.setResnames([RESNAME_dummy]*len(dummyAtoms))
+
+        writePDB(filename, atoms_+dummyAtoms)
 
 
 def listLigandInteractions(PLIP_output, **kwargs):
