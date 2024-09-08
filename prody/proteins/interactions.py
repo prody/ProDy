@@ -2199,7 +2199,7 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
                 LOGGER.info(i)
 
 
-def saveInteractionsAsDummyAtoms(atoms, interactions, filename, *kwargs):
+def saveInteractionsAsDummyAtoms(atoms, interactions, filename, **kwargs):
     '''Creates a PDB file which will contain protein structure and dummy atoms that will be placed between pairs
     of interacting residues.
     
@@ -2226,9 +2226,9 @@ def saveInteractionsAsDummyAtoms(atoms, interactions, filename, *kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-
+                            
     RESNAME_dummy = kwargs.pop('RESNAME_dummy', 'DUM')
-
+    
     def putDUMatom(coord1, coord2):
         midpoint = [
             (coord1[0] + coord2[0]) / 2,
