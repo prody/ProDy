@@ -260,11 +260,12 @@ def checkNonstandardResidues(atoms):
                    "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
 
     aa_list = atoms.select('name CA').getResnames()
+    aa_list_nr = atoms.select('name CA').getResnums()
     nonstandard = []
     
-    for i in aa_list:
+    for nr_i,i in enumerate(aa_list):
         if i not in amino_acids:
-            nonstandard.append(i)
+            nonstandard.append(aa_list[nr_i] + str(aa_list_nr[nr_i]))
     
     LOGGER.info('There are several non-standard residues in the structure.')
     LOGGER.info('Replace the non-standard name in the PDB file with the equivalent name from the standard one if you want to include them in the interactions.')
