@@ -28,7 +28,7 @@ from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB, parsePDB
 from collections import Counter
 
-from prody.trajectory import TrajBase, Trajectory
+from prody.trajectory import TrajBase, Trajectory, Frame
 from prody.ensemble import Ensemble
 
 import multiprocessing
@@ -3025,14 +3025,26 @@ class Interactions(object):
         :arg selection2: selection string
         :type selection2: str 
         
+        :arg replace: Used with selection criteria to set the new one
+                      If set to True the selection will be replaced by the new one
+        :type replace: True or False
+                       by default is False
+        
         Selection:
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
         If we want to study chain-chain interactions:
             selection='chain A', selection2='chain B'  """
-
+        
+        replace = kwargs.pop('replace', False)
+                
         if len(kwargs) != 0:
             results = [filterInteractions(j, self._atoms, **kwargs) for j in self._interactions]
+
+            if replace == True:
+                self._interactions = results           
+                LOGGER.info('New interactions are set')
+
         else: 
             results = self._interactions
         
@@ -3917,19 +3929,47 @@ class InteractionsTrajectory(object):
     
         :arg selection2: selection string
         :type selection2: str 
+        
+        :arg replace: Used with selection criteria to set the new one
+                      If set to True the selection will be replaced by the new one
+        :type replace: True or False
+                       by default is False
             
         Selection:
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
         If we want to study chain-chain interactions:
             selection='chain A', selection2='chain B'  """
-
+        
+        replace = kwargs.pop('replace', False)
+        
         if len(kwargs) != 0:
             sele_inter = []
             for i in self._interactions_traj:
                 for nr_j,j in enumerate(i):
                     sele_inter.append(filterInteractions(i[nr_j], self._atoms, **kwargs))
+            
+            if replace == True:
+                try:
+                    trajectory = self._traj
+                    numFrames = trajectory._n_csets
+                except:
+                    # If we analyze previously saved PKL file we doesn't have dcd information
+                    # We have seven type of interactions. It will give number of frames.
+                    numFrames = int(len(sele_inter)/7)
+                    
+                self._interactions_traj = sele_inter
+                self._hbs_traj = sele_inter[0:numFrames]
+                self._sbs_traj = sele_inter[numFrames:2*numFrames]
+                self._rib_traj = sele_inter[2*numFrames:3*numFrames]
+                self._piStack_traj = sele_inter[3*numFrames:4*numFrames]
+                self._piCat_traj = sele_inter[4*numFrames:5*numFrames]
+                self._hps_traj = sele_inter[5*numFrames:6*numFrames]
+                self._dibs_traj = sele_inter[6*numFrames:7*numFrames]
+                LOGGER.info('New interactions are set')
+            
             results = sele_inter
+        
         else: 
             results = self._interactions_traj
         
