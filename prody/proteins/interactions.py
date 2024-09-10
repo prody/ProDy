@@ -3042,8 +3042,15 @@ class Interactions(object):
             results = [filterInteractions(j, self._atoms, **kwargs) for j in self._interactions]
 
             if replace == True:
-                self._interactions = results           
                 LOGGER.info('New interactions are set')
+                self._interactions = results           
+                self._hbs = results[0]
+                self._sbs = results[1]
+                self._rib = results[2]
+                self._piStack = results[3] 
+                self._piCat = results[4]
+                self._hps = results[5]
+                self._dibs = results[6]
 
         else: 
             results = self._interactions
