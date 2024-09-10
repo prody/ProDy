@@ -7,7 +7,8 @@ import os.path
 
 from prody import LOGGER
 from prody.atomic import flags, AAMAP
-from prody.utilities import openFile, alignBioPairwise, GAP_PENALTY, GAP_EXT_PENALTY
+from prody.atomic.atomic import invAAMAP
+from prody.utilities import openFile, alignBioPairwise, GAP_EXT_PENALTY
 
 from .localpdb import fetchPDB
 from .header import (Chemical, Polymer, DBRef, _PDB_DBREF,
@@ -57,7 +58,7 @@ def _natomsFromFormulaPart(part):
         return 1
     return int("".join(digits))
 
-def parseCIFHeader(pdb, *keys):
+def parseCIFHeader(pdb, *keys, **kwargs):
     """Returns header data dictionary for *pdb*.  This function is equivalent to
     ``parsePDB(pdb, header=True, model=0, meta=False)``, likewise *pdb* may be
     an identifier or a filename.
@@ -119,12 +120,12 @@ def parseCIFHeader(pdb, *keys):
             raise IOError('{0} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
     pdb = openFile(pdb, 'rt')
-    header = getCIFHeaderDict(pdb, *keys)
+    header = getCIFHeaderDict(pdb, *keys, **kwargs)
     pdb.close()
     return header
 
 
-def getCIFHeaderDict(stream, *keys):
+def getCIFHeaderDict(stream, *keys, **kwargs):
     """Returns header data in a dictionary.  *stream* may be a list of PDB lines
     or a stream."""
 
@@ -139,11 +140,17 @@ def getCIFHeaderDict(stream, *keys):
         keys = list(keys)
         for k, key in enumerate(keys):
             if key in _PDB_HEADER_MAP:
-                value = _PDB_HEADER_MAP[key](lines)
+                if key == 'polymers':
+                    value = _PDB_HEADER_MAP[key](lines, **kwargs)
+                else:
+                    value = _PDB_HEADER_MAP[key](lines)
                 keys[k] = value
             else:
                 try:
-                    value = _PDB_HEADER_MAP['others'](lines, key)
+                    if key == 'polymers':
+                        value = _PDB_HEADER_MAP[key](lines, **kwargs)
+                    else:
+                        value = _PDB_HEADER_MAP[key](lines)
                     keys[k] = value
                 except:
                     raise KeyError('{0} is not a valid header data identifier'
@@ -758,7 +765,7 @@ def _getReference(lines):
     return ref
 
 
-def _getPolymers(lines):
+def _getPolymers(lines, **kwargs):
     """Returns list of polymers (macromolecules)."""
 
     pdbid = _PDB_HEADER_MAP['identifier'](lines)
@@ -777,8 +784,28 @@ def _getPolymers(lines):
             entities[entity].append(ch)
             poly = polymers.get(ch, Polymer(ch))
             polymers[ch] = poly
-            poly.sequence += ''.join(item[
-                '_entity_poly.pdbx_seq_one_letter_code_can'].replace(';', '').split())
+
+            threeLetter = kwargs.get('threeLetter', False)
+            if threeLetter:
+                poly.sequence += ''.join(item[
+                    '_entity_poly.pdbx_seq_one_letter_code'].replace(';', '').split())
+            else:
+                poly.sequence += ''.join(item[
+                    '_entity_poly.pdbx_seq_one_letter_code_can'].replace(';', '').split())
+
+    if threeLetter:
+        for poly in polymers.values():
+            seq = poly.sequence
+            resnames = []
+            for item in seq.split('('):
+                if item.find(')') != -1:
+                    resnames.append(item[:item.find(')')])
+                    letters = list(item[item.find(')')+1:])
+                else:
+                    letters = list(item)
+                resnames.extend([invAAMAP[letter] for letter in letters])
+
+            poly.sequence = ' '.join(resnames)
 
     # DBREF block 1
     items2 = parseSTARSection(lines, '_struct_ref', report=False)
