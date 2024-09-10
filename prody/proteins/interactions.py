@@ -3974,7 +3974,20 @@ class InteractionsTrajectory(object):
                 self._hps_traj = sele_inter[5*numFrames:6*numFrames]
                 self._dibs_traj = sele_inter[6*numFrames:7*numFrames]
                 LOGGER.info('New interactions are set')
-            
+                
+                self._interactions_nb_traj = None
+                self._interactions_matrix_traj = None
+                
+                new_interactions_nb_traj = []
+                new_interactions_nb_traj.append([ len(i) for i in self._hbs_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._sbs_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._rib_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._piStack_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._piCat_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._hps_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._dibs_traj ])
+                self._interactions_nb_traj = new_interactions_nb_traj
+                
             results = sele_inter
         
         else: 
