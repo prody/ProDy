@@ -247,12 +247,20 @@ class Atomic(object):
         residues (e.g. water molecules) in the chain and **X** will be used for
         non-standard residue names."""
 
+        threeLetter = kwargs.get('threeLetter', False)
+
         get = AAMAP.get
         if hasattr(self, 'getResnames'):
-            seq = ''.join([get(res, 'X') for res in self.getResnames()])
+            if threeLetter:
+                seq = ' '.join(self.getResnames())
+            else:
+                seq = ''.join([get(res, 'X') for res in self.getResnames()])
         else:
             res = self.getResname()
-            seq = get(res, 'X')
+            if threeLetter:
+                seq = res
+            else:
+                seq = get(res, 'X')
         
         return seq
 
