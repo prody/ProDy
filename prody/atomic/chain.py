@@ -138,7 +138,10 @@ class Chain(AtomSubset):
 
         if kwargs.get('allres', False):
             get = AAMAP.get
-            seq = ''.join([get(res.getResname(), 'X') for res in self])
+            if kwargs.get('threeLetter', False):
+                seq = ' '.join([res.getResname() for res in self])
+            else:
+                seq = ''.join([get(res.getResname(), 'X') for res in self])
         elif self._seq:
             seq = self._seq
         else:
