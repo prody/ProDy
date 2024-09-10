@@ -3583,18 +3583,22 @@ class Interactions(object):
                 y.append(all_y[nr_ii])
 
         if SETTINGS['auto_show']:
-            matplotlib.rcParams['font.size'] = '20' 
-            fig = plt.figure(num=None, figsize=(12,6), facecolor='w')
+            matplotlib.rcParams['font.size'] = '12' 
+            fig = plt.figure(num=None, figsize=(16,5), facecolor='w')
         
         y_pos = np.arange(len(y))
         show = plt.bar(y_pos, x, align='center', alpha=0.5, color='blue')
-        plt.xticks(y_pos, y, rotation=45, fontsize=20)
-        plt.ylabel('Number of interactions')
+        plt.xticks(y_pos, y, rotation=45, fontsize=16)
+        plt.ylabel('Number of interactions', fontsize=16)
         plt.tight_layout()
 
         if SETTINGS['auto_show']:
             showFigure()
-        return show        
+            
+        dict_counts = dict(zip(y, x))
+        dict_counts_sorted = dict(sorted(dict_counts.items(), key=lambda item: item[1], reverse=True))
+            
+        return dict_counts_sorted
 
 
     def showCumulativeInteractionTypes(self, **kwargs):
