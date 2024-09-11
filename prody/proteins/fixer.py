@@ -79,8 +79,8 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     if not isinstance(keep_water, bool):
         raise TypeError('keep_water should be True or False')
 
-    if not isinstance(keep_Ids, bool):
-        raise TypeError('keep_Ids should be True or False')
+    if not isinstance(keep_ids, bool):
+        raise TypeError('keep_ids should be True or False')
 
     if not isinstance(overwrite, bool):
         raise TypeError('overwrite should be True or False')
