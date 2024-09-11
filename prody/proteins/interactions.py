@@ -231,8 +231,8 @@ def get_energy(pair, source):
     
     try:
         data_results = data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
-    except ImportError:
-        raise ImportError('Please replace non-standard names of residues with standard names.')
+    except TypeError:
+        raise TypeError('Please replace non-standard names of residues with standard names.')
 
     return data_results
 
@@ -277,7 +277,7 @@ def showPairEnergy(data, **kwargs):
     at the last position in the list. Energy is based on the residue types and not on the distances.
     The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated), 'IB_solv' (solvent-mediated) 
     are taken from [OK98]_ and 'CS' from InSty paper (under preparation). 
-    Protonation of resiudues is not distinguished. The protonation of residues is not distinguished. 
+    Protonation of residues is not distinguished. The protonation of residues is not distinguished. 
     Known residues such as HSD, HSE, HIE, and HID (used in MD simulations) are treated as HIS.
     
     :arg data: list with interactions from calcHydrogenBonds() or other types
@@ -2047,7 +2047,8 @@ def calcStatisticsInteractions(data, **kwargs):
     """Return the statistics of interactions from PDB Ensemble or trajectory including:
     (1) the weight for each residue pair: corresponds to the number of counts divided by the 
     number of frames (values >1 are obtained when the residue pair creates multiple contacts); 
-    (2) average distance of interactions for each pair [in Ang], (3) standard deviation [Ang.],
+    (2) average distance of interactions for each pair [in Ang], 
+    (3) standard deviation [Ang.],
     (4) Energy [in kcal/mol] that is not distance dependent. Energy by default is solvent-mediated
     from [OK98]_ ('IB_solv'). To use non-solvent-mediated entries ('IB_nosolv') from [OK98]_ or
     solvent-mediated values obtained for InSty paper ('CS', under preparation) change 
