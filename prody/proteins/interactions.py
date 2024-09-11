@@ -3965,7 +3965,7 @@ class InteractionsTrajectory(object):
                     trajectory = self._traj
                     numFrames = trajectory._n_csets
                 except:
-                    # If we analyze previously saved PKL file we doesn't have dcd information
+                    # If we analyze previously saved PKL file it doesn't have dcd information
                     # We have seven type of interactions. It will give number of frames.
                     numFrames = int(len(sele_inter)/7)
                     
