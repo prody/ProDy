@@ -2053,6 +2053,8 @@ def calcStatisticsInteractions(data, **kwargs):
     from [OK98]_ ('IB_solv'). To use non-solvent-mediated entries ('IB_nosolv') from [OK98]_ or
     solvent-mediated values obtained for InSty paper ('CS', under preparation) change 
     `energy_list_type` parameter. 
+    If energy information is not available, please check whether the pair of residues is listed in 
+    the "tabulated_energies.txt" file, which is localized in the ProDy directory.
         
     :arg data: list with interactions from calcHydrogenBondsTrajectory() or other types
     :type data: list
@@ -3445,16 +3447,19 @@ class Interactions(object):
         
         :arg energy: sum of the energy between residues
                     default is False
-        :type energy: True, False 
+        :type energy: bool 
         """
+        
+        energy = kwargs.pop('energy', False)
         
         if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
             raise ValueError('Please calculate interactions matrix first.')
+
+        if not isinstance(energy, bool):
+            raise TypeError('energy should be True or False')
         
         import numpy as np
         from collections import Counter
-        
-        energy = kwargs.pop('energy', False)
         
         atoms = self._atoms 
         interaction_matrix = self._interactions_matrix
@@ -3629,7 +3634,7 @@ class Interactions(object):
         
         :arg energy: sum of the energy between residues
                     default is False
-        :type energy: True, False 
+        :type energy: bool
         """
 
         import numpy as np
@@ -3644,12 +3649,14 @@ class Interactions(object):
 
         atoms = self._atoms
         energy = kwargs.pop('energy', False)
-
+        
+        if not isinstance(energy, bool):
+            raise TypeError('energy should be True or False')
+                    
         ResNumb = atoms.select('protein and name CA').getResnums()
         ResName = atoms.select('protein and name CA').getResnames()
         ResChid = atoms.select('protein and name CA').getChids()
         ResList = [ i[0]+str(i[1])+i[2] for i in list(zip([ aa_dic[i] for i in ResName ], ResNumb, ResChid)) ]
-        
         
         if energy == True:
             matrix_en = self._interactions_matrix_en
@@ -3668,7 +3675,6 @@ class Interactions(object):
             plt.show()
             
             return matrix_en_sum
-            
         
         else:
             replace_matrix = kwargs.get('replace_matrix', False)
