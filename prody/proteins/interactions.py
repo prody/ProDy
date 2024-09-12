@@ -3029,10 +3029,10 @@ class Interactions(object):
         :type selection2: str 
         
         :arg replace: Used with selection criteria to set the new one
-                      If set to True the selection will be replaced by the new one
-        :type replace: True or False
-                       by default is False
-        
+                      If set to **True** the selection will be replaced by the new one.
+                      Default is **False**
+        :type replace: bool
+
         Selection:
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
@@ -3949,10 +3949,10 @@ class InteractionsTrajectory(object):
         :type selection2: str 
         
         :arg replace: Used with selection criteria to set the new one
-                      If set to True the selection will be replaced by the new one
-        :type replace: True or False
-                       by default is False
-            
+                      If set to **True** the selection will be replaced by the new one.
+                      Default is **False**
+        :type replace: bool
+
         Selection:
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
