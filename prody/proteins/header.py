@@ -304,7 +304,10 @@ def parsePDBHeader(pdb, *keys, **kwargs):
 
 def getHeaderDict(stream, *keys, **kwargs):
     """Returns header data in a dictionary.  *stream* may be a list of PDB lines
-    or a stream."""
+    or a stream.
+    
+    Polymers have sequences that usually use one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**."""
 
     lines = defaultdict(list)
     loc = 0
@@ -559,7 +562,10 @@ def _getReference(lines):
 
 
 def _getPolymers(lines, **kwargs):
-    """Returns list of polymers (macromolecules)."""
+    """Returns list of polymers (macromolecules).
+    
+    Polymers have sequences that usually use one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**."""
 
     pdbid = lines['pdbid']
     polymers = dict()
@@ -568,8 +574,8 @@ def _getPolymers(lines, **kwargs):
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
 
-        threeLetter = kwargs.get('threeLetter', False)
-        if threeLetter:
+        longSeq = kwargs.get('longSeq', False)
+        if longSeq:
             if poly.sequence != '':
                 poly.sequence += ' '
             poly.sequence += getSequence(line[19:].split(), **kwargs)

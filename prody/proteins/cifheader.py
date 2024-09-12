@@ -127,7 +127,11 @@ def parseCIFHeader(pdb, *keys, **kwargs):
 
 def getCIFHeaderDict(stream, *keys, **kwargs):
     """Returns header data in a dictionary.  *stream* may be a list of PDB lines
-    or a stream."""
+    or a stream.
+    
+    Polymers have sequences that usually use one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**.
+    """
 
     try:
         lines = stream.readlines()
@@ -766,7 +770,10 @@ def _getReference(lines):
 
 
 def _getPolymers(lines, **kwargs):
-    """Returns list of polymers (macromolecules)."""
+    """Returns list of polymers (macromolecules).
+    
+    Sequence is usually one-letter abbreviations, but can be long 
+    abbreviations (usually three letters) if *longSeq* is **True**"""
 
     pdbid = _PDB_HEADER_MAP['identifier'](lines)
     polymers = dict()
@@ -785,15 +792,15 @@ def _getPolymers(lines, **kwargs):
             poly = polymers.get(ch, Polymer(ch))
             polymers[ch] = poly
 
-            threeLetter = kwargs.get('threeLetter', False)
-            if threeLetter:
+            longSeq = kwargs.get('longSeq', False)
+            if longSeq:
                 poly.sequence += ''.join(item[
                     '_entity_poly.pdbx_seq_one_letter_code'].replace(';', '').split())
             else:
                 poly.sequence += ''.join(item[
                     '_entity_poly.pdbx_seq_one_letter_code_can'].replace(';', '').split())
 
-    if threeLetter:
+    if longSeq:
         for poly in polymers.values():
             seq = poly.sequence
             resnames = []
@@ -1264,13 +1271,17 @@ def _getOther(lines, key=None):
     return data
 
 
-def _getUnobservedSeq(lines):
+def _getUnobservedSeq(lines, **kwargs):
+    """Get sequence of unobserved residues.
+    
+    This sequence is usually using one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**."""
 
     key_unobs = '_pdbx_unobs_or_zero_occ_residues'
 
     try:
         unobs = parseSTARSection(lines, key_unobs, report=False)
-        polymers = _getPolymers(lines)
+        polymers = _getPolymers(lines, **kwargs)
     except:
         pass
 
