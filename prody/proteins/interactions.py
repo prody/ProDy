@@ -235,8 +235,8 @@ def get_energy(pair, source):
 
 
 def checkNonstandardResidues(atoms):
-    """Check whether the atomic structure contain non-standard residues and inform to replace the name 
-    to the standard one to be that non-standard residues are treated in a correct way while computing 
+    """Check whether the atomic structure contains non-standard residues and inform to replace the name
+    to the standard one so that non-standard residues are treated in a correct way while computing
     interactions.
     
     :arg atoms: an Atomic object from which residues are selected
@@ -264,9 +264,13 @@ def checkNonstandardResidues(atoms):
         if i not in amino_acids:
             nonstandard.append(aa_list[nr_i] + str(aa_list_nr[nr_i]))
     
-    LOGGER.info('There are several non-standard residues in the structure.')
-    LOGGER.info('Replace the non-standard name in the PDB file with the equivalent name from the standard one if you want to include them in the interactions.')
-    LOGGER.info("Residues: {0}.".format(' '.join(nonstandard)))   
+    if len(nonstandard) > 0:
+        LOGGER.info('There are several non-standard residues in the structure.')
+        LOGGER.info('Replace the non-standard name in the PDB file with the equivalent name from the standard one if you want to include them in the interactions.')
+        LOGGER.info("Residues: {0}.".format(' '.join(nonstandard)))
+        return True
+
+    return False
 
 
 def showPairEnergy(data, **kwargs):
