@@ -41,14 +41,14 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
             default is 'openbabel'
     :type method: str
     
-    :arg pH: pH value applyed only for PDBfixer.
+    :arg pH: pH value applied only for PDBfixer.
     :type pH: int, float
     
-    :arg model_residues: add all missing atoms from residues, applyed only for PDBfixer.
+    :arg model_residues: add all missing atoms from residues, applied only for PDBfixer.
                     default is False
     :type model_residues: bool
     
-    :arg keep_ids: keep the oryginal residue number, applyed only for PDBfixer.
+    :arg keep_ids: keep the original residue number, applied only for PDBfixer.
                     default is True
     :type keep_ids: bool
 
@@ -178,15 +178,15 @@ def fixStructuresMissingAtoms(infiles, method='openbabel', pH=7.0, outfiles=None
             default is 'openbabel'
     :type method: str
 
-    :arg model_residues: add all missing atoms from residues, applyed only for PDBfixer.
+    :arg model_residues: add all missing atoms from residues, applied only for PDBfixer.
                     default is False
     :type model_residues: bool
     
-    :arg keep_ids: keep the oryginal residue number, applyed only for PDBfixer.
+    :arg keep_ids: keep the original residue number, applied only for PDBfixer.
                     default is True
     :type keep_ids: bool
     
-    :arg pH: pH value applyed only for PDBfixer.
+    :arg pH: pH value applied only for PDBfixer.
     :type pH: int, float
     
     Instalation of Openbabel:
