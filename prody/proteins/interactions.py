@@ -186,7 +186,7 @@ def get_energy(pair, source):
         'GLUP': 'GLU',  # Protonated Glu
 
         # Lysine (Lys)
-        'LYN': 'LYS',   # Deprotonated lysine (nautral)
+        'LYN': 'LYS',   # Deprotonated lysine (neutral)
 
         # Arginine (Arg)
         'ARN': 'ARG',   # Deprotonated arginine (rare, GROMACS)
