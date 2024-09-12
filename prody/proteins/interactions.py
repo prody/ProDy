@@ -2247,19 +2247,19 @@ def saveInteractionsAsDummyAtoms(atoms, interactions, filename, **kwargs):
 
     for i in interactions:
         if len(i[1].split('_')) <= 3:
-            res1_name = 'chain '+i[2]+' resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_')[1:])            
+            res1_name = 'chain '+i[2]+' and resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_')[1:])
             res1_coords = calcCenter(atoms.select(res1_name))  
         
         if len(i[1].split('_')) > 3:
-            res1_name = 'chain '+i[2]+' resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_'))
+            res1_name = 'chain '+i[2]+' and resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_'))
             res1_coords = calcCenter(atoms.select(res1_name))
 
         if len(i[4].split('_')) <= 3:
-            res2_name = 'chain '+i[5]+' resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_')[1:])
+            res2_name = 'chain '+i[5]+' and resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_')[1:])
             res2_coords = calcCenter(atoms.select(res2_name))
             
         if len(i[4].split('_')) > 3:     
-            res2_name = 'chain '+i[5]+' resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_'))
+            res2_name = 'chain '+i[5]+' and resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_'))
             res2_coords = calcCenter(atoms.select(res2_name))
 
         all_DUMs.append(calcDUMposition(res1_coords, res2_coords))
