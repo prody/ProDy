@@ -2234,7 +2234,7 @@ def saveInteractionsAsDummyAtoms(atoms, interactions, filename, **kwargs):
                             
     RESNAME_dummy = kwargs.pop('RESNAME_dummy', 'DUM')
     
-    def putDUMatom(coord1, coord2):
+    def calcDUMposition(coord1, coord2):
         midpoint = [
             (coord1[0] + coord2[0]) / 2,
             (coord1[1] + coord2[1]) / 2,
@@ -2262,7 +2262,7 @@ def saveInteractionsAsDummyAtoms(atoms, interactions, filename, **kwargs):
             res2_name = 'chain '+i[5]+' resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_'))
             res2_coords = calcCenter(atoms.select(res2_name))
 
-        all_DUMs.append(putDUMatom(res1_coords, res2_coords))
+        all_DUMs.append(calcDUMposition(res1_coords, res2_coords))
     
     if all_DUMs == []:
         LOGGER.info('Lack of interactions')
