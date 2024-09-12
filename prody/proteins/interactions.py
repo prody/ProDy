@@ -210,16 +210,13 @@ def get_energy(pair, source):
     
     pair = [aa_correction.get(aa, aa) for aa in pair]    
     
-    try:
-        # Python 3
-        with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
-            data = np.loadtxt(file_path, dtype=str)
-    except: 
-        # Python 2.7
-        import pkg_resources
+    if PY3K:
+         file_path = pkg_resources.path('prody.proteins', 'tabulated_energies.txt')
+    else:
         file_path = pkg_resources.resource_filename('prody.proteins', 'tabulated_energies.txt')
-        with open(file_path) as f:
-            data = np.loadtxt(f, dtype=str)
+
+    with open(file_path) as f:
+        data = np.loadtxt(f, dtype=str)
     
     sources = ["IB_nosolv", "IB_solv", "CS"]
     aa_pairs = []
