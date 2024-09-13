@@ -395,9 +395,9 @@ def calcWaterBridges(atoms, **kwargs):
         Default is **False**
     :type expand_selection: bool
 
-    :arg considered_atoms: selection string for which atoms to consider
+    :arg considered_atoms_sel: selection string for which atoms to consider
         Default is **"protein"**
-    :type considered_atoms: str
+    :type considered_atoms_sel: str
     """
 
     method = kwargs.pop('method', 'chain')
@@ -414,7 +414,7 @@ def calcWaterBridges(atoms, **kwargs):
     isInfoLog = kwargs.pop('isInfoLog', True)
     DIST_COVALENT_H = 1.4
     prefix = kwargs.pop('prefix', '')
-    considered_atoms_sel = kwargs.pop('considered_atoms', "protein")
+    considered_atoms_sel = kwargs.pop('considered_atoms_sel', "protein")
 
     if method not in ['chain', 'cluster']:
         raise TypeError('Method should be chain or cluster.')
@@ -454,8 +454,8 @@ def calcWaterBridges(atoms, **kwargs):
         relations[oxygen].hydrogens.append(hydrogen)
 
     proteinHydrophilic = consideredAtoms.select(
-        '{0} and name "{1}" and within {2} of water'.format(
-            getElementsRegex(considered_atoms_sel, set(donors+acceptors)), distWR))
+        '{0} and name "{1}" and within {2} of water'.format(considered_atoms_sel, 
+            getElementsRegex(set(donors+acceptors)), distWR))
 
     proteinHydrogens = consideredAtoms.select('{0} and hydrogen').format(considered_atoms_sel) or []
     proteinHydroPairs = findNeighbors(
@@ -554,7 +554,11 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     :arg return_selection: whether to return the combined common selection
         Default is **False** to keep expected behaviour.
         However, this output is required when using selstr.
-    :type return_selection: bool    
+    :type return_selection: bool
+
+    :arg considered_atoms_sel: selection string for which atoms to consider
+        Default is **"protein"**
+    :type considered_atoms_sel: str  
     """
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
