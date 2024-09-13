@@ -457,7 +457,7 @@ def calcWaterBridges(atoms, **kwargs):
         '{0} and name "{1}" and within {2} of water'.format(considered_atoms_sel, 
             getElementsRegex(set(donors+acceptors)), distWR))
 
-    proteinHydrogens = consideredAtoms.select('{0} and hydrogen').format(considered_atoms_sel) or []
+    proteinHydrogens = consideredAtoms.select('{0} and hydrogen'.format(considered_atoms_sel)) or []
     proteinHydroPairs = findNeighbors(
         proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens) if proteinHydrogens else []
     for hydrophilic in proteinHydrophilic:
