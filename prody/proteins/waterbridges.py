@@ -742,7 +742,7 @@ def getResInfo(atoms, **kwargs):
     chids = atoms.select(considered_atoms_sel).getChids()
 
     for i, num in enumerate(nums):
-        dict[num] = "{names[i]}{num}{chids[i]}"
+        dict[num] = "{0}{1}{2}".format(names[i], num, chids[i])
 
     return dict
 
