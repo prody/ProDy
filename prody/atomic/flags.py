@@ -148,7 +148,7 @@ DEFAULTS = {
     'pyrimidine': set(['CYT', 'C', 'THY', 'T', 'URA', 'U']),
 
     'water': set(['HOH', 'DOD', 'WAT', 'TIP3', 'H2O', 'OH2', 'TIP', 'TIP2',
-                  'TIP4']),
+                  'TIP4', 'SPC']),
 
     'ion': set(['AL', 'BA', 'CA', 'CD', 'CL', 'CO', 'CS', 'CU', 'CU1', 'CUA',
                 'HG', 'IN', 'IOD', 'K', 'MG', 'MN', 'MN3', 'NA', 'PB', 'PT', 'RB',
