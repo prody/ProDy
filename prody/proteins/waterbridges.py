@@ -394,6 +394,10 @@ def calcWaterBridges(atoms, **kwargs):
         :func:`.selectSurroundingsBox`, selecting a box surrounding it.
         Default is **False**
     :type expand_selection: bool
+
+    :arg considered_atoms: selection string for which atoms to consider
+        Default is **"protein"**
+    :type considered_atoms: str
     """
 
     method = kwargs.pop('method', 'chain')
@@ -410,6 +414,7 @@ def calcWaterBridges(atoms, **kwargs):
     isInfoLog = kwargs.pop('isInfoLog', True)
     DIST_COVALENT_H = 1.4
     prefix = kwargs.pop('prefix', '')
+    considered_atoms_sel = kwargs.pop('considered_atoms', "protein")
 
     if method not in ['chain', 'cluster']:
         raise TypeError('Method should be chain or cluster.')
@@ -449,10 +454,10 @@ def calcWaterBridges(atoms, **kwargs):
         relations[oxygen].hydrogens.append(hydrogen)
 
     proteinHydrophilic = consideredAtoms.select(
-        'protein and name "{0}" and within {1} of water'.format(
-            getElementsRegex(set(donors+acceptors)), distWR))
+        '{0} and name "{1}" and within {2} of water'.format(
+            getElementsRegex(considered_atoms_sel, set(donors+acceptors)), distWR))
 
-    proteinHydrogens = consideredAtoms.select('protein and hydrogen') or []
+    proteinHydrogens = consideredAtoms.select('{0} and hydrogen').format(considered_atoms_sel) or []
     proteinHydroPairs = findNeighbors(
         proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens) if proteinHydrogens else []
     for hydrophilic in proteinHydrophilic:
