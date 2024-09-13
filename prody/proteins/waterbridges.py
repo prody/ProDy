@@ -735,10 +735,11 @@ class DictionaryList:
 
 
 def getResInfo(atoms, **kwargs):
+    considered_atoms_sel = kwargs.pop('considered_atoms_sel', "protein")
     dict = {}
-    nums = atoms.select('protein').getResnums()
-    names = atoms.select('protein').getResnames()
-    chids = atoms.select('protein').getChids()
+    nums = atoms.select(considered_atoms_sel).getResnums()
+    names = atoms.select(considered_atoms_sel).getResnames()
+    chids = atoms.select(considered_atoms_sel).getChids()
 
     for i, num in enumerate(nums):
         dict[num] = "{names[i]}{num}{chids[i]}"
@@ -746,7 +747,7 @@ def getResInfo(atoms, **kwargs):
     return dict
 
 
-def getWaterBridgeStatInfo(stats, atoms):
+def getWaterBridgeStatInfo(stats, atoms, **kwargs):
     """Converts calcWaterBridgesStatistic indices output to info output from stat.
 
     :arg stats: statistics returned by calcWaterBridgesStatistics, output='indices'
@@ -755,7 +756,7 @@ def getWaterBridgeStatInfo(stats, atoms):
     :arg atoms: Atomic object from which atoms are considered
     :type atoms: :class:`.Atomic`
     """
-    residueInfo = getResInfo(atoms)
+    residueInfo = getResInfo(atoms, **kwargs)
     infoOutput = {}
     for key, value in stats.items():
         x_id, y_id = key
@@ -790,8 +791,6 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     if output not in ['info', 'indices']:
         raise TypeError('Output should be info or indices!')
 
-    considered_atoms_sel = kwargs.pop('considered_atoms_sel', "protein")
-
     allCoordinates = trajectory.getCoordsets()
     interactionCount = DictionaryList(0)
     distances = DictionaryList([])
@@ -801,7 +800,7 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
         frameCombinations = []
 
         for bridge in frame:
-            proteinAtoms = bridge.select(considered_atoms_sel)
+            proteinAtoms = bridge.proteins
             for atom_1, atom_2 in combinations(proteinAtoms, r=2):
                 ind_1, ind_2 = atom_1.getIndex(), atom_2.getIndex()
                 res_1, res_2 = atom_1.getResnum(), atom_2.getResnum()
