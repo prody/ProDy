@@ -734,7 +734,7 @@ class DictionaryList:
                 del self.values[key]
 
 
-def getResInfo(atoms):
+def getResInfo(atoms, **kwargs):
     dict = {}
     nums = atoms.select('protein').getResnums()
     names = atoms.select('protein').getResnames()
@@ -780,11 +780,17 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     :arg filename: name of file to save statistic information if wanted
         default is None
     :type filename: string
+
+    :arg considered_atoms_sel: selection string for which atoms to consider
+        Default is **"protein"**
+    :type considered_atoms_sel: str
     """
     output = kwargs.pop('output', 'indices')
     filename = kwargs.pop('filename', None)
     if output not in ['info', 'indices']:
         raise TypeError('Output should be info or indices!')
+
+    considered_atoms_sel = kwargs.pop('considered_atoms_sel', "protein")
 
     allCoordinates = trajectory.getCoordsets()
     interactionCount = DictionaryList(0)
@@ -795,7 +801,7 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
         frameCombinations = []
 
         for bridge in frame:
-            proteinAtoms = bridge.proteins
+            proteinAtoms = bridge.select(considered_atoms_sel)
             for atom_1, atom_2 in combinations(proteinAtoms, r=2):
                 ind_1, ind_2 = atom_1.getIndex(), atom_2.getIndex()
                 res_1, res_2 = atom_1.getResnum(), atom_2.getResnum()
