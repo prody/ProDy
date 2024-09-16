@@ -1340,7 +1340,9 @@ def findClusterCenters(file_pattern, **kwargs):
             removeCoords.append(list(coords_all.getCoords()[ii]))
 
     if len(removeCoords) == coords_all.numAtoms():
-        raise ValueError('No waters were selected. You may need to align your trajectory')
+        raise ValueError('No waters were selected. You may need to align your trajectory \
+        or change default parameters for detecting water clusters (increase distC \
+        or decrease numC)')
 
     selectedWaters = AtomGroup()
     sel_waters = [] 
