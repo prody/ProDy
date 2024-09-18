@@ -148,7 +148,7 @@ DEFAULTS = {
     'pyrimidine': set(['CYT', 'C', 'THY', 'T', 'URA', 'U']),
 
     'water': set(['HOH', 'DOD', 'WAT', 'TIP3', 'H2O', 'OH2', 'TIP', 'TIP2',
-                  'TIP4', 'SPC', 'SOL']),
+                  'TIP4', 'SPC']),
 
     'ion': set(['AL', 'BA', 'CA', 'CD', 'CL', 'CO', 'CS', 'CU', 'CU1', 'CUA',
                 'HG', 'IN', 'IOD', 'K', 'MG', 'MN', 'MN3', 'NA', 'PB', 'PT', 'RB',
@@ -503,7 +503,7 @@ Heteros
 
    water
       indices `HOH`_ and `DOD`_ recognized by *PDB* and also WAT, TIP3, H2O,
-      OH2, TIP, TIP2, and TIP4 recognized by molecular dynamics (MD) force
+      OH2, TIP, TIP2, TIP4 and SPC recognized by molecular dynamics (MD) force
       fields.
 
       .. _HOH: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HOH
@@ -511,7 +511,8 @@ Heteros
       .. _DOD: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=DOD
 
       Previously used water types HH0, OHH, and SOL conflict with other
-      compounds in the *PDB*, so are removed from the definition of this flag.
+      compounds in the *PDB*, so are removed from the definition of this flag
+      except SOL (restored) as compound SOL (L-sorbose) is only used 3 times.
 
 
    ion
