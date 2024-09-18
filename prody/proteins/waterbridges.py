@@ -52,6 +52,7 @@ __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInf
 class ResType(Enum):
     WATER = auto()
     PROTEIN = auto()
+    ION = auto()
 
 
 class AtomNode:
@@ -165,6 +166,8 @@ class CoordinationBond:
         if donor.type != ResType.WATER and donor.atom.getName() not in constraints.donors:
             return False
         if acceptor.type != ResType.WATER and acceptor.atom.getName() not in constraints.acceptors:
+            return False
+        if donor.type != ResType.ION and acceptor.type != ResType.ION:
             return False
 
         return True
@@ -333,7 +336,7 @@ def getAtomicOutput(waterBridges, relations):
     for bridge in waterBridges:
         proteinAtoms, waterAtoms = [], []
         for atomIndex in bridge:
-            if relations[atomIndex].type == ResType.PROTEIN:
+            if relations[atomIndex].type in [ResType.PROTEIN, ResType.ION]:
                 proteinAtoms.append(relations[atomIndex].atom)
             else:
                 waterAtoms.append(relations[atomIndex].atom)
@@ -476,7 +479,10 @@ def calcWaterBridges(atoms, **kwargs):
     proteinHydroPairs = findNeighbors(
         proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens) if proteinHydrogens else []
     for hydrophilic in proteinHydrophilic:
-        relations.addNode(hydrophilic, ResType.PROTEIN)
+        if hydrophilic in consideredAtoms.ion:
+            relations.addNode(hydrophilic, ResType.ION)
+        else:
+            relations.addNode(hydrophilic, ResType.PROTEIN)
     for pair in proteinHydroPairs:
         hydrophilic, hydrogen, _ = pair
         relations[hydrophilic].hydrogens.append(hydrogen)
