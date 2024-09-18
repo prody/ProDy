@@ -801,6 +801,10 @@ def calcWaterBridgesStatistics(frames, trajectory, **kwargs):
     if output not in ['info', 'indices']:
         raise TypeError('Output should be info or indices!')
 
+    considered_atoms_sel = kwargs.pop('considered_atoms_sel', None)
+    if considered_atoms_sel is not None:
+        trajectory.select(considered_atoms_sel)
+
     allCoordinates = trajectory.getCoordsets()
     interactionCount = DictionaryList(0)
     distances = DictionaryList([])
