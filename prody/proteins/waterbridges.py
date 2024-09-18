@@ -479,10 +479,11 @@ def calcWaterBridges(atoms, **kwargs):
     proteinHydroPairs = findNeighbors(
         proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens) if proteinHydrogens else []
     for hydrophilic in proteinHydrophilic:
-        if hydrophilic in consideredAtoms.ion:
-            relations.addNode(hydrophilic, ResType.ION)
-        else:
-            relations.addNode(hydrophilic, ResType.PROTEIN)
+        if hydrophilic is not None:
+            if hydrophilic in consideredAtoms.ion:
+                relations.addNode(hydrophilic, ResType.ION)
+            else:
+                relations.addNode(hydrophilic, ResType.PROTEIN)
     for pair in proteinHydroPairs:
         hydrophilic, hydrogen, _ = pair
         relations[hydrophilic].hydrogens.append(hydrogen)
