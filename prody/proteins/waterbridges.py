@@ -154,6 +154,20 @@ class HydrogenBond:
 
         return False
 
+class CoordinationBond:
+    def __init__(self, donor, acceptor):
+        self.donor = donor
+        self.acceptor = acceptor
+
+    @staticmethod
+    def checkIsCoorBond(donor, acceptor, constraints):
+        if donor.type != ResType.WATER and donor.atom.getName() not in constraints.donors:
+            return False
+        if acceptor.type != ResType.WATER and acceptor.atom.getName() not in constraints.acceptors:
+            return False
+
+        return True
+
 
 def calcBridges(relations, hydrophilicList, method, maxDepth, maxNumResidues):
     waterBridges = []
@@ -454,10 +468,10 @@ def calcWaterBridges(atoms, **kwargs):
         relations[oxygen].hydrogens.append(hydrogen)
 
     proteinHydrophilic = consideredAtoms.select(
-        '{0} and name "{1}" and within {2} of water'.format(considered_atoms_sel, 
+        '({0}) and name "{1}" and within {2} of water'.format(considered_atoms_sel,
             getElementsRegex(set(donors+acceptors)), distWR))
 
-    proteinHydrogens = consideredAtoms.select('{0} and hydrogen'.format(considered_atoms_sel)) or []
+    proteinHydrogens = consideredAtoms.select('({0}) and hydrogen'.format(considered_atoms_sel)) or []
     proteinHydroPairs = findNeighbors(
         proteinHydrophilic, DIST_COVALENT_H, proteinHydrogens) if proteinHydrogens else []
     for hydrophilic in proteinHydrophilic:
@@ -481,11 +495,17 @@ def calcWaterBridges(atoms, **kwargs):
     else:
         LOGGER.info('No hydrogens detected, angle criteria will not be used.')
 
+    constraints2 = HBondConstraints(acceptors, donors) # not taking angles
+
     for pair in contactingWaterNodes + contactingWaterProteinNodes:
         for a, b in [(0, 1), (1, 0)]:
             if HydrogenBond.checkIsHBond(pair[a], pair[b], constraints):
                 newHBond = HydrogenBond(pair[a].atom, pair[b].atom)
                 relations.addHBond(newHBond)
+
+            elif CoordinationBond.checkIsCoorBond(pair[a], pair[b], constraints2):
+                newBond = CoordinationBond(pair[a].atom, pair[b].atom)
+                relations.addHBond(newBond)
 
     relations.removeUnbonded()
 
