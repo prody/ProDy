@@ -45,7 +45,8 @@ __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInf
            'calcBridgingResiduesHistogram', 'calcWaterBridgesDistribution',
            'savePDBWaterBridges', 'savePDBWaterBridgesTrajectory',
            'saveWaterBridges', 'parseWaterBridges', 'findClusterCenters',
-           'filterStructuresWithoutWater', 'selectSurroundingsBox']
+           'filterStructuresWithoutWater', 'selectSurroundingsBox',
+           'findCommonSelectionTraj']
 
 
 class ResType(Enum):
@@ -441,7 +442,7 @@ def calcWaterBridges(atoms, **kwargs):
 
         expand_selection = kwargs.pop('expand_selection', False)
         if expand_selection:
-            atoms = selectSurroundingsBox(atoms, selection).copy()
+            atoms = selectSurroundingsBox(atoms, selection, **kwargs).copy()
         else:
             atoms = selection.copy()
 
@@ -586,6 +587,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     selstr = kwargs.pop('selstr', None)
     expand_selection = kwargs.pop('expand_selection', False)
     return_selection = kwargs.pop('return_selection', False)
+    padding = kwargs.pop('padding', 0)
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -600,26 +602,14 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
         else:
             traj = trajectory[start_frame:stop_frame+1]
 
-        indices = None
-        selection = atoms
+        atoms_copy = atoms.copy()
         if selstr is not None:
-            LOGGER.info('Finding common selection')
-            indices = []
-            for frame0 in traj:
-                atoms_copy = atoms.copy()
-                atoms_copy.setCoords(frame0.getCoords())
-                selection = atoms_copy.select(selstr)
-
-                if expand_selection:
-                    selection = selectSurroundingsBox(atoms_copy, selection)
-
-                indices.extend(list(selection.getIndices()))
-
-            indices = np.unique(indices)
-            selection = atoms_copy[indices]
-
-            LOGGER.info('Common selection found with {0} atoms and {1} protein chains'.format(selection.numAtoms(),
-                                                                                              len(list(selection.protein.getHierView()))))
+            selection, indices = findCommonSelectionTraj(atoms, traj, selstr,
+                                                         expand_selection=expand_selection,
+                                                         return_selection=False,
+                                                         padding=padding)
+            LOGGER.info('Common selection found with {0} atoms and {1} protein chains'.format(
+                selection.numAtoms(), len(list(selection.protein.getHierView()))))
 
         def analyseFrame(j0, start_frame, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
@@ -1463,9 +1453,14 @@ def filterStructuresWithoutWater(structures, min_water=0, filenames=None):
     return list(reversed(new_structures))
 
 
-def selectSurroundingsBox(atoms, select, padding=0, return_selstr=False):
+def selectSurroundingsBox(atoms, select, **kwargs):
     """Select the surroundings of *select* within *atoms* using
-    a bounding box with optional *padding*."""
+    a bounding box with optional *padding*.
+
+    :arg return_selstr: whether to return the final selstr
+        Default False
+    :type return_selstr: bool
+    """
 
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms should be an Atomic object')
@@ -1476,10 +1471,15 @@ def selectSurroundingsBox(atoms, select, padding=0, return_selstr=False):
     if not isinstance(select, Atomic):
         raise TypeError('select should be a valid selection or selection string')
 
+    padding = kwargs.get('padding', 0)
     if not isinstance(padding, Number):
         raise TypeError('padding should be a number')
     if padding < 0:
         raise ValueError('padding should be a positive number')
+
+    return_selstr = kwargs.get('return_selstr', False)
+    if not isinstance(return_selstr, bool):
+        raise TypeError('return_selstr should be a bool')
 
     minCoords = select.getCoords().min(axis=0)
     maxCoords = select.getCoords().max(axis=0)
@@ -1494,3 +1494,51 @@ def selectSurroundingsBox(atoms, select, padding=0, return_selstr=False):
     if return_selstr:
         return selstr
     return atoms.select(selstr)
+
+
+def findCommonSelectionTraj(atoms, traj, selstr, **kwargs):
+    """Select *selstr* within *atoms* for each frame in *traj*
+    using a bounding box with optional *padding*.
+
+    :arg expand_selection: whether to expand selections with
+        :meth:`.selectSurroundingsBox`. Default False
+    :type expand_selection: bool
+
+    Returns the common selection and corresponding indices and
+    optionally the corresponding selstr if *return_selstr* is **True**
+    """
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms should be an Atomic object')
+
+    if not isinstance(selstr, str):
+        raise TypeError('selstr should be a string')
+
+    expand_selection = kwargs.get('expand_selection', False)
+    if not isinstance(expand_selection, bool):
+        raise TypeError('expand_selection should be a bool')
+
+    return_selstr = kwargs.pop('return_selstr', False) # not passed on
+    if not isinstance(return_selstr, bool):
+        raise TypeError('return_selstr should be a bool')
+
+    indices = None
+    if selstr is not None:
+        LOGGER.info('Finding common selection')
+        indices = []
+        for frame0 in traj:
+            atoms_copy = atoms.copy()
+            atoms_copy.setCoords(frame0.getCoords())
+            selection = atoms_copy.select(selstr)
+
+            if expand_selection:
+                selection = selectSurroundingsBox(atoms_copy, selection, **kwargs)
+
+            indices.extend(list(selection.getIndices()))
+
+        indices = np.unique(indices)
+        selection = atoms_copy[indices]
+
+        if return_selstr:
+            return selection, indices, selstr
+        return selection, indices
