@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import os
-import imp
+try:
+    import imp
+except ModuleNotFoundError:
+    from importlib import import_module as imp
 import importlib
 from subprocess import Popen, PIPE
 

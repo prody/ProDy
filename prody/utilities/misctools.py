@@ -788,7 +788,7 @@ def mad(x):
 
 
 def importDec():
-    """Returns one of :mod:`scipy.linalg` or :mod:`numpy.linalg`."""
+    """Returns an imported module equivalent to numpy testing decorators."""
 
     try:
         import numpy.testing.decorators as dec
@@ -802,3 +802,12 @@ def importDec():
                 from pytest import mark as dec    
 
     return dec
+
+def importImp():
+    """Returns an  an imported module equivalent to imp."""
+    try:
+        import imp
+    except ModuleNotFoundError:
+        from importlib import import_module as imp
+
+    return imp

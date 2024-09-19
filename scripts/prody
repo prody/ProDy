@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import imp
+from prody.utilities.misctools import importImp
+imp = importImp()
 import importlib
 if sys.version_info[0] == 2:
     path_prody = imp.find_module('prody')[1]

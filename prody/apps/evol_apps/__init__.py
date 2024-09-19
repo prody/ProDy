@@ -1,6 +1,7 @@
 """This module defines some sequence evolution applications."""
 
-import imp
+from prody.utilities.misctools import importImp
+imp = importImp()
 import importlib
 import sys
 
