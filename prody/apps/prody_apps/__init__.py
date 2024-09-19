@@ -51,8 +51,7 @@ prody_commands = prody_parser.add_subparsers(
 
 for cmd in PRODY_APPS:
     cmd = 'prody_' + cmd
-    mod = imp.load_module('prody.apps.prody_apps.' + cmd,
-                          *imp.find_module(cmd, [path_apps]))
+    mod = impLoadModule('prody.apps.prody_apps.', cmd, path_apps)
     mod.addCommand(prody_commands)
 
 def prody_main():
