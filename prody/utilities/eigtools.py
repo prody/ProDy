@@ -40,9 +40,9 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, rever
             if eigvals:
                 turbo = False
             if not issparse(M):
-                if hasattr('linalg.eigh', 'turbo'):
+                try:
                     values, vectors = linalg.eigh(M, turbo=turbo, eigvals=eigvals)
-                else:
+                except AttributeError:
                     if turbo:
                         values, vectors = linalg.eigh(M, driver='evd', eigvals=eigvals)
                     else:
