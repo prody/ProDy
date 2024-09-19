@@ -33,10 +33,10 @@ def splitSeqLabel(label):
 
 
 def alignBioPairwise(a_sequence, b_sequence,
-                     ALIGNMENT_METHOD,
-                     MATCH_SCORE, MISMATCH_SCORE,
-                     GAP_PENALTY, GAP_EXT_PENALTY,
-                     one_alignment_only=True):
+                     ALIGNMENT_METHOD=ALIGNMENT_METHOD,
+                     MATCH_SCORE=MATCH_SCORE, MISMATCH_SCORE=MISMATCH_SCORE,
+                     GAP_PENALTY=GAP_PENALTY, GAP_EXT_PENALTY=GAP_EXT_PENALTY,
+                     max_alignments=1):
     """
     Wrapper function to align two sequences using Biopython to support deprecation
     and associated warnings.
@@ -67,8 +67,8 @@ def alignBioPairwise(a_sequence, b_sequence,
     :arg GAP_EXT_PENALTY: a negative integer, used to penalise extending a gap
     :type GAP_EXT_PENALTY: int
 
-    :arg one_alignment_only: whether to return one alignment only or all generated
-    :type one_alignment_only: bool
+    :arg max_alignments: maximum number of alignments to extract
+    :type max_alignments: int
     """
     import numpy as np
 
@@ -84,23 +84,44 @@ def alignBioPairwise(a_sequence, b_sequence,
         alns = aligner.align(a_sequence, b_sequence)
 
         results = []
-        for aln in alns:
-            row_1 = aln.format().split("\n")[0].replace(" ", "-")
-            row_2 = aln.format().split("\n")[2].replace(" ", "-")
-            while len(row_1) < len(row_2):
-                row_1 += "-"
-            while len(row_2) < len(row_1):
-                row_2 += "-"
-            begin = max([np.where(np.array(list(row_1)) != "-")[0][0],
-                         np.where(np.array(list(row_2)) != "-")[0][0]])
-            end = (min([np.where(np.array(list(row_1)) != "-")[0][-1],
-                        np.where(np.array(list(row_2)) != "-")[0][-1]]) - begin + 1)
+
+        for i, aln in enumerate(alns):
+            if i == max_alignments:
+                break
+
+            split_aln = aln.format().split('\n')
+
+            if split_aln[0].startswith('target'):
+                # new biopython
+                import re
+
+                m1 = re.search('[0-9]+', split_aln[0])
+                begin = m1.group()
+
+                m2 = re.search('[0-9]+', split_aln[-4])
+                m3 = re.search('[0-9]+', split_aln[-4][m2.end():])
+                end = m3.group()
+
+                row_1 = ''.join([line[m1.end()+1:] for line in split_aln[0:-4:4]])
+                row_1 += split_aln[-4][m2.end()+1:m2.end()+m3.start()-1]
+
+                row_2 = ''.join([line[m1.end()+1:] for line in split_aln[2:-4:4]])
+                row_2 += split_aln[-2][m2.end()+1:m2.end()+m3.start()-1]
+            else:
+                begin = split_aln[1].find('|')
+                end = len(split_aln[1])-1
+
+                row_1 = split_aln[0].replace(" ", "-")
+                row_2 = split_aln[2].replace(" ", "-")
+
+                if len(row_1) < len(row_2):
+                    row_1 += "-"*(len(row_2)-len(row_1))
+                elif len(row_2) < len(row_1):
+                    row_2 += "-"*(len(row_1)-len(row_2))
+
             results.append((row_1, row_2, aln.score, begin, end))
 
-        if one_alignment_only:
-            return [results[0]]
-        else:
-            return results
+        return results
         
     except (ImportError, AttributeError):
         from Bio import pairwise2

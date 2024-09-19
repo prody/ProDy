@@ -2,23 +2,18 @@
 """This module defines functions for parsing header data from PDB files."""
 
 from collections import defaultdict, OrderedDict
+import numpy as np
 import os.path
 
-import numpy as np
-
 from prody import LOGGER
-from prody.atomic import ATOMIC_FIELDS
-from prody.atomic import Atomic, AtomGroup
-from prody.atomic import getSequence
-from prody.atomic import flags
-from prody.measure import Transformation
-from prody.utilities import openFile, split
+from prody.atomic import flags, AAMAP
+from prody.utilities import openFile, alignBioPairwise, GAP_PENALTY, GAP_EXT_PENALTY
 
 from .localpdb import fetchPDB
 from .header import (Chemical, Polymer, DBRef, _PDB_DBREF,
                      cleanString)
 
-from .starfile import parseSTARLines, parseSTARSection
+from .starfile import parseSTARSection
 
 __all__ = ['parseCIFHeader', 'getCIFHeaderDict']
 
@@ -147,8 +142,12 @@ def getCIFHeaderDict(stream, *keys):
                 value = _PDB_HEADER_MAP[key](lines)
                 keys[k] = value
             else:
-                raise KeyError('{0} is not a valid header data identifier'
-                               .format(repr(key)))
+                try:
+                    value = _PDB_HEADER_MAP['others'](lines, key)
+                    keys[k] = value
+                except:
+                    raise KeyError('{0} is not a valid header data identifier'
+                                .format(repr(key)))
             if key in ('chemicals', 'polymers'):
                 for component in value:
                     component.pdbentry = pdbid
@@ -179,15 +178,15 @@ def _getBiomoltrans(lines):
     # 2 blocks are needed for this:
     # _pdbx_struct_assembly_gen: what to apply to which chains
     # _pdbx_struct_oper_list: everything else
-    data1 = parseSTARSection(lines, '_pdbx_struct_assembly_gen')
-    data2 = parseSTARSection(lines, '_pdbx_struct_oper_list')
+    data1 = parseSTARSection(lines, '_pdbx_struct_assembly_gen', report=False)
+    data2 = parseSTARSection(lines, '_pdbx_struct_oper_list', report=False)
 
     # extracting the data
     for n, item1 in enumerate(data1):
         currentBiomolecule = item1["_pdbx_struct_assembly_gen.assembly_id"]
         applyToChains = []
 
-        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].split(',')
+        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].replace(';','').strip().split(',')
         applyToChains.extend(chains)
 
         biomt = biomolecule[currentBiomolecule]
@@ -226,7 +225,7 @@ def _getRelatedEntries(lines):
 
     try:
         key = "_pdbx_database_related"
-        data = parseSTARSection(lines, key)
+        data = parseSTARSection(lines, key, report=False)
         for item in data:
             dbref = DBRef()
             dbref.accession = item[key + ".db_id"]
@@ -716,8 +715,8 @@ def _getReference(lines):
 
     # JRNL double block. Blocks 6 and 7 as copied from COMPND
     # Block 1 has most info. Block 2 has author info
-    items1 = parseSTARSection(lines, "_citation")
-    items2 = parseSTARSection(lines, "_citation_author")
+    items1 = parseSTARSection(lines, "_citation", report=False)
+    items2 = parseSTARSection(lines, "_citation_author", report=False)
 
     for row in items1:
         for k, value in row.items():
@@ -762,16 +761,16 @@ def _getReference(lines):
 def _getPolymers(lines):
     """Returns list of polymers (macromolecules)."""
 
-    pdbid = lines[0].split("_")[1].strip()
+    pdbid = _PDB_HEADER_MAP['identifier'](lines)
     polymers = dict()
 
     entities = defaultdict(list)
 
     # SEQRES block
-    items1 = parseSTARSection(lines, '_entity_poly')
+    items1 = parseSTARSection(lines, '_entity_poly', report=False)
 
     for item in items1:
-        chains = item['_entity_poly.pdbx_strand_id']
+        chains = item['_entity_poly.pdbx_strand_id'].replace(';','').replace(' ', '')
         entity = item['_entity_poly.entity_id']
         
         for ch in chains.split(","):
@@ -779,10 +778,10 @@ def _getPolymers(lines):
             poly = polymers.get(ch, Polymer(ch))
             polymers[ch] = poly
             poly.sequence += ''.join(item[
-                '_entity_poly.pdbx_seq_one_letter_code'][1:-2].split())
+                '_entity_poly.pdbx_seq_one_letter_code_can'].replace(';', '').split())
 
     # DBREF block 1
-    items2 = parseSTARSection(lines, '_struct_ref')
+    items2 = parseSTARSection(lines, '_struct_ref', report=False)
 
     for item in items2:
         entity = item["_struct_ref.id"]
@@ -799,7 +798,7 @@ def _getPolymers(lines):
             poly.dbrefs.append(dbref)
 
     # DBREF block 2
-    items3 = parseSTARSection(lines, "_struct_ref_seq")
+    items3 = parseSTARSection(lines, "_struct_ref_seq", report=False)
 
     for i, item in enumerate(items3):
         i += 1
@@ -885,7 +884,7 @@ def _getPolymers(lines):
             last = temp
 
     # MODRES block
-    data4 = parseSTARSection(lines, "_pdbx_struct_mod_residue")
+    data4 = parseSTARSection(lines, "_pdbx_struct_mod_residue", report=False)
 
     for data in data4:
         ch = data["_pdbx_struct_mod_residue.label_asym_id"]
@@ -905,7 +904,7 @@ def _getPolymers(lines):
                                 data["_pdbx_struct_mod_residue.details"]))
 
     # SEQADV block
-    data5 = parseSTARSection(lines, "_struct_ref_seq_dif")
+    data5 = parseSTARSection(lines, "_struct_ref_seq_dif", report=False)
 
     for i, data in enumerate(data5):
         ch = data["_struct_ref_seq_dif.pdbx_pdb_strand_id"]
@@ -965,8 +964,8 @@ def _getPolymers(lines):
 
     # COMPND double block. 
     # Block 6 has most info. Block 7 has synonyms
-    data6 = parseSTARSection(lines, "_entity")
-    data7 = parseSTARSection(lines, "_entity_name_com")
+    data6 = parseSTARSection(lines, "_entity", report=False)
+    data7 = parseSTARSection(lines, "_entity_name_com", report=False)
 
     dict_ = {}
     for molecule in data6:
@@ -1046,7 +1045,7 @@ def _getChemicals(lines):
     # 1st block we need is has info about location in structure
 
     # this instance only includes single sugars not branched structures
-    items = parseSTARSection(lines, "_pdbx_nonpoly_scheme")
+    items = parseSTARSection(lines, "_pdbx_nonpoly_scheme", report=False)
 
     for data in items:
         resname = data["_pdbx_nonpoly_scheme.mon_id"]
@@ -1065,7 +1064,7 @@ def _getChemicals(lines):
         chemicals[chem.resname].append(chem)
 
     # next we get the equivalent one for branched sugars part
-    items = parseSTARSection(lines, "_pdbx_branch_scheme")
+    items = parseSTARSection(lines, "_pdbx_branch_scheme", report=False)
 
     for data in items:
         resname = data["_pdbx_branch_scheme.mon_id"]
@@ -1081,7 +1080,7 @@ def _getChemicals(lines):
         chemicals[chem.resname].append(chem)
 
     # 2nd block to get has general info e.g. name and formula
-    items = parseSTARSection(lines, "_chem_comp")
+    items = parseSTARSection(lines, "_chem_comp", report=False)
 
     for data in items:
         resname = data["_chem_comp.id"]
@@ -1090,7 +1089,11 @@ def _getChemicals(lines):
 
         chem_names[resname] += data["_chem_comp.name"].upper()
 
-        synonym = data["_chem_comp.pdbx_synonyms"]
+        if "_chem_comp.pdbx_synonyms" in data.keys():
+            synonym = data["_chem_comp.pdbx_synonyms"]
+        else:
+            synonym = '?'
+
         if synonym == '?':
             synonym = ' '
         synonym = synonym.rstrip()
@@ -1152,7 +1155,7 @@ def _getTitle(lines):
     title = ''
 
     try:
-        data = parseSTARSection(lines, "_struct")
+        data = parseSTARSection(lines, "_struct", report=False)
         for item in data:
             title += item['_struct.title'].upper()
     except:
@@ -1169,7 +1172,7 @@ def _getAuthors(lines):
     authors = []
 
     try:
-        data = parseSTARSection(lines, "_audit_author")
+        data = parseSTARSection(lines, "_audit_author", report=False)
         for item in data:
             author = ''.join(item['_audit_author.name'].split(', ')[::-1])
             authors.append(author.upper())
@@ -1189,7 +1192,7 @@ def _getSplit(lines):
     key = "_pdbx_database_related"
 
     try:
-        data, _ = parseSTARSection(lines, key)
+        data, _ = parseSTARSection(lines, key, report=False)
         for item in data:
             if item[key + '.content_type'] == 'split':
                 split.append(item[key + '.db_id'])
@@ -1206,13 +1209,109 @@ def _getModelType(lines):
 
     model_type = ''
 
-    model_type += [line.split()[1] for line in lines
-                  if line.find("_struct.pdbx_model_type_details") != -1][0]
+    model_type += [line.split()[1]
+                  if line.find("_struct.pdbx_model_type_details") != -1 else ''
+                  for line in lines][0]
 
     if model_type == '?':
         model_type = None
 
     return model_type
+
+
+def _getOther(lines, key=None):
+
+    if key is None:
+        return None
+
+    data = []
+
+    try:
+        data = parseSTARSection(lines, key, report=False)
+    except:
+        pass
+
+    if len(data) == 0:
+        data = None
+
+    return data
+
+
+def _getUnobservedSeq(lines):
+
+    key_unobs = '_pdbx_unobs_or_zero_occ_residues'
+
+    try:
+        unobs = parseSTARSection(lines, key_unobs, report=False)
+        polymers = _getPolymers(lines)
+    except:
+        pass
+
+    if len(unobs) == 0:
+        return None
+
+    unobs_seqs = OrderedDict()
+    for item in unobs:
+        chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
+        if not chid in unobs_seqs.keys():
+            unobs_seqs[chid] = ''
+        unobs_seqs[chid] += AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
+
+    if len(unobs_seqs) == 0:
+        return None
+
+    if len(polymers) == 0:
+        return None
+
+    full_seqs = OrderedDict()
+    for item in polymers:
+        chid = item.chid
+        full_seqs[chid] = item.sequence
+
+    if len(full_seqs) == 0:
+        return None
+
+    alns = OrderedDict()
+    for _, (key, seq) in enumerate(full_seqs.items()):
+        if key in unobs_seqs.keys():
+            unobs_seq = unobs_seqs[key]
+            # initialise alignment (quite possibly incorrect)
+            aln = list(alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
+                                        MISMATCH_SCORE=-1000,
+                                        ALIGNMENT_METHOD='global',
+                                        GAP_PENALTY=-2,
+                                        GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2])
+            
+            # fix it
+            prev_chid = unobs[0]['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
+            i = 0
+            for item in unobs:
+                chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
+                if chid != prev_chid:
+                    prev_chid = chid
+                    i = 0
+
+                if chid == key:
+                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
+                    good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
+
+                    row1_list = list(aln[0])
+
+                    arr_unobs_seq = np.array(list(unobs_seq))
+                    unobs_rep = np.where(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
+                    actual_pos = np.where(np.array(row1_list) == one_letter)[0][unobs_rep]
+
+                    if actual_pos != good_pos:
+                        row1_list[good_pos] = one_letter
+                        row1_list[actual_pos] = '-'
+
+                    aln[0] = ''.join(row1_list)
+
+                i += 1
+
+            alns[key] = aln
+
+    return alns
 
 
 # Make sure that lambda functions defined below won't raise exceptions
@@ -1233,7 +1332,9 @@ _PDB_HEADER_MAP = {
     'classification': lambda lines: [line.split()[1]
                                      if line.find("_struct_keywords.pdbx_keywords") != -1 else None
                                      for line in lines][0],
-    'identifier': lambda lines: lines[0].split("_")[1].strip() if len(lines[0].split("_")) else '',
+    'identifier': lambda lines: [line.split('_')[1]
+                                 if line.find("data") == 0 else ''
+                                 for line in lines][0].strip(),
     'title': _getTitle,
     'experiment': lambda lines: [line.split()[1]
                                  if line.find("_exptl.method") != -1 else None
@@ -1244,4 +1345,6 @@ _PDB_HEADER_MAP = {
     'n_models': _getNumModels,
     'space_group': _getSpaceGroup,
     'related_entries': _getRelatedEntries,
+    'others': _getOther,
+    'unobserved': _getUnobservedSeq
 }

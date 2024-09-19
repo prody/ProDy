@@ -9,7 +9,8 @@ import numpy as np
 
 from prody import LOGGER, PY2K
 from prody.kdtree import KDTree
-from prody.utilities import checkCoords, rangeString, getDistance, copy
+from prody.utilities import (checkCoords, checkAnisous, 
+                             rangeString, getDistance, copy)
 
 from .atomic import Atomic
 from .fields import ATOMIC_FIELDS, READONLY
@@ -130,7 +131,7 @@ class AtomGroup(Atomic):
                  '_donors', '_acceptors', '_nbexclusions', '_crossterms',
                  '_cslabels', '_acsi', '_n_csets', '_data',
                  '_fragments', '_flags', '_flagsts', '_subsets',
-                 '_msa', '_sequenceMap']
+                 '_msa', '_sequenceMap', '_anisous']
 
     def __init__(self, title='Unnamed'):
 
@@ -170,6 +171,7 @@ class AtomGroup(Atomic):
         self._subsets = None
         self._msa = None
         self._sequenceMap = None
+        self._anisous = None
 
     def __repr__(self):
 
@@ -238,12 +240,20 @@ class AtomGroup(Atomic):
         if self._n_csets:
             if self._n_csets == other._n_csets:
                 new.setCoords(np.concatenate((self._coords, other._coords), 1))
+                this = self._anisous
+                that = other._anisous
+                if this is not None and that is not None:
+                    if (isinstance(this, np.ndarray) and isinstance(that, np.ndarray)
+                        and len(this) > 0 and len(that) > 0):
+                        new.setAnisous(np.concatenate((self._anisous, other._anisous), 1))
                 if self._n_csets > 1:
                     LOGGER.info('All {0} coordinate sets are copied to '
                                 '{1}.'.format(self._n_csets, new.getTitle()))
             else:
                 new.setCoords(np.concatenate((self._getCoords(),
                                               other._getCoords())))
+                new.setAnisous(np.concatenate((self.getAnisous(),
+                                               other.getAnisous())))
                 LOGGER.info('Active coordinate sets are copied to {0}.'
                             .format(new.getTitle()))
         elif other._n_csets:
@@ -565,7 +575,101 @@ class AtomGroup(Atomic):
             self._setTimeStamp(acsi)
             self._cslabels[acsi] = str(label)
 
-    def addCoordset(self, coords, label=None):
+    def getAnisous(self):
+        """Returns a copy of anisotropic temperature factors from active coordinate set."""
+
+        if self._anisous is not None:
+            return self._anisous[self._acsi].copy()
+
+    def _getAnisous(self):
+        """Returns a view of anisotropic temperature factors from active coordinate set."""
+
+        if self._anisous is not None:
+            return self._anisous[self._acsi]
+
+    def setAnisous(self, anisous, label=''):
+        """Set anisotropic temperature factors of atoms. *anisous* may be any array like object
+        or an object instance with :meth:`getAnisous` method.  If the shape of
+        anisou array is ``(n_csets > 1, n_atoms, 3)``, it will replace all
+        coordinate sets and the active coordinate set index  will reset to
+        zero.  This situation can be avoided using :meth:`addCoordset`.
+        If shape of *coords* is ``(n_atoms, 3)`` or ``(1, n_atoms, 3)``, it
+        will replace the active coordinate set.  *label* argument may be used
+        to label coordinate set(s).  *label* may be a string or a list of
+        strings length equal to the number of coordinate sets."""
+
+        atoms = anisous
+        try:
+            if self._anisous is None and hasattr(atoms, '_getAnisous'):
+                anisous = atoms._getAnisous()
+            else:
+                anisous = atoms.getAnisous()
+        except AttributeError:
+            if self._anisous is None:
+                anisous = np.array(anisous)
+        else:
+            if anisous is None:
+                raise ValueError('anisous of {0} are not set'
+                                 .format(str(atoms)))
+
+        try:
+            checkAnisous(anisous, csets=True, dtype=(float, np.float32))
+        except TypeError:
+            raise TypeError('anisous must be a numpy array or an '
+                            'object with `getAnisous` method')
+
+        self._setAnisous(anisous, label=label)
+
+    def _setAnisous(self, anisous, label='', overwrite=False):
+        """Set anisotropic temperature factors without data type checking.
+        *anisous* must be a :class:`~numpy.ndarray`, but may have data type
+        other than :class:`~numpy.float64`, e.g. :class:`~numpy.float32`.
+        *label* argument may be used to label coordinate sets.  *label* may be
+        a string or a list of strings length equal to the number of
+        coordinate sets."""
+
+        n_atoms = self._n_atoms
+        if n_atoms:
+            if anisous.shape[-2] != n_atoms:
+                raise ValueError('anisous array has incorrect number of atoms')
+        else:
+            self._n_atoms = n_atoms = anisous.shape[-2]
+
+        ndim = anisous.ndim
+        shape = anisous.shape
+        if self._anisous is None or overwrite or (ndim == 6 and shape[0] > 1):
+            if ndim == 2:
+                self._anisous = anisous.reshape((1, n_atoms, 6))
+                self._cslabels = [str(label)]
+                self._n_csets = n_csets = 1
+
+            else:
+                self._anisous = anisous
+                self._n_csets = n_csets = shape[0]
+
+                if isinstance(label, list):
+                    if len(label) == n_csets:
+                        self._cslabels = list(label)
+
+                    else:
+                        self._cslabels = [''] * n_csets
+                        LOGGER.warn('Number of labels does not match number '
+                                    'of coordinate sets.')
+                else:
+                    self._cslabels = [str(label)] * n_csets
+            self._acsi = 0
+            self._setTimeStamp()
+
+        else:
+            acsi = self._acsi
+            if ndim == 2:
+                self._anisous[acsi] = anisous
+            else:
+                self._anisous[acsi] = anisous[0]
+            self._setTimeStamp(acsi)
+            self._cslabels[acsi] = str(label)
+
+    def addCoordset(self, coords, label=None, anisous=None):
         """Add a coordinate set.  *coords* argument may be an object with
         :meth:`getCoordsets` method."""
 
@@ -594,8 +698,13 @@ class AtomGroup(Atomic):
         if coords.ndim == 2:
             coords = coords.reshape((1, n_atoms, 3))
 
+        if anisous is not None and anisous.ndim == 2:
+            anisous = anisous.reshape((1, n_atoms, 6))
+
         diff = coords.shape[0]
         self._coords = np.concatenate((self._coords, coords), axis=0)
+        if anisous is not None and self._anisous is not None:
+            self._anisous = np.concatenate((self._anisous, anisous/10000), axis=0)
         self._n_csets = self._coords.shape[0]
         timestamps = self._timestamps
         self._timestamps = np.zeros(self._n_csets)

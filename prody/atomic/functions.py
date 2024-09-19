@@ -55,7 +55,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
 
     if filename is None:
         filename = ag.getTitle().replace(' ', '_')
-    if filename.lower().endswith('.npz'):
+    if not filename.lower().endswith('.npz'):
         filename += '.ag.npz'
 
     attr_dict = {'title': title}
@@ -424,8 +424,14 @@ def extendAtoms(nodes, atoms, is3d=False):
         ag = atoms.getAtomGroup()
     except AttributeError:
         ag = atoms
+
+    if hasattr(atoms, "getTitle"):
+        title = atoms.getTitle()
+    else:
+        title = str(atoms)
+
     atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
-                      title=str(atoms), intarrays=True)
+                      title=title, intarrays=True)
     
     #LOGGER.report('Full atoms was extended in %2.fs.', label='_prody_extendAtoms')
 

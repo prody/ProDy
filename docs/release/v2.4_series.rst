@@ -1,0 +1,68 @@
+ProDy 2.4 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+
+2.4.1 (Aug 11, 2023)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+* New function writeBILD to write modes in BILD format for viewing in Chimera/ChimeraX
+* New function addMissingAtoms based on PDBFixer or OpenBabel
+* Added Seaborn kernel density estimator (KDE) options to showProjection like Kaynak et al., 2022
+* Added options to control adjust_text for showProjection
+* Added unite_chains option to parseMMCIF to handle splitting over segments
+* New function interpolateModel based on SITUS ModeHunter
+* New ClustENM app
+* New module for analysing water bridges (only for Python 3)
+* New option nproc as a number of processors limit for solveEig, ANM, GNM and PCA calcModes
+
+**Bug Fixes and Improvements**:
+
+* Fixed Trajectory next frame overwriting with atoms linked
+* Important fixes to alignBioPairwise
+* Update to blastpdb to account for changes to on the NCBI side
+* Improvements to apps including writing matrices
+* Improved handling of mmCIF files including those from PDB-REDO
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.4.0...v2.4.1
+
+
+2.4.0 (Feb 2, 2023)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+* New function alignBioPairwise to address Biopython deprecation
+* Added gromos rmsd clustering
+* New data_type option for refineEnsemble to use seqid instead of rmsd
+* New ignore_ids option for mergeMSA to use different ids for interacting proteins
+
+**Bug Fixes and Improvements**:
+
+* Fixed error during writeout PQR file
+* Proper handling of fragments when bonds are absent
+* Setting the atoms for ensemble even if the atoms is a subset
+* Allowing setFlags to take scalar values
+* Transpose princ axes matrix to get columns
+* New flag selpdbter to keep ter lines in selections
+* No sorting of strands in writing
+* Add cif datafiles to setup
+* Select app help fix
+* Fixes to mmcif parsing
+* Improvements to cutoffs in Dali filtering
+* Fix to protein definition
+* Set matrix interactive to false and fix to axes3d usage for matplotlib 3.6
+* Improved requirements
+* Fix to fetchPDB for files with two dots but not gz ending
+
+**New Contributors**:
+
+* @changephilip made their first contribution in https://github.com/prody/ProDy/pull/1618
+* @odcambc made their first contribution in https://github.com/prody/ProDy/pull/1634
+* @hrnciar made their first contribution in https://github.com/prody/ProDy/pull/1372
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.3.1...v2.4.0

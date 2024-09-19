@@ -546,7 +546,7 @@ def parseSTARLines(lines, **kwargs):
             if inLoop:
                 # We expect to only have the field identifier and no data until after
 
-                if len(split(line.strip(), shlex=shlex)) == 1:
+                if len(split(line.strip(), shlex=shlex)) == 1 or len(split(line.strip(), shlex=shlex)) == 2:
                     # This is what we expect for a data loop
                     finalDictionary[currentDataBlock][currentLoop]['fields'][loop_fieldCounter] = currentField
                     dataItemsCounter = 0
@@ -1026,12 +1026,17 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     return np.array(images), parsed_images_data
 
 
-def parseSTARSection(lines, key):
+def parseSTARSection(lines, key, report=True):
     """Parse a section of data from *lines* from a STAR file 
     corresponding to a *key* (part before the dot). 
     This can be a loop or data block.
     
-    Returns data encapulated in a list and the associated fields."""
+    Returns data encapulated in a list and the associated fields.
+    
+    :arg report: whether to report warnings about not finding data
+        default True
+    :type report: bool
+    """
 
     if not isinstance(key, str):
         raise TypeError("key should be a string")
@@ -1077,7 +1082,8 @@ def parseSTARSection(lines, key):
         else:
             data = [loop_dict["data"]]
     else:
-        LOGGER.warn("Could not find {0} in lines.".format(key))
+        if report:
+            LOGGER.warn("Could not find {0} in lines.".format(key))
         return []
 
     return data

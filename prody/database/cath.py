@@ -64,7 +64,10 @@ class CATHElement(ET.Element):
     id = property(getID, setID)
 
     def getchildren(self):
-        children = super(CATHElement, self).getchildren()
+        try:
+            children = super(CATHElement, self).getchildren()
+        except AttributeError:
+            children = list(self)
         collection = CATHCollection(children, self)
         return collection
 

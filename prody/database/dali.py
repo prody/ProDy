@@ -154,8 +154,8 @@ class DaliRecord(object):
         """
 
         self._url = url
-        self._pdbId = pdbId
-        self._chain = chain
+        self._pdbId = pdbId.lower()
+        self._chain = chain.upper()
         subset = subset.upper()
         if subset == "FULLPDB" or subset not in ["PDB25", "PDB50", "PDB90"]:
             self._subset = ""
@@ -163,7 +163,7 @@ class DaliRecord(object):
             self._subset = "-"+subset[3:]
         timeout = kwargs.pop('timeout', 120)
 
-        self._title = pdbId + '-' + chain
+        self._title = self._pdbId + '-' + self._chain
         self._alignPDB = None
         self._filterDict = None
         self._max_index = None
@@ -402,9 +402,9 @@ class DaliRecord(object):
             cutoff_len = 0
         elif not isinstance(cutoff_len, (float, int)):
             raise TypeError('cutoff_len must be a float or an integer')
-        elif cutoff_len <= 1 and cutoff_len > 0:
+        elif cutoff_len <= 1 and cutoff_len >= 0:
             cutoff_len = int(cutoff_len*self._max_index)
-        elif cutoff_len <= self._max_index and cutoff_len > 0:
+        elif cutoff_len <= self._max_index and cutoff_len > 1:
             cutoff_len = int(cutoff_len)
         else:
             raise ValueError('cutoff_len must be a float between 0 and 1, or an int not greater than the max length')
@@ -455,13 +455,13 @@ class DaliRecord(object):
         pdbListAll = self._pdbListAll
         missing_ind_dict = dict()
         ref_indices_set = set(range(self._max_index))
+        query = self._pdbId+self._chain
         filterListLen = []
         filterListRMSD = []
         filterListZ = []
         filterListIdentity = []
         
-        # keep the first PDB (query PDB)
-        for pdb_chain in pdbListAll[1:]:
+        for pdb_chain in pdbListAll:
             temp_dict = daliInfo[pdb_chain]
             # filter: len_align, identity, rmsd, Z
             if temp_dict['len_align'] < cutoff_len:
@@ -503,7 +503,10 @@ class DaliRecord(object):
         filterDict = {'len': filterListLen, 'rmsd': filterListRMSD, 'Z': filterListZ, 'identity': filterListIdentity}
         self._filterList = filterList
         self._filterDict = filterDict
-        self._pdbList = [self._pdbListAll[0]] + [item for item in self._pdbListAll[1:] if not item in filterList]
+        if query in self._pdbListAll:
+            self._pdbList = [query] + [item for item in self._pdbListAll if item not in filterList]
+        else:
+            self._pdbList = [item for item in self._pdbListAll if item not in filterList]
         LOGGER.info(str(len(filterList)) + ' PDBs have been filtered out from '+str(len(pdbListAll))+' Dali hits (remaining: '+str(len(pdbListAll)-len(filterList))+').')
         return self._pdbList
     

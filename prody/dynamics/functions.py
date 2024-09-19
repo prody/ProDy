@@ -22,8 +22,11 @@ from .analysis import calcProjection
 from .analysis import calcCollectivity
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
+from .exgnm import exGNM
 from .rtb import RTB
 from .pca import PCA, EDA
+from .lda import LDA
+from .logistic import LRA
 from .imanm import imANM
 from .exanm import exANM
 from .mode import Vector, Mode, VectorBase
@@ -82,6 +85,16 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         type_ = 'EDA'
     elif isinstance(nma, PCA):
         type_ = 'PCA'
+    elif isinstance(nma, LDA):
+        type_ = 'LDA'
+        attr_list.append('_lda')
+        attr_list.append('_labels')
+        attr_list.append('_shuffled_ldas')
+    elif isinstance(nma, LRA):
+        type_ = 'LRA'
+        attr_list.append('_lra')
+        attr_list.append('_labels')
+        attr_list.append('_shuffled_lras')
     else:
         type_ = 'NMA'
 
@@ -114,6 +127,9 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
+
+    if isinstance(nma, exGNM):
+        attr_dict['type'] = 'exGNM'
 
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
@@ -173,10 +189,16 @@ def loadModel(filename, **kwargs):
             nma = exANM(title)
         elif type_ == 'imANM':
             nma = imANM(title)
+        elif type_ == 'exGNM':
+            nma = exGNM(title)
         elif type_ == 'NMA':
             nma = NMA(title)
         elif type_ == 'RTB':
             nma = RTB(title)
+        elif type_ == 'LDA':
+            nma = LDA(title)
+        elif type_ == 'LRA':
+            nma = LRA(title)
         else:
             raise IOError('NMA model type is not recognized: {0}'.format(type_))
 
@@ -197,6 +219,11 @@ def loadModel(filename, **kwargs):
                     dict_[attr] = attr_dict[attr]
             else:
                 dict_[attr] = attr_dict[attr]
+
+    if '_shuffled_ldas' in nma.__dict__:
+        nma._shuffled_ldas = [arr[0].getModel() for arr in nma._shuffled_ldas]
+    elif '_shuffled_lras' in nma.__dict__:
+        nma._shuffled_lras = [arr[0].getModel() for arr in nma._shuffled_lras]
 
     return nma
 
@@ -315,16 +342,28 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def parseScipionModes(metadata_file, title=None, pdb=None):
-    """Returns :class:`.NMA` containing eigenvectors and eigenvalues 
-    parsed from a ContinuousFlex FlexProtNMA Run directory.
+def parseScipionModes(metadata_file, title=None, pdb=None, parseIndices=False):
+    """Returns :class:`.NMA` or :class:`.GNM` containing eigenvectors and eigenvalues 
+    parsed from an NMA, GNM or PCA protocol path from ContinuousFlex or Scipion-EM-ProDy.
 
-    :arg run_path: path to the Run directory
-    :type run_path: str
+    :arg metadata_file: metadata sqlite file in Scipion protocol path
+        The location of this file is currently limited to the top level of the project path
+        and not to deep directories like the extra path.
+    :type metadata_file: str
     
     :arg title: title for :class:`.NMA` object
     :type title: str
+
+    :arg pdb: pdb file to help define dof
+    :type pdb: str
+
+    :arg parseIndices: whether to parse indices and output a ModeSet
+        default *False*
+    :type parseIndices: bool
     """
+    # Fill variables about how to find files based on the assumed location
+    # It may be a good idea to make this more general somehow, 
+    # but it shouldn't be too hard to keep the sqlite in the right place.
     run_path = os.path.split(metadata_file)[0]
     top_dirs = os.path.split(run_path)[0][:-4]
     run_name = os.path.split(run_path)[-1]
@@ -396,22 +435,40 @@ def parseScipionModes(metadata_file, title=None, pdb=None):
     vectors = np.zeros((dof, n_modes))
     vectors[:, 0] = mode1
 
-    eigvals = np.zeros(n_modes)
+    eigvals = {}
+    indices = []
 
     try:
-        eigvals[0] = float(row1['_nmaEigenval'])
+        indices.append(int(row1['_order_'])-1)
+        if parseIndices:
+            found_indices = True
+        else:
+            found_indices = False
+    except KeyError:
+        found_indices = False
+
+    try:
+        if found_indices:
+            eigvals[indices[0]] = float(row1['_nmaEigenval'])
+        else:
+            eigvals[0] = float(row1['_nmaEigenval'])
         found_eigvals = True
-    except:
+    except KeyError:
         found_eigvals = False
 
     for i, row in enumerate(star_loop[1:]):
         vectors[:, i+1] = parseArray(top_dirs + row['_nmaModefile']).reshape(-1)
-        if found_eigvals:
+        if found_eigvals and not found_indices:
             eigvals[i+1] = float(row['_nmaEigenval'])
+        if found_indices:
+            index = int(row['_order_'])-1
+            indices.append(index)
+            if found_eigvals:
+                eigvals[index] = float(row['_nmaEigenval'])
     
     if not found_eigvals:
-        log_fname = run_path + '/logs/run.stdout'
-        fi = open(log_fname, 'r')
+        logFileName = run_path + '/logs/run.stdout'
+        fi = open(logFileName, 'r')
         lines = fi.readlines()
         fi.close()
 
@@ -435,7 +492,22 @@ def parseScipionModes(metadata_file, title=None, pdb=None):
     else:
         nma = GNM(title)
 
-    nma.setEigens(vectors, eigvals)
+    nma.setEigens(vectors, np.array(list(eigvals.values())))
+
+    if found_indices:
+        n_modes = np.max(indices) + 1
+        vectors2 = np.ones((dof, n_modes))
+        eigvals2 = np.ones((n_modes))
+
+        for i, index in enumerate(indices):
+            vectors2[:, index] = vectors[:, i]
+            eigvals2[index] = eigvals[index]
+
+        nma2 = type(nma)(title)
+        nma2.setEigens(vectors2, eigvals2)
+
+        nma = nma2[indices]
+
     return nma
 
 
@@ -495,7 +567,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         raise TypeError('collectivityThreshold should be float, not {0}'
                         .format(type(collectivityThreshold)))
 
-    if modes.numModes() == 1 and not isinstance(modes, NMA):
+    if modes.numModes() == 1 and not isinstance(modes, (NMA, ModeSet)):
         old_modes = modes
         modes = NMA(old_modes)
         modes.setEigens(old_modes.getArray().reshape(-1, 1))
@@ -882,8 +954,8 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     if isfile(eigval_fname):
         vals_fname = eigval_fname
-    elif isfile(run_path + eigval_fname):
-        vals_fname = run_path + eigval_fname
+    elif isfile(join(run_path, eigval_fname)):
+        vals_fname = join(run_path, eigval_fname)
     else:
         raise ValueError('eigval_fname should point be a path to a file '
                          'either relative to run_path or an absolute one')
@@ -895,8 +967,8 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     if isfile(eigvec_fname):
         vecs_fname = eigval_fname
-    elif isfile(run_path + eigvec_fname):
-        vecs_fname = run_path + eigvec_fname
+    elif isfile(join(run_path, eigvec_fname)):
+        vecs_fname = join(run_path, eigvec_fname)
     else:
         raise ValueError('eigvec_fname should point be a path to a file '
                          'either relative to run_path or an absolute one')
@@ -908,8 +980,8 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     if isfile(pdb_fname):
         pdb = eigval_fname
-    elif isfile(run_path + pdb_fname):
-        pdb = run_path + pdb_fname
+    elif isfile(join(run_path, pdb_fname)):
+        pdb = join(run_path, pdb_fname)
     else:
         raise ValueError('pdb_fname should point be a path to a file '
                          'either relative to run_path or an absolute one')

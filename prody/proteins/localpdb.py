@@ -212,16 +212,15 @@ def fetchPDB(*pdb, **kwargs):
     if len(pdb) == 1 and isinstance(pdb[0], list):
         pdb = pdb[0]
 
-    if 'format' in kwargs and kwargs.get('format') != 'pdb':
-        return fetchPDBviaFTP(*pdb, **kwargs)
-
     identifiers = checkIdentifiers(*pdb)
 
     folder = kwargs.get('folder', '.')
     compressed = kwargs.get('compressed')
+    format_ = kwargs.get('format', 'pdb')
 
     # check *folder* specified by the user, usually pwd ('.')
-    filedict = findPDBFiles(folder, compressed=compressed)
+    filedict = findPDBFiles(folder, compressed=compressed, 
+                            format=format_)
 
     filenames = []
     not_found = []
@@ -240,8 +239,8 @@ def fetchPDB(*pdb, **kwargs):
         if len(filenames) == 1:
             filenames = filenames[0]
             if exists:
-                LOGGER.debug('PDB file is found in working directory ({0}).'
-                             .format(sympath(filenames)))
+                LOGGER.debug('{0} file is found in working directory ({1}).'
+                             .format(format_.upper(), sympath(filedict[pdb])))
         return filenames
 
     if not isWritable(folder):
@@ -414,6 +413,8 @@ def iterPDBFilenames(path=None, sort=False, unique=True, **kwargs):
 
     from re import compile, IGNORECASE
 
+    format = kwargs.get('format')
+
     if path is None or kwargs.get('mirror') is True:
         if path is None:
             path = pathPDBMirror()
@@ -435,11 +436,21 @@ def iterPDBFilenames(path=None, sort=False, unique=True, **kwargs):
             yielded = set()
         compressed = kwargs.get('compressed')
         if compressed is None:
-            pdbext = compile('\.(pdb|ent)(\.gz)?$', IGNORECASE)
+            pdbext = compile('[.](pdb|ent)([.]gz)?$', IGNORECASE)
+            cifext = compile('[.](cif)([.]gz)?$', IGNORECASE)
+            emdext = compile('[.](emd|map|mrc)([.]gz)?$', IGNORECASE)
         elif compressed:
-            pdbext = compile('\.(pdb|ent)\.gz$', IGNORECASE)
+            pdbext = compile('[.](pdb|ent)[.]gz$', IGNORECASE)
+            cifext = compile('[.](cif)[.]gz$', IGNORECASE)
+            emdext = compile('[.](emd|map|mrc)[.]gz$', IGNORECASE)
         else:
-            pdbext = compile('\.(pdb|ent)$', IGNORECASE)
+            pdbext = compile('[.](pdb|ent)$', IGNORECASE)
+            cifext = compile('[.](cif)$', IGNORECASE)
+            emdext = compile('[.](emd|map|mrc)$', IGNORECASE)
+        if format == 'cif':
+            pdbext = cifext
+        if format == 'emd':
+            pdbext = emdext
         pdbs = [pdb for pdb in iglob(join(path, '*')) if pdbext.search(pdb)]
         if sort:
             pdbs.sort(reverse=kwargs.get('reverse'))
@@ -473,7 +484,10 @@ def findPDBFiles(path, case=None, **kwargs):
     pdbs = {}
     for fn in iterPDBFilenames(path, sort=True, reverse=True, **kwargs):
         fn = normpath(fn)
-        pdb = splitext(splitext(split(fn)[1])[0])[0]
+        pdb = splitext(split(fn)[1])[0]
+        ending = splitext(split(fn)[1])[1]
+        if ending == '.gz':
+            pdb = splitext(pdb)[0]
         if len(pdb) == 7 and pdb.startswith('pdb'):
             pdb = pdb[3:]
         if upper:

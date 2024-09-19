@@ -13,12 +13,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["2.7", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["2.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: MatteoH2O1999/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Add conda to system path
@@ -26,11 +26,12 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        if [[ ${{ matrix.python-version }} == "3.11" ]]; then conda config --add channels conda-forge; fi
+        if [[ ${{ matrix.python-version }} != "2.7" ]]; then conda config --add channels conda-forge; fi
         conda create --yes -n test python=${{ matrix.python-version }}
         source activate test
-        conda install --yes numpy scipy nose pyparsing biopython requests
-        if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; fi
+        conda install --yes numpy scipy nose requests
+        if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; else conda install --yes pdbfixer mdtraj; fi
+        pip install mmtf-python scikit-learn
         pip install .
         python setup.py build_ext --inplace --force
     - name: Test with pytest

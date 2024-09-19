@@ -741,14 +741,14 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         default True
     :type align: bool
 
-    :arg method: alignment method, one of either 'global' (biopython.pairwise2.align.globalms),
-        'local' (biopython.pairwise2.align.localms), clustalw(2), or another software in your path.
-        Default is 'clustalw'
+    :arg method: alignment method, one of either Biopython 'global',
+        Biopython 'local', clustalw(2), or another software in your path.
+        Default is 'local'
     :type align: str
     """
     
     align = kwargs.get('align', True)
-    method = kwargs.get('method', 'clustalw')
+    method = kwargs.get('method', 'local')
     # 1. check if sequences are in a fasta file and if not make one
     if isinstance(sequences, str):
         filename = sequences
@@ -834,7 +834,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
                 raise EnvironmentError("The executable for {0} was not found, \
                                         install it or add it to the path.".format(alignTool))
 
-            os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
+            os.system('"%s" %s -OUTORDER=INPUT'%(alignTool, filename))
 
             # 3. parse and return the new MSA
             msa = parseMSA(title + '.aln')
@@ -1078,11 +1078,11 @@ def alignSequenceToMSA(seq, msa, **kwargs):
     if method == 'local':
         alignment = alignBioPairwise(sequence, str(refMsaSeq), "local",
                                      match, mismatch, gap_opening, gap_extension,
-                                     one_alignment_only=1)
+                                     max_alignments=1)
     elif method == 'global':
         alignment = alignBioPairwise(sequence, str(refMsaSeq), "global",
                                      match, mismatch, gap_opening, gap_extension,
-                                     one_alignment_only=1)
+                                     max_alignments=1)
     else:
         raise ValueError('method should be local or global')
 

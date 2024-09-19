@@ -1,4 +1,4 @@
-__author__ = 'Ahmet Bakan, Anindita Dutta, Wenzhi Mao'
+__author__ = 'Ahmet Bakan, Anindita Dutta, Wenzhi Mao, James Krieger'
 
 from prody.tests import TestCase
 
@@ -1205,7 +1205,8 @@ class TestBuildMSA(TestCase):
         sequences = [ags[0].protein["A"].getSequence(), 
                      ags[1].protein["A"].getSequence()]
 
-        expect = parseMSA(pathDatafile('msa_3hsyA_3o21A.fasta'))
+        expect1 = parseMSA(pathDatafile('msa_3hsyA_3o21A.fasta'))
+        expect2 = parseMSA(pathDatafile('msa_3hsyA_3o21A_new.fasta'))
         result = buildMSA(sequences, method="local", labels=["A2", "A3"])
-        assert_array_equal(expect, result)
+        assert result in (expect1, expect2), "The list of expected buildMSA results did not contain " + result
         

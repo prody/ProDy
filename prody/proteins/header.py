@@ -1124,10 +1124,13 @@ def buildBiomolecules(header, atoms, biomol=None):
             
             t = Transformation(rotation, translation)
 
-            newag = atoms.select('chain ' + ' '.join(mt[times*4+0])).copy()
+            newag = atoms.select('chain ' + ' or chain '.join(mt[times*4+0]))
             if newag is None:
                 continue
-            newag.all.setSegnames(decToHybrid36(times+1,resnum=True))
+            newag = newag.copy()
+            segnames = newag.all.getSegnames()
+            newag.all.setSegnames(np.array([segname + decToHybrid36(times+1, resnum=True) 
+                                            for segname in segnames]))
             for acsi in range(newag.numCoordsets()):
                 newag.setACSIndex(acsi)
                 newag = t.apply(newag)

@@ -192,7 +192,7 @@ class PCA(NMA):
         if not quiet:
             LOGGER.report('Covariance matrix calculated in %2fs.', '_prody_pca')
 
-    def calcModes(self, n_modes=20, turbo=True):
+    def calcModes(self, n_modes=20, turbo=True, **kwargs):
         """Calculate principal (or essential) modes.  This method uses
         :func:`scipy.linalg.eigh`, or :func:`numpy.linalg.eigh`, function
         to diagonalize the covariance matrix.
@@ -214,7 +214,7 @@ class PCA(NMA):
             n_modes = None
         
         values, vectors, _ = solveEig(self._cov, n_modes=n_modes, zeros=True, 
-                                      turbo=turbo, reverse=True)
+                                      turbo=turbo, reverse=True, **kwargs)
         which = values > ZERO
         self._eigvals = values[which]
         self._array = vectors[:, which]

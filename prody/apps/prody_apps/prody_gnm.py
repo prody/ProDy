@@ -40,7 +40,7 @@ def prody_gnm(pdb, **kwargs):
         if not key in kwargs:
             kwargs[key] = DEFAULTS[key]
 
-    from os.path import isdir, splitext, join
+    from os.path import isdir, join, exists
     outdir = kwargs.get('outdir')
     if not isdir(outdir):
         raise IOError('{0} is not a valid path'.format(repr(outdir)))
@@ -57,6 +57,10 @@ def prody_gnm(pdb, **kwargs):
     model = kwargs.get('model')
     altloc = kwargs.get('altloc')
     zeros = kwargs.get('zeros')
+    membrane = kwargs.get('membrane')
+
+    if membrane and not exists(pdb):
+        pdb = prody.fetchPDBfromOPM(pdb)
 
     pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
     if prefix == '_gnm':
@@ -69,6 +73,10 @@ def prody_gnm(pdb, **kwargs):
     LOGGER.info('{0} atoms will be used for GNM calculations.'
                 .format(len(select)))
 
+    if membrane:
+        gnm = prody.exGNM(pdb.getTitle())
+    else:
+        gnm = prody.GNM(pdb.getTitle())
     try:
         gamma = float(kwargs.get('gamma'))
         LOGGER.info("Using gamma {0}".format(gamma))
@@ -82,26 +90,15 @@ def prody_gnm(pdb, **kwargs):
         except TypeError:
             raise TypeError("Please provide gamma as a float or ProDy Gamma class")
 
-    gnm = prody.GNM(pdb.getTitle())
-
     nproc = kwargs.get('nproc')
-    if nproc:
-        try:
-            from threadpoolctl import threadpool_limits
-        except ImportError:
-            raise ImportError('Please install threadpoolctl to control threads')
-
-        with threadpool_limits(limits=nproc, user_api="blas"):
-            gnm.buildKirchhoff(select, cutoff, gamma)
-            gnm.calcModes(nmodes, zeros=zeros)
-    else:
-        gnm.buildKirchhoff(select, cutoff, gamma)
-        gnm.calcModes(nmodes, zeros=zeros)
+    gnm.buildKirchhoff(select, cutoff, gamma)
+    gnm.calcModes(nmodes, zeros=zeros, nproc=nproc)
 
     LOGGER.info('Writing numerical output.')
 
     if kwargs.get('outnpz'):
-        prody.saveModel(gnm, join(outdir, prefix))
+        prody.saveModel(gnm, join(outdir, prefix), 
+                        matrices=kwargs.get('npzmatrices'))
 
     if kwargs.get('outscipion'):
         prody.writeScipionModes(outdir, gnm)
@@ -188,14 +185,14 @@ def prody_gnm(pdb, **kwargs):
 
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                prody.showCrossCorr(gnm)
+                prody.showCrossCorr(gnm, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cc.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')
 
             if figall or cm:
                 plt.figure(figsize=(width, height))
-                prody.showContactMap(gnm)
+                prody.showContactMap(gnm, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cm.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')
