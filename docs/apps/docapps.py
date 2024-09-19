@@ -1,10 +1,8 @@
 #!/usr/bin/python
 
 import os
-try:
-    import imp
-except ModuleNotFoundError:
-    from importlib import import_module as imp
+from prody.utilities.misctools import importImp
+imp = importImp()
 import importlib
 from subprocess import Popen, PIPE
 
