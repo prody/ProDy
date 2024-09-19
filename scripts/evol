@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 
-from prody.utilities.misctools import importImp
-imp = importImp()
+from prody.utilities.misctools import impLoadModule
 import importlib
-if sys.version_info[0] == 2:
-    path_prody = imp.find_module('prody')[1]
-else:
-    path_prody = importlib.util.find_spec("prody").submodule_search_locations[0]
-apps = imp.find_module('apps', [path])
-apps = imp.load_module('prody.apps', *apps)
+
+path_apps = importlib.util.find_spec("prody.apps").submodule_search_locations[0]
+apps = impLoadModule('prody.apps.evol_apps', path_apps + '/evol_apps/', '__init__')
 
 if __name__ == '__main__':
     apps.evol_main()
