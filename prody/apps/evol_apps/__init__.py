@@ -1,8 +1,6 @@
 """This module defines some sequence evolution applications."""
 
 import importlib
-import importlib.machinery
-import importlib.resources
 import sys
 
 try:
