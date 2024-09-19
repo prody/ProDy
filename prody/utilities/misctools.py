@@ -22,7 +22,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
            'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'checkIdentifiers', 'split', 'mad',
-           'importDec']
+           'importDec', 'impLoadModule']
 
 DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
@@ -803,11 +803,22 @@ def importDec():
 
     return dec
 
-def importImp():
+
+def impLoadModule(name, cmd, path):
     """Returns an  an imported module equivalent to imp."""
+
+    if not name.endswith('.'):
+        name += '.'
+
     try:
         import imp
-    except ModuleNotFoundError:
-        from importlib import import_module as imp
+        mod = imp.load_module(name + cmd,
+                              *imp.find_module(cmd, [path]))
+    except ImportError:
+        import importlib
+        loader = importlib.machinery.SourceFileLoader(name + cmd,
+                                                      path + cmd + '.py')
+        mod = importlib.util.types.ModuleType(loader.name)
+        loader.exec_module(mod)
 
-    return imp
+    return mod

@@ -1,7 +1,5 @@
 """This module defines structure and dynamics analysis applications."""
 
-from prody.utilities.misctools import importImp
-imp = importImp()
 import importlib
 import sys
 
@@ -10,14 +8,22 @@ try:
 except ImportError:
     from .. import argparse
 
-from ..apptools import *
+from prody.apps.apptools import *
+from prody.utilities.misctools import impLoadModule
 
 if sys.version_info[0] == 2:
+    import imp
     path_prody = imp.find_module('prody')[1]
 else:
     path_prody = importlib.util.find_spec("prody").submodule_search_locations[0]
-path_apps = imp.find_module('apps', [path_prody])[1]
-path_apps = imp.find_module('prody_apps', [path_apps])[1]
+
+try:
+    import imp
+    path_apps = imp.find_module('apps', [path_prody])[1]
+    path_apps = imp.find_module('prody_apps', [path_apps])[1]
+except ModuleNotFoundError:
+    path_apps = importlib.util.find_spec("prody.apps").submodule_search_locations[0]
+    path_apps += '/prody_apps/'
 
 PRODY_APPS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol',
                   'catdcd', 'contacts', 'fetch', 'select', 'energy', 
@@ -48,7 +54,6 @@ for cmd in PRODY_APPS:
     mod = imp.load_module('prody.apps.prody_apps.' + cmd,
                           *imp.find_module(cmd, [path_apps]))
     mod.addCommand(prody_commands)
-
 
 def prody_main():
 

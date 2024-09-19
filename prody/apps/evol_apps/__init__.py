@@ -1,8 +1,8 @@
 """This module defines some sequence evolution applications."""
 
-from prody.utilities.misctools import importImp
-imp = importImp()
 import importlib
+import importlib.machinery
+import importlib.resources
 import sys
 
 try:
@@ -10,14 +10,22 @@ try:
 except ImportError:
     from .. import argparse
 
-from ..apptools import *
+from prody.apps.apptools import *
+from prody.utilities.misctools import impLoadModule
 
 if sys.version_info[0] == 2:
+    import imp
     path_prody = imp.find_module('prody')[1]
 else:
     path_prody = importlib.util.find_spec("prody").submodule_search_locations[0]
-path_apps = imp.find_module('apps', [path_prody])[1]
-path_apps = imp.find_module('evol_apps', [path_apps])[1]
+
+try:
+    import imp
+    path_apps = imp.find_module('apps', [path_prody])[1]
+    path_apps = imp.find_module('evol_apps', [path_apps])[1]
+except ModuleNotFoundError:
+    path_apps = importlib.util.find_spec("prody.apps").submodule_search_locations[0]
+    path_apps += '/evol_apps/'
 
 EVOL_APPS = ['search', 'fetch', 'filter', 'refine', 'merge', 'occupancy',
              'conserv', 'coevol', 'rankorder']
@@ -82,8 +90,7 @@ evol_commands = evol_parser.add_subparsers(
 
 for cmd in EVOL_APPS:
     cmd = 'evol_' + cmd
-    mod = imp.load_module('prody.apps.evol_apps.' + cmd,
-                          *imp.find_module(cmd, [path_apps]))
+    mod = impLoadModule('prody.apps.evol_apps.', cmd, path_apps)
     mod.APP.addApplication(evol_commands)
 
 
