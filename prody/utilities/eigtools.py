@@ -40,7 +40,13 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, rever
             if eigvals:
                 turbo = False
             if not issparse(M):
-                values, vectors = linalg.eigh(M, turbo=turbo, eigvals=eigvals)
+                if hasattr('linalg.eigh', 'turbo'):
+                    values, vectors = linalg.eigh(M, turbo=turbo, eigvals=eigvals)
+                else:
+                    if turbo:
+                        values, vectors = linalg.eigh(M, driver='evd', eigvals=eigvals)
+                    else:
+                        values, vectors = linalg.eigh(M, eigvals=eigvals)
             else:
                 try:
                     from scipy.sparse import linalg as scipy_sparse_la
