@@ -792,13 +792,13 @@ def importDec():
 
     try:
         import numpy.testing.decorators as dec
-    except ImportError:
+    except ModuleNotFoundError:
         try:
             from numpy.testing import dec
         except ImportError:
             try:
                 import numpy.testing._private.decorators as dec
-            except ImportError:
+            except ModuleNotFoundError:
                 from pytest import mark as dec    
 
     return dec

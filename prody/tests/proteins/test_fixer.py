@@ -3,7 +3,7 @@
 from numpy.testing import *
 try:
     import numpy.testing.decorators as dec
-except ImportError:
+except ModuleNotFoundError:
     from numpy.testing import dec
 
 from prody import *
