@@ -28,7 +28,7 @@ from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB, parsePDB
 from collections import Counter
 
-from prody.trajectory import TrajBase, Trajectory
+from prody.trajectory import TrajBase, Trajectory, Frame
 from prody.ensemble import Ensemble
 
 import multiprocessing
@@ -46,7 +46,8 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
-           'showSminaTermValues']
+           'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
+           'saveInteractionsAsDummyAtoms']
 
 
 def cleanNumbers(listContacts):
@@ -153,6 +154,160 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
     return final
 
 
+def get_energy(pair, source):
+    """Return energies based on the pairs of interacting residues (without distance criteria)
+    Taking information from tabulated_energies.txt file"""
+
+    import numpy as np
+    import importlib.resources as pkg_resources    
+    
+    aa_correction = {
+        # Histidine (His)
+        'HSD': 'HIS',   # NAMD, protonated at ND1 (HID in AMBER)
+        'HSE': 'HIS',   # NAMD, protonated at NE2 (HIE in AMBER)
+        'HSP': 'HIS',   # NAMD, doubly protonated (HIP in AMBER)
+        'HID': 'HIS',   # AMBER name, protonated at ND1
+        'HIE': 'HIS',   # AMBER name, protonated at NE2
+        'HIP': 'HIS',   # AMBER name, doubly protonated
+        'HISD': 'HIS',  # GROMACS: protonated at ND1
+        'HISE': 'HIS',  # GROMACS: protonated at NE2
+        'HISP': 'HIS',  # GROMACS: doubly protonated
+
+        # Cysteine (Cys)
+        'CYX': 'CYS',   # Cystine (disulfide bridge)
+        'CYM': 'CYS',   # Deprotonated cysteine, anion
+
+        # Aspartic acid (Asp)
+        'ASH': 'ASP',   # Protonated Asp
+        'ASPP': 'ASP',
+
+        # Glutamic acid (Glu)
+        'GLH': 'GLU',   # Protonated Glu
+        'GLUP': 'GLU',  # Protonated Glu
+
+        # Lysine (Lys)
+        'LYN': 'LYS',   # Deprotonated lysine (neutral)
+
+        # Arginine (Arg)
+        'ARN': 'ARG',   # Deprotonated arginine (rare, GROMACS)
+
+        # Tyrosine (Tyr)
+        'TYM': 'TYR',   # Deprotonated tyrosine (GROMACS)
+
+        # Serine (Ser)
+        'SEP': 'SER',   # Phosphorylated serine (GROMACS/AMBER)
+
+        # Threonine (Thr)
+        'TPO': 'THR',   # Phosphorylated threonine (GROMACS/AMBER)
+
+        # Tyrosine (Tyr)
+        'PTR': 'TYR',   # Phosphorylated tyrosine (GROMACS/AMBER)
+
+        # Non-standard names for aspartic and glutamic acids in low pH environments
+        'ASH': 'ASP',   # Protonated Asp
+        'GLH': 'GLU',   # Protonated Glu
+    }
+    
+    pair = [aa_correction.get(aa, aa) for aa in pair]    
+    
+    if PY3K:
+         file_path = pkg_resources.path('prody.proteins', 'tabulated_energies.txt')
+    else:
+        file_path = pkg_resources.resource_filename('prody.proteins', 'tabulated_energies.txt')
+
+    with open(file_path) as f:
+        data = np.loadtxt(f, dtype=str)
+    
+    sources = ["IB_nosolv", "IB_solv", "CS"]
+    aa_pairs = []
+    
+    for row in data:
+        aa_pairs.append(row[0]+row[1])
+    
+    lookup = pair[0]+pair[1]
+    
+    try:
+        data_results = data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
+    except TypeError:
+        raise TypeError('Please replace non-standard names of residues with standard names.')
+
+    return data_results
+
+
+def checkNonstandardResidues(atoms):
+    """Check whether the atomic structure contains non-standard residues and inform to replace the name
+    to the standard one so that non-standard residues are treated in a correct way while computing
+    interactions.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    """
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+    
+    amino_acids = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN", "GLY", "HIS", "ILE", 
+                   "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
+
+    aa_list = atoms.select('name CA').getResnames()
+    aa_list_nr = atoms.select('name CA').getResnums()
+    nonstandard = []
+    
+    for nr_i,i in enumerate(aa_list):
+        if i not in amino_acids:
+            nonstandard.append(aa_list[nr_i] + str(aa_list_nr[nr_i]))
+    
+    if len(nonstandard) > 0:
+        LOGGER.info('There are several non-standard residues in the structure.')
+        LOGGER.info('Replace the non-standard name in the PDB file with the equivalent name from the standard one if you want to include them in the interactions.')
+        LOGGER.info("Residues: {0}.".format(' '.join(nonstandard)))
+        return True
+
+    return False
+
+
+def showPairEnergy(data, **kwargs):
+    """Return energies when a list of interactions is given. Energies will be added to each pair of residues 
+    at the last position in the list. Energy is based on the residue types and not on the distances.
+    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated), 'IB_solv' (solvent-mediated) 
+    are taken from [OK98]_ and 'CS' from InSty paper (under preparation). 
+    Protonation of residues is not distinguished. The protonation of residues is not distinguished. 
+    Known residues such as HSD, HSE, HIE, and HID (used in MD simulations) are treated as HIS.
+    
+    :arg data: list with interactions from calcHydrogenBonds() or other types
+    :type data: list
+    
+    :arg energy_list_type: name of the list with energies 
+                            default is 'IB_solv'
+    :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+    
+    
+    .. [OK98] Keskin O., Bahar I., Badretdinov A.Y., Ptitsyn O.B., Jernigan R.L., 
+    Empirical solvet-mediated potentials hold for both intra-molecular and 
+    inter-molecular inter-residues interactions,
+    *Protein Science* **1998** 7: 2578–2586.
+    """
+    
+    if not isinstance(data, list):
+        raise TypeError('list_of_interactions must be a list of interactions.')
+
+    energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
+    
+    for i in data:
+        energy = get_energy([i[0][:3], i[3][:3]], energy_list_type)
+        i.append(float(energy))
+        
+    return data
+
+
+
 def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     """Provide information about hydrophobic contacts between pairs of residues based on 
     the regsurf program. To use this function compiled hpb.so is needed.
@@ -163,7 +318,7 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
     :arg selection: selection string of hydrophobic residues
     :type selection: str
     
-    :arg hpb_cutoff: cutoff for hydrophobic overlaping area values
+    :arg hpb_cutoff: cutoff for hydrophobic overlapping area values
         default is 0.0
     :type hpb_cutoff: float, int
     
@@ -200,7 +355,7 @@ def calcHydrophobicOverlapingAreas(atoms, **kwargs):
         lA = [ [x[i] + str(y[i]), z[i] +'_'+ str(w[i]), ch[i]] for i in range(len(x))]
             
         output = hpb.hpb((lB,lA))
-        LOGGER.info("Hydrophobic Overlaping Areas are computed.")
+        LOGGER.info("Hydrophobic Overlapping Areas are computed.")
         output_final = [i for i in output if i[-1] >= hpb_cutoff]
         
         if cumulative_values == None:            
@@ -1000,11 +1155,11 @@ def calcHydrophobic(atoms, **kwargs):
                         non_standard works too
     :type non_standard_Hph: dict
 
-    :arg zerosHPh: zero values of hydrophobic overlaping areas included
+    :arg zerosHPh: zero values of hydrophobic overlapping areas included
         default is False
     :type zerosHPh: bool
 
-    Last value in the output corresponds to the total hydrophobic overlaping area for two residues
+    Last value in the output corresponds to the total hydrophobic overlapping area for two residues
     not only for the atoms that are included in the list. Atoms that which are listed are the closest
     between two residues and they will be inluded to draw the line in VMD_.
     
@@ -1065,7 +1220,7 @@ def calcHydrophobic(atoms, **kwargs):
     aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
     aromatic = list(set(atoms.aromatic.getResnames()))
     
-    # Computing hydrophobic overlaping areas for pairs of residues:
+    # Computing hydrophobic overlapping areas for pairs of residues:
     try:
         hpb_overlaping_results = calcHydrophobicOverlapingAreas(atoms_hydrophobic, cumulative_values='pairs')
     except: 
@@ -1816,11 +1971,16 @@ def showInteractionsGraph(statistics, **kwargs):
               'HIS': 'H', 'HSD': 'H','HSE': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
               'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M'}
     
-    if len(statistics[0]) != 4:
-        raise TypeError('data must be a list obtained from calcStatisticsInteractions')
+
+    if isinstance(statistics, int) or isinstance(statistics, str) or isinstance(statistics, Atomic):
+        raise TypeError('input data must be a list, use calcStatisticsInteractions to obtain statistics for a particular interaction type')
+
+    if isinstance(statistics, InteractionsTrajectory) or isinstance(statistics, Interactions):
+        raise TypeError('use calcStatisticsInteractions to obtain statistics for a particular interaction type')
+        
     else:
-        if isinstance(statistics, int) or isinstance(statistics, str):
-            raise TypeError('node_size must be a list')
+        if len(statistics[0]) != 5:
+            raise TypeError('input data must be a list obtained from calcStatisticsInteractions')
 
     code = kwargs.pop('code', None)
     if code is None:
@@ -1887,8 +2047,15 @@ def showInteractionsGraph(statistics, **kwargs):
 def calcStatisticsInteractions(data, **kwargs):
     """Return the statistics of interactions from PDB Ensemble or trajectory including:
     (1) the weight for each residue pair: corresponds to the number of counts divided by the 
-    number of frames (values >1 are obtained when residue pair creates multiple contacts); 
-    (2) average distance of interactions for each pair [in Ang] and (3) standard deviation [Ang.].
+    number of frames (values >1 are obtained when the residue pair creates multiple contacts); 
+    (2) average distance of interactions for each pair [in Ang], 
+    (3) standard deviation [Ang.],
+    (4) Energy [in kcal/mol] that is not distance dependent. Energy by default is solvent-mediated
+    from [OK98]_ ('IB_solv'). To use non-solvent-mediated entries ('IB_nosolv') from [OK98]_ or
+    solvent-mediated values obtained for InSty paper ('CS', under preparation) change 
+    `energy_list_type` parameter. 
+    If energy information is not available, please check whether the pair of residues is listed in 
+    the "tabulated_energies.txt" file, which is localized in the ProDy directory.
         
     :arg data: list with interactions from calcHydrogenBondsTrajectory() or other types
     :type data: list
@@ -1897,6 +2064,11 @@ def calcStatisticsInteractions(data, **kwargs):
         1 or more means that residue contact is present in all conformations/frames
         default value is 0.2 (in 20% of conformations contact appeared)
     :type weight_cutoff: int, float 
+    
+    :arg energy_list_type: name of the list with energies 
+                            default is 'IB_solv'
+    :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+
     
     Example of usage: 
     >>> atoms = parsePDB('PDBfile.pdb')
@@ -1912,6 +2084,7 @@ def calcStatisticsInteractions(data, **kwargs):
     
     interactions_list = [ (jj[0]+jj[2]+'-'+jj[3]+jj[5], jj[6]) for ii in data for jj in ii]
     weight_cutoff = kwargs.pop('weight_cutoff', 0.2)
+    energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
     
     import numpy as np
     elements = [t[0] for t in interactions_list]
@@ -1920,11 +2093,21 @@ def calcStatisticsInteractions(data, **kwargs):
     for element in elements:
         if element not in stats:
             values = [t[1] for t in interactions_list if t[0] == element]
-            stats[element] = {
-                "stddev": np.round(np.std(values),6),
-                "mean": np.round(np.mean(values),6),
-                "weight": np.round(float(len(values))/len(data), 6)
-            }
+            
+            try:
+                stats[element] = {
+                    "stddev": np.round(np.std(values),6),
+                    "mean": np.round(np.mean(values),6),
+                    "weight": np.round(float(len(values))/len(data), 6),
+                    "energy": get_energy([element.split('-')[0][:3], element.split('-')[1][:3]], energy_list_type)
+                }
+            except:
+                LOGGER.warn('energy information is not available for ', element.split('-')[0][:3], element.split('-')[1][:3])
+                stats[element] = {
+                    "stddev": np.round(np.std(values),6),
+                    "mean": np.round(np.mean(values),6),
+                    "weight": np.round(float(len(values))/len(data), 6)
+                }
 
     statistic = []
     for key, value in stats.items():
@@ -1933,7 +2116,11 @@ def calcStatisticsInteractions(data, **kwargs):
             LOGGER.info("  Average [Ang.]: {}".format(value['mean']))
             LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
             LOGGER.info("  Weight: {0}".format(value['weight']))
-            statistic.append([key, value['weight'], value['mean'], value['stddev']])
+            try:
+                LOGGER.info("  Energy [kcal/mol]: {0}".format(value['energy']))
+                statistic.append([key, value['weight'], value['mean'], value['stddev'], value['energy']])
+            except:
+                statistic.append([key, value['weight'], value['mean'], value['stddev']])
         else: pass
     
     statistic.sort(key=lambda x: x[1], reverse=True)
@@ -2015,6 +2202,80 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
             LOGGER.info('Additional contacts for '+residue1+':')
             for i in additional_residues:
                 LOGGER.info(i)
+
+
+def saveInteractionsAsDummyAtoms(atoms, interactions, filename, **kwargs):
+    '''Creates a PDB file which will contain protein structure and dummy atoms that will be placed between pairs
+    of interacting residues.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    
+    :arg interactions: list of interactions
+    :type interactions: list
+
+    :arg filename: name of the PDB file which will contain dummy atoms and protein structure
+    :type filename: str 
+    
+    :arg RESNAME_dummy: resname of the dummy atom, use 3-letter name
+                        be default is 'DUM'
+    :type RESNAME_dummy: str '''
+
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+                            
+    RESNAME_dummy = kwargs.pop('RESNAME_dummy', 'DUM')
+    
+    def calcDUMposition(coord1, coord2):
+        midpoint = [
+            (coord1[0] + coord2[0]) / 2,
+            (coord1[1] + coord2[1]) / 2,
+            (coord1[2] + coord2[2]) / 2
+        ]
+        return midpoint
+
+    all_DUMs = []
+    atoms_ = atoms.copy()
+
+    for i in interactions:
+        if len(i[1].split('_')) <= 3:
+            res1_name = 'chain '+i[2]+' and resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_')[1:])
+            res1_coords = calcCenter(atoms.select(res1_name))  
+        
+        if len(i[1].split('_')) > 3:
+            res1_name = 'chain '+i[2]+' and resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_'))
+            res1_coords = calcCenter(atoms.select(res1_name))
+
+        if len(i[4].split('_')) <= 3:
+            res2_name = 'chain '+i[5]+' and resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_')[1:])
+            res2_coords = calcCenter(atoms.select(res2_name))
+            
+        if len(i[4].split('_')) > 3:     
+            res2_name = 'chain '+i[5]+' and resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_'))
+            res2_coords = calcCenter(atoms.select(res2_name))
+
+        all_DUMs.append(calcDUMposition(res1_coords, res2_coords))
+    
+    if all_DUMs == []:
+        LOGGER.info('Lack of interactions')
+    else:
+        LOGGER.info('Creating file with dummy atoms')
+        dummyAtoms = AtomGroup()
+        coords = array([all_DUMs], dtype=float)
+        dummyAtoms.setCoords(coords)
+        dummyAtoms.setNames([RESNAME_dummy]*len(dummyAtoms))
+        dummyAtoms.setResnums(range(1, len(dummyAtoms)+1))
+        dummyAtoms.setResnames([RESNAME_dummy]*len(dummyAtoms))
+
+        writePDB(filename, atoms_+dummyAtoms)
 
 
 def listLigandInteractions(PLIP_output, **kwargs):
@@ -2688,6 +2949,7 @@ class Interactions(object):
         self._atoms = None
         self._interactions = None
         self._interactions_matrix = None
+        self._interactions_matrix_en = None
         self._hbs = None
         self._sbs = None
         self._rib = None
@@ -2767,14 +3029,33 @@ class Interactions(object):
         :arg selection2: selection string
         :type selection2: str 
         
+        :arg replace: Used with selection criteria to set the new one
+                      If set to **True** the selection will be replaced by the new one.
+                      Default is **False**
+        :type replace: bool
+
         Selection:
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
         If we want to study chain-chain interactions:
             selection='chain A', selection2='chain B'  """
-
+        
+        replace = kwargs.pop('replace', False)
+                
         if len(kwargs) != 0:
             results = [filterInteractions(j, self._atoms, **kwargs) for j in self._interactions]
+
+            if replace == True:
+                LOGGER.info('New interactions are set')
+                self._interactions = results           
+                self._hbs = results[0]
+                self._sbs = results[1]
+                self._rib = results[2]
+                self._piStack = results[3] 
+                self._piCat = results[4]
+                self._hps = results[5]
+                self._dibs = results[6]
+
         else: 
             results = self._interactions
         
@@ -3087,6 +3368,42 @@ class Interactions(object):
         return InteractionsMap
 
 
+    def buildInteractionMatrixEnergy(self, **kwargs):
+        """Build matrix with interaction energy comming from energy of pairs of specific residues.
+        
+        :arg energy_list_type: name of the list with energies 
+                            default is 'IB_solv'
+        :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+        """
+        
+        import numpy as np
+        import matplotlib
+        import matplotlib.pyplot as plt
+        from prody.dynamics.plotting import pplot
+        
+        atoms = self._atoms   
+        interactions = self._interactions
+        energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
+
+        LOGGER.info('Calculating interactions')
+        InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
+        resIDs = list(atoms.select('name CA').getResnums())
+        resChIDs = list(atoms.select('name CA').getChids())
+        resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
+            
+        for nr_i,i in enumerate(interactions):
+            if i != []:
+                for ii in i: 
+                    m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
+                    m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
+                    scoring = get_energy([ii[0][:3], ii[3][:3]], energy_list_type)
+                    InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = InteractionsMap[m1][m2] + float(scoring) 
+
+        self._interactions_matrix_en = InteractionsMap
+        
+        return InteractionsMap
+
+
     def showInteractors(self, **kwargs):
         """Display protein residues and their number of potential interactions
         with other residues from protein structure. """
@@ -3127,23 +3444,40 @@ class Interactions(object):
         
         :arg filename: name of the PDB file which will be saved for visualization,
                      it will contain the results in occupancy column.
-        :type filename: str  """
+        :type filename: str  
+        
+        :arg energy: sum of the energy between residues
+                    default is False
+        :type energy: bool 
+        """
+        
+        energy = kwargs.pop('energy', False)
         
         if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
             raise ValueError('Please calculate interactions matrix first.')
 
-        import numpy as np
-        interaction_matrix = self._interactions_matrix
-        atoms = self._atoms     
-        freq_contacts_residues = np.sum(interaction_matrix, axis=0)
+        if not isinstance(energy, bool):
+            raise TypeError('energy should be True or False')
         
+        import numpy as np
         from collections import Counter
-        lista_ext = []
+        
+        atoms = self._atoms 
+        interaction_matrix = self._interactions_matrix
+        interaction_matrix_en = self._interactions_matrix_en
+        
         atoms = atoms.select("protein and noh")
+        lista_ext = []
         aa_counter = Counter(atoms.getResindices())
         calphas = atoms.select('name CA')
+        
         for i in range(calphas.numAtoms()):
-            lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])
+            if energy == True:
+                matrix_en_sum = np.sum(interaction_matrix_en, axis=0)
+                lista_ext.extend(list(aa_counter.values())[i]*[round(matrix_en_sum[i], 8)]) 
+            else:
+                freq_contacts_residues = np.sum(interaction_matrix, axis=0)            
+                lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])        
 
         kw = {'occupancy': lista_ext}
         if 'filename' in kwargs:
@@ -3152,6 +3486,7 @@ class Interactions(object):
         else:
             writePDB('filename', atoms, **kw)
             LOGGER.info('PDB file saved.')
+
 
     def getFrequentInteractors(self, contacts_min=3):
         """Provide a list of residues with the most frequent interactions based 
@@ -3255,18 +3590,22 @@ class Interactions(object):
                 y.append(all_y[nr_ii])
 
         if SETTINGS['auto_show']:
-            matplotlib.rcParams['font.size'] = '20' 
-            fig = plt.figure(num=None, figsize=(12,6), facecolor='w')
+            matplotlib.rcParams['font.size'] = '12' 
+            fig = plt.figure(num=None, figsize=(16,5), facecolor='w')
         
         y_pos = np.arange(len(y))
         show = plt.bar(y_pos, x, align='center', alpha=0.5, color='blue')
-        plt.xticks(y_pos, y, rotation=45, fontsize=20)
-        plt.ylabel('Number of interactions')
+        plt.xticks(y_pos, y, rotation=45, fontsize=16)
+        plt.ylabel('Number of interactions', fontsize=16)
         plt.tight_layout()
 
         if SETTINGS['auto_show']:
             showFigure()
-        return show        
+            
+        dict_counts = dict(zip(y, x))
+        dict_counts_sorted = dict(sorted(dict_counts.items(), key=lambda item: item[1], reverse=True))
+            
+        return dict_counts_sorted
 
 
     def showCumulativeInteractionTypes(self, **kwargs):
@@ -3292,7 +3631,12 @@ class Interactions(object):
         :type HPh: int, float
 
         :arg DiBs: score per disulfide bond
-        :type DiBs: int, float """
+        :type DiBs: int, float 
+        
+        :arg energy: sum of the energy between residues
+                    default is False
+        :type energy: bool
+        """
 
         import numpy as np
         import matplotlib
@@ -3305,87 +3649,110 @@ class Interactions(object):
                'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M', 'HSE': 'H', 'HSD': 'H'}
 
         atoms = self._atoms
-
+        energy = kwargs.pop('energy', False)
+        
+        if not isinstance(energy, bool):
+            raise TypeError('energy should be True or False')
+                    
         ResNumb = atoms.select('protein and name CA').getResnums()
         ResName = atoms.select('protein and name CA').getResnames()
         ResChid = atoms.select('protein and name CA').getChids()
         ResList = [ i[0]+str(i[1])+i[2] for i in list(zip([ aa_dic[i] for i in ResName ], ResNumb, ResChid)) ]
         
-        replace_matrix = kwargs.get('replace_matrix', False)
-        matrix_all = self._interactions_matrix
+        if energy == True:
+            matrix_en = self._interactions_matrix_en
+            matrix_en_sum = np.sum(matrix_en, axis=0)
 
-        HBs = kwargs.get('HBs', 1)
-        SBs = kwargs.get('SBs', 1)
-        RIB = kwargs.get('RIB', 1)
-        PiStack = kwargs.get('PiStack', 1)
-        PiCat = kwargs.get('PiCat', 1)
-        HPh = kwargs.get('HPh', 1)
-        DiBs = kwargs.get('DiBs', 1)
-    
-        matrix_hbs = self.buildInteractionMatrix(HBs=HBs, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
-        matrix_sbs = self.buildInteractionMatrix(HBs=0, SBs=SBs, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
-        matrix_rib = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=RIB,PiStack=0,PiCat=0,HPh=0,DiBs=0)
-        matrix_pistack = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=PiStack,PiCat=0,HPh=0,DiBs=0)
-        matrix_picat = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=PiCat,HPh=0,DiBs=0)
-        matrix_hph = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=HPh,DiBs=0)
-        matrix_dibs = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=DiBs)
+            width = 0.8
+            fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
+            matplotlib.rcParams['font.size'] = '24'
 
-        matrix_hbs_sum = np.sum(matrix_hbs, axis=0)
-        matrix_sbs_sum = np.sum(matrix_sbs, axis=0)
-        matrix_rib_sum = np.sum(matrix_rib, axis=0)
-        matrix_pistack_sum = np.sum(matrix_pistack, axis=0)
-        matrix_picat_sum = np.sum(matrix_picat, axis=0)
-        matrix_hph_sum = np.sum(matrix_hph, axis=0)
-        matrix_dibs_sum = np.sum(matrix_dibs, axis=0)
-
-        width = 0.8
-        fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
-        matplotlib.rcParams['font.size'] = '24'
-
-        sum_matrix = np.zeros(matrix_hbs_sum.shape)
-        pplot(sum_matrix, atoms=atoms.ca)
-
-        if HBs != 0:
-            ax.bar(ResList, matrix_hbs_sum, width, color = 'blue', bottom = 0, label='HBs')
-        sum_matrix += matrix_hbs_sum
-
-        if SBs != 0:
-            ax.bar(ResList, matrix_sbs_sum, width, color = 'yellow', bottom = sum_matrix, label='SBs')
-        sum_matrix += matrix_sbs_sum
-
-        if HPh != 0:
-            ax.bar(ResList, matrix_hph_sum, width, color = 'silver', bottom = sum_matrix, label='HPh')
-        sum_matrix += matrix_hph_sum
+            ax.bar(ResNumb, matrix_en_sum, width, color='blue')
+            
+            plt.xlim([ResNumb[0]-0.5, ResNumb[-1]+0.5])
+            plt.tight_layout()    
+            plt.xlabel('Residue')
+            plt.ylabel('Cumulative Energy [kcal/mol]')
+            plt.show()
+            
+            return matrix_en_sum
         
-        if RIB != 0:
-            ax.bar(ResList, matrix_rib_sum, width, color = 'red', bottom = sum_matrix, label='RIB')
-        sum_matrix += matrix_rib_sum
-
-        if PiStack != 0:
-            ax.bar(ResList, matrix_pistack_sum, width, color = 'green', bottom = sum_matrix, label='PiStack')
-        sum_matrix += matrix_pistack_sum
-
-        if PiCat != 0:
-            ax.bar(ResList, matrix_picat_sum, width, color = 'orange', bottom = sum_matrix, label='PiCat')
-        sum_matrix += matrix_picat_sum
-        
-        if DiBs != 0:
-            ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix, label='DiBs')
-        sum_matrix += matrix_dibs_sum
-
-        if replace_matrix:
-            self._interactions_matrix = np.sum([matrix_hbs, matrix_sbs, matrix_rib, matrix_pistack,
-                                                matrix_picat, matrix_hph, matrix_dibs], axis=0)
         else:
-            self._interactions_matrix = matrix_all
+            replace_matrix = kwargs.get('replace_matrix', False)
+            matrix_all = self._interactions_matrix
 
-        ax.legend(ncol=7, loc='upper center')
-        plt.ylim([0,max(sum_matrix)+3])
-        plt.tight_layout()    
-        plt.xlabel('Residue')
-        plt.ylabel('Number of counts')
-       
-        return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
+            HBs = kwargs.get('HBs', 1)
+            SBs = kwargs.get('SBs', 1)
+            RIB = kwargs.get('RIB', 1)
+            PiStack = kwargs.get('PiStack', 1)
+            PiCat = kwargs.get('PiCat', 1)
+            HPh = kwargs.get('HPh', 1)
+            DiBs = kwargs.get('DiBs', 1)
+        
+            matrix_hbs = self.buildInteractionMatrix(HBs=HBs, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
+            matrix_sbs = self.buildInteractionMatrix(HBs=0, SBs=SBs, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
+            matrix_rib = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=RIB,PiStack=0,PiCat=0,HPh=0,DiBs=0)
+            matrix_pistack = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=PiStack,PiCat=0,HPh=0,DiBs=0)
+            matrix_picat = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=PiCat,HPh=0,DiBs=0)
+            matrix_hph = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=HPh,DiBs=0)
+            matrix_dibs = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=DiBs)
+
+            matrix_hbs_sum = np.sum(matrix_hbs, axis=0)
+            matrix_sbs_sum = np.sum(matrix_sbs, axis=0)
+            matrix_rib_sum = np.sum(matrix_rib, axis=0)
+            matrix_pistack_sum = np.sum(matrix_pistack, axis=0)
+            matrix_picat_sum = np.sum(matrix_picat, axis=0)
+            matrix_hph_sum = np.sum(matrix_hph, axis=0)
+            matrix_dibs_sum = np.sum(matrix_dibs, axis=0)
+
+            width = 0.8
+            fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
+            matplotlib.rcParams['font.size'] = '24'
+
+            sum_matrix = np.zeros(matrix_hbs_sum.shape)
+            pplot(sum_matrix, atoms=atoms.ca)
+
+            if HBs != 0:
+                ax.bar(ResList, matrix_hbs_sum, width, color = 'blue', bottom = 0, label='HBs')
+            sum_matrix += matrix_hbs_sum
+
+            if SBs != 0:
+                ax.bar(ResList, matrix_sbs_sum, width, color = 'yellow', bottom = sum_matrix, label='SBs')
+            sum_matrix += matrix_sbs_sum
+
+            if HPh != 0:
+                ax.bar(ResList, matrix_hph_sum, width, color = 'silver', bottom = sum_matrix, label='HPh')
+            sum_matrix += matrix_hph_sum
+            
+            if RIB != 0:
+                ax.bar(ResList, matrix_rib_sum, width, color = 'red', bottom = sum_matrix, label='RIB')
+            sum_matrix += matrix_rib_sum
+
+            if PiStack != 0:
+                ax.bar(ResList, matrix_pistack_sum, width, color = 'green', bottom = sum_matrix, label='PiStack')
+            sum_matrix += matrix_pistack_sum
+
+            if PiCat != 0:
+                ax.bar(ResList, matrix_picat_sum, width, color = 'orange', bottom = sum_matrix, label='PiCat')
+            sum_matrix += matrix_picat_sum
+            
+            if DiBs != 0:
+                ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix, label='DiBs')
+            sum_matrix += matrix_dibs_sum
+
+            if replace_matrix:
+                self._interactions_matrix = np.sum([matrix_hbs, matrix_sbs, matrix_rib, matrix_pistack,
+                                                    matrix_picat, matrix_hph, matrix_dibs], axis=0)
+            else:
+                self._interactions_matrix = matrix_all
+
+            ax.legend(ncol=7, loc='upper center')
+            plt.ylim([0,max(sum_matrix)+3])
+            plt.tight_layout()    
+            plt.xlabel('Residue')
+            plt.ylabel('Number of counts')
+        
+            return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
       
         
 class InteractionsTrajectory(object):
@@ -3581,19 +3948,60 @@ class InteractionsTrajectory(object):
     
         :arg selection2: selection string
         :type selection2: str 
-            
+        
+        :arg replace: Used with selection criteria to set the new one
+                      If set to **True** the selection will be replaced by the new one.
+                      Default is **False**
+        :type replace: bool
+
         Selection:
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
         If we want to study chain-chain interactions:
             selection='chain A', selection2='chain B'  """
-
+        
+        replace = kwargs.pop('replace', False)
+        
         if len(kwargs) != 0:
             sele_inter = []
             for i in self._interactions_traj:
                 for nr_j,j in enumerate(i):
                     sele_inter.append(filterInteractions(i[nr_j], self._atoms, **kwargs))
+            
+            if replace == True:
+                try:
+                    trajectory = self._traj
+                    numFrames = trajectory._n_csets
+                except:
+                    # If we analyze previously saved PKL file it doesn't have dcd information
+                    # We have seven type of interactions. It will give number of frames.
+                    numFrames = int(len(sele_inter)/7)
+                    
+                self._interactions_traj = sele_inter
+                self._hbs_traj = sele_inter[0:numFrames]
+                self._sbs_traj = sele_inter[numFrames:2*numFrames]
+                self._rib_traj = sele_inter[2*numFrames:3*numFrames]
+                self._piStack_traj = sele_inter[3*numFrames:4*numFrames]
+                self._piCat_traj = sele_inter[4*numFrames:5*numFrames]
+                self._hps_traj = sele_inter[5*numFrames:6*numFrames]
+                self._dibs_traj = sele_inter[6*numFrames:7*numFrames]
+                LOGGER.info('New interactions are set')
+                
+                self._interactions_nb_traj = None
+                self._interactions_matrix_traj = None
+                
+                new_interactions_nb_traj = []
+                new_interactions_nb_traj.append([ len(i) for i in self._hbs_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._sbs_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._rib_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._piStack_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._piCat_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._hps_traj ])
+                new_interactions_nb_traj.append([ len(i) for i in self._dibs_traj ])
+                self._interactions_nb_traj = new_interactions_nb_traj
+                
             results = sele_inter
+        
         else: 
             results = self._interactions_traj
         
