@@ -422,8 +422,9 @@ def pystr(a):
     return b
 
 def getDataPath(filename):
-    import pkg_resources
-    return pkg_resources.resource_filename('prody.utilities', 'datafiles/%s'%filename)
+    import importlib
+    path = importlib.util.find_spec('prody.utilities.datafiles').submodule_search_locations[0]
+    return '%s/%s' %(path, filename)
 
 def openData(filename, mode='r'):
     return open(getDataPath(filename), mode)
