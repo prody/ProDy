@@ -19,7 +19,7 @@ class TestInteractions(unittest.TestCase):
         """Generating new data to compare it with the existing one"""
         
         if prody.PY3K:
-            self.ATOMS = parseDatafile('2k39_insty')
+            self.ATOMS = parseDatafile('2k39_insty') # no disulfides
             self.ALL_INTERACTIONS = parseDatafile('2k39_all')
             self.ALL_INTERACTIONS2 = parseDatafile('2k39_all2')
             self.HBS_INTERACTIONS = parseDatafile('2k39_hbs')
@@ -30,6 +30,9 @@ class TestInteractions(unittest.TestCase):
             self.HPH_INTERACTIONS = parseDatafile('2k39_hph')
             self.HPH_INTERACTIONS2 = parseDatafile('2k39_hph2')
             self.DISU_INTERACTIONS = parseDatafile('2k39_disu')
+
+            self.ATOMS_3O21 = parseDatafile('3o21') # has disulfides & not traj
+            self.DISU_INTERACTIONS_3O21 = parseDatafile('3o21_disu')
 
     def testAllInteractionsCalc(self):
         """Test for calculating all types of interactions."""
@@ -132,26 +135,46 @@ class TestInteractions(unittest.TestCase):
                          'failed to get correct hydrophobic interactions with hpb.so')
         
 
-    def testDisulfideBondsCalc(self):
+    def testDisulfideBondsCalcNone(self):
         """Test for disulfide bonds interactions without saving and loading."""
         if prody.PY3K:
             data_test = calcDisulfideBondsTrajectory(self.ATOMS)
-            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
-                          'failed to get correct disulfide bonds from calculation')
-        
-    def testDisulfideBondsSave(self):
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), 
+                         sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
+                         'failed to get correct disulfide bonds from 2k39 (None) from calculation')
+
+    def testDisulfideBondsSaveNone(self):
         """Test for disulfide bonds interactions with saving and loading (one type of interactions with 0)."""
         if prody.PY3K:
             data_test = calcDisulfideBondsTrajectory(self.ATOMS)
-            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
-                          'failed to get correct disulfide bonds from calculation')
-            
-            np.save('test_2k39_disu.npy', np.array(data_test, dtype=object), allow_pickle=True)
+            np.save('test_2k39_disu.npy', np.array(data_test, dtype=object), 
+                    allow_pickle=True)
 
             data_test = np.load('test_2k39_disu.npy', allow_pickle=True)
-            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
-                         'failed to get correct disulfide bonds from saving and loading')
-            
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), 
+                         sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
+                         'failed to get correct disulfide bonds from 2k39 (None) from saving and loading')
+
+    def testDisulfideBondsCalcSomeNotTraj(self):
+        """Test for disulfide bonds interactions without saving and loading."""
+        if prody.PY3K:
+            data_test = calcDisulfideBonds(self.ATOMS_3O21)
+            assert_equal(sorted([i[-1] for i in data_test if len(i) > 0]), 
+                         sorted([i[-1] for i in self.DISU_INTERACTIONS_3O21 if len(i) > 0]),
+                         'failed to get correct disulfide bonds from 3o21 from calculation')
+
+    def testDisulfideBondsSaveSomeNotTraj(self):
+        """Test for disulfide bonds interactions with saving and loading (one type of interactions with 0)."""
+        if prody.PY3K:
+            data_test = calcDisulfideBonds(self.ATOMS_3O21)
+            np.save('test_3o21_disu.npy', np.array(data_test, dtype=object), 
+                    allow_pickle=True)
+
+            data_test = np.load('test_3o21_disu.npy', allow_pickle=True)
+            assert_equal(sorted([i[-1] for i in data_test if len(i) > 0]), 
+                         sorted([i[-1] for i in self.DISU_INTERACTIONS_3O21 if len(i) > 0]),
+                         'failed to get correct disulfide bonds from 3o21 from saving and loading')
+
     def testImportHpb(self):
 
         try:

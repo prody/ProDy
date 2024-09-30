@@ -358,7 +358,10 @@ DATA_FILES = {
     },
     '2k39_disu': {
         'file': '2k39_disu.npy'
-    },    
+    },
+    '3o21_disu': {
+        'file': '3o21_disu.npy'
+    },
     '2k39_all': {
         'file': '2k39_all.npy'
     },
