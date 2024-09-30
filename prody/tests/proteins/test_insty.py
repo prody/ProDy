@@ -1,7 +1,6 @@
 """This module contains unit tests for :mod:`~prody.proteins.interactions`."""
 
 import numpy as np
-from numpy import arange
 from prody import *
 from prody.tests import unittest
 from prody.tests.datafiles import *
@@ -91,7 +90,7 @@ class TestInteractions(unittest.TestCase):
             np.save('test_2k39_sbs.npy', np.array(self.data_sbs, dtype=object), allow_pickle=True)
 
             data_test = np.load('test_2k39_sbs.npy', allow_pickle=True)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.SBS_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.SBS_INTERACTIONS if len(i) > 0]),
                          'failed to get correct salt bridges from saving and loading')
 
 
@@ -100,7 +99,7 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:                
             data_test = calcRepulsiveIonicBondingTrajectory(self.ATOMS)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.RIB_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.RIB_INTERACTIONS if len(i) > 0]),
                          'failed to get correct repulsive ionic bonding')                             
 
     def testPiStacking(self):
@@ -108,7 +107,7 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:                
             data_test = calcPiStackingTrajectory(self.ATOMS)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.PISTACK_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PISTACK_INTERACTIONS if len(i) > 0]),
                          'failed to get correct pi-stacking interactions')                             
                      
     def testPiCation(self):
@@ -116,7 +115,7 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:                
             data_test = calcPiCationTrajectory(self.ATOMS)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if len(i) > 0]),
                          'failed to get correct pi-cation interactions')
 
 
@@ -137,20 +136,20 @@ class TestInteractions(unittest.TestCase):
         """Test for disulfide bonds interactions without saving and loading."""
         if prody.PY3K:
             data_test = calcDisulfideBondsTrajectory(self.ATOMS)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
                           'failed to get correct disulfide bonds from calculation')
         
     def testDisulfideBondsSave(self):
         """Test for disulfide bonds interactions with saving and loading (one type of interactions with 0)."""
         if prody.PY3K:
             data_test = calcDisulfideBondsTrajectory(self.ATOMS)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
                           'failed to get correct disulfide bonds from calculation')
             
             np.save('test_2k39_disu.npy', np.array(data_test, dtype=object), allow_pickle=True)
 
             data_test = np.load('test_2k39_disu.npy', allow_pickle=True)
-            assert_equal(sorted([i[-1][-1] for i in data_test if i]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if i]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
                          'failed to get correct disulfide bonds from saving and loading')
             
     def testImportHpb(self):
