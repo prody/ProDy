@@ -186,7 +186,7 @@ def get_energy(pair, source):
         'GLUP': 'GLU',  # Protonated Glu
 
         # Lysine (Lys)
-        'LYN': 'LYS',   # Deprotonated lysine (nautral)
+        'LYN': 'LYS',   # Deprotonated lysine (neutral)
 
         # Arginine (Arg)
         'ARN': 'ARG',   # Deprotonated arginine (rare, GROMACS)
@@ -210,16 +210,13 @@ def get_energy(pair, source):
     
     pair = [aa_correction.get(aa, aa) for aa in pair]    
     
-    try:
-        # Python 3
-        with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
-            data = np.loadtxt(file_path, dtype=str)
-    except: 
-        # Python 2.7
-        import pkg_resources
+    if PY3K:
+         file_path = pkg_resources.path('prody.proteins', 'tabulated_energies.txt')
+    else:
         file_path = pkg_resources.resource_filename('prody.proteins', 'tabulated_energies.txt')
-        with open(file_path) as f:
-            data = np.loadtxt(f, dtype=str)
+
+    with open(file_path) as f:
+        data = np.loadtxt(f, dtype=str)
     
     sources = ["IB_nosolv", "IB_solv", "CS"]
     aa_pairs = []
@@ -238,8 +235,8 @@ def get_energy(pair, source):
 
 
 def checkNonstandardResidues(atoms):
-    """Check whether the atomic structure contain non-standard residues and inform to replace the name 
-    to the standard one to be that non-standard residues are treated in a correct way while computing 
+    """Check whether the atomic structure contains non-standard residues and inform to replace the name
+    to the standard one so that non-standard residues are treated in a correct way while computing
     interactions.
     
     :arg atoms: an Atomic object from which residues are selected
@@ -267,9 +264,13 @@ def checkNonstandardResidues(atoms):
         if i not in amino_acids:
             nonstandard.append(aa_list[nr_i] + str(aa_list_nr[nr_i]))
     
-    LOGGER.info('There are several non-standard residues in the structure.')
-    LOGGER.info('Replace the non-standard name in the PDB file with the equivalent name from the standard one if you want to include them in the interactions.')
-    LOGGER.info("Residues: {0}.".format(' '.join(nonstandard)))   
+    if len(nonstandard) > 0:
+        LOGGER.info('There are several non-standard residues in the structure.')
+        LOGGER.info('Replace the non-standard name in the PDB file with the equivalent name from the standard one if you want to include them in the interactions.')
+        LOGGER.info("Residues: {0}.".format(' '.join(nonstandard)))
+        return True
+
+    return False
 
 
 def showPairEnergy(data, **kwargs):
@@ -2233,7 +2234,7 @@ def saveInteractionsAsDummyAtoms(atoms, interactions, filename, **kwargs):
                             
     RESNAME_dummy = kwargs.pop('RESNAME_dummy', 'DUM')
     
-    def putDUMatom(coord1, coord2):
+    def calcDUMposition(coord1, coord2):
         midpoint = [
             (coord1[0] + coord2[0]) / 2,
             (coord1[1] + coord2[1]) / 2,
@@ -2246,22 +2247,22 @@ def saveInteractionsAsDummyAtoms(atoms, interactions, filename, **kwargs):
 
     for i in interactions:
         if len(i[1].split('_')) <= 3:
-            res1_name = 'chain '+i[2]+' resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_')[1:])            
+            res1_name = 'chain '+i[2]+' and resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_')[1:])
             res1_coords = calcCenter(atoms.select(res1_name))  
         
         if len(i[1].split('_')) > 3:
-            res1_name = 'chain '+i[2]+' resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_'))
+            res1_name = 'chain '+i[2]+' and resname '+i[0][:3]+' and resid '+i[0][3:]+' and index '+' '.join(i[1].split('_'))
             res1_coords = calcCenter(atoms.select(res1_name))
 
         if len(i[4].split('_')) <= 3:
-            res2_name = 'chain '+i[5]+' resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_')[1:])
+            res2_name = 'chain '+i[5]+' and resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_')[1:])
             res2_coords = calcCenter(atoms.select(res2_name))
             
         if len(i[4].split('_')) > 3:     
-            res2_name = 'chain '+i[5]+' resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_'))
+            res2_name = 'chain '+i[5]+' and resname '+i[3][:3]+' and resid '+i[3][3:]+' and index '+' '.join(i[4].split('_'))
             res2_coords = calcCenter(atoms.select(res2_name))
 
-        all_DUMs.append(putDUMatom(res1_coords, res2_coords))
+        all_DUMs.append(calcDUMposition(res1_coords, res2_coords))
     
     if all_DUMs == []:
         LOGGER.info('Lack of interactions')
@@ -3029,10 +3030,10 @@ class Interactions(object):
         :type selection2: str 
         
         :arg replace: Used with selection criteria to set the new one
-                      If set to True the selection will be replaced by the new one
-        :type replace: True or False
-                       by default is False
-        
+                      If set to **True** the selection will be replaced by the new one.
+                      Default is **False**
+        :type replace: bool
+
         Selection:
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
@@ -3949,10 +3950,10 @@ class InteractionsTrajectory(object):
         :type selection2: str 
         
         :arg replace: Used with selection criteria to set the new one
-                      If set to True the selection will be replaced by the new one
-        :type replace: True or False
-                       by default is False
-            
+                      If set to **True** the selection will be replaced by the new one.
+                      Default is **False**
+        :type replace: bool
+
         Selection:
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
