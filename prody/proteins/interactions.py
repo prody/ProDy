@@ -2127,6 +2127,10 @@ def calcStatisticsInteractions(data, **kwargs):
         else: pass
     
     statistic.sort(key=lambda x: x[1], reverse=True)
+    
+    if statistic == []:
+        LOGGER.info("Decrease the value of weight_cutoff parameter to obtain the results. Default is 0.2.")
+        
     return statistic
 
 
