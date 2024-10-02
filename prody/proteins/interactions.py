@@ -211,12 +211,15 @@ def get_energy(pair, source):
     pair = [aa_correction.get(aa, aa) for aa in pair]    
     
     if PY3K:
-         file_path = pkg_resources.path('prody.proteins', 'tabulated_energies.txt')
+        with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
+            print("File with energies: ", file_path) 
+            with open(file_path) as f:
+                data = np.loadtxt(f, dtype=str)
     else:
         file_path = pkg_resources.resource_filename('prody.proteins', 'tabulated_energies.txt')
-
-    with open(file_path) as f:
-        data = np.loadtxt(f, dtype=str)
+        print("File with energies: ", file_path)  
+        with open(file_path) as f:
+            data = np.loadtxt(f, dtype=str)
     
     sources = ["IB_nosolv", "IB_solv", "CS"]
     aa_pairs = []
@@ -2102,7 +2105,7 @@ def calcStatisticsInteractions(data, **kwargs):
                     "energy": get_energy([element.split('-')[0][:3], element.split('-')[1][:3]], energy_list_type)
                 }
             except:
-                LOGGER.warn('energy information is not available for ', element.split('-')[0][:3], element.split('-')[1][:3])
+                LOGGER.warn('energy information is not available for ', element)
                 stats[element] = {
                     "stddev": np.round(np.std(values),6),
                     "mean": np.round(np.mean(values),6),
