@@ -41,7 +41,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcPiCationTrajectory', 'calcHydrophobicTrajectory', 'calcDisulfideBondsTrajectory',
            'calcProteinInteractions', 'calcStatisticsInteractions', 'calcDistribution',
            'calcSASA', 'calcVolume','compareInteractions', 'showInteractionsGraph',
-           'calcLigandInteractions', 'listLigandInteractions', 
+           'showInteractionsHist', 'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
@@ -2045,6 +2045,72 @@ def showInteractionsGraph(statistics, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return show
+    
+    
+def showInteractionsHist(statistics, **kwargs):
+    """Return information about residue-residue interactions as a bar plot.
+    
+    :arg statistics: Results obtained from calcStatisticsInteractions analysis
+    :type statistics: list
+    
+    :arg clip: maxmimal number of residue pairs on the bar plot
+        by default 20
+    :type clip: int
+
+    :arg font_size: size of the font
+        by default 18
+    :type font_size: int
+    """
+
+    if isinstance(statistics, int) or isinstance(statistics, str) or isinstance(statistics, Atomic):
+        raise TypeError('input data must be a list, use calcStatisticsInteractions to obtain statistics for a particular interaction type')
+
+    if isinstance(statistics, InteractionsTrajectory) or isinstance(statistics, Interactions):
+        raise TypeError('use calcStatisticsInteractions to obtain statistics for a particular interaction type')
+        
+    else:
+        if len(statistics[0]) != 5:
+            raise TypeError('input data must be a list obtained from calcStatisticsInteractions')
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    clip = kwargs.pop('clip', 20)
+    font_size = kwargs.pop('font_size', 18)
+    
+    labels = [row[0] for row in statistics]
+    values = [row[2] for row in statistics]
+    std_devs = [row[3] for row in statistics]
+    colors = [row[1] for row in statistics]
+
+    sorted_indices = np.argsort(colors)[-clip:]
+    labels = [labels[i] for i in sorted_indices]
+    values = [values[i] for i in sorted_indices]
+    std_devs = [std_devs[i] for i in sorted_indices]
+    colors = [colors[i] for i in sorted_indices]
+
+    norm = plt.Normalize(min(colors), max(colors))
+    cmap = plt.get_cmap("Blues")
+    
+    num_labels = len(labels)
+    height = max(6, num_labels * 0.4)
+
+    fig, ax = plt.subplots(figsize=(8, height))
+    bars = ax.barh(labels, values, xerr=std_devs, color=cmap(norm(colors)))
+    
+    for bar in bars:
+        bar.set_edgecolor('black')
+    
+    ax.set_xlabel('Average distance [\u00C5]')
+    
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    plt.colorbar(sm, ax=ax, label='Weight')
+    ax.tick_params(axis='both', labelsize=font_size)
+    plt.tight_layout()
+        
+    if SETTINGS['auto_show']:
+        showFigure()
     
     
 def calcStatisticsInteractions(data, **kwargs):
