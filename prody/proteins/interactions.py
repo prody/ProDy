@@ -212,12 +212,10 @@ def get_energy(pair, source):
     
     if PY3K:
         with pkg_resources.path('prody.proteins', 'tabulated_energies.txt') as file_path:
-            #print("File with energies: ", file_path) 
             with open(file_path) as f:
                 data = np.loadtxt(f, dtype=str)
     else:
         file_path = pkg_resources.resource_filename('prody.proteins', 'tabulated_energies.txt')
-        #print("File with energies: ", file_path)  
         with open(file_path) as f:
             data = np.loadtxt(f, dtype=str)
     
