@@ -1335,11 +1335,11 @@ def findClusterCenters(file_pattern, **kwargs):
     for ii in range(len(coords_all)):
         if 'water' not in selection.split():
             sel = coords_all.select(str(selection)+' within '+str(distC)+' of center',
-                                center=coords_all.getCoords()[ii])
+                                    center=coords_all.getCoords()[ii])
        
         if 'water' in selection.split() or 'HOH' in selection.split():
             sel = coords_all.select('water within '+str(distC)+' of center', 
-                                center=coords_all.getCoords()[ii])
+                                    center=coords_all.getCoords()[ii])
         
         if sel is not None and len(sel) <= int(numC):
             removeResid.append(coords_all.getResnums()[ii])
