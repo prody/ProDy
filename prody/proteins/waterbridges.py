@@ -31,6 +31,7 @@ from copy import copy
 
 from prody import LOGGER, SETTINGS
 from prody.atomic import Atom, Atomic, AtomGroup
+from prody.atomic.flags import DEFAULTS
 from prody.ensemble import Ensemble
 from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
@@ -1337,7 +1338,7 @@ def findClusterCenters(file_pattern, **kwargs):
             sel = coords_all.select(str(selection)+' within '+str(distC)+' of center',
                                     center=coords_all.getCoords()[ii])
        
-        if 'water' in selection.split() or 'HOH' in selection.split():
+        if 'water' in selection.split() or np.any([water in selection.split() for water in DEFAULTS['water']]):
             sel = coords_all.select('water within '+str(distC)+' of center', 
                                     center=coords_all.getCoords()[ii])
         
