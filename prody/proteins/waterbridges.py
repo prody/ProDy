@@ -1298,7 +1298,7 @@ def findClusterCenters(file_pattern, **kwargs):
     :type file_pattern: str
     
     :arg selection: selection string
-        by default water and name OH2 is used
+        by default 'water and name "O.*"' is used
     :type selection: str
     
     :arg distC: distance to other molecules
@@ -1318,7 +1318,7 @@ def findClusterCenters(file_pattern, **kwargs):
     import glob
     import numpy as np
 
-    selection = kwargs.pop('selection', 'water and name OH2')
+    selection = kwargs.pop('selection', 'water and name "O.*"')
     distC = kwargs.pop('distC', 0.3)
     numC = kwargs.pop('numC', 3)
     filename = kwargs.pop('filename', None)
