@@ -4,6 +4,7 @@ multiple coordinate sets in :class:`~numpy.ndarray` instances."""
 
 from time import time
 from numbers import Integral
+import weakref
 
 import numpy as np
 
@@ -127,10 +128,10 @@ class AtomGroup(Atomic):
                  '_timestamps', '_kdtrees',
                  '_bmap', '_angmap', '_dmap', '_imap',
                  '_domap', '_acmap', '_nbemap', '_cmap',
-                 '_bonds', '_angles', '_dihedrals', '_impropers',
+                 '_bonds', '_bondOrder', '_bondIndex', '_angles', '_dihedrals', '_impropers',
                  '_donors', '_acceptors', '_nbexclusions', '_crossterms',
                  '_cslabels', '_acsi', '_n_csets', '_data',
-                 '_fragments', '_flags', '_flagsts', '_subsets',
+                 '_fragments', '_flags', '_flagsts', '_subsets', '_containerInstance',
                  '_msa', '_sequenceMap', '_anisous']
 
     def __init__(self, title='Unnamed'):
@@ -144,6 +145,7 @@ class AtomGroup(Atomic):
         self._kdtrees = None
         self._bmap = None
         self._bonds = None
+        self._bondOrder = None
         self._angmap = None
         self._angles = None
         self._dmap = None
@@ -169,9 +171,18 @@ class AtomGroup(Atomic):
         self._flags = None
         self._flagsts = 0
         self._subsets = None
+        self._containerInstance = None
         self._msa = None
         self._sequenceMap = None
         self._anisous = None
+
+    def setContainerInstance(self, inst):
+        """Set a weak reference to a class instance that has this AtomGroup as an attribute"""
+        self._containerInstance = weakref.ref(inst)
+
+    def getContainerInstance(self):
+        """Get the class instance that has this AtomGroup as an attribute"""
+        return self._containerInstance()
 
     def __repr__(self):
 
@@ -305,13 +316,21 @@ class AtomGroup(Atomic):
 
         new._n_atoms = self._n_atoms + other._n_atoms
 
+        bo = None
         if self._bonds is not None and other._bonds is not None:
+            if self._bondOrder is not None:
+                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in bonds]
             new.setBonds(np.concatenate([self._bonds,
-                                         other._bonds + self._n_atoms]))
+                                         other._bonds + self._n_atoms]), bo)
         elif self._bonds is not None:
-            new.setBonds(self._bonds.copy())
+            if self._bondOrder is not None:
+                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in self._bonds]
+            new.setBonds(self._bonds.copy(), bo)
         elif other._bonds is not None:
-            new.setBonds(other._bonds + self._n_atoms)
+            bonds = other._bonds + self._n_atoms
+            if self._bondOrder is not None:
+                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in bonds]
+            new.setBonds(bonds, bo)
 
         if self._angles is not None and other._angles is not None:
             new.setAngles(np.concatenate([self._angles,
@@ -371,6 +390,74 @@ class AtomGroup(Atomic):
 
         return new
 
+    def extend(self, other):
+        # does the same as __add__ but does not create and return a new
+        # atom group, instead is extends the arrays in this atoms group 
+        if not isinstance(other, AtomGroup):
+            raise TypeError('unsupported operand type(s) for +: {0} and '
+                            '{1}'.format(repr(type(self).__name__),
+                                         repr(type(other).__name__)))
+
+        from .functions import SAVE_SKIP_POINTER as SKIP
+        oldSize = len(self)
+        self._n_atoms += other._n_atoms
+        new = self
+        
+        if self._n_csets:
+            if self._n_csets == other._n_csets:
+                new._setCoords(np.concatenate((self._coords, other._coords), 1), overwrite=True)
+                if self._n_csets > 1:
+                    LOGGER.info('All {0} coordinate sets are copied to '
+                                '{1}.'.format(self._n_csets, new.getTitle()))
+            else:
+                raise ValueError('molecules must have same numbers of coordinate sets')
+
+        elif other._n_csets:
+            LOGGER.warn('No coordinate sets are copied to {0}'
+                        .format(new.getTitle()))
+
+        #for key in set(list(self._data) + list(other._data)):
+        #    if key in ATOMIC_FIELDS and ATOMIC_FIELDS[key].readonly:
+        #        continue
+        for key in set( self.getDataLabels() + other.getDataLabels() ):
+            if key in SKIP:continue
+            this = self.getData(key)
+            that = other.getData(key)
+            if this is not None or that is not None:
+                if this is None:
+                    this = np.zeros((oldSize,), that.dtype)
+                if that is None:
+                    that = np.zeros((len(other),), this.dtype)
+                new.setData( key, np.concatenate((this, that)))
+
+        for key in set( self.getFlagLabels() + other.getFlagLabels() ):
+            if key in SKIP: continue
+            this = self.getFlags(key)
+            that = other.getFlags(key)
+            if this is not None or that is not None:
+                if this is None:
+                    this = np.zeros((oldSize,), that.dtype)
+                if that is None:
+                    that = np.zeros((len(other),), this.dtype)
+                new._setFlags(key, np.concatenate((this, that)))
+
+        bo = None
+        if self._bonds is not None and other._bonds is not None:
+            bonds = np.concatenate([self._bonds,
+                                    other._bonds + oldSize])
+            if self._bondOrder is not None:
+                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in bonds]
+            new.setBonds(bonds, bo)
+        elif self._bonds is not None:
+            if self._bondOrder is not None:
+                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in self._bonds]
+            new.setBonds(self._bonds.copy(), bo)
+        elif other._bonds is not None:
+            if self._bondOrder is not None:
+                bonds = other._bonds + oldSize
+            bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in bonds]
+            new.setBonds(bonds, bo)
+
     def __contains__(self, item):
 
         try:
@@ -394,6 +481,10 @@ class AtomGroup(Atomic):
                  np.all(self._coords == other._coords)) and
                 all(np.all(self._data[key] == other._data[key])
                     for key in self._data))
+
+    def __hash__(self):
+        return object.__hash__(self)
+
 
     def __iter__(self):
         """Yield atom instances."""
@@ -1204,7 +1295,7 @@ class AtomGroup(Atomic):
         else:
             raise TypeError('labels must be a list')
 
-    def setBonds(self, bonds):
+    def setBonds(self, bonds, bondOrder=None):
         """Set covalent bonds between atoms.  *bonds* must be a list or an
         array of pairs of indices.  All bonds must be set at once.  Bonding
         information can be used to make atom selections, e.g. ``"bonded to
@@ -1229,13 +1320,36 @@ class AtomGroup(Atomic):
             raise ValueError('bonds.shape must be (n_bonds, 2)')
         if bonds.min() < 0:
             raise ValueError('negative atom indices are not valid')
+        if bondOrder is not None and len(bondOrder)!=len(bonds):
+            raise ValueError('invalid bond order list, bind and bond order length mismatch')
         n_atoms = self._n_atoms
         if bonds.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
+
+        if bondOrder is not None:
+            # build dict of bond order with key "i,j" and value bond order        
+            bondOrderDict = {}
+            n = 0
+            for i,j in bonds:
+                if i>j:
+                    a=i
+                    i=j
+                    j=a
+                bondOrderDict['%d %d'%(i,j)] = bondOrder[n]
+                n += 1
+            self._bondOrder = bondOrderDict
+        else:
+            self._bondOrder = None
         bonds.sort(1)
         bonds = bonds[bonds[:, 1].argsort(), ]
         bonds = bonds[bonds[:, 0].argsort(), ]
         bonds = np.unique(bonds, axis=0)
+
+        d = {}
+        for n, b in enumerate(bonds):
+            key = '%d %d'%(b[0], b[1])
+            d[key] = n
+        self._bondIndex = d
 
         self._bmap, self._data['numbonds'] = evalBonds(bonds, n_atoms)
         self._bonds = bonds
