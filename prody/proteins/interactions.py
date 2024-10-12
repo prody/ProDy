@@ -3558,7 +3558,39 @@ class Interactions(object):
             writePDB('filename', atoms, **kw)
             LOGGER.info('PDB file saved.')
 
-
+    
+    def getInteractors(self, residue_name):
+        """ Provide information about interactions for a particular residue
+        
+        :arg residue_name: name of a resiude
+                            example: LEU234A, where A is a chain name
+        :type residue_name: str
+        """
+        
+        atoms = self._atoms   
+        interactions = self._interactions
+        
+        InteractionsMap = np.empty([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()], dtype=object)
+        resIDs = list(atoms.select('name CA').getResnums())
+        resChIDs = list(atoms.select('name CA').getChids())
+        resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
+        interaction_type = ['hb','sb','rb','ps','pc','hp','dibs']
+        ListOfInteractions = []
+        
+        for nr,i in enumerate(interactions):
+            if i != []:
+                for ii in i: 
+                    m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
+                    m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
+                    ListOfInteractions.append(interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5])
+        
+        for i in ListOfInteractions:
+            inter = i.split(":")[1:][0]
+            if inter.split('-')[0] == residue_name or inter.split('-')[1] == residue_name:
+                LOGGER.info(i)
+        
+        
+    
     def getFrequentInteractors(self, contacts_min=3):
         """Provide a list of residues with the most frequent interactions based 
         on the following interactions:
