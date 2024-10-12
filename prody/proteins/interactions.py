@@ -3590,7 +3590,7 @@ class Interactions(object):
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
                     InteractionsMap[m1][m2] = interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5]
             
-        ListOfInteractions = [ list(filter(None, InteractionsMap[:,j])) for j in range(len(interactions[0])) ]
+        ListOfInteractions = [list(filter(None, [row[j] for row in InteractionsMap])) for j in range(len(InteractionsMap[0]))]
         ListOfInteractions = list(filter(lambda x : x != [], ListOfInteractions))
         ListOfInteractions = [k for k in ListOfInteractions if len(k) >= contacts_min ]
         ListOfInteractions_list = [ (i[0].split('-')[-1], [ j.split('-')[0] for j in i]) for i in ListOfInteractions ]
@@ -3598,8 +3598,8 @@ class Interactions(object):
         for res in ListOfInteractions_list:
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
-        LOGGER.info('Legend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
-                             'pc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
+        LOGGER.info('\nLegend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
+                             '\npc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
         
         try:
             from toolz.curried import count
@@ -3612,12 +3612,12 @@ class Interactions(object):
         return ListOfInteractions_list
         
 
-    def showFrequentInteractors(self, cutoff=5, **kwargs):
+    def showFrequentInteractors(self, cutoff=4, **kwargs):
         """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
                      If cutoff value is to big, top 30% with the higest values will be returned.
-                     Default is 5.
+                     Default is 4.
         :type cutoff: int, float
 
         Nonstandard resiudes can be updated in a following way:
