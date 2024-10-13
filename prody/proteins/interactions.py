@@ -3589,7 +3589,6 @@ class Interactions(object):
             if inter.split('-')[0] == residue_name or inter.split('-')[1] == residue_name:
                 LOGGER.info(i)
         
-        
     
     def getFrequentInteractors(self, contacts_min=3):
         """Provide a list of residues with the most frequent interactions based 
@@ -3630,18 +3629,28 @@ class Interactions(object):
         ListOfInteractions = list(filter(lambda x: x != [], ListOfInteractions))
         ListOfInteractions = [k for k in ListOfInteractions if len(k) >= contacts_min]
         ListOfInteractions_flattened = [j for sublist in ListOfInteractions for j in sublist]
-        ListOfInteractions_list = [(i[0].split('-')[-1], [j.split('-')[0] for j in i]) for i in ListOfInteractions_flattened]
+
+        swapped_ListOfInteractions_list = []
+        for interaction_group in ListOfInteractions_flattened:
+            swapped_group = []
+            for interaction in interaction_group:
+                interaction_type, pair = interaction.split(':')
+                swapped_pair = '-'.join(pair.split('-')[::-1])
+                swapped_group.append(f"{interaction_type}:{swapped_pair}")
+            swapped_ListOfInteractions_list.append(swapped_group)
+
+        doubleListOfInteractions_list = ListOfInteractions_flattened+swapped_ListOfInteractions_list
+        ListOfInteractions_list = [(i[0].split('-')[-1], [j.split('-')[0] for j in i]) for i in doubleListOfInteractions_list]
 
         merged_dict = {}
-        for amino_acid, interactions in ListOfInteractions_list:
-            if amino_acid in merged_dict:
-                merged_dict[amino_acid].extend(interactions)
+        for aa, ii in ListOfInteractions_list:
+            if aa in merged_dict:
+                merged_dict[aa].extend(ii)
             else:
-                merged_dict[amino_acid] = interactions
+                merged_dict[aa] = ii
 
-        ListOfInteractions_list = [(key, value) for key, value in merged_dict.items()]         
-
-        LOGGER.info('The most frequent interactions:')
+        ListOfInteractions_list = [(key, value) for key, value in merged_dict.items()] 
+            
         for res in ListOfInteractions_list:
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
