@@ -3590,7 +3590,7 @@ class Interactions(object):
                 LOGGER.info(i)
         
     
-    def getFrequentInteractors(self, contacts_min=3):
+    def getFrequentInteractors(self, contacts_min=2):
         """Provide a list of residues with the most frequent interactions based 
         on the following interactions:
             (1) Hydrogen bonds (hb)
@@ -3602,7 +3602,7 @@ class Interactions(object):
             (7) Disulfide bonds (disb)
         
         :arg contacts_min: Minimal number of contacts which residue may form with other residues, 
-                           by default 3.
+                           by default 2.
         :type contacts_min: int  """
 
         atoms = self._atoms   
@@ -3627,7 +3627,6 @@ class Interactions(object):
             
         ListOfInteractions = [list(filter(None, [row[j] for row in InteractionsMap])) for j in range(len(InteractionsMap[0]))]
         ListOfInteractions = list(filter(lambda x: x != [], ListOfInteractions))
-        ListOfInteractions = [k for k in ListOfInteractions if len(k) >= contacts_min]
         ListOfInteractions_flattened = [j for sublist in ListOfInteractions for j in sublist]
 
         swapped_ListOfInteractions_list = []
@@ -3650,8 +3649,9 @@ class Interactions(object):
                 merged_dict[aa] = ii
 
         ListOfInteractions_list = [(key, value) for key, value in merged_dict.items()] 
+        ListOfInteractions_list2 = [k for k in ListOfInteractions_list if len(k[-1]) >= contacts_min]
             
-        for res in ListOfInteractions_list:
+        for res in ListOfInteractions_list2:
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
         LOGGER.info('\nLegend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
@@ -3663,7 +3663,7 @@ class Interactions(object):
             LOGGER.warn('This function requires the module toolz')
             return
         
-        return ListOfInteractions_list
+        return ListOfInteractions_list2
         
 
     def showFrequentInteractors(self, cutoff=4, **kwargs):
