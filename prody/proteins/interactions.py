@@ -3584,10 +3584,14 @@ class Interactions(object):
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
                     ListOfInteractions.append(interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5])
         
+        aa_ListOfInteractions = []
         for i in ListOfInteractions:
             inter = i.split(":")[1:][0]
             if inter.split('-')[0] == residue_name or inter.split('-')[1] == residue_name:
                 LOGGER.info(i)
+                aa_ListOfInteractions.append(i)
+        
+        return aa_ListOfInteractions
         
     
     def getFrequentInteractors(self, contacts_min=2):
