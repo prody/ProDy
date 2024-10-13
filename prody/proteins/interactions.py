@@ -3639,7 +3639,7 @@ class Interactions(object):
             for interaction in interaction_group:
                 interaction_type, pair = interaction.split(':')
                 swapped_pair = '-'.join(pair.split('-')[::-1])
-                swapped_group.append(f"{interaction_type}:{swapped_pair}")
+                swapped_group.append("{}:{}".format(interaction_type, swapped_pair))
             swapped_ListOfInteractions_list.append(swapped_group)
 
         doubleListOfInteractions_list = ListOfInteractions_flattened+swapped_ListOfInteractions_list
