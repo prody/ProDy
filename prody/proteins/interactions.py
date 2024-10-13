@@ -3620,13 +3620,28 @@ class Interactions(object):
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
-                    InteractionsMap[m1][m2] = interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5]
+
+                    if InteractionsMap[m1][m2] is None:
+                        InteractionsMap[m1][m2] = []
+            
+                    InteractionsMap[m1][m2].append(interaction_type[nr] + ':' + ii[0] + ii[2] + '-' + ii[3] + ii[5])
             
         ListOfInteractions = [list(filter(None, [row[j] for row in InteractionsMap])) for j in range(len(InteractionsMap[0]))]
-        ListOfInteractions = list(filter(lambda x : x != [], ListOfInteractions))
-        ListOfInteractions = [k for k in ListOfInteractions if len(k) >= contacts_min ]
-        ListOfInteractions_list = [ (i[0].split('-')[-1], [ j.split('-')[0] for j in i]) for i in ListOfInteractions ]
-        LOGGER.info('The most frequent interactions between:')
+        ListOfInteractions = list(filter(lambda x: x != [], ListOfInteractions))
+        ListOfInteractions = [k for k in ListOfInteractions if len(k) >= contacts_min]
+        ListOfInteractions_flattened = [j for sublist in ListOfInteractions for j in sublist]
+        ListOfInteractions_list = [(i[0].split('-')[-1], [j.split('-')[0] for j in i]) for i in ListOfInteractions_flattened]
+
+        merged_dict = {}
+        for amino_acid, interactions in ListOfInteractions_list:
+            if amino_acid in merged_dict:
+                merged_dict[amino_acid].extend(interactions)
+            else:
+                merged_dict[amino_acid] = interactions
+
+        ListOfInteractions_list = [(key, value) for key, value in merged_dict.items()]         
+
+        LOGGER.info('The most frequent interactions:')
         for res in ListOfInteractions_list:
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
@@ -3638,8 +3653,6 @@ class Interactions(object):
         except ImportError:
             LOGGER.warn('This function requires the module toolz')
             return
-        
-        LOGGER.info('The biggest number of interactions: {}'.format(max(map(count, ListOfInteractions))))
         
         return ListOfInteractions_list
         
