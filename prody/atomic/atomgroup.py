@@ -131,7 +131,7 @@ class AtomGroup(Atomic):
                  '_bonds', '_bondOrder', '_bondIndex', '_angles', '_dihedrals', '_impropers',
                  '_donors', '_acceptors', '_nbexclusions', '_crossterms',
                  '_cslabels', '_acsi', '_n_csets', '_data',
-                 '_fragments', '_flags', '_flagsts', '_subsets', '_containerInstance',
+                 '_fragments', '_flags', '_flagsts', '_subsets', 
                  '_msa', '_sequenceMap', '_anisous']
 
     def __init__(self, title='Unnamed'):
@@ -171,18 +171,9 @@ class AtomGroup(Atomic):
         self._flags = None
         self._flagsts = 0
         self._subsets = None
-        self._containerInstance = None
         self._msa = None
         self._sequenceMap = None
         self._anisous = None
-
-    def setContainerInstance(self, inst):
-        """Set a weak reference to a class instance that has this AtomGroup as an attribute"""
-        self._containerInstance = weakref.ref(inst)
-
-    def getContainerInstance(self):
-        """Get the class instance that has this AtomGroup as an attribute"""
-        return self._containerInstance()
 
     def __repr__(self):
 
