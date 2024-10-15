@@ -128,7 +128,8 @@ class AtomGroup(Atomic):
                  '_timestamps', '_kdtrees',
                  '_bmap', '_angmap', '_dmap', '_imap',
                  '_domap', '_acmap', '_nbemap', '_cmap',
-                 '_bonds', '_bondOrder', '_bondIndex', '_angles', '_dihedrals', '_impropers',
+                 '_bonds', '_bondOrders', '_bondIndex', '_angles',
+                 '_dihedrals', '_impropers',
                  '_donors', '_acceptors', '_nbexclusions', '_crossterms',
                  '_cslabels', '_acsi', '_n_csets', '_data',
                  '_fragments', '_flags', '_flagsts', '_subsets', 
@@ -145,7 +146,7 @@ class AtomGroup(Atomic):
         self._kdtrees = None
         self._bmap = None
         self._bonds = None
-        self._bondOrder = None
+        self._bondOrders = None
         self._angmap = None
         self._angles = None
         self._dmap = None
@@ -309,18 +310,18 @@ class AtomGroup(Atomic):
 
         bo = None
         if self._bonds is not None and other._bonds is not None:
-            if self._bondOrder is not None:
-                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in bonds]
+            if self._bondOrders is not None:
+                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in bonds]
             new.setBonds(np.concatenate([self._bonds,
                                          other._bonds + self._n_atoms]), bo)
         elif self._bonds is not None:
-            if self._bondOrder is not None:
-                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in self._bonds]
+            if self._bondOrders is not None:
+                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in self._bonds]
             new.setBonds(self._bonds.copy(), bo)
         elif other._bonds is not None:
             bonds = other._bonds + self._n_atoms
-            if self._bondOrder is not None:
-                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in bonds]
+            if self._bondOrders is not None:
+                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in bonds]
             new.setBonds(bonds, bo)
 
         if self._angles is not None and other._angles is not None:
@@ -436,17 +437,17 @@ class AtomGroup(Atomic):
         if self._bonds is not None and other._bonds is not None:
             bonds = np.concatenate([self._bonds,
                                     other._bonds + oldSize])
-            if self._bondOrder is not None:
-                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in bonds]
+            if self._bondOrders is not None:
+                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in bonds]
             new.setBonds(bonds, bo)
         elif self._bonds is not None:
-            if self._bondOrder is not None:
-                bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in self._bonds]
+            if self._bondOrders is not None:
+                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in self._bonds]
             new.setBonds(self._bonds.copy(), bo)
         elif other._bonds is not None:
-            if self._bondOrder is not None:
+            if self._bondOrders is not None:
                 bonds = other._bonds + oldSize
-            bo = [self._bondOrder["%d %d"%(b[0], b[1])] for b in bonds]
+            bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in bonds]
             new.setBonds(bonds, bo)
 
     def __contains__(self, item):
@@ -1286,15 +1287,44 @@ class AtomGroup(Atomic):
         else:
             raise TypeError('labels must be a list')
 
-    def setBonds(self, bonds, bondOrder=None):
+    def setBondOrders(bondOrders):
+        """Set covalent bond order. *bondOrders* must be a list or an array
+        of integers and proide a value for each bond. Possible values are
+        1:single, 2:double, 3:triple, 4:aromatic, 5:amide. The bon order of
+        all bonds must be set at once. This method must be called after
+        the setBonds() has been called. The bond order will be stored in the
+        *_bondOrders* dictionary where the keys are '%d %d'%(i,j) for bond
+        betwen atoms with indices i and j with i<j  and the value of the bond
+        order. will be generated
+        and stored with label *numbonds*"""
+        if len(bondOrders)!=len(self._bonds):
+            raise ValueError('invalid bond order list, bond and bond order length mismatch')
+        if min(bondOrders)<1 or max(bondOrders)>5:
+            raise ValueError('invalid bond order value, values must range from 1 to 5')
+
+        # build dict of bond order with key "i,j" and value bond order        
+        bondOrderDict = {}
+        n = 0
+        for i,j in self._bonds:
+            if i>j:
+                a=i
+                i=j
+                j=a
+            bondOrderDict['%d %d'%(i,j)] = bondOrders[n]
+            n += 1
+        self._bondOrders = bondOrderDict
+
+    def setBonds(self, bonds, bondOrders=None):
         """Set covalent bonds between atoms.  *bonds* must be a list or an
-        array of pairs of indices.  All bonds must be set at once.  Bonding
-        information can be used to make atom selections, e.g. ``"bonded to
-        index 1"``.  See :mod:`.select` module documentation for details.
-        Also, a data array with number of bonds will be generated and stored
-        with label *numbonds*.  This can be used in atom selections, e.g.
-        ``'numbonds 0'`` can be used to select ions in a system. If *bonds* 
-        is empty or **None**, then all bonds will be removed for this 
+        array of pairs of indices. Optionally *bondOrders* can be specified
+        (see :meth:`setBondOrder` method).  if *bondOrders* is None the
+        bondOrders information will we rest to single bonds.  All bonds must be
+        set at once.  Bonding information can be used to make atom selections,
+        e.g. ``"bonded to index 1"``.  See :mod:`.select` module documentation
+        for details. Also, a data array with number of bonds will be generated
+        and stored with label *numbonds*.  This can be used in atom selections,
+        e.g. ``'numbonds 0'`` can be used to select ions in a system. If
+        *bonds*  is empty or **None**, then all bonds will be removed for this 
         :class:`.AtomGroup`. """
 
         if bonds is None or len(bonds) == 0:
@@ -1311,26 +1341,11 @@ class AtomGroup(Atomic):
             raise ValueError('bonds.shape must be (n_bonds, 2)')
         if bonds.min() < 0:
             raise ValueError('negative atom indices are not valid')
-        if bondOrder is not None and len(bondOrder)!=len(bonds):
-            raise ValueError('invalid bond order list, bind and bond order length mismatch')
+
         n_atoms = self._n_atoms
         if bonds.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
 
-        if bondOrder is not None:
-            # build dict of bond order with key "i,j" and value bond order        
-            bondOrderDict = {}
-            n = 0
-            for i,j in bonds:
-                if i>j:
-                    a=i
-                    i=j
-                    j=a
-                bondOrderDict['%d %d'%(i,j)] = bondOrder[n]
-                n += 1
-            self._bondOrder = bondOrderDict
-        else:
-            self._bondOrder = None
         bonds.sort(1)
         bonds = bonds[bonds[:, 1].argsort(), ]
         bonds = bonds[bonds[:, 0].argsort(), ]
@@ -1346,6 +1361,11 @@ class AtomGroup(Atomic):
         self._bonds = bonds
         self._fragments = None
 
+        if bondOrders is None:
+            self._bondOrders = None
+        else:
+            self.setBondOrders(bondOrders)
+            
     def numBonds(self):
         """Returns number of bonds.  Use :meth:`setBonds` or 
         :meth:`inferBonds` for setting bonds."""
