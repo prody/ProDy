@@ -245,9 +245,6 @@ class AtomGroup(Atomic):
         else:
             new = self
             self._n_atoms += other._n_atoms
-            #shape = (self._coords.shape[0], self._n_atoms + other._n_atoms, self._coords.shape[2])
-            #self._coords = np.resize(self._coords, shape)
-            #import pdb; pdb.set_trace()
 
         if self._n_csets:
             if self._n_csets == other._n_csets:
