@@ -131,7 +131,7 @@ class AtomGroup(Atomic):
                  '_dihedrals', '_impropers',
                  '_donors', '_acceptors', '_nbexclusions', '_crossterms',
                  '_cslabels', '_acsi', '_n_csets', '_data',
-                 '_fragments', '_flags', '_flagsts', '_subsets', 
+                 '_fragments', '_flags', '_flagsts', '_subsets',
                  '_msa', '_sequenceMap', '_anisous']
 
     def __init__(self, title='Unnamed'):
@@ -318,20 +318,25 @@ class AtomGroup(Atomic):
         if newAG:
             new._n_atoms = self._n_atoms + other._n_atoms
 
-        bo = None
+        if self._bondOrders is not None:
+            if other._bondOrders is not None:
+                bo = np.concatenate([self._bondsOrders, other._bondOrders])
+            else:
+                bo = np.concatenate([self._bondsOrders, np.ones(len(other), np.int8)])
+        else:
+            if other._bondOrders is not None:
+                bo = np.concatenate([np.ones(len(self), np.int8), self._bondsOrders])
+            else:
+                bo = None
+
         if self._bonds is not None and other._bonds is not None:
-            if self._bondOrders is not None:
-                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in bonds]
             new.setBonds(np.concatenate([self._bonds,
                                          other._bonds + oldSize]), bo)
         elif self._bonds is not None:
-            if self._bondOrders is not None:
-                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in self._bonds]
             new.setBonds(self._bonds.copy(), bo)
+
         elif other._bonds is not None:
             bonds = other._bonds + self._n_atoms
-            if self._bondOrders is not None:
-                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in bonds]
             new.setBonds(bonds, bo)
 
         if self._angles is not None and other._angles is not None:
