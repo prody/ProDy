@@ -1239,27 +1239,14 @@ class AtomGroup(Atomic):
         of integers and proide a value for each bond. Possible values are
         1:single, 2:double, 3:triple, 4:aromatic, 5:amide. The bon order of
         all bonds must be set at once. This method must be called after
-        the setBonds() has been called. The bond order will be stored in the
-        *_bondOrders* dictionary where the keys are '%d %d'%(i,j) for bond
-        betwen atoms with indices i and j with i<j  and the value of the bond
-        order. will be generated
-        and stored with label *numbonds*"""
+        the setBonds() has been called. The bond order is stored in the
+        *_bondOrders* array."""
         if len(bondOrders)!=len(self._bonds):
             raise ValueError('invalid bond order list, bond and bond order length mismatch')
         if min(bondOrders)<1 or max(bondOrders)>5:
             raise ValueError('invalid bond order value, values must range from 1 to 5')
 
-        # build dict of bond order with key "i,j" and value bond order        
-        bondOrderDict = {}
-        n = 0
-        for i,j in self._bonds:
-            if i>j:
-                a=i
-                i=j
-                j=a
-            bondOrderDict['%d %d'%(i,j)] = bondOrders[n]
-            n += 1
-        self._bondOrders = bondOrderDict
+        self._bondOrders = np.array(bondOrders, np.int8)
 
     def setBonds(self, bonds, bondOrders=None):
         """Set covalent bonds between atoms.  *bonds* must be a list or an
