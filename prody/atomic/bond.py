@@ -27,7 +27,7 @@ class Bond(object):
                 a=i
                 i=j
                 j=a
-            self._bondOrder = bondOrderDict['%d %d'%(i,j)]
+            self._bondOrder = self._ag._bondOrders[self._ag._bondIndex['%d %d'%(i,j)]]
         else:
             self._bondOrder = 1 # single bond by default
         if acsi is None:
