@@ -4,7 +4,6 @@ multiple coordinate sets in :class:`~numpy.ndarray` instances."""
 
 from time import time
 from numbers import Integral
-import weakref
 
 import numpy as np
 
@@ -147,6 +146,7 @@ class AtomGroup(Atomic):
         self._bmap = None
         self._bonds = None
         self._bondOrders = None
+        self._bondIndex = None
         self._angmap = None
         self._angles = None
         self._dmap = None
@@ -232,17 +232,26 @@ class AtomGroup(Atomic):
 
         return self._n_atoms
 
-    def __add__(self, other):
+    def __add__(self, other, newAG=True):
 
         if not isinstance(other, AtomGroup):
             raise TypeError('unsupported operand type(s) for +: {0} and '
                             '{1}'.format(repr(type(self).__name__),
                                          repr(type(other).__name__)))
 
-        new = AtomGroup(self._title + ' + ' + other._title)
+        oldSize = len(self)
+        if newAG:
+            new = AtomGroup(self._title + ' + ' + other._title)
+        else:
+            new = self
+            self._n_atoms += other._n_atoms
+            #shape = (self._coords.shape[0], self._n_atoms + other._n_atoms, self._coords.shape[2])
+            #self._coords = np.resize(self._coords, shape)
+            #import pdb; pdb.set_trace()
+
         if self._n_csets:
             if self._n_csets == other._n_csets:
-                new.setCoords(np.concatenate((self._coords, other._coords), 1))
+                new.setCoords(np.concatenate((self._coords, other._coords), 1), overwrite=True)
                 this = self._anisous
                 that = other._anisous
                 if this is not None and that is not None:
@@ -306,14 +315,15 @@ class AtomGroup(Atomic):
                     that = np.zeros(shape, this.dtype)
                 new._setFlags(key, np.concatenate((this, that)))
 
-        new._n_atoms = self._n_atoms + other._n_atoms
+        if newAG:
+            new._n_atoms = self._n_atoms + other._n_atoms
 
         bo = None
         if self._bonds is not None and other._bonds is not None:
             if self._bondOrders is not None:
                 bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in bonds]
             new.setBonds(np.concatenate([self._bonds,
-                                         other._bonds + self._n_atoms]), bo)
+                                         other._bonds + oldSize]), bo)
         elif self._bonds is not None:
             if self._bondOrders is not None:
                 bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in self._bonds]
@@ -385,70 +395,7 @@ class AtomGroup(Atomic):
     def extend(self, other):
         # does the same as __add__ but does not create and return a new
         # atom group, instead is extends the arrays in this atoms group 
-        if not isinstance(other, AtomGroup):
-            raise TypeError('unsupported operand type(s) for +: {0} and '
-                            '{1}'.format(repr(type(self).__name__),
-                                         repr(type(other).__name__)))
-
-        from .functions import SAVE_SKIP_POINTER as SKIP
-        oldSize = len(self)
-        self._n_atoms += other._n_atoms
-        new = self
-        
-        if self._n_csets:
-            if self._n_csets == other._n_csets:
-                new._setCoords(np.concatenate((self._coords, other._coords), 1), overwrite=True)
-                if self._n_csets > 1:
-                    LOGGER.info('All {0} coordinate sets are copied to '
-                                '{1}.'.format(self._n_csets, new.getTitle()))
-            else:
-                raise ValueError('molecules must have same numbers of coordinate sets')
-
-        elif other._n_csets:
-            LOGGER.warn('No coordinate sets are copied to {0}'
-                        .format(new.getTitle()))
-
-        #for key in set(list(self._data) + list(other._data)):
-        #    if key in ATOMIC_FIELDS and ATOMIC_FIELDS[key].readonly:
-        #        continue
-        for key in set( self.getDataLabels() + other.getDataLabels() ):
-            if key in SKIP:continue
-            this = self.getData(key)
-            that = other.getData(key)
-            if this is not None or that is not None:
-                if this is None:
-                    this = np.zeros((oldSize,), that.dtype)
-                if that is None:
-                    that = np.zeros((len(other),), this.dtype)
-                new.setData( key, np.concatenate((this, that)))
-
-        for key in set( self.getFlagLabels() + other.getFlagLabels() ):
-            if key in SKIP: continue
-            this = self.getFlags(key)
-            that = other.getFlags(key)
-            if this is not None or that is not None:
-                if this is None:
-                    this = np.zeros((oldSize,), that.dtype)
-                if that is None:
-                    that = np.zeros((len(other),), this.dtype)
-                new._setFlags(key, np.concatenate((this, that)))
-
-        bo = None
-        if self._bonds is not None and other._bonds is not None:
-            bonds = np.concatenate([self._bonds,
-                                    other._bonds + oldSize])
-            if self._bondOrders is not None:
-                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in bonds]
-            new.setBonds(bonds, bo)
-        elif self._bonds is not None:
-            if self._bondOrders is not None:
-                bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in self._bonds]
-            new.setBonds(self._bonds.copy(), bo)
-        elif other._bonds is not None:
-            if self._bondOrders is not None:
-                bonds = other._bonds + oldSize
-            bo = [self._bondOrders["%d %d"%(b[0], b[1])] for b in bonds]
-            new.setBonds(bonds, bo)
+        self.__add__(other, newAG=False)
 
     def __contains__(self, item):
 
@@ -576,7 +523,7 @@ class AtomGroup(Atomic):
         if self._coords is not None:
             return self._coords[self._acsi]
 
-    def setCoords(self, coords, label=''):
+    def setCoords(self, coords, label='', overwrite=False):
         """Set coordinates of atoms.  *coords* may be any array like object
         or an object instance with :meth:`getCoords` method.  If the shape of
         coordinate array is ``(n_csets > 1, n_atoms, 3)``, it will replace all
@@ -607,7 +554,7 @@ class AtomGroup(Atomic):
             raise TypeError('coords must be a numpy array or an '
                             'object with `getCoords` method')
 
-        self._setCoords(coords, label=label)
+        self._setCoords(coords, label=label, overwrite=overwrite)
 
     def _setCoords(self, coords, label='', overwrite=False):
         """Set coordinates without data type checking.  *coords* must
@@ -1323,8 +1270,10 @@ class AtomGroup(Atomic):
         e.g. ``"bonded to index 1"``.  See :mod:`.select` module documentation
         for details. Also, a data array with number of bonds will be generated
         and stored with label *numbonds*.  This can be used in atom selections,
-        e.g. ``'numbonds 0'`` can be used to select ions in a system. If
-        *bonds*  is empty or **None**, then all bonds will be removed for this 
+        e.g. ``'numbonds 0'`` can be used to select ions in a system. The keys
+        in the *_bondIndex* dictionary is a string representation of the bond's
+        atom indices i.e. '%d %d'%(i, j) with i<j. If  *bonds*  is empty or
+        **None**, then all bonds will be removed for this
         :class:`.AtomGroup`. """
 
         if bonds is None or len(bonds) == 0:
