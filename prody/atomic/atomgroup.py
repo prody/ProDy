@@ -127,8 +127,7 @@ class AtomGroup(Atomic):
                  '_timestamps', '_kdtrees',
                  '_bmap', '_angmap', '_dmap', '_imap',
                  '_domap', '_acmap', '_nbemap', '_cmap',
-                 '_bonds', '_bondOrders', '_bondIndex', '_angles',
-                 '_dihedrals', '_impropers',
+                 '_bonds', '_angles', '_dihedrals', '_impropers',
                  '_donors', '_acceptors', '_nbexclusions', '_crossterms',
                  '_cslabels', '_acsi', '_n_csets', '_data',
                  '_fragments', '_flags', '_flagsts', '_subsets',
@@ -145,8 +144,6 @@ class AtomGroup(Atomic):
         self._kdtrees = None
         self._bmap = None
         self._bonds = None
-        self._bondOrders = None
-        self._bondIndex = None
         self._angmap = None
         self._angles = None
         self._dmap = None
@@ -232,23 +229,17 @@ class AtomGroup(Atomic):
 
         return self._n_atoms
 
-    def __add__(self, other, newAG=True):
+    def __add__(self, other):
 
         if not isinstance(other, AtomGroup):
             raise TypeError('unsupported operand type(s) for +: {0} and '
                             '{1}'.format(repr(type(self).__name__),
                                          repr(type(other).__name__)))
 
-        oldSize = len(self)
-        if newAG:
-            new = AtomGroup(self._title + ' + ' + other._title)
-        else:
-            new = self
-            self._n_atoms += other._n_atoms
-
+        new = AtomGroup(self._title + ' + ' + other._title)
         if self._n_csets:
             if self._n_csets == other._n_csets:
-                new.setCoords(np.concatenate((self._coords, other._coords), 1), overwrite=True)
+                new.setCoords(np.concatenate((self._coords, other._coords), 1))
                 this = self._anisous
                 that = other._anisous
                 if this is not None and that is not None:
@@ -312,29 +303,15 @@ class AtomGroup(Atomic):
                     that = np.zeros(shape, this.dtype)
                 new._setFlags(key, np.concatenate((this, that)))
 
-        if newAG:
-            new._n_atoms = self._n_atoms + other._n_atoms
-
-        if self._bondOrders is not None:
-            if other._bondOrders is not None:
-                bo = np.concatenate([self._bondsOrders, other._bondOrders])
-            else:
-                bo = np.concatenate([self._bondsOrders, np.ones(len(other), np.int8)])
-        else:
-            if other._bondOrders is not None:
-                bo = np.concatenate([np.ones(len(self), np.int8), self._bondsOrders])
-            else:
-                bo = None
+        new._n_atoms = self._n_atoms + other._n_atoms
 
         if self._bonds is not None and other._bonds is not None:
             new.setBonds(np.concatenate([self._bonds,
-                                         other._bonds + oldSize]), bo)
+                                         other._bonds + self._n_atoms]))
         elif self._bonds is not None:
-            new.setBonds(self._bonds.copy(), bo)
-
+            new.setBonds(self._bonds.copy())
         elif other._bonds is not None:
-            bonds = other._bonds + self._n_atoms
-            new.setBonds(bonds, bo)
+            new.setBonds(other._bonds + self._n_atoms)
 
         if self._angles is not None and other._angles is not None:
             new.setAngles(np.concatenate([self._angles,
@@ -394,11 +371,6 @@ class AtomGroup(Atomic):
 
         return new
 
-    def extend(self, other):
-        # does the same as __add__ but does not create and return a new
-        # atom group, instead is extends the arrays in this atoms group 
-        self.__add__(other, newAG=False)
-
     def __contains__(self, item):
 
         try:
@@ -422,10 +394,6 @@ class AtomGroup(Atomic):
                  np.all(self._coords == other._coords)) and
                 all(np.all(self._data[key] == other._data[key])
                     for key in self._data))
-
-    def __hash__(self):
-        return object.__hash__(self)
-
 
     def __iter__(self):
         """Yield atom instances."""
@@ -525,7 +493,7 @@ class AtomGroup(Atomic):
         if self._coords is not None:
             return self._coords[self._acsi]
 
-    def setCoords(self, coords, label='', overwrite=False):
+    def setCoords(self, coords, label=''):
         """Set coordinates of atoms.  *coords* may be any array like object
         or an object instance with :meth:`getCoords` method.  If the shape of
         coordinate array is ``(n_csets > 1, n_atoms, 3)``, it will replace all
@@ -556,7 +524,7 @@ class AtomGroup(Atomic):
             raise TypeError('coords must be a numpy array or an '
                             'object with `getCoords` method')
 
-        self._setCoords(coords, label=label, overwrite=overwrite)
+        self._setCoords(coords, label=label)
 
     def _setCoords(self, coords, label='', overwrite=False):
         """Set coordinates without data type checking.  *coords* must
@@ -1236,33 +1204,15 @@ class AtomGroup(Atomic):
         else:
             raise TypeError('labels must be a list')
 
-    def setBondOrders(bondOrders):
-        """Set covalent bond order. *bondOrders* must be a list or an array
-        of integers and proide a value for each bond. Possible values are
-        1:single, 2:double, 3:triple, 4:aromatic, 5:amide. The bon order of
-        all bonds must be set at once. This method must be called after
-        the setBonds() has been called. The bond order is stored in the
-        *_bondOrders* array."""
-        if len(bondOrders)!=len(self._bonds):
-            raise ValueError('invalid bond order list, bond and bond order length mismatch')
-        if min(bondOrders)<1 or max(bondOrders)>5:
-            raise ValueError('invalid bond order value, values must range from 1 to 5')
-
-        self._bondOrders = np.array(bondOrders, np.int8)
-
-    def setBonds(self, bonds, bondOrders=None):
+    def setBonds(self, bonds):
         """Set covalent bonds between atoms.  *bonds* must be a list or an
-        array of pairs of indices. Optionally *bondOrders* can be specified
-        (see :meth:`setBondOrder` method).  if *bondOrders* is None the
-        bondOrders information will we rest to single bonds.  All bonds must be
-        set at once.  Bonding information can be used to make atom selections,
-        e.g. ``"bonded to index 1"``.  See :mod:`.select` module documentation
-        for details. Also, a data array with number of bonds will be generated
-        and stored with label *numbonds*.  This can be used in atom selections,
-        e.g. ``'numbonds 0'`` can be used to select ions in a system. The keys
-        in the *_bondIndex* dictionary is a string representation of the bond's
-        atom indices i.e. '%d %d'%(i, j) with i<j. If  *bonds*  is empty or
-        **None**, then all bonds will be removed for this
+        array of pairs of indices.  All bonds must be set at once.  Bonding
+        information can be used to make atom selections, e.g. ``"bonded to
+        index 1"``.  See :mod:`.select` module documentation for details.
+        Also, a data array with number of bonds will be generated and stored
+        with label *numbonds*.  This can be used in atom selections, e.g.
+        ``'numbonds 0'`` can be used to select ions in a system. If *bonds* 
+        is empty or **None**, then all bonds will be removed for this 
         :class:`.AtomGroup`. """
 
         if bonds is None or len(bonds) == 0:
@@ -1279,31 +1229,18 @@ class AtomGroup(Atomic):
             raise ValueError('bonds.shape must be (n_bonds, 2)')
         if bonds.min() < 0:
             raise ValueError('negative atom indices are not valid')
-
         n_atoms = self._n_atoms
         if bonds.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
-
         bonds.sort(1)
         bonds = bonds[bonds[:, 1].argsort(), ]
         bonds = bonds[bonds[:, 0].argsort(), ]
         bonds = np.unique(bonds, axis=0)
 
-        d = {}
-        for n, b in enumerate(bonds):
-            key = '%d %d'%(b[0], b[1])
-            d[key] = n
-        self._bondIndex = d
-
         self._bmap, self._data['numbonds'] = evalBonds(bonds, n_atoms)
         self._bonds = bonds
         self._fragments = None
 
-        if bondOrders is None:
-            self._bondOrders = None
-        else:
-            self.setBondOrders(bondOrders)
-            
     def numBonds(self):
         """Returns number of bonds.  Use :meth:`setBonds` or 
         :meth:`inferBonds` for setting bonds."""

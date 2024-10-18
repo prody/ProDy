@@ -443,13 +443,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                    long_resname=False, long_chid=False):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
-    :arg lines: PDB/PQR/PDBQT lines
+    :arg lines: PDB/PQR lines
     :arg split: starting index for coordinate data lines"""
 
     format = format.upper()
     isPDB = format == 'PDB'
-    isPQR = format == 'PQR'
-    isPDBQT = format == 'PDBQT'
 
     num_ters = 0
 
@@ -486,25 +484,15 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
     icodes = np.zeros(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
     serials = np.zeros(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
+    charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
     if isPDB:
-        charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
         segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
         elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
         bfactors = np.zeros(asize, dtype=ATOMIC_FIELDS['beta'].dtype)
         occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
         siguij = None
-    elif isPQR:
-        charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
+    else:
         radii = np.zeros(asize, dtype=ATOMIC_FIELDS['radius'].dtype)
-    elif isPDBQT:
-        segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
-        elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
-        adelements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
-        charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
-        types = np.zeros(asize, dtype=ATOMIC_FIELDS['type'].dtype)
-        bfactors = np.zeros(asize, dtype=ATOMIC_FIELDS['beta'].dtype)
-        occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
-
     anisou = None
     asize = 2000 # increase array length by this much when needed
 
@@ -550,17 +538,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         line = lines[i]
         startswith = line[0:6].strip()
 
-        if isPDBQT:
-            if line[0:4]== 'ROOT' or line[0:7] == 'ENDROOT' or \
-                   line[0:6] == 'BRANCH' or line[0:9] == 'ENDBRANCH':
-                i += 1
-                continue
-            
         if startswith == 'ATOM' or startswith == 'HETATM':
-            if isPDB or isPDBQT:
+            if isPDB:
                 atomname = line[12:16].strip()
 
-                if isPDB and long_resname:
+                if long_resname:
                     resname = line[17:21].strip()
                 else:
                     resname = line[17:20].strip()
@@ -584,8 +566,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     i += 1
                     continue
 
-            if isPDB or isPDBQT:
-                if isPDB and long_chid:
+            if isPDB:
+                if long_chid:
                     chid = line[20:22].strip()
                     if len(chid) > 1 and not warned_long_chid:
                         LOGGER.warn('Parsed 2-character chid {0} continuous with resnum {1} from {2}. Please check if this was intended.'.format(
@@ -666,13 +648,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             atomnames[acount] = atomname
             resnames[acount] = resname
             chainids[acount] = chid
-            if isPDB or isPDBQT:
-                if isPDBQT:
-                    if line[22:26]=='    ':
-                        resnums[acount] = -1
-                    else:
-                        resnums[acount] = line[22:26]#.split()[0])
-                
+            if isPDB:
                 resnum_str = line[22:26]
                 icode = line[26]
                 if dec:
@@ -748,7 +724,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     charges[acount] = int(line[79] + line[78])
                 except:
                     charges[acount] = 0
-            elif isPQR:
+            else:
                 try:
                     charges[acount] = fields[9]
                 except:
@@ -759,48 +735,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 except:
                     LOGGER.warn('failed to parse radius at line {0}'
                                 .format(i))
-            elif isPDBQT:
-                try:
-                    occupancies[acount] = line[54:60]
-                except:
-                    LOGGER.warn('failed to parse occupancy at line {0}'
-                                .format(i))
-                try:
-                    bfactors[acount] = line[60:66]
-                except:
-                    LOGGER.warn('failed to parse beta-factor at line {0}'
-                                .format(i))
-                try:
-                    segnames[acount] = line[67:70]                    
-                except:
-                    LOGGER.warn('failed to parse charge at line {0}'
-                                .format(i))
-                try:
-                    charges[acount] = line[70:76]
-                except:
-                    LOGGER.warn('failed to parse charge at line {0}'
-                                .format(i))
-                try:
-                    types[acount] = line[77:79]
-                except:
-                    LOGGER.warn('failed to parse type at line {0}'
-                                .format(i))
-                
-                elements[acount] = line[77:79].strip()
-                adelements[acount] = line[77:79].strip()
-                if elements[acount]=='A':
-                    elements[acount]='C'
-                elif elements[acount]=='OA':
-                    elements[acount]='O'
-                elif elements[acount]=='NA':
-                    elements[acount]='N'
-                elif elements[acount]=='NX':
-                    elements[acount]='N'
-                elif elements[acount]=='SA':
-                    elements[acount]='S'
-                elif elements[acount]=='HD':
-                    elements[acount]='H'
-                
             acount += 1
             if n_atoms == 0 and acount >= alength:
                 # if arrays are short extend them with zeros
@@ -837,27 +771,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     if siguij is not None:
                         siguij = np.concatenate((siguij, np.zeros((asize, 6),
                             ATOMIC_FIELDS['siguij'].dtype)))
-                elif isPQR:
+                else:
                     charges = np.concatenate((charges,
                         np.zeros(asize, ATOMIC_FIELDS['charge'].dtype)))
                     radii = np.concatenate((radii,
                         np.zeros(asize, ATOMIC_FIELDS['radius'].dtype)))
-                elif isPDBQT:
-                    bfactors = np.concatenate((bfactors,
-                        np.zeros(asize, ATOMIC_FIELDS['beta'].dtype)))
-                    occupancies = np.concatenate((occupancies,
-                        np.zeros(asize, ATOMIC_FIELDS['occupancy'].dtype)))
-                    segnames = np.concatenate((segnames,
-                        np.zeros(asize, ATOMIC_FIELDS['segment'].dtype)))
-                    elements = np.concatenate((elements,
-                        np.zeros(asize, ATOMIC_FIELDS['element'].dtype)))
-                    adelements = np.concatenate((adelements,
-                        np.zeros(asize, ATOMIC_FIELDS['element'].dtype)))
-                    charges = np.concatenate((charges,
-                        np.zeros(asize, ATOMIC_FIELDS['charge'].dtype)))
-                    types = np.concatenate((types,
-                        np.zeros(asize, ATOMIC_FIELDS['type'].dtype)))
-                    
         elif startswith == 'CONECT':
             if bonds is not None:
                 atom_serial = line[6:11]
@@ -968,24 +886,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     if siguij is not None:
                         siguij.resize((acount, 6), refcheck=False)
                         atomgroup.setAnistds(siguij / 10000)
-                elif isPQR:
+                else:
                     radii.resize(acount, refcheck=False)
                     atomgroup.setRadii(radii)
-                elif isPDBQT:
-                    bfactors.resize(acount, refcheck=False)
-                    occupancies.resize(acount, refcheck=False)
-                    segnames.resize(acount, refcheck=False)
-                    elements.resize(acount, refcheck=False)
-                    adelements.resize(acount, refcheck=False)
-                    types.resize(acount, refcheck=False)
-                    atomgroup.setBetas(bfactors)
-                    atomgroup.setOccupancies(occupancies)
-                    atomgroup.setSegnames(np.char.strip(segnames))
-                    atomgroup.setCharges(charges)
-                    atomgroup.setTypes(types)
-                    atomgroup.setElements(np.char.strip(elements))
-                    atomgroup.setData('AD_element', np.char.strip(adelements))
-
                 charges.resize(acount, refcheck=False)
                 atomgroup.setCharges(charges)
 
@@ -1094,23 +997,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             atomgroup.setMasses(getMasses(np.char.strip(elements)))
             atomgroup.setBetas(bfactors)
             atomgroup.setOccupancies(occupancies)
-        elif isPQR:
+        else:
             radii.resize(acount, refcheck=False)
             atomgroup.setRadii(radii)
-        elif isPDBQT:
-            bfactors.resize(acount, refcheck=False)
-            occupancies.resize(acount, refcheck=False)
-            segnames.resize(acount, refcheck=False)
-            elements.resize(acount, refcheck=False)
-            atomgroup.setSegnames(np.char.strip(segnames))
-            atomgroup.setElements(np.char.strip(elements))
-            atomgroup.setBetas(bfactors)
-            atomgroup.setOccupancies(occupancies)
-            adelements.resize(acount, refcheck=False)
-            atomgroup.setData('AD_element', np.char.strip(adelements))
-            types.resize(acount, refcheck=False)
-            atomgroup.setTypes(types)
-
         charges.resize(acount, refcheck=False)
         atomgroup.setCharges(charges)
 
@@ -1431,14 +1320,11 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             raise ValueError('len(beta) must be equal to number of atoms')
 
     atomnames = atoms.getNames()
-    # use element to properly write atom names
-    elements = atoms._getElements()
     if atomnames is None:
         raise ValueError('atom names are not set')
     for i, an in enumerate(atomnames):
         if len(an) < 4:
-            if len(elements[i])==1:
-                atomnames[i] = ' ' + an
+            atomnames[i] = ' ' + an
 
     s_or_u = np.array(['a']).dtype.char
 

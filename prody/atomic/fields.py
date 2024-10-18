@@ -120,7 +120,6 @@ HVNONE = ['_hv', 'segindex', 'chindex', 'resindex']
 
 ATOMIC_FIELDS = {
     'name':      Field('name', DTYPE + '6', selstr=('name CA CB',)),
-    'type':      Field('type', DTYPE + '6', selstr=('type N.am',)),
     'altloc':    Field('altloc', DTYPE + '1',
                        doc='alternate location indicator',
                        selstr=('altloc A B', 'altloc _'),),

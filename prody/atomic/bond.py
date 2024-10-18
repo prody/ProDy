@@ -15,32 +15,23 @@ class Bond(object):
     * :func:`len` returns bond length, i.e. :meth:`getLength`
     * :func:`iter` yields :class:`~.Atom` instances"""
 
-    __slots__ = ['_ag', '_acsi', '_indices', '_bondOrder']
-    _bondType = {1:'single', 2:'double', 3:'triple', 4:'aromatic', 5:'amid', }
+    __slots__ = ['_ag', '_acsi', '_indices']
 
     def __init__(self, ag, indices, acsi=None):
 
         self._ag = ag
-        i, j  = self._indices = np.array(indices)
-        if self._ag._bondOrders is not None:
-            if i>j:
-                a=i
-                i=j
-                j=a
-            self._bondOrder = self._ag._bondOrders[self._ag._bondIndex['%d %d'%(i,j)]]
-        else:
-            self._bondOrder = 1 # single bond by default
+        self._indices = np.array(indices)
         if acsi is None:
             self._acsi = ag.getACSIndex()
         else:
             self._acsi = acsi
 
     def __repr__(self):
+
         one, two = self._indices
         names = self._ag._getNames()
-        return '<Bond: {0}({1})--{2}({3}) from {4}, bond order: {5}>'.format(
-            names[one], one, names[two], two, str(self._ag),
-            self._bondType[self._bondOrder])
+        return '<Bond: {0}({1})--{2}({3}) from {4}>'.format(
+                            names[one], one, names[two], two, str(self._ag))
 
     def __str__(self):
 
