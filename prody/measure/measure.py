@@ -214,6 +214,10 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
     rad = arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
     if not all(porm == 0):
         rad = rad * porm
+
+    if rad.shape[0] == 1:
+        rad = rad[0]
+        
     if radian:
         return rad
     else:
