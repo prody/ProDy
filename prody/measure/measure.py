@@ -5,7 +5,7 @@ from numbers import Integral, Number
 
 from numpy import ndarray, power, sqrt, array, zeros, arccos, dot
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
-from numpy import unique, where
+from numpy import unique, where, divide, power
 
 from prody.atomic import Atomic, Residue, Atom, extendAtomicData
 from prody.kdtree import KDTree
@@ -207,12 +207,12 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
     a3 = coords4 - coords3
 
     v1 = cross(a1, a2)
-    v1 = v1 / (v1 * v1).sum(-1)**0.5
+    v1 = divide(v1, power((v1 * v1).sum(-1), 0.5).reshape(-1,1))
     v2 = cross(a2, a3)
-    v2 = v2 / (v2 * v2).sum(-1)**0.5
+    v2 = divide(v2, power((v2 * v2).sum(-1), 0.5).reshape(-1,1))
     porm = sign((v1 * a3).sum(-1))
     rad = arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
-    if not porm == 0:
+    if not all(porm == 0):
         rad = rad * porm
     if radian:
         return rad
