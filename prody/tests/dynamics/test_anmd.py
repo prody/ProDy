@@ -98,5 +98,5 @@ class TestAnmdResults(TestANMD):
                         rtol=1e-10, atol=0.1, # may not be so
                         err_msg='runANMD with num_modes=1 failed to give expected RMSDs')
 
-if __name__ == '__main__':
+if __name__ == '__main__' and prody.PY3K:
     unittest.main()
