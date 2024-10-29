@@ -33,10 +33,10 @@ from prody.atomic.atomic import Atomic
 from prody.ensemble.ensemble import Ensemble
 from prody.proteins.pdbfile import parsePDB, writePDB
 
-from .anm import ANM
-from .clustenm import ClustENM
-from .editing import extendModel
-from .sampling import traverseMode
+from prody.dynamics.anm import ANM
+from prody.dynamics.clustenm import ClustENM
+from prody.dynamics.editing import extendModel
+from prody.dynamics.sampling import traverseMode
 
 
 __all__ = ['runANMD']
