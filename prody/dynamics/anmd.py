@@ -221,3 +221,9 @@ if __name__=='__main__':
     pdb = parsePDB(pdb_name_ext, compressed=False)
 
     x = runANMD(pdb, num_modes, max_rmsd, num_steps, tol)
+
+    pdb_basename = os.path.basename(pdb_name)
+    for ens in x:
+        filename = pdb_basename + '_' + ens.getTitle().replace(' ', '_')
+        LOGGER.info('writing PDB file {0}'.format(filename))
+        writePDB(filename, ens)
