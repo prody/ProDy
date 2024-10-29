@@ -119,6 +119,13 @@ The following class and its functions can be used to generate conformers using a
 
   * :class:`.AdaptiveANM` - generate transitions between two conformers using best overlapping modes 
 
+ENM-MD hybrid methods
+===================
+
+The following classes and their functions can be used to generate conformers using ENM-MD hybrid methods:
+
+  * :class:`.ClustENM` - generate conformers by exploring combinations of modes and clustering
+
 Essential Site Scanning Analysis (ESSA)
 ========================================
 
