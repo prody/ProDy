@@ -15,7 +15,7 @@ LOGGER.verbosity = 'none'
 DATA = DATA_FILES['anmd']
 ENSEMBLE = PDBEnsemble(parseDatafile('anmd'))
 
-class TestLDA(unittest.TestCase):
+class TestANMD(unittest.TestCase):
 
     def setUp(self):
 
@@ -26,52 +26,49 @@ class TestLDA(unittest.TestCase):
     def testAnmdAtomsWrongType(self):
         """Test response to wrong type *atoms* argument."""
 
-        self.assertRaises(TypeError, self.runAMND, 'nogood')
+        self.assertRaises(TypeError, self.runANMD, 'nogood')
 
     def testAnmdNumModesWrongType(self):
         """Test response to wrong type *num_modes* argument."""
 
-        self.assertRaises(TypeError, self.runAMND, self.ATOMS, 'nogood')
+        self.assertRaises(TypeError, self.runANMD, self.ATOMS, 'nogood')
 
     def testAnmdRmsdWrongType(self):
         """Test response to wrong type *max_rmsd* argument."""
 
-        self.assertRaises(TypeError, self.runAMND, self.ATOMS, max_rmsd='nogood')
+        self.assertRaises(TypeError, self.runANMD, self.ATOMS, max_rmsd='nogood')
 
     def testAnmdStepsWrongType(self):
         """Test response to wrong type *num_steps* argument."""
 
-        self.assertRaises(TypeError, self.runAMND, self.ATOMS, num_steps='nogood')
+        self.assertRaises(TypeError, self.runANMD, self.ATOMS, num_steps='nogood')
 
     def testAnmdToleranceWrongType(self):
         """Test response to wrong type *tolerance* argument."""
 
-        self.assertRaises(TypeError, self.runAMND, self.ATOMS, tolerance='nogood')
+        self.assertRaises(TypeError, self.runANMD, self.ATOMS, tolerance='nogood')
 
     def testAnmdSolventWrongType(self):
         """Test response to wrong type *solvent* argument."""
 
-        self.assertRaises(TypeError, self.runAMND, self.ATOMS, solvent=1)
+        self.assertRaises(TypeError, self.runANMD, self.ATOMS, solvent=1)
 
     def testAnmdSolventWrongValue(self):
         """Test response to wrong value *solvent* argument."""
 
-        self.assertRaises(ValueError, self.runAMND, self.ATOMS, solvent='nogood')
+        self.assertRaises(ValueError, self.runANMD, self.ATOMS, solvent='nogood')
 
     def testAnmdFFWrongType(self):
         """Test response to wrong type *force_field* argument."""
 
-        self.assertRaises(TypeError, self.runAMND, self.ATOMS, force_field=1)
+        self.assertRaises(TypeError, self.runANMD, self.ATOMS, force_field=1)
 
     def testAnmdFFWrongValue(self):
         """Test response to wrong value *force_field* argument."""
 
-        self.assertRaises(ValueError, self.runAMND, self.ATOMS, force_field='nogood')
+        self.assertRaises(ValueError, self.runANMD, self.ATOMS, force_field='nogood')
 
-class TestLDAResults(TestLDA):
-
-    def setUp(self):
-        self.ATOMS = parseDatafile('1ubi')
+class TestAnmdResults(TestANMD):
 
     def testResults(self):
         DEFAULT_RESULTS = runANMD(self.ATOMS)
