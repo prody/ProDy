@@ -122,9 +122,10 @@ The following class and its functions can be used to generate conformers using a
 ENM-MD hybrid methods
 ===================
 
-The following classes and their functions can be used to generate conformers using ENM-MD hybrid methods:
+The following classes and functions can be used to generate conformers using ENM-MD hybrid methods:
 
-  * :class:`.ClustENM` - generate conformers by exploring combinations of modes and clustering
+  * :class:`.ClustENM` - generate conformers by exploring combinations of modes and clustering, using minimisation and optionally MD
+  * :function:`.ANMD` - generate conformers by traversing a number of individual modes, applying minimisation to each conformer
 
 Essential Site Scanning Analysis (ESSA)
 ========================================
@@ -374,3 +375,7 @@ __all__.extend(lda.__all__)
 from . import logistic
 from .logistic import *
 __all__.extend(logistic.__all__)
+
+from . import anmd
+from .anmd import *
+__all__.extend(anmd.__all__)
