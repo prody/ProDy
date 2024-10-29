@@ -157,8 +157,9 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2,
     ensembles = []
     for i in range(num_modes):
         ip1 = i+1
+        num_confs = 2*num_steps+1
 
-        LOGGER.info('\nGenerating conformers for mode {0} ...'.format(ip1))
+        LOGGER.info('\nGenerating {0} conformers for mode {1} ...'.format(num_confs, ip1))
         eval_i=anm[i].getEigval()
         sc_rmsd=((1/eval_i)**0.5/(1/eval_0)**0.5)*max_rmsd
         traj_aa=traverseMode(anm_ex[i], atoms_all, n_steps=num_steps, rmsd=sc_rmsd)
@@ -168,7 +169,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2,
         target_ensemble.setAtoms(atoms_all)
         target_ensemble.setCoords(atoms_all)
         
-        for j in range(2*num_steps+1):
+        for j in range(num_confs):
             jp1 = j+1
             writePDB('temp1.pdb', traj_aa[j])
             pdb = PDBFile('temp1.pdb')
