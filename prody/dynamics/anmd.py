@@ -41,8 +41,7 @@ from prody.dynamics.sampling import traverseMode
 
 __all__ = ['runANMD']
 
-def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2,
-            tolerance=10.0, solvent='imp', force_field=None):
+def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0):
     """Runs the ANMD hybrid simulation method ([CM22]_), which generates conformations
     along single modes and minimises them. The first non-zero mode is scaled to *max_rmsd*
     and the remaining modes are scaled accordingly using their eigenvalues.
@@ -62,16 +61,6 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2,
     :arg tolerance: tolerance for energy minimisation in OpenMM 
         in kilojoule_per_mole. Default is 10
     :type tolerance: float
-
-    :arg solvent: Solvent model to be used. If it is set to 'imp' (default),
-        implicit solvent model will be used, whereas 'exp' stands for explicit solvent model.
-        Warning: In the case of nucleotide chains, explicit solvent model is automatically set.
-    :type solvent: str
-
-    :arg force_field: Implicit solvent force field is ('amber99sbildn.xml', 'amber99_obc.xml'). 
-        Explicit solvent force field is ('amber14-all.xml', 'amber14/tip3pfb.xml').
-        Experimental feature: Forcefields already implemented in OpenMM can be used. 
-    :type force_field: tuple of strings
 
     .. [CM22] Mary Hongying Cheng, James M Krieger, Anupam Banerjee, Yufei Xiang, 
             Burak Kaynak, Yi Shi, Moshe Arditi, Ivet Bahar. 
@@ -99,19 +88,6 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2,
 
     if not isinstance(tolerance, Number):
         raise TypeError('tolerance should be a float')
-    
-    if not isinstance(solvent, str):
-        raise TypeError('solvent should be a string')
-    if solvent not in ['imp', 'exp']:
-        raise ValueError('solvent should be "imp" or "exp"')
-    
-    if not isinstance(force_field, (type(None), tuple)):
-        raise TypeError('force_field should be None or a tuple')
-    if force_field is not None:
-        if len(force_field) != 2:
-            raise ValueError('force_field tuple should have 2 elements')
-        if not isinstance(force_field[0], str) or not isinstance(force_field[1], str):
-            raise TypeError('force_field tuple entries should be strings')
 
     pdb_name=atoms.getTitle().replace(' ', '_')
 
@@ -164,7 +140,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2,
         sc_rmsd=((1/eval_i)**0.5/(1/eval_0)**0.5)*max_rmsd
         traj_aa=traverseMode(anm_ex[i], atoms_all, n_steps=num_steps, rmsd=sc_rmsd)
         traj_aa.setAtoms(atoms_all)
-       
+
         target_ensemble = Ensemble('mode {0} ensemble'.format(ip1))
         target_ensemble.setAtoms(atoms_all)
         target_ensemble.setCoords(atoms_all)

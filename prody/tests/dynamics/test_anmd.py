@@ -49,26 +49,6 @@ class TestANMD(unittest.TestCase):
         if prody.PY3K:
             self.assertRaises(TypeError, self.runANMD, self.ATOMS, tolerance='nogood')
 
-    def testAnmdSolventWrongType(self):
-        """Test response to wrong type *solvent* argument."""
-        if prody.PY3K:
-            self.assertRaises(TypeError, self.runANMD, self.ATOMS, solvent=1)
-
-    def testAnmdSolventWrongValue(self):
-        """Test response to wrong value *solvent* argument."""
-        if prody.PY3K:
-            self.assertRaises(ValueError, self.runANMD, self.ATOMS, solvent='nogood')
-
-    def testAnmdFFWrongType(self):
-        """Test response to wrong type *force_field* argument."""
-        if prody.PY3K:
-            self.assertRaises(TypeError, self.runANMD, self.ATOMS, force_field=1)
-
-    def testAnmdFFWrongValue(self):
-        """Test response to wrong value *force_field* argument."""
-        if prody.PY3K:
-            self.assertRaises(ValueError, self.runANMD, self.ATOMS, force_field='nogood')
-
 class TestAnmdResults(TestANMD):
 
     def testResults(self):
