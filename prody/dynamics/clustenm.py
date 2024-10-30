@@ -1076,7 +1076,7 @@ class ClustENM(Ensemble):
         self._sparse = kwargs.get('sparse', False)
         self._kdtree = kwargs.get('kdtree', False)
         self._turbo = kwargs.get('turbo', False)
-        self._nproc = kwargs.pop('nproc', None)
+        self._nproc = kwargs.pop('nproc', 0)
         if kwargs.get('zeros', False):
             LOGGER.warn('ClustENM cannot use zero modes so ignoring this kwarg')
 
