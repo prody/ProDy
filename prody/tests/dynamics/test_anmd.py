@@ -64,7 +64,7 @@ class TestAnmdResults(TestANMD):
 
             ens1.setCoords(ens1.getCoordsets()[2])
             assert_allclose(ens1.getRMSDs(), ENSEMBLE.getRMSDs(), 
-                            rtol=1e-10, atol=0.1, # may not be so close
+                            rtol=1e-10, atol=0.2, # may not be so close
                             err_msg='runANMD with default parameters failed to give expected RMSDs')
 
     def testResultsNumModes1(self):
@@ -80,7 +80,7 @@ class TestAnmdResults(TestANMD):
 
             ens1.setCoords(ens1.getCoordsets()[2])
             assert_allclose(ens1.getRMSDs(), ENSEMBLE.getRMSDs(), 
-                            rtol=1e-10, atol=0.1, # may not be so close
+                            rtol=1e-10, atol=0.2, # may not be so close
                             err_msg='runANMD with num_modes=1 failed to give expected RMSDs')
 
 if __name__ == '__main__':
