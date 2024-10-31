@@ -41,26 +41,38 @@ from prody.dynamics.sampling import traverseMode
 
 __all__ = ['runANMD']
 
-def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0):
+def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
+            **kwargs):
     """Runs the ANMD hybrid simulation method ([CM22]_), which generates conformations
-    along single modes and minimises them. The first non-zero mode is scaled to *max_rmsd*
+    along single modes using :func:`.traverseModes` and minimises them. 
+    
+    The first non-zero mode is scaled to *max_rmsd*
     and the remaining modes are scaled accordingly using their eigenvalues.
+
+    kwargs of traverseMode can be provided: pos, neg and reverse
 
     :arg atoms: an object with atom and coordinate data
     :type atoms: :class:`.Atomic`
 
-    :arg num_modes: number of modes to analyse
+    :arg num_modes: number of modes to calculate
+        Default is 2
     :type num_modes: int
 
     :arg max_rmsd: maximum rmsd for non-zero mode 1
+        Default is 2.
     :type max_rmsd: float
 
     :arg num_steps: number of conformers in each direction for each mode
+        Default is 2
     :type num_steps: int
 
     :arg tolerance: tolerance for energy minimisation in OpenMM 
         in kilojoule_per_mole. Default is 10
     :type tolerance: float
+
+    :arg skip_modes: number of modes to skip
+        Default is 0
+    :type skip_modes: int
 
     .. [CM22] Mary Hongying Cheng, James M Krieger, Anupam Banerjee, Yufei Xiang, 
             Burak Kaynak, Yi Shi, Moshe Arditi, Ivet Bahar. 
@@ -88,6 +100,22 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0):
 
     if not isinstance(tolerance, Number):
         raise TypeError('tolerance should be a float')
+
+    pos = kwargs.get('pos', True)
+    if not isinstance(pos, bool):
+        raise TypeError('pos should be a bool')
+    
+    neg = kwargs.get('neg', True)
+    if not isinstance(neg, bool):
+        raise TypeError('neg should be a bool')
+    
+    reverse = kwargs.get('reverse', False)
+    if not isinstance(reverse, bool):
+        raise TypeError('reverse should be a bool')
+
+    skip_modes = kwargs.get('skip_modes', 0)
+    if not isinstance(skip_modes, int):
+        raise TypeError('skip_modes should be an integer')
 
     pdb_name=atoms.getTitle().replace(' ', '_')
 
@@ -131,23 +159,25 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0):
     eval_0=anm[0].getEigval()
 
     ensembles = []
-    for i in range(num_modes):
+    for i in range(skip_modes, num_modes):
         ip1 = i+1
-        num_confs = 2*num_steps+1
 
-        LOGGER.info('\nGenerating {0} conformers for mode {1} ...'.format(num_confs, ip1))
         eval_i=anm[i].getEigval()
         sc_rmsd=((1/eval_i)**0.5/(1/eval_0)**0.5)*max_rmsd
-        traj_aa=traverseMode(anm_ex[i], atoms_all, n_steps=num_steps, rmsd=sc_rmsd)
+        traj_aa=traverseMode(anm_ex[i], atoms_all, n_steps=num_steps, rmsd=sc_rmsd,
+                             **kwargs)
         traj_aa.setAtoms(atoms_all)
+
+        num_confs = traj_aa.numConfs()
+        LOGGER.info('\nMinimising {0} conformers for mode {1} ...'.format(num_confs, ip1))
 
         target_ensemble = Ensemble('mode {0} ensemble'.format(ip1))
         target_ensemble.setAtoms(atoms_all)
         target_ensemble.setCoords(atoms_all)
         
-        for j in range(num_confs):
+        for j, conf in enumerate(traj_aa):
             jp1 = j+1
-            writePDB('temp1.pdb', traj_aa[j])
+            writePDB('temp1.pdb', conf)
             pdb = PDBFile('temp1.pdb')
             os.remove("temp1.pdb")
 
