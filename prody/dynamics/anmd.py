@@ -100,7 +100,10 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
 
     if not isinstance(num_modes, int):
         raise TypeError('num_modes should be an integer')
-    
+
+    if not isinstance(num_steps, int):
+        raise TypeError('num_steps should be an integer')
+
     if not isinstance(max_rmsd, Number):
         raise TypeError('max_rmsd should be a float')
 
