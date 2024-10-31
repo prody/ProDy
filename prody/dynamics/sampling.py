@@ -260,8 +260,8 @@ def deformAtoms(atoms, mode, rmsd=None, replace=False, scale=None):
     generate a coordinate set with given RMSD distance to the active coordinate
     set."""
 
-    if not isinstance(atoms, AtomGroup):
-        raise TypeError('atoms must be an AtomGroup, not {0}'
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic object, not {0}'
                         .format(type(atoms)))
     if not isinstance(mode, VectorBase):
         raise TypeError('mode must be a Mode or Vector instance, '
