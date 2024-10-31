@@ -151,6 +151,11 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
                         label='_anmd_min')
 
     pdb_fixed=parsePDB(fixmin_name, compressed=False)
+
+    if skip_modes >= num_modes:
+        LOGGER.warn('skip_modes >= num_modes so no modes are used and minimised fixed structure is returned')
+        return pdb_fixed
+
     calphas=pdb_fixed.select('calpha')
     anm=ANM()
     anm.buildHessian(calphas)
