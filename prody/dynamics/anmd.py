@@ -36,6 +36,8 @@ from prody.proteins.pdbfile import parsePDB, writePDB
 from prody.dynamics.anm import ANM
 from prody.dynamics.clustenm import ClustENM
 from prody.dynamics.editing import extendModel
+from prody.dynamics.modeset import ModeSet
+from prody.dynamics.nma import NMA
 from prody.dynamics.sampling import traverseMode
 
 
@@ -73,6 +75,10 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
     :arg skip_modes: number of modes to skip
         Default is 0
     :type skip_modes: int
+
+    :arg anm: your own NMA modes to ModeSet to use instead
+        Default is None
+    :type anm: :class:`.NMA`, :class:`.ANM`, :class:`.ModeSet`
 
     .. [CM22] Mary Hongying Cheng, James M Krieger, Anupam Banerjee, Yufei Xiang, 
             Burak Kaynak, Yi Shi, Moshe Arditi, Ivet Bahar. 
@@ -117,6 +123,10 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
     if not isinstance(skip_modes, int):
         raise TypeError('skip_modes should be an integer')
 
+    anm = kwargs.get('anm', None)
+    if not isinstance(anm, (type(None), NMA, ModeSet)):
+        raise TypeError('anm should be an NMA or ModeSet object')
+
     pdb_name=atoms.getTitle().replace(' ', '_')
 
     fix_name = pdb_name + '_fixed.pdb'
@@ -157,15 +167,17 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
         return pdb_fixed
 
     calphas=pdb_fixed.select('calpha')
-    anm=ANM()
-    anm.buildHessian(calphas)
-    anm.calcModes(n_modes=num_modes)
+    if anm is None:
+        anm=ANM()
+        anm.buildHessian(calphas)
+        anm.calcModes(n_modes=num_modes)
     anm_ex, atoms_all = extendModel(anm, calphas, pdb_fixed)
+    anm_ex._indices = anm.getIndices()
     eval_0=anm[0].getEigval()
 
     ensembles = []
     for i in range(skip_modes, num_modes):
-        ip1 = i+1
+        modeNum = anm_ex.getIndices()[i]
 
         eval_i=anm[i].getEigval()
         sc_rmsd=((1/eval_i)**0.5/(1/eval_0)**0.5)*max_rmsd
@@ -174,9 +186,9 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
         traj_aa.setAtoms(atoms_all)
 
         num_confs = traj_aa.numConfs()
-        LOGGER.info('\nMinimising {0} conformers for mode {1} ...'.format(num_confs, ip1))
+        LOGGER.info('\nMinimising {0} conformers for mode {1} ...'.format(num_confs, modeNum))
 
-        target_ensemble = Ensemble('mode {0} ensemble'.format(ip1))
+        target_ensemble = Ensemble('mode {0} ensemble'.format(modeNum))
         target_ensemble.setAtoms(atoms_all)
         target_ensemble.setCoords(atoms_all)
         
@@ -186,7 +198,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
             pdb = PDBFile('temp1.pdb')
             os.remove("temp1.pdb")
 
-            LOGGER.info('\nMinimising structure {0} along mode {1} ...'.format(jp1, ip1))
+            LOGGER.info('\nMinimising structure {0} along mode {1} ...'.format(jp1, modeNum))
             LOGGER.timeit('_anmd_min')
             forcefield = ForceField("amber99sbildn.xml", "amber99_obc.xml")
             system = forcefield.createSystem(pdb.topology, 
