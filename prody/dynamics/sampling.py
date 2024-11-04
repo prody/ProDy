@@ -280,15 +280,12 @@ def deformAtoms(atoms, mode, rmsd=None, replace=False, scale=None):
         rmsd = float(rmsd)
         # rmsd = ( ((scalar * array)**2).sum() / n_atoms )**0.5
         scalar = (atoms.numAtoms() * rmsd**2 / (array**2).sum())**0.5
+        scale *= scalar
         LOGGER.info('Mode is scaled by {0}.'.format(scalar))
-        if replace is False:
-            atoms.addCoordset(atoms.getCoords() + array * scalar * scale)
-        else:
-            atoms.setCoords(atoms.getCoords() + array * scalar * scale)
+
+    if replace is False:
+        atoms.addCoordset(atoms.getCoords() + array * scale)
     else:
-        if replace is False:
-            atoms.addCoordset(atoms.getCoords() + array * scale)
-        else:
-            atoms.setCoords(atoms.getCoords() + array * scale)
+        atoms.setCoords(atoms.getCoords() + array * scale)
 
 
