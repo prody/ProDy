@@ -32,6 +32,8 @@ from prody.trajectory import TrajBase, Trajectory, Frame
 from prody.ensemble import Ensemble
 
 import multiprocessing
+import matplotlib.pylab as plt
+import os
 
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBonding', 'calcPiStacking', 'calcPiCation',
@@ -47,7 +49,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
-           'saveInteractionsAsDummyAtoms']
+           'saveInteractionsAsDummyAtoms', 'calcSignatureInteractions']
 
 
 def cleanNumbers(listContacts):
@@ -307,6 +309,233 @@ def showPairEnergy(data, **kwargs):
         
     return data
 
+
+# SignatureInteractions supporting functions
+from Bio.PDB.Polypeptide import three_to_one
+import shutil
+import importlib.util
+
+def remove_empty_strings(row):
+    """Remove empty strings from a list."""
+    return [elem for elem in row if elem != '']
+
+def log_message(message, level="INFO"):
+    """Log a message with a specified log level."""
+    print(f"[{level}] {message}")
+
+def is_module_installed(module_name):
+    """Check if a Python module is installed."""
+    spec = importlib.util.find_spec(module_name)
+    return spec is not None
+
+def is_command_installed(command):
+    """Check if a command-line tool is installed."""
+    return shutil.which(command) is not None
+
+def load_residues_from_pdb(pdb_file):
+    """Extract residue numbers and their corresponding one-letter amino acid codes from a PDB file."""
+    structure = parsePDB(pdb_file)
+    residues = structure.iterResidues()
+    residue_dict = {}
+
+    for res in residues:
+        resnum = res.getResnum()
+        resname = res.getResname()  # Three-letter amino acid code
+        try:
+            one_letter_code = three_to_one(resname)  # Convert to one-letter code
+            residue_dict[resnum] = one_letter_code
+        except KeyError:
+            log_message(f"Unknown residue: {resname} at position {resnum}", "WARNING")
+
+    return residue_dict
+
+def append_residue_code(residue_num, residue_dict):
+    """Return a string with one-letter amino acid code and residue number."""
+    aa_code = residue_dict.get(residue_num, "X")  # Use "X" for unknown residues
+    return f"{aa_code}{residue_num}"
+
+def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
+    """Process the mapping file and the PDB folder to compute interaction counts and percentages."""
+    log_message(f"Loading mapping file: {mapping_file}")
+
+    # Load and clean the mapping file
+    try:
+        mapping = np.loadtxt(mapping_file, delimiter=' ', dtype=str)
+    except Exception as e:
+        log_message(f"Error loading mapping file: {e}", "ERROR")
+        return None
+
+    mapping = np.where(mapping == '-', np.nan, mapping)
+    filtered_mapping = np.array([remove_empty_strings(row) for row in mapping])
+    mapping_num = filtered_mapping.astype(float)
+
+    # Load the one-letter amino acid codes from model1.pdb
+    pdb_model_path = os.path.join(pdb_folder, 'model1.pdb')
+    residue_dict = load_residues_from_pdb(pdb_model_path)
+
+    log_message(f"Processing PDB files in folder: {pdb_folder}")
+
+    tar_bond_ind = []
+    processed_files = 0  # To track the number of files successfully processed
+    fixed_files = []  # Store paths of fixed files to remove at the end
+
+    for i, files in enumerate(os.listdir(pdb_folder)):
+        # Skip any file that has already been processed (files with 'addH_' prefix)
+        if files.startswith('addH_'):
+            log_message(f"Skipping already fixed file: {files}", "INFO")
+            continue
+
+        log_message(f"Processing file {i+1}: {files}")
+
+        pdb_file_path = os.path.join(pdb_folder, files)
+        fixed_pdb_path = pdb_file_path.replace(files, 'addH_' + files)
+
+        # Check if the fixed file already exists, skip fixing if it does
+        if not os.path.exists(fixed_pdb_path):
+            try:
+                log_message(f"Running fixer on {pdb_file_path} using {fixer}.")
+                addMissingAtoms(pdb_file_path, method=fixer)
+            except Exception as e:
+                log_message(f"Error adding missing atoms: {e}", "ERROR")
+                continue
+        else:
+            log_message(f"Using existing fixed file: {fixed_pdb_path}")
+
+        try:
+            coords = parsePDB(fixed_pdb_path)
+            atoms = coords.select('protein')
+            interactions = Interactions()
+            bonds = interaction_func(atoms)
+        except Exception as e:
+            log_message(f"Error processing PDB file {files}: {e}", "ERROR")
+            continue
+
+        # If no bonds were found, skip this file
+        if len(bonds) == 0:
+            log_message(f"No {bond_type} found in file {files}, skipping.", "WARNING")
+            continue
+
+        processed_files += 1  # Increment successfully processed files
+        fixed_files.append(fixed_pdb_path)
+
+        if processed_files == 1:  # First valid file with bonds determines target indices
+            for entries in bonds:
+                ent = list(np.sort((int(entries[0][3:]), int(entries[3][3:]))))  # Ensure integers
+                tar_bond_ind.append(ent)
+            tar_bond_ind = np.unique(np.array(tar_bond_ind), axis=0).astype(int)
+            count = np.zeros(tar_bond_ind.shape[0], dtype=int)
+
+        bond_ind = []
+        for entries in bonds:
+            ent = list(np.sort((int(entries[0][3:]), int(entries[3][3:]))))  # Ensure integers
+            bond_ind.append(ent)
+        bond_ind = np.unique(np.array(bond_ind), axis=0)
+
+        # Ensure bond_ind is a 2D array
+        if bond_ind.ndim == 1:
+            bond_ind = bond_ind.reshape(-1, 2)  # Reshape to (n, 2) if it's 1D
+
+        for j, pairs in enumerate(tar_bond_ind):
+            ind1_matches = np.where(mapping_num[0] == pairs[0])[0]
+            ind2_matches = np.where(mapping_num[0] == pairs[1])[0]
+
+            if ind1_matches.size > 0 and ind2_matches.size > 0:
+                if processed_files - 1 < mapping_num.shape[0]:
+                    ind1 = mapping_num[processed_files - 1, ind1_matches[0]]
+                    ind2 = mapping_num[processed_files - 1, ind2_matches[0]]
+
+                    if not (np.isnan(ind1) or np.isnan(ind2)):
+                        index = np.where(np.logical_and(bond_ind[:, 0] == int(ind1), bond_ind[:, 1] == int(ind2)))[0]
+                        if index.size != 0:
+                            count[j] += 1
+                else:
+                    log_message(f"Skipping file {files} due to index out of bounds error", "WARNING")
+            else:
+                log_message(f"No matching indices found for {pairs} in {files}", "WARNING")
+
+    # If no files were successfully processed or no bonds were found
+    if processed_files == 0 or len(tar_bond_ind) == 0:
+        log_message(f"No valid {bond_type} entries found across all PDB files.", "ERROR")
+        return None
+
+    count_reshaped = count.reshape(-1, 1)
+    count_normalized = (count / processed_files * 100).reshape(-1, 1)
+
+    # Modify tar_bond_ind to append the amino acid code before residue index
+    tar_bond_with_aa = []
+    for bond in tar_bond_ind:
+        res1 = append_residue_code(bond[0], residue_dict)  # Append AA code for Res1
+        res2 = append_residue_code(bond[1], residue_dict)  # Append AA code for Res2
+        tar_bond_with_aa.append([res1, res2])
+
+    tar_bond_with_aa = np.array(tar_bond_with_aa)
+
+    # Combine tar_bond_with_aa with count and percentage
+    output_data = np.hstack((tar_bond_with_aa, count_reshaped, count_normalized))
+
+    log_message(f"Finished processing {processed_files} PDB files.")
+    output_filename = f'{bond_type}_consensus.txt'
+
+    # Save the result with amino acid codes and numeric values
+    np.savetxt(output_filename, output_data, fmt='%s %s %s %s', delimiter=' ', 
+           header='Res1 Res2 Count Percentage', comments='')
+
+    return output_data, fixed_files  # Return fixed_files to remove later
+
+
+def plot_barh(result, bond_type, n_per_plot=None, min_height=8):
+    """Plot horizontal bar plots of percentages, splitting the data into fixed-sized plots."""
+    plt.rcParams.update({'font.size': 20})
+
+    # Set default value for n_per_plot if None is passed
+    if n_per_plot is None:
+        n_per_plot = 20
+
+    # Error handling if result is None or empty
+    if result is None or len(result) == 0:
+        log_message(f"Skipping plot for {bond_type} due to insufficient data.", "ERROR")
+        return
+
+    num_entries = result.shape[0]
+    num_plots = (num_entries + n_per_plot - 1) // n_per_plot  # Number of plots required
+
+    for plot_idx in range(num_plots):
+        # Slice the data for the current plot (take the next 'n_per_plot' entries)
+        start_idx = plot_idx * n_per_plot
+        end_idx = min((plot_idx + 1) * n_per_plot, num_entries)
+        result_chunk = result[start_idx:end_idx]
+
+        log_message(f"Plotting entries {start_idx+1} to {end_idx} for {bond_type}.")
+
+        # Use residue numbers for y-axis labels
+        y_labels = [f"{str(row[0])}-{str(row[1])}" for row in result_chunk]
+        percentage_values = result_chunk[:, 3].astype('float')
+
+        norm = plt.Normalize(vmin=0, vmax=100)
+        cmap = plt.cm.get_cmap('coolwarm')
+
+        # Set the figure height with a minimum height of `min_height` for small datasets
+        fig_height = max(min_height, len(result_chunk) * 0.4)
+        plt.figure(figsize=(18, fig_height))
+        bars = plt.barh(y_labels, percentage_values, color=cmap(norm(percentage_values)))
+
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+
+        # Adjust color bar height to match the number of entries
+        plt.colorbar(sm, label='Percentage', fraction=0.02, pad=0.04)
+
+        plt.ylim(-1, result_chunk.shape[0])
+        plt.ylabel(f'{bond_type} Pairs of Residue Numbers')
+        plt.xlabel('Percentage')
+        plt.title(f'Persistence of {bond_type} Bonds (entries {start_idx+1}-{end_idx})')
+
+        # Save each plot with an incremented filename for multiple plots
+        output_plot_file = f'{bond_type}_plot_part{plot_idx + 1}.png'
+        log_message(f"Saving plot to: {output_plot_file}")
+        plt.savefig(output_plot_file)
+        plt.close()
+        log_message(f"Plot saved successfully.")
 
 
 def calcHydrophobicOverlapingAreas(atoms, **kwargs):
@@ -3008,6 +3237,62 @@ def showSminaTermValues(data):
     if SETTINGS['auto_show']:
         showFigure()
     return show
+
+
+def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
+    """Analyzes protein structures to identify various interactions using InSty. 
+    Processes data from the MSA file and folder with selected models.
+    
+    :arg mapping_file: Aligned residue indices, MSA file type
+    :type mapping_file: str
+
+    :arg PDB_folder: Directory containing PDB model files
+    :type PDB_folder: str
+
+    :arg fixer: The method for fixing lack of hydrogen bonds
+    :type fixer: 'pdbfixer' or 'openbabel'
+    """
+    
+    import os
+    functions = {
+        "HydrogenBonds": calcHydrogenBonds,
+        "SaltBridges": calcSaltBridges,
+        "RepulsiveIonicBonding": calcRepulsiveIonicBonding,
+        "PiStacking": calcPiStacking,
+        "PiCation": calcPiCation,
+        "Hydrophobic": calcHydrophobic,
+        "DisulfideBonds": calcDisulfideBonds
+    }
+
+    # Process each bond type
+    for bond_type, func in functions.items():
+        # Check if the consensus file already exists
+        #consensus_file = f'{bond_type}_consensus.txt'
+        #if os.path.exists(consensus_file):
+        #    log_message(f"Consensus file for {bond_type} already exists, skipping.", "INFO")
+        #    continue
+
+        log_message(f"Processing {bond_type}")
+        
+        result = process_data(mapping_file, PDB_folder, func, bond_type, fixer)
+
+        # Check if the result is None (no valid bonds found)
+        if result is None:
+            log_message(f"No valid {bond_type} entries found, skipping further processing.", "WARNING")
+            continue
+
+        result, fixed_files = result
+
+        # Proceed with plotting
+        n = None
+        plot_barh(result, bond_type, n)
+
+    # Remove all fixed files at the end
+    if 'fixed_files' in locals():
+        for fixed_file in fixed_files:
+            if os.path.exists(fixed_file):
+                os.remove(fixed_file)
+                log_message(f"Removed fixed file: {fixed_file}")
 
 
 
