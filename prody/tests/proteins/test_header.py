@@ -108,7 +108,7 @@ class TestParsePDBHeaderCRYST1andSCALE(unittest.TestCase):
 
         self.header = None
 
-class TestParsePDBHeaderCRYST1andSCALE(unittest.TestCase):
+class TestParsePDBHeaderMissingAtoms(unittest.TestCase):
 
     def setUp(self):
         self.header = parsePDB(pathDatafile('pdb3hsy.pdb'),

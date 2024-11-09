@@ -950,7 +950,7 @@ def _missingResidues(lines):
             resnum = int(w[2][:-1])
         else:
             resnum = int(w[2])
-        mr.append((w[1],w[0],resnum, icode, modelNumStr))
+        mr.append((w[1], w[0], resnum, icode, modelNumStr))
     return mr
     
 def _missingAtoms(lines):
@@ -961,24 +961,20 @@ def _missingAtoms(lines):
     header['missing_atoms'] = [(chid, resname, resnum, icode, modelNum, [atom names])]
     """
     ma = []
-    seen = {}
+    res_repr_to_ma_index = {} # {residue_string_repr: index of this residue in ma list}
     header = True
     for i, line in lines['REMARK 470']:
         #skip header records
         if line.startswith("REMARK 470   M RES CSSEQI  ATOMS"):
             header=False
             continue
-        if header: continue
+        if header:
+            continue
         modelNumStr = line[10:14].strip()
-        if modelNumStr: modelNum = int(modelNumStr)
-        else: modelNum = None
-        #w = line[15:].split()
-        #if w[2][-1].isalpha():
-        #    icode = w[2][-1]
-        #    resnum = int(w[2][:-1])
-        #else:
-        #    resnum = int(w[2])
-        #ma.append((w[1], w[0], resnum, icode, w[3:]))
+        if modelNumStr:
+            modelNum = int(modelNumStr)
+        else:
+            modelNum = None
         resname = line[15:18]
         chid = line[19]
         resnum = int(line[20:24])
@@ -986,10 +982,10 @@ def _missingAtoms(lines):
         if icode == ' ':
             icode = ''
         key = '%s:%s%d%s'%(chid,resname,resnum,icode)
-        if key in seen: # missing atoms record for a residue can span multiple lines 1vzq.pdb
-            ma[seen[key]][-1].extend(line[25:].split())
+        if key in res_repr_to_ma_index: # missing atoms record for a residue can span multiple lines 1vzq.pdb
+            ma[res_repr_to_ma_index[key]][-1].extend(line[25:].split())
         else:
-            seen[key] = len(ma)
+            res_repr_to_ma_index[key] = len(ma)
             ma.append((chid, resname, resnum, icode, line[25:].split()))
     return ma
     
