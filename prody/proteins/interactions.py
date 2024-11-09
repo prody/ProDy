@@ -3237,9 +3237,49 @@ def showSminaTermValues(data):
     return show
 
 
+def extractMultiModelPDB(multimodelPDB, folder_name):
+    """Extracts individual PDB models from multimodel PDB and places them into the pointed directory.
+    If used for calculating calcSignatureInteractions align the models.
+
+    :arg multimodelPDB: The file containing models in multi-model PDB format 
+    :type multimodelPDB: str
+    
+    :arg folder_name: The name of the folder to which PDBs will be extracted
+    :type folder_name: str
+    """
+
+    folder_name = kwargs.pop('folder_name', 'struc_homologs')
+    
+    with open(multimodelPDB, 'r') as f:
+        file = f.readlines()
+    os.makedirs(folder_name, exist_ok=True)
+
+    fp = None
+    for line in file:
+        line = line.strip()
+        sig1 = line[:5]
+        sig2 = line[:6]
+        sig3 = line[:4]
+
+        if sig1 == 'MODEL':
+            model_number = line.split()[1]
+            filename = 'model{}.pdb'.format(model_number)
+            fp = open(filename, 'w')
+            continue
+
+        if sig2 == 'ENDMDL':
+            if fp:
+                fp.close()
+            os.rename(filename, './{}/{}'.format(folder_name,filename))
+            continue
+
+        if sig3 == 'ATOM' and fp:
+            fp.write("{}\n".format(line))
+
+
 def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
-    """Analyzes protein structures to identify various interactions using InSty. 
-    Processes data from the MSA file and folder with selected models.
+     """Analyzes protein structures to identify various interactions using InSty. 
+     Processes data from the MSA file and folder with selected models.
     
     :arg mapping_file: Aligned residue indices, MSA file type
     :type mapping_file: str
