@@ -16,7 +16,7 @@ class Bond(object):
     * :func:`iter` yields :class:`~.Atom` instances"""
 
     __slots__ = ['_ag', '_acsi', '_indices', '_bondOrder']
-    _bondType = {1:'single', 2:'double', 3:'triple', 4:'aromatic', 5:'amid', }
+    _bondType = {1:'single', 2:'double', 3:'triple', 4:'aromatic', 5:'amide', }
 
     def __init__(self, ag, indices, acsi=None):
 

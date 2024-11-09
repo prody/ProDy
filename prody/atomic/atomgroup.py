@@ -233,7 +233,19 @@ class AtomGroup(Atomic):
         return self._n_atoms
 
     def __add__(self, other, newAG=True):
+        """This method adds two atom groups. By default this creates a new atom group.
 
+        e.g.:
+           newAG = ag1 + ag2
+           len(newAG) == (len(ag1) + len(ag2))
+        
+        if newAG is set to false, ag1 is extended with the atoms of ag2
+           oldLength = len(ag1)
+           oldID = id(ag1)
+           ag1.__add__(ag2, newAG=False)
+           len(ag1) == (oldLength + len(ag2))
+           id(ag1) === oldID
+        """
         if not isinstance(other, AtomGroup):
             raise TypeError('unsupported operand type(s) for +: {0} and '
                             '{1}'.format(repr(type(self).__name__),
@@ -244,7 +256,7 @@ class AtomGroup(Atomic):
             new = AtomGroup(self._title + ' + ' + other._title)
         else:
             new = self
-            self._n_atoms += other._n_atoms
+        self._n_atoms += other._n_atoms
 
         if self._n_csets:
             if self._n_csets == other._n_csets:
@@ -277,7 +289,7 @@ class AtomGroup(Atomic):
             if this is not None or that is not None:
                 if this is None:
                     shape = list(that.shape)
-                    shape[0] = len(self)
+                    shape[0] = oldSize
                     this = np.zeros(shape, that.dtype)
                 if that is None:
                     shape = list(this.shape)
@@ -294,7 +306,17 @@ class AtomGroup(Atomic):
             for flag in other._flags:
                 if flag not in keys: keys.append(flag)
 
-        for key in keys:
+        # remove aliases
+        skip = []
+        uniqueKeys = []
+        for k in keys:
+            aliases = FLAG_ALIASES.get(k, [k])
+            if aliases[0] not in uniqueKeys and aliases[0] not in skip:
+                uniqueKeys.append(aliases[0])
+                if len(aliases) > 1:
+                    skip.extend(list(aliases[1:]))
+                
+        for key in uniqueKeys:
             this = None
             that = None
             if self._flags:
@@ -304,17 +326,14 @@ class AtomGroup(Atomic):
             if this is not None or that is not None:
                 if this is None:
                     shape = list(that.shape)
-                    shape[0] = len(self)
+                    shape[0] = oldSize
                     this = np.zeros(shape, that.dtype)
                 if that is None:
                     shape = list(this.shape)
                     shape[0] = len(other)
                     that = np.zeros(shape, this.dtype)
                 new._setFlags(key, np.concatenate((this, that)))
-
-        if newAG:
-            new._n_atoms = self._n_atoms + other._n_atoms
-
+                
         if self._bondOrders is not None:
             if other._bondOrders is not None:
                 bo = np.concatenate([self._bondsOrders, other._bondOrders])
@@ -393,11 +412,6 @@ class AtomGroup(Atomic):
             new.setCrossterms(other._crossterms + self._n_atoms)
 
         return new
-
-    def extend(self, other):
-        # does the same as __add__ but does not create and return a new
-        # atom group, instead is extends the arrays in this atoms group 
-        self.__add__(other, newAG=False)
 
     def __contains__(self, item):
 
@@ -1236,10 +1250,10 @@ class AtomGroup(Atomic):
         else:
             raise TypeError('labels must be a list')
 
-    def setBondOrders(bondOrders):
+    def setBondOrders(self, bondOrders):
         """Set covalent bond order. *bondOrders* must be a list or an array
         of integers and proide a value for each bond. Possible values are
-        1:single, 2:double, 3:triple, 4:aromatic, 5:amide. The bon order of
+        1:single, 2:double, 3:triple, 4:aromatic, 5:amide. The bond order of
         all bonds must be set at once. This method must be called after
         the setBonds() has been called. The bond order is stored in the
         *_bondOrders* array."""
@@ -1248,13 +1262,15 @@ class AtomGroup(Atomic):
         if min(bondOrders)<1 or max(bondOrders)>5:
             raise ValueError('invalid bond order value, values must range from 1 to 5')
 
-        self._bondOrders = np.array(bondOrders, np.int8)
+        if bondOrders is None:
+            self._bondOrders = bondOrders
+        else:
+            self._bondOrders = np.array(bondOrders, np.int8)
 
     def setBonds(self, bonds, bondOrders=None):
         """Set covalent bonds between atoms.  *bonds* must be a list or an
         array of pairs of indices. Optionally *bondOrders* can be specified
-        (see :meth:`setBondOrder` method).  if *bondOrders* is None the
-        bondOrders information will we rest to single bonds.  All bonds must be
+        (see :meth:`setBondOrder` method).  All bonds must be
         set at once.  Bonding information can be used to make atom selections,
         e.g. ``"bonded to index 1"``.  See :mod:`.select` module documentation
         for details. Also, a data array with number of bonds will be generated
@@ -1299,10 +1315,7 @@ class AtomGroup(Atomic):
         self._bonds = bonds
         self._fragments = None
 
-        if bondOrders is None:
-            self._bondOrders = None
-        else:
-            self.setBondOrders(bondOrders)
+        self.setBondOrders(bondOrders)
             
     def numBonds(self):
         """Returns number of bonds.  Use :meth:`setBonds` or 
