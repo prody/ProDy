@@ -3265,18 +3265,17 @@ def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
     # Process each bond type
     for bond_type, func in functions.items():
         # Check if the consensus file already exists
-        #consensus_file = f'{bond_type}_consensus.txt'
-        #if os.path.exists(consensus_file):
-        #    log_message(f"Consensus file for {bond_type} already exists, skipping.", "INFO")
-        #    continue
+        consensus_file = '{}_consensus.txt'.format(bond_type)
+        if os.path.exists(consensus_file):
+            log_message("Consensus file for {} already exists, skipping.".format(bond_type), "INFO")
+            continue
 
-        log_message(f"Processing {bond_type}")
-        
+        log_message("Processing {}".format(bond_type))
         result = process_data(mapping_file, PDB_folder, func, bond_type, fixer)
 
         # Check if the result is None (no valid bonds found)
         if result is None:
-            log_message(f"No valid {bond_type} entries found, skipping further processing.", "WARNING")
+            log_message("No valid {} entries found, skipping further processing.".format(bond_type), "WARNING")
             continue
 
         result, fixed_files = result
@@ -3290,7 +3289,7 @@ def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
         for fixed_file in fixed_files:
             if os.path.exists(fixed_file):
                 os.remove(fixed_file)
-                log_message(f"Removed fixed file: {fixed_file}")
+                log_message("Removed fixed file: {}".format(fixed_file))
 
 
 
