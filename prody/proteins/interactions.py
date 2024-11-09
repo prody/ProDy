@@ -321,7 +321,7 @@ def remove_empty_strings(row):
 
 def log_message(message, level="INFO"):
     """Log a message with a specified log level."""
-    print(f"[{level}] {message}")
+    print("[{}] {}".format(level, message))
 
 def is_module_installed(module_name):
     """Check if a Python module is installed."""
@@ -345,24 +345,24 @@ def load_residues_from_pdb(pdb_file):
             one_letter_code = three_to_one(resname)  # Convert to one-letter code
             residue_dict[resnum] = one_letter_code
         except KeyError:
-            log_message(f"Unknown residue: {resname} at position {resnum}", "WARNING")
-
+            log_message("Unknown residue: {} at position {}".format(resname, resnum), "WARNING")
+            
     return residue_dict
 
 def append_residue_code(residue_num, residue_dict):
     """Return a string with one-letter amino acid code and residue number."""
     aa_code = residue_dict.get(residue_num, "X")  # Use "X" for unknown residues
-    return f"{aa_code}{residue_num}"
+    return "{}{}".format(aa_code, residue_num)
 
 def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
     """Process the mapping file and the PDB folder to compute interaction counts and percentages."""
-    log_message(f"Loading mapping file: {mapping_file}")
+    log_message("Loading mapping file: {}".format(mapping_file))
 
     # Load and clean the mapping file
     try:
         mapping = np.loadtxt(mapping_file, delimiter=' ', dtype=str)
     except Exception as e:
-        log_message(f"Error loading mapping file: {e}", "ERROR")
+        log_message("Error loading mapping file: {}".format(e), "ERROR")
         return None
 
     mapping = np.where(mapping == '-', np.nan, mapping)
@@ -373,7 +373,7 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
     pdb_model_path = os.path.join(pdb_folder, 'model1.pdb')
     residue_dict = load_residues_from_pdb(pdb_model_path)
 
-    log_message(f"Processing PDB files in folder: {pdb_folder}")
+    log_message("Processing PDB files in folder: {}".format(pdb_folder))
 
     tar_bond_ind = []
     processed_files = 0  # To track the number of files successfully processed
@@ -382,24 +382,24 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
     for i, files in enumerate(os.listdir(pdb_folder)):
         # Skip any file that has already been processed (files with 'addH_' prefix)
         if files.startswith('addH_'):
-            log_message(f"Skipping already fixed file: {files}", "INFO")
+            log_message("Skipping already fixed file: {}".format(files), "INFO")
             continue
 
-        log_message(f"Processing file {i+1}: {files}")
-
+        log_message("Processing file {}: {}".format(i + 1, files))
+        
         pdb_file_path = os.path.join(pdb_folder, files)
         fixed_pdb_path = pdb_file_path.replace(files, 'addH_' + files)
 
         # Check if the fixed file already exists, skip fixing if it does
         if not os.path.exists(fixed_pdb_path):
             try:
-                log_message(f"Running fixer on {pdb_file_path} using {fixer}.")
+                log_message("Running fixer on {} using {}.".format(pdb_file_path, fixer))
                 addMissingAtoms(pdb_file_path, method=fixer)
             except Exception as e:
-                log_message(f"Error adding missing atoms: {e}", "ERROR")
+                log_message("Error adding missing atoms: {}".format(e), "ERROR")
                 continue
         else:
-            log_message(f"Using existing fixed file: {fixed_pdb_path}")
+            log_message("Using existing fixed file: {}".format(fixed_pdb_path))
 
         try:
             coords = parsePDB(fixed_pdb_path)
@@ -407,12 +407,12 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
             interactions = Interactions()
             bonds = interaction_func(atoms)
         except Exception as e:
-            log_message(f"Error processing PDB file {files}: {e}", "ERROR")
+            log_message("Error processing PDB file {}: {}".format(files, e), "ERROR")
             continue
 
         # If no bonds were found, skip this file
         if len(bonds) == 0:
-            log_message(f"No {bond_type} found in file {files}, skipping.", "WARNING")
+            log_message("No {} found in file {}, skipping.".format(bond_type, files), "WARNING")
             continue
 
         processed_files += 1  # Increment successfully processed files
@@ -449,13 +449,13 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
                         if index.size != 0:
                             count[j] += 1
                 else:
-                    log_message(f"Skipping file {files} due to index out of bounds error", "WARNING")
+                    log_message("Skipping file {} due to index out of bounds error".format(files), "WARNING")
             else:
-                log_message(f"No matching indices found for {pairs} in {files}", "WARNING")
+                log_message("No matching indices found for {} in {}".format(pairs, files), "WARNING")
 
     # If no files were successfully processed or no bonds were found
     if processed_files == 0 or len(tar_bond_ind) == 0:
-        log_message(f"No valid {bond_type} entries found across all PDB files.", "ERROR")
+        log_message("No valid {} entries found across all PDB files.".format(bond_type), "ERROR")
         return None
 
     count_reshaped = count.reshape(-1, 1)
@@ -473,8 +473,8 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
     # Combine tar_bond_with_aa with count and percentage
     output_data = np.hstack((tar_bond_with_aa, count_reshaped, count_normalized))
 
-    log_message(f"Finished processing {processed_files} PDB files.")
-    output_filename = f'{bond_type}_consensus.txt'
+    log_message("Finished processing {} PDB files.".format(processed_files))
+    output_filename = '{}_consensus.txt'.format(bond_type)
 
     # Save the result with amino acid codes and numeric values
     np.savetxt(output_filename, output_data, fmt='%s %s %s %s', delimiter=' ', 
@@ -493,7 +493,7 @@ def plot_barh(result, bond_type, n_per_plot=None, min_height=8):
 
     # Error handling if result is None or empty
     if result is None or len(result) == 0:
-        log_message(f"Skipping plot for {bond_type} due to insufficient data.", "ERROR")
+        log_message("Skipping plot for {} due to insufficient data.".format(bond_type), "ERROR")
         return
 
     num_entries = result.shape[0]
@@ -505,10 +505,9 @@ def plot_barh(result, bond_type, n_per_plot=None, min_height=8):
         end_idx = min((plot_idx + 1) * n_per_plot, num_entries)
         result_chunk = result[start_idx:end_idx]
 
-        log_message(f"Plotting entries {start_idx+1} to {end_idx} for {bond_type}.")
-
+        log_message("Plotting entries {} to {} for {}.".format(start_idx + 1, end_idx, bond_type))
         # Use residue numbers for y-axis labels
-        y_labels = [f"{str(row[0])}-{str(row[1])}" for row in result_chunk]
+        y_labels = ["{}-{}".format(str(row[0]), str(row[1])) for row in result_chunk]
         percentage_values = result_chunk[:, 3].astype('float')
 
         norm = plt.Normalize(vmin=0, vmax=100)
@@ -526,16 +525,15 @@ def plot_barh(result, bond_type, n_per_plot=None, min_height=8):
         plt.colorbar(sm, label='Percentage', fraction=0.02, pad=0.04)
 
         plt.ylim(-1, result_chunk.shape[0])
-        plt.ylabel(f'{bond_type} Pairs of Residue Numbers')
+        plt.ylabel('{} Pairs of Residue Numbers'.format(bond_type))
         plt.xlabel('Percentage')
-        plt.title(f'Persistence of {bond_type} Bonds (entries {start_idx+1}-{end_idx})')
-
+        plt.title('Persistence of {} Bonds (entries {}-{})'.format(bond_type, start_idx + 1, end_idx))
         # Save each plot with an incremented filename for multiple plots
-        output_plot_file = f'{bond_type}_plot_part{plot_idx + 1}.png'
-        log_message(f"Saving plot to: {output_plot_file}")
+        output_plot_file = '{}_plot_part{}.png'.format(bond_type, plot_idx + 1)
+        log_message("Saving plot to: {}".format(output_plot_file))
         plt.savefig(output_plot_file)
         plt.close()
-        log_message(f"Plot saved successfully.")
+        log_message("Plot saved successfully.")
 
 
 def calcHydrophobicOverlapingAreas(atoms, **kwargs):
