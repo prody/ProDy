@@ -51,7 +51,8 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
-           'saveInteractionsAsDummyAtoms', 'extractMultiModelPDB', 'calcSignatureInteractions']
+           'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 
+           'extractMultiModelPDB', 'calcSignatureInteractions']
 
 
 def cleanNumbers(listContacts):
@@ -3237,6 +3238,73 @@ def showSminaTermValues(data):
     if SETTINGS['auto_show']:
         showFigure()
     return show
+
+
+def createFoldseekAlignment(prot_seq, prot_foldseek, *kwargs):
+    """Aligns sequences from prot_seq with homologous sequences identified in prot_foldseek, 
+    generating a multiple sequence alignment.
+    
+    :arg prot_seq: The natural sequence extracted from the PDB (seq file)
+    :type prot_seq: str
+    
+    :arg prot_foldseek: The results from foldseek (foldseek file)
+    :type prot_foldseek: str
+
+    :arg msa_output_name: The natural sequence extracted from the PDB (msa file)
+    :type msa_output_name: str
+    """
+
+    msa_output_name = kwargs.pop('msa_output_name', 'prot_struc.msa')
+
+    def find_match_index(tar_nogap, nat_seq):
+        tar_nogap_str = ''.join(tar_nogap)
+        nat_seq_str = ''.join(nat_seq)
+        index = nat_seq_str.find(tar_nogap_str)
+        return index
+
+    # Read input files
+    with open(prot_seq, 'r') as f:
+        file1 = f.readlines()
+
+    with open(prot_foldseek, 'r') as f:
+        file2 = f.readlines()
+
+    # Open output file
+    with open(msa_output_name, 'w') as fp:
+        nat_seq = list(file1[0].strip())
+        
+        # Write the natural sequence to the output file
+        fp.write(''.join(nat_seq) + "\n")
+        
+        # Process each foldseek entry
+        for line in file2:
+            entries = line.split()
+            
+            if float(entries[2]) >= 0.5:
+                tar_seq = list(entries[11].strip())
+                mat_seq = list(entries[12].strip())
+                
+                tar_nogap = []
+                processed_mat = []
+                
+                for j in range(len(tar_seq)):
+                    if tar_seq[j] != '-':
+                        tar_nogap.append(tar_seq[j])
+                        processed_mat.append(mat_seq[j])
+                
+                match_index = find_match_index(tar_nogap, nat_seq)
+                end_index = match_index + len(tar_nogap)
+                m = 0
+                
+                for l in range(len(nat_seq)):
+                    if l < match_index:
+                        fp.write("-")
+                    elif l >= match_index and l < end_index:
+                        fp.write(processed_mat[m])
+                        m += 1
+                    else:
+                        fp.write("-")
+                fp.write("\n")
 
 
 def extractMultiModelPDB(multimodelPDB, **kwargs):
