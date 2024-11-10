@@ -3239,7 +3239,7 @@ def showSminaTermValues(data):
     return show
 
 
-def extractMultiModelPDB(multimodelPDB, folder_name):
+def extractMultiModelPDB(multimodelPDB, **kwargs):
     """Extracts individual PDB models from multimodel PDB and places them into the pointed directory.
     If used for calculating calcSignatureInteractions align the models.
 
