@@ -34,7 +34,7 @@ from prody.ensemble import Ensemble
 import multiprocessing
 import matplotlib.pylab as plt
 import os
-from . import fixer
+from .fixer import *
 
 
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
@@ -3280,8 +3280,8 @@ def extractMultiModelPDB(multimodelPDB, folder_name):
 
 
 def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
-     """Analyzes protein structures to identify various interactions using InSty. 
-     Processes data from the MSA file and folder with selected models.
+    """Analyzes protein structures to identify various interactions using InSty. 
+    Processes data from the MSA file and folder with selected models.
     
     :arg mapping_file: Aligned residue indices, MSA file type
     :type mapping_file: str
