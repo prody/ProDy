@@ -3240,7 +3240,7 @@ def showSminaTermValues(data):
     return show
 
 
-def createFoldseekAlignment(prot_seq, prot_foldseek, *kwargs):
+def createFoldseekAlignment(prot_seq, prot_foldseek, **kwargs):
     """Aligns sequences from prot_seq with homologous sequences identified in prot_foldseek, 
     generating a multiple sequence alignment.
     
