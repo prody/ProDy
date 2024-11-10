@@ -324,7 +324,7 @@ def remove_empty_strings(row):
 
 def log_message(message, level="INFO"):
     """Log a message with a specified log level."""
-    print("[{}] {}".format(level, message))
+    LOGGER.info("[{}] {}".format(level, message))
 
 def is_module_installed(module_name):
     """Check if a Python module is installed."""
@@ -3305,6 +3305,8 @@ def createFoldseekAlignment(prot_seq, prot_foldseek, **kwargs):
                     else:
                         fp.write("-")
                 fp.write("\n")
+    
+    LOGGER.info("MSA file is now created, and saved as {}.".format(msa_output_name))
 
 
 def extractMultiModelPDB(multimodelPDB, **kwargs):
@@ -3317,7 +3319,8 @@ def extractMultiModelPDB(multimodelPDB, **kwargs):
     :arg folder_name: The name of the folder to which PDBs will be extracted
     :type folder_name: str
     """
-
+    import os
+    
     folder_name = kwargs.pop('folder_name', 'struc_homologs')
     
     with open(multimodelPDB, 'r') as f:
@@ -3345,6 +3348,8 @@ def extractMultiModelPDB(multimodelPDB, **kwargs):
 
         if sig3 == 'ATOM' and fp:
             fp.write("{}\n".format(line))
+            
+    LOGGER.info("Individual models are saved in {}.".format(folder_name))
 
 
 def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
@@ -3360,6 +3365,7 @@ def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
     :arg fixer: The method for fixing lack of hydrogen bonds
     :type fixer: 'pdbfixer' or 'openbabel'
     """
+    import os
     
     functions = {
         "HydrogenBonds": calcHydrogenBonds,
