@@ -51,7 +51,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
-           'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 
+           'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 
            'extractMultiModelPDB', 'calcSignatureInteractions']
 
 
@@ -3350,6 +3350,300 @@ def extractMultiModelPDB(multimodelPDB, **kwargs):
             fp.write("{}\n".format(line))
             
     LOGGER.info("Individual models are saved in {}.".format(folder_name))
+
+
+def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold):
+    """This script processes a PDB file to extract a specified chain's sequence, searches for 
+    homologous structures using foldseek, and prepares alignment outputs for further analysis.
+    Before using the function, install Foldseek:
+    >>> conda install bioconda::foldseek
+    
+    :arg pdb_file: A PDB file path
+    :type pdb_file: str
+
+    :arg chain: Chain identifier
+    :type chain: str
+
+    :arg coverage_threshold: Coverage threshold 
+    :type coverage_threshold: int, float
+
+    :arg tm_threshold: TM-score threshold
+    :type tm_threshold: float
+    """
+    
+    import os
+    import subprocess
+    import re
+    import sys
+
+    # Define the amino acid conversion function
+    def aa_onelet(three_letter_code):
+        codes = {
+            'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
+            'GLN': 'Q', 'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I',
+            'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F', 'PRO': 'P',
+            'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y', 'VAL': 'V',
+            'MSE': 'M'
+        }
+        return codes.get(three_letter_code)
+
+    # Function to extract the sequence from the PDB file
+    def extract_sequence_from_pdb(pdb_file, chain, output_file):
+        sequence = []
+        prev_resid = -9999
+
+        with open(pdb_file, 'r') as pdb:
+            for line in pdb:
+                if line.startswith("ATOM"):
+                    ch = line[21]
+                    resid = int(line[22:26].strip())
+                    aa = line[17:20].strip()
+
+                    if ch == chain and resid != prev_resid:
+                        one_aa = aa_onelet(aa)
+                        if one_aa:
+                            sequence.append(one_aa)
+                            prev_resid = resid
+
+        with open(output_file, 'w') as seq_file:
+            seq_file.write(''.join(sequence))
+
+    # Inputs
+    fpath = pdb_file.strip()
+    chain = chain.strip()
+    cov_threshold = float(coverage_threshold.strip())
+    tm_threshold = float(tm_threshold.strip())
+
+    # Filter PDB file
+    awk_command = "awk '{{if (substr($0, 22, 1) == \"{0}\") print}}'".format(chain)
+    subprocess.run("cat {0} | grep '^ATOM' | {1} > inp.pdb".format(fpath, awk_command), shell=True)
+
+    # Run foldseek and other commands
+    subprocess.run([
+        'foldseek', 'easy-search', 'inp.pdb', '../../../foldseek/pdb', 'prot.foldseek',
+        'tmp2', '--exhaustive-search', '1', '--format-output',
+        "query,target,qstart,qend,tstart,tend,qcov,tcov,qtmscore,ttmscore,rmsd,qaln,taln",
+        '-c', str(cov_threshold)
+    ])
+
+    # Extract sequence and write to prot.seq
+    extract_sequence_from_pdb('inp.pdb', chain, 'prot.seq')
+    createFoldseekAlignment('prot.seq', 'prot.foldseek', msa_output_name='prot_struc.msa')    
+    
+    # Read input files
+    with open('inp.pdb', 'r') as f:
+        file1 = f.readlines()
+
+    with open('prot.foldseek', 'r') as f:
+        file2 = f.readlines()
+
+    with open('prot_struc.msa', 'r') as f:
+        file3 = f.readlines()
+
+    # Open output files
+    fp1 = open("aligned_structures.pdb", 'w')
+    fp2 = open("shortlisted_resind.msa", 'w')
+    fp6 = open("seq_match_reconfirm.txt", 'w')
+    fp7 = open("aligned_structures_extended.pdb", 'w')
+    fp9 = open("shortlisted.foldseek", 'w')
+    fp10 = open("shortlisted.msa", 'w')
+
+    # Initialize variables
+    mod_count = 1
+    fp1.write("MODEL\t{0}\n".format(mod_count))
+    fp7.write("MODEL\t{0}\n".format(mod_count))
+
+    seq1 = list(file3[0].strip())
+    ind1 = 0
+    prev_id = -9999
+
+    # Process input PDB file
+    for line in file1:
+        line = line.strip()
+        id_ = line[0:4]
+        ch = line[21]
+        resid = int(line[22:26].strip())
+        aa = line[17:20]
+
+        if id_ == 'ATOM' and ch == chain and resid != prev_id:
+            prev_id = resid
+            one_aa = aa_onelet(aa)
+            if one_aa == seq1[ind1]:
+                fp1.write("{0}\n".format(line))
+                fp7.write("{0}\n".format(line))
+                fp2.write("{0} ".format(resid))
+                ind1 += 1
+            else:
+                print("Mismatch in sequence and structure of Query protein at Index {0}".format(ind1))
+                break
+        elif id_ == 'ATOM' and ch == chain and resid == prev_id:
+            fp1.write("{0}\n".format(line))
+            fp7.write("{0}\n".format(line))
+
+    fp1.write("TER\nENDMDL\n\n")
+    fp7.write("TER\nENDMDL\n\n")
+    fp2.write("\n")
+    fp10.write("{0}\n".format(file3[0].strip()))
+
+    # Processing foldseek results
+    os.makedirs("temp", exist_ok=True)
+
+    for i, entry in enumerate(file2):
+        entries = re.split(r'\s+', entry.strip())
+
+        if float(entries[8]) < tm_threshold:
+            continue
+
+        tstart = int(entries[4])
+        tend = int(entries[5])
+        pdb = entries[1][:4]
+        chain = entries[1][-1]
+        fname = "{0}.pdb".format(pdb)
+
+        # Download and process the target PDB file
+        subprocess.run(['wget', '-P', 'temp', "https://files.rcsb.org/download/{0}".format(fname)])
+
+        awk_command = "awk '{{if (substr($0, 22, 1) == \"{0}\") print}}'".format(chain)
+        subprocess.run("cat ./temp/{0} | grep -E '^(ATOM|HETATM)' | {1} > target.pdb".format(fname, awk_command), shell=True)
+
+        with open('target.pdb', 'r') as target_file:
+            file4 = target_file.readlines()
+
+        qseq = list(entries[11])
+        tseq = list(entries[12])
+
+        start_line = 0
+        prevind = -9999
+        tarind = 0
+
+        for j, line in enumerate(file4):
+            resid = int(line[22:26].strip())
+            if resid != prevind:
+                prevind = resid
+                tarind += 1
+            if tarind == tstart:
+                start_line = j
+                break
+
+        prevind = -9999
+        ind2 = 0
+        j = start_line
+        flag2 = False
+
+        with open("temp_coord.txt", 'w') as fp4, \
+             open("temp_resind.txt", 'w') as fp3, \
+             open("temp_seq.txt", 'w') as fp5:
+
+            for k in range(len(qseq)):
+                if tseq[k] != '-' and qseq[k] != '-':
+                    line = file4[j].strip()
+                    resid = int(line[22:26].strip())
+                    aa = line[17:20]
+                    one_aa = aa_onelet(aa)
+
+                    if one_aa == tseq[k]:
+                        fp3.write("{0} ".format(resid))
+                        fp5.write("{0}".format(one_aa))
+                        prevind = resid
+                    else:
+                        print("Mismatch in sequence and structure of Target protein {0}{1} at line {2} Index {3}-{4} ne {5}".format(
+                            pdb, chain, j, k, one_aa, tseq[k]))
+                        flag2 = True
+                        break
+
+                    while resid == prevind:
+                        fp4.write("{0}\n".format(line))
+                        j += 1
+                        if j >= len(file4):
+                            break
+                        line = file4[j].strip()
+                        resid = int(line[22:26].strip())
+                elif tseq[k] != '-' and qseq[k] == '-':
+                    line = file4[j].strip()
+                    resid = int(line[22:26].strip())
+                    aa = line[17:20]
+                    one_aa = aa_onelet(aa)
+
+                    if one_aa == tseq[k]:
+                        prevind = resid
+                    else:
+                        print("Mismatch in sequence and structure of Target protein {0}{1} at Line {2} Index {3}-{4} ne {5}".format(
+                            pdb, chain, j, k, one_aa, tseq[k]))
+                        flag2 = True
+                        break
+
+                    while resid == prevind:
+                        j += 1
+                        if j >= len(file4):
+                            break
+                        line = file4[j].strip()
+                        resid = int(line[22:26].strip())
+
+                elif tseq[k] == '-' and qseq[k] != '-':
+                    fp3.write("- ")
+                    fp5.write("-")
+
+            if flag2:
+                continue
+
+        with open("temp_coord.txt", 'r') as f:
+            tmpcord = f.readlines()
+
+        with open("temp_resind.txt", 'r') as f:
+            tmpresind = f.readlines()
+
+        with open("temp_seq.txt", 'r') as f:
+            tmpseq = f.readlines()
+
+        ind3 = i + 1
+        seq1 = list(file3[ind3].strip())
+        seq2 = tmpresind[0].strip().split()
+
+        fp9.write("{0}".format(file2[i]))
+        fp10.write("{0}\n".format(file3[ind3].strip()))
+
+        for m in range(len(seq1)):
+            if seq1[m] == '-':
+                fp2.write("{0} ".format(seq1[m]))
+            else:
+                break
+
+        for n in range(len(seq2)):
+            fp2.write("{0} ".format(seq2[n]))
+            fp6.write("{0}".format(seq1[m]))
+            m += 1
+
+        for o in range(m, len(seq1)):
+            fp2.write("{0} ".format(seq1[m]))
+
+        fp2.write("\n")
+        fp6.write("\n{0}\n\n\n".format(tmpseq[0]))
+
+        mod_count += 1
+        fp1.write("MODEL\t{0}\n".format(mod_count))
+        fp7.write("MODEL\t{0}\n".format(mod_count))
+
+        for line in file4:
+            if line.strip():
+                fp7.write("{0}\n".format(line.strip()))
+
+        for line in tmpcord:
+            fp1.write("{0}".format(line))
+
+        fp1.write("TER\nENDMDL\n\n")
+        fp7.write("TER\nENDMDL\n\n")
+
+    # Cleanup
+    fp1.close()
+    fp2.close()
+    fp6.close()
+    fp7.close()
+    fp9.close()
+    fp10.close()
+
+    extractMultiModelPDB('aligned_structures.pdb', folder_name='struc_homologs')
+    subprocess.run("rm -f inp.pdb prot.seq target.pdb temp_coord.txt temp_resind.txt temp_seq.txt", shell=True)
+    subprocess.run("rm -rf tmp2 temp", shell=True)
 
 
 def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
