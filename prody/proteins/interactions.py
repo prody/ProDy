@@ -3430,7 +3430,7 @@ def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold, **kwargs):
         'foldseek', 'easy-search', 'inp.pdb', database_folder, 'prot.foldseek',
         'tmp2', '--exhaustive-search', '1', '--format-output',
         "query,target,qstart,qend,tstart,tend,qcov,tcov,qtmscore,ttmscore,rmsd,qaln,taln",
-        '-c', str(cov_threshold)
+        '-c', str(cov_threshold), '--cov-mode', '0'
     ])
     
     # Extract sequence and write to prot.seq
