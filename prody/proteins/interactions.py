@@ -3352,11 +3352,16 @@ def extractMultiModelPDB(multimodelPDB, **kwargs):
     LOGGER.info("Individual models are saved in {}.".format(folder_name))
 
 
-def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold, **kwargs):
+def runFoldseek(pdb_file, chain, **kwargs):
     """This script processes a PDB file to extract a specified chain's sequence, searches for 
     homologous structures using foldseek, and prepares alignment outputs for further analysis.
+    
     Before using the function, install Foldseek:
     >>> conda install bioconda::foldseek
+    More information can be found:
+    https://github.com/steineggerlab/foldseek?tab=readme-ov-file#databasesand
+
+    This function will not work under Windows.
     
     :arg pdb_file: A PDB file path
     :type pdb_file: str
@@ -3365,12 +3370,16 @@ def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold, **kwargs):
     :type chain: str
 
     :arg coverage_threshold: Coverage threshold 
+            by default 0.3
     :type coverage_threshold: float
 
     :arg tm_threshold: TM-score threshold
+            by default 0.5
     :type tm_threshold: float
     
     :arg database_folder: Folder with the database
+            by default '~/Donwload/foldseek/pdb'
+            To download the database use: 'foldseek databases PDB pdb tmp' in the console 
     :type database_folder: str
     """
     
@@ -3379,8 +3388,10 @@ def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold, **kwargs):
     import re
     import sys
 
-    database_folder = kwargs.pop('database_folder', '../../../foldseek/pdb')
-
+    database_folder = kwargs.pop('database_folder', '~/Donwload/foldseek/pdb')
+    coverage_threshold = kwargs.pop('coverage_threshold', 0.3)
+    tm_threshold = kwargs.pop('tm_threshold', 0.5)    
+    
     # Define the amino acid conversion function
     def aa_onelet(three_letter_code):
         codes = {
@@ -3416,11 +3427,9 @@ def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold, **kwargs):
     # Inputs
     fpath = pdb_file.strip()
     chain = chain.strip()
-    cov_threshold = float(coverage_threshold.strip())
-    tm_threshold = float(tm_threshold.strip())
+    cov_threshold = float(coverage_threshold)
+    tm_threshold = float(tm_threshold)
     
-    print(cov_threshold, type(cov_threshold))
-
     # Filter PDB file
     awk_command = "awk '{{if (substr($0, 22, 1) == \"{0}\") print}}'".format(chain)
     subprocess.run("cat {0} | grep '^ATOM' | {1} > inp.pdb".format(fpath, awk_command), shell=True)
