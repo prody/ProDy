@@ -548,7 +548,9 @@ class AtomGroup(Atomic):
         If shape of *coords* is ``(n_atoms, 3)`` or ``(1, n_atoms, 3)``, it
         will replace the active coordinate set.  *label* argument may be used
         to label coordinate set(s).  *label* may be a string or a list of
-        strings length equal to the number of coordinate sets."""
+        strings length equal to the number of coordinate sets. The optional
+        argument *overwrite* can be set to True to force resizing the
+        coordinates array when the number of atoms in the AtomGroup changed."""
 
         atoms = coords
         try:
@@ -578,7 +580,9 @@ class AtomGroup(Atomic):
         :class:`~numpy.float64`, e.g. :class:`~numpy.float32`.  *label*
         argument may be used to label coordinate sets.  *label* may be
         a string or a list of strings length equal to the number of
-        coordinate sets."""
+        coordinate sets. The optional argument *overwrite* can be set
+        to True to force resizing the coordinates array when the number
+        of atoms in the AtomGroup changed."""
 
         n_atoms = self._n_atoms
         if n_atoms:
@@ -1252,7 +1256,7 @@ class AtomGroup(Atomic):
 
     def setBondOrders(self, bondOrders):
         """Set covalent bond order. *bondOrders* must be a list or an array
-        of integers and proide a value for each bond. Possible values are
+        of integers and provide a value for each bond. Possible values are
         1:single, 2:double, 3:triple, 4:aromatic, 5:amide. The bond order of
         all bonds must be set at once. This method must be called after
         the setBonds() has been called. The bond order is stored in the
