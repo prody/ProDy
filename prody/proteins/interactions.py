@@ -3352,7 +3352,7 @@ def extractMultiModelPDB(multimodelPDB, **kwargs):
     LOGGER.info("Individual models are saved in {}.".format(folder_name))
 
 
-def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold):
+def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold, **kwargs):
     """This script processes a PDB file to extract a specified chain's sequence, searches for 
     homologous structures using foldseek, and prepares alignment outputs for further analysis.
     Before using the function, install Foldseek:
@@ -3365,16 +3365,21 @@ def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold):
     :type chain: str
 
     :arg coverage_threshold: Coverage threshold 
-    :type coverage_threshold: int, float
+    :type coverage_threshold: float
 
     :arg tm_threshold: TM-score threshold
     :type tm_threshold: float
+    
+    :arg database_folder: Folder with the database
+    :type database_folder: str
     """
     
     import os
     import subprocess
     import re
     import sys
+
+    database_folder = kwargs.pop('database_folder', '../../../foldseek/pdb')
 
     # Define the amino acid conversion function
     def aa_onelet(three_letter_code):
@@ -3413,6 +3418,8 @@ def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold):
     chain = chain.strip()
     cov_threshold = float(coverage_threshold.strip())
     tm_threshold = float(tm_threshold.strip())
+    
+    print(cov_threshold, type(cov_threshold))
 
     # Filter PDB file
     awk_command = "awk '{{if (substr($0, 22, 1) == \"{0}\") print}}'".format(chain)
@@ -3420,12 +3427,12 @@ def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold):
 
     # Run foldseek and other commands
     subprocess.run([
-        'foldseek', 'easy-search', 'inp.pdb', '../../../foldseek/pdb', 'prot.foldseek',
+        'foldseek', 'easy-search', 'inp.pdb', database_folder, 'prot.foldseek',
         'tmp2', '--exhaustive-search', '1', '--format-output',
         "query,target,qstart,qend,tstart,tend,qcov,tcov,qtmscore,ttmscore,rmsd,qaln,taln",
         '-c', str(cov_threshold)
     ])
-
+    
     # Extract sequence and write to prot.seq
     extract_sequence_from_pdb('inp.pdb', chain, 'prot.seq')
     createFoldseekAlignment('prot.seq', 'prot.foldseek', msa_output_name='prot_struc.msa')    
@@ -3644,7 +3651,7 @@ def runFoldseek(pdb_file, chain, coverage_threshold, tm_threshold):
     extractMultiModelPDB('aligned_structures.pdb', folder_name='struc_homologs')
     subprocess.run("rm -f inp.pdb prot.seq target.pdb temp_coord.txt temp_resind.txt temp_seq.txt", shell=True)
     subprocess.run("rm -rf tmp2 temp", shell=True)
-
+    
 
 def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
     """Analyzes protein structures to identify various interactions using InSty. 
