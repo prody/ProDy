@@ -32,8 +32,6 @@ from prody.trajectory import TrajBase, Trajectory, Frame
 from prody.ensemble import Ensemble
 
 import multiprocessing
-import matplotlib.pylab as plt
-import os
 from .fixer import *
 
 
@@ -314,10 +312,6 @@ def showPairEnergy(data, **kwargs):
 
 
 # SignatureInteractions supporting functions
-from Bio.PDB.Polypeptide import three_to_one
-import shutil
-import importlib.util
-
 def remove_empty_strings(row):
     """Remove empty strings from a list."""
     return [elem for elem in row if elem != '']
@@ -328,15 +322,18 @@ def log_message(message, level="INFO"):
 
 def is_module_installed(module_name):
     """Check if a Python module is installed."""
+    import importlib.util
     spec = importlib.util.find_spec(module_name)
     return spec is not None
 
 def is_command_installed(command):
     """Check if a command-line tool is installed."""
+    import shutil
     return shutil.which(command) is not None
 
 def load_residues_from_pdb(pdb_file):
     """Extract residue numbers and their corresponding one-letter amino acid codes from a PDB file."""
+    from Bio.PDB.Polypeptide import three_to_one
     structure = parsePDB(pdb_file)
     residues = structure.iterResidues()
     residue_dict = {}
@@ -373,6 +370,7 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
     mapping_num = filtered_mapping.astype(float)
 
     # Load the one-letter amino acid codes from model1.pdb
+    import os 
     pdb_model_path = os.path.join(pdb_folder, 'model1.pdb')
     residue_dict = load_residues_from_pdb(pdb_model_path)
 
@@ -488,6 +486,7 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
 
 def plot_barh(result, bond_type, n_per_plot=None, min_height=8):
     """Plot horizontal bar plots of percentages, splitting the data into fixed-sized plots."""
+    import matplotlib.pylab as plt
     plt.rcParams.update({'font.size': 20})
 
     # Set default value for n_per_plot if None is passed
@@ -3675,6 +3674,7 @@ def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
     :arg fixer: The method for fixing lack of hydrogen bonds
     :type fixer: 'pdbfixer' or 'openbabel'
     """
+    
     import os
     
     functions = {
