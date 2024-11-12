@@ -3330,6 +3330,7 @@ def extractMultiModelPDB(multimodelPDB, **kwargs):
     :arg folder_name: The name of the folder to which PDBs will be extracted
     :type folder_name: str
     """
+    
     import os
     
     folder_name = kwargs.pop('folder_name', 'struc_homologs')
@@ -3389,7 +3390,7 @@ def runFoldseek(pdb_file, chain, **kwargs):
     :type tm_threshold: float
     
     :arg database_folder: Folder with the database
-            by default '~/Donwload/foldseek/pdb'
+            by default '~/Downloads/foldseek/pdb'
             To download the database use: 'foldseek databases PDB pdb tmp' in the console 
     :type database_folder: str
     """
@@ -3399,7 +3400,7 @@ def runFoldseek(pdb_file, chain, **kwargs):
     import re
     import sys
 
-    database_folder = kwargs.pop('database_folder', '~/Donwload/foldseek/pdb')
+    database_folder = kwargs.pop('database_folder', '~/Downloads/foldseek/pdb')
     coverage_threshold = kwargs.pop('coverage_threshold', 0.3)
     tm_threshold = kwargs.pop('tm_threshold', 0.5)    
     
