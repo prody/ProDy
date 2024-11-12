@@ -484,12 +484,24 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
     return output_data, fixed_files  # Return fixed_files to remove later
 
 
-def plot_barh(result, bond_type, n_per_plot=None, min_height=8):
-    """Plot horizontal bar plots of percentages, splitting the data into fixed-sized plots."""
+def plot_barh(result, bond_type, **kwargs):
+    """Plot horizontal bar plots of percentages of interactions, splitting the data into fixed-sized plots.
+
+    :arg n_per_plot: The number of results per one plot
+        by default is 20 if set to None 
+    :type n_per_plot: int
+    
+    :arg min_height: Size of the bar plot
+        by default is 8
+    :type min_height: int
+    """
+
     import matplotlib.pylab as plt
     plt.rcParams.update({'font.size': 20})
 
-    # Set default value for n_per_plot if None is passed
+    n_per_plot = kwargs.pop('n_per_plot', None)
+    min_height = kwargs.pop('min_height', 8)
+    
     if n_per_plot is None:
         n_per_plot = 20
 
