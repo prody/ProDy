@@ -3674,7 +3674,7 @@ def runFoldseek(pdb_file, chain, **kwargs):
     subprocess.run("rm -rf tmp2 temp", shell=True)
     
 
-def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
+def calcSignatureInteractions(mapping_file, PDB_folder, **kwargs):
     """Analyzes protein structures to identify various interactions using InSty. 
     Processes data from the MSA file and folder with selected models.
     
@@ -3685,10 +3685,20 @@ def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
     :type PDB_folder: str
 
     :arg fixer: The method for fixing lack of hydrogen bonds
+            by default is 'pdbfixer'
     :type fixer: 'pdbfixer' or 'openbabel'
+    
+    :arg remove_tmp_files: Removing intermediate files that are created in the process
+            by default is True
+    :type remove_tmp_files: True or False
     """
     
     import os
+    
+    fixer = kwargs.pop('fixer', 'pdbfixer')
+    remove_tmp_files = kwargs.pop('remove_tmp_files', True)
+    n_per_plot = kwargs.pop('n_per_plot', None)
+    min_height = kwargs.pop('min_height', 8)
     
     functions = {
         "HydrogenBonds": calcHydrogenBonds,
@@ -3719,15 +3729,15 @@ def calcSignatureInteractions(mapping_file, PDB_folder, fixer='pdbfixer'):
         result, fixed_files = result
 
         # Proceed with plotting
-        n = None
-        plot_barh(result, bond_type, n)
+        plot_barh(result, bond_type, n_per_plot=n_per_plot, min_height=min_height)
 
     # Remove all fixed files at the end
-    if 'fixed_files' in locals():
-        for fixed_file in fixed_files:
-            if os.path.exists(fixed_file):
-                os.remove(fixed_file)
-                log_message("Removed fixed file: {}".format(fixed_file))
+    if remove_tmp_files == True:
+        if 'fixed_files' in locals():
+            for fixed_file in fixed_files:
+                if os.path.exists(fixed_file):
+                    os.remove(fixed_file)
+                    log_message("Removed fixed file: {}".format(fixed_file))
 
 
 
