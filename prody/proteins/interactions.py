@@ -3374,6 +3374,9 @@ def runFoldseek(pdb_file, chain, **kwargs):
     https://github.com/steineggerlab/foldseek?tab=readme-ov-file#databasesand
 
     This function will not work under Windows.
+    Example usage: runFoldseek('5kqm.pdb', 'A', database_folder='~/Downloads/foldseek/pdb')
+    where previous a folder called 'foldseek' were created and PDB database was uploaded using:
+    >>> foldseek databases PDB pdb tmp   (Linux console) 
     
     :arg pdb_file: A PDB file path
     :type pdb_file: str
@@ -3403,6 +3406,9 @@ def runFoldseek(pdb_file, chain, **kwargs):
     database_folder = kwargs.pop('database_folder', '~/Downloads/foldseek/pdb')
     coverage_threshold = kwargs.pop('coverage_threshold', 0.3)
     tm_threshold = kwargs.pop('tm_threshold', 0.5)    
+    
+    if not isinstance(pdb_file, str):
+        raise TypeError('Please provide the name of the PDB file.')
     
     full_path = os.path.expanduser(database_folder)
     if not os.path.exists(full_path.strip('pdb')):
@@ -3681,6 +3687,8 @@ def runFoldseek(pdb_file, chain, **kwargs):
 def calcSignatureInteractions(mapping_file, PDB_folder, **kwargs):
     """Analyzes protein structures to identify various interactions using InSty. 
     Processes data from the MSA file and folder with selected models.
+    
+    Example usage: calcSignatureInteractions('shortlisted_resind.msa','./struc_homologs')
     
     :arg mapping_file: Aligned residue indices, MSA file type
     :type mapping_file: str
