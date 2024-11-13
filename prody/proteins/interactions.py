@@ -333,7 +333,7 @@ def is_command_installed(command):
 
 def load_residues_from_pdb(pdb_file):
     """Extract residue numbers and their corresponding one-letter amino acid codes from a PDB file."""
-    from Bio.PDB.Polypeptide import three_to_one
+    from prody.atomic.atomic import AAMAP
     structure = parsePDB(pdb_file)
     residues = structure.iterResidues()
     residue_dict = {}
@@ -342,7 +342,7 @@ def load_residues_from_pdb(pdb_file):
         resnum = res.getResnum()
         resname = res.getResname()  # Three-letter amino acid code
         try:
-            one_letter_code = three_to_one(resname)  # Convert to one-letter code
+            one_letter_code = AAMAP[resname]
             residue_dict[resnum] = one_letter_code
         except KeyError:
             log_message("Unknown residue: {} at position {}".format(resname, resnum), "WARNING")
