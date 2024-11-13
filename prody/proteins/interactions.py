@@ -3733,11 +3733,10 @@ def calcSignatureInteractions(mapping_file, PDB_folder, **kwargs):
 
     # Remove all fixed files at the end
     if remove_tmp_files == True:
-        if 'fixed_files' in locals():
-            for fixed_file in fixed_files:
-                if os.path.exists(fixed_file):
-                    os.remove(fixed_file)
-                    log_message("Removed fixed file: {}".format(fixed_file))
+        for fixed_file in fixed_files:
+            if os.path.exists(fixed_file):
+                os.remove(fixed_file)
+                log_message("Removed fixed file: {}".format(fixed_file))
 
 
 
