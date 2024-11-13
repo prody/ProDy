@@ -3404,6 +3404,10 @@ def runFoldseek(pdb_file, chain, **kwargs):
     coverage_threshold = kwargs.pop('coverage_threshold', 0.3)
     tm_threshold = kwargs.pop('tm_threshold', 0.5)    
     
+    full_path = os.path.expanduser(database_folder)
+    if not os.path.exists(full_path.strip('pdb')):
+        raise ValueError('The required database is not found in {0}. Please download it first.'.format(database_folder.strip('pdb')))
+    
     # Define the amino acid conversion function
     def aa_onelet(three_letter_code):
         codes = {
