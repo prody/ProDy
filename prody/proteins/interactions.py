@@ -3558,8 +3558,43 @@ class Interactions(object):
             writePDB('filename', atoms, **kw)
             LOGGER.info('PDB file saved.')
 
-
-    def getFrequentInteractors(self, contacts_min=3):
+    
+    def getInteractors(self, residue_name):
+        """ Provide information about interactions for a particular residue
+        
+        :arg residue_name: name of a resiude
+                            example: LEU234A, where A is a chain name
+        :type residue_name: str
+        """
+        
+        atoms = self._atoms   
+        interactions = self._interactions
+        
+        InteractionsMap = np.empty([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()], dtype=object)
+        resIDs = list(atoms.select('name CA').getResnums())
+        resChIDs = list(atoms.select('name CA').getChids())
+        resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
+        interaction_type = ['hb','sb','rb','ps','pc','hp','dibs']
+        ListOfInteractions = []
+        
+        for nr,i in enumerate(interactions):
+            if i != []:
+                for ii in i: 
+                    m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
+                    m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
+                    ListOfInteractions.append(interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5])
+        
+        aa_ListOfInteractions = []
+        for i in ListOfInteractions:
+            inter = i.split(":")[1:][0]
+            if inter.split('-')[0] == residue_name or inter.split('-')[1] == residue_name:
+                LOGGER.info(i)
+                aa_ListOfInteractions.append(i)
+        
+        return aa_ListOfInteractions
+        
+    
+    def getFrequentInteractors(self, contacts_min=2):
         """Provide a list of residues with the most frequent interactions based 
         on the following interactions:
             (1) Hydrogen bonds (hb)
@@ -3571,7 +3606,7 @@ class Interactions(object):
             (7) Disulfide bonds (disb)
         
         :arg contacts_min: Minimal number of contacts which residue may form with other residues, 
-                           by default 3.
+                           by default 2.
         :type contacts_min: int  """
 
         atoms = self._atoms   
@@ -3588,18 +3623,43 @@ class Interactions(object):
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
-                    InteractionsMap[m1][m2] = interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5]
+
+                    if InteractionsMap[m1][m2] is None:
+                        InteractionsMap[m1][m2] = []
             
-        ListOfInteractions = [ list(filter(None, InteractionsMap[:,j])) for j in range(len(interactions[0])) ]
-        ListOfInteractions = list(filter(lambda x : x != [], ListOfInteractions))
-        ListOfInteractions = [k for k in ListOfInteractions if len(k) >= contacts_min ]
-        ListOfInteractions_list = [ (i[0].split('-')[-1], [ j.split('-')[0] for j in i]) for i in ListOfInteractions ]
-        LOGGER.info('The most frequent interactions between:')
-        for res in ListOfInteractions_list:
+                    InteractionsMap[m1][m2].append(interaction_type[nr] + ':' + ii[0] + ii[2] + '-' + ii[3] + ii[5])
+            
+        ListOfInteractions = [list(filter(None, [row[j] for row in InteractionsMap])) for j in range(len(InteractionsMap[0]))]
+        ListOfInteractions = list(filter(lambda x: x != [], ListOfInteractions))
+        ListOfInteractions_flattened = [j for sublist in ListOfInteractions for j in sublist]
+
+        swapped_ListOfInteractions_list = []
+        for interaction_group in ListOfInteractions_flattened:
+            swapped_group = []
+            for interaction in interaction_group:
+                interaction_type, pair = interaction.split(':')
+                swapped_pair = '-'.join(pair.split('-')[::-1])
+                swapped_group.append("{}:{}".format(interaction_type, swapped_pair))
+            swapped_ListOfInteractions_list.append(swapped_group)
+
+        doubleListOfInteractions_list = ListOfInteractions_flattened+swapped_ListOfInteractions_list
+        ListOfInteractions_list = [(i[0].split('-')[-1], [j.split('-')[0] for j in i]) for i in doubleListOfInteractions_list]
+
+        merged_dict = {}
+        for aa, ii in ListOfInteractions_list:
+            if aa in merged_dict:
+                merged_dict[aa].extend(ii)
+            else:
+                merged_dict[aa] = ii
+
+        ListOfInteractions_list = [(key, value) for key, value in merged_dict.items()] 
+        ListOfInteractions_list2 = [k for k in ListOfInteractions_list if len(k[-1]) >= contacts_min]
+            
+        for res in ListOfInteractions_list2:
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
-        LOGGER.info('Legend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
-                             'pc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
+        LOGGER.info('\nLegend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
+                             '\npc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
         
         try:
             from toolz.curried import count
@@ -3607,17 +3667,15 @@ class Interactions(object):
             LOGGER.warn('This function requires the module toolz')
             return
         
-        LOGGER.info('The biggest number of interactions: {}'.format(max(map(count, ListOfInteractions))))
-        
-        return ListOfInteractions_list
+        return ListOfInteractions_list2
         
 
-    def showFrequentInteractors(self, cutoff=5, **kwargs):
+    def showFrequentInteractors(self, cutoff=4, **kwargs):
         """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
                      If cutoff value is to big, top 30% with the higest values will be returned.
-                     Default is 5.
+                     Default is 4.
         :type cutoff: int, float
 
         Nonstandard resiudes can be updated in a following way:
