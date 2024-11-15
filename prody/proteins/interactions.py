@@ -1517,7 +1517,7 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
 
 
 def calcProteinInteractions(atoms, **kwargs):
-    """Compute all protein interactions (shown below) using default parameters.
+    """Compute all protein interactions (shown below).
         (1) Hydrogen bonds
         (2) Salt Bridges
         (3) RepulsiveIonicBonding 
@@ -1525,6 +1525,10 @@ def calcProteinInteractions(atoms, **kwargs):
         (5) Pi-cation interactions
         (6) Hydrophobic interactions
         (7) Disulfide Bonds
+
+    kwargs can be passed on to the underlying functions as described
+    in their documentation. For example, distDA and angleDHA can be used
+    to control hydrogen bonds, or distA and angle can be used across types.
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
