@@ -739,6 +739,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax,
                         norm=norm, cmap=cmap, origin=origin, **kwargs)
     else:
+        zeros_matrix = np.zeros(matrix.shape)
+        im = ax3.imshow(zeros_matrix, vmin=-1, vmax=1, cmap='seismic')
         plot_list = []
         for rows,cols in zip(np.where(matrix!=0)[0],np.where(matrix!=0)[1]):
             plot_list.append([cols,rows,matrix[rows,cols]])
