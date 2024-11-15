@@ -254,7 +254,22 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
     output_folder = kwargs.pop('folder', None)
     compressed = bool(kwargs.pop('compressed', True))
 
-    extension = '.pdb'
+    format = kwargs.get('format', 'pdb')
+    noatom = bool(kwargs.pop('noatom', False))
+    if format == 'pdb':
+        extension = '.pdb'
+    elif format == 'xml':
+        if noatom:
+            extension = '-noatom.xml'
+        else:
+            extension = '.xml'
+    elif format == 'cif':
+        extension = '.cif'
+    elif format == 'emd' or format == 'map':
+        extension = '.map'
+    else:
+        raise ValueError(repr(format) + ' is not valid format')
+
     local_folder = pathPDBFolder()
     if local_folder:
         local_folder, is_divided = local_folder
@@ -294,7 +309,10 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
             filenames.append(None)
             continue
         try:
-            handle = openURL(getURL(pdb))
+            url = getURL(pdb)
+            if kwargs.get('format', 'pdb') != 'pdb':
+                url = url.replace('.pdb', extension)
+            handle = openURL(url)
         except Exception as err:
             LOGGER.warn('{0} download failed ({1}).'.format(pdb, str(err)))
             failure += 1
