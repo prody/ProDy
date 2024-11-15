@@ -710,9 +710,11 @@ def calcChHydrogenBonds(atoms, **kwargs):
     
         ChainsHBs = [ i for i in HBS_calculations if str(i[2]) != str(i[5]) ]
         if not ChainsHBs:
-            ligand_name = list(set(atoms.select('all not protein and not ion').getResnames()))[0]
-            ChainsHBs = [ ii for ii in HBS_calculations if ii[0][:3] == ligand_name or ii[3][:3] == ligand_name ]
-        
+            ligand_sel = atoms.select('all not protein and not ion')
+            if ligand_sel:
+                ligand_name = list(set(ligand_sel.getResnames()))[0]
+                ChainsHBs = [ ii for ii in HBS_calculations if ii[0][:3] == ligand_name or ii[3][:3] == ligand_name ]
+
         return ChainsHBs 
         
 
