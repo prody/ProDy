@@ -3781,8 +3781,8 @@ def runDali(pdb, chain, **kwargs):
             source_file = 'align__'+i+'.pdb'
             writePDB(source_file, mobile)
             shutil.move(source_file, os.path.join(folder_name, os.path.basename(source_file)))
-        except TypeError:
-            raise TypeError('There is a problem with {}. Change seqid or overlap parameter to include the structure.'.format(i))
+        except:
+            LOGGER.warn('There is a problem with {}. Change seqid or overlap parameter to include the structure.'.format(i))
     
 
 def calcSignatureInteractions(mapping_file, PDB_folder, **kwargs):
