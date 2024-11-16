@@ -146,7 +146,7 @@ class TestInteractions(unittest.TestCase):
             except ImportError:
                 imported_hpb = False
             
-        if sys.version_info[1] < 11:
+        if sys.version_info[1] < 13:
             self.assertTrue(imported_hpb)
         else:
             self.assertFalse(imported_hpb)
