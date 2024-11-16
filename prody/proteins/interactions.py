@@ -33,6 +33,8 @@ from prody.ensemble import Ensemble
 
 import multiprocessing
 from .fixer import *
+from .compare import *
+from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 
 
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
@@ -49,7 +51,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
-           'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 
+           'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
            'extractMultiModelPDB', 'calcSignatureInteractions']
 
 
@@ -3682,6 +3684,103 @@ def runFoldseek(pdb_file, chain, **kwargs):
     extractMultiModelPDB('aligned_structures.pdb', folder_name='struc_homologs')
     subprocess.run("rm -f inp.pdb prot.seq target.pdb temp_coord.txt temp_resind.txt temp_seq.txt", shell=True)
     subprocess.run("rm -rf tmp2 temp", shell=True)
+    
+    
+def runDali(pdb, chain, **kwargs):
+    """This function calls searchDali() and downloads all the PDB files, separate by chains, add hydrogens and missing side chains,
+    and finally align them and put into the newly created folder.
+       
+    :arg pdb: A PDB code
+    :type pdb: str
+
+    :arg chain: chain identifier
+    :type chain: str
+
+    :arg cutoff_len: Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1)
+            See searchDali for more details 
+            by default 0.5
+    :type cutoff_len: float
+
+    :arg cutoff_rmsd: RMSD cutoff (see searchDali)
+            by default 1.0
+    :type cutoff_rmsd: float
+    
+    :arg subsetDali: fullPDB, PDB25, PDB50, PDB90
+            by default is 'fullPDB'
+    :type subsetDali: str    
+    
+    :arg fixer: The method for fixing lack of hydrogen bonds
+            by default is 'pdbfixer'
+    :type fixer: 'pdbfixer' or 'openbabel'
+    
+    :arg subset: subsets of atoms: 'ca', 'bb', 'heavy', 'noh', 'all'  (see matchChains())
+            by default is 'ca'
+    :type subset: str
+
+    :arg seqid: Minimum value of the sequence identity (see matchChains())
+            by default 5
+    :type seqid: float
+    
+    :arg overlap: percent overlap (see matchChains())
+            by default 50
+    :type overlap: float
+
+    :arg folder_name: Folder where the results will be collected
+            by default is 'struc_homologs'
+    :type folder_name: str
+    """
+
+    import os
+    import shutil
+    from prody.database import dali 
+    
+    cutoff_len = kwargs.pop('cutoff_len', 0.5)
+    cutoff_rmsd = kwargs.pop('cutoff_rmsd', 1.0)
+    fixer = kwargs.pop('fixer', 'pdbfixer')
+    subset_Dali = kwargs.pop('subset_Dali', 'fullPDB')
+    subset = kwargs.pop('subset', 'ca')
+    seqid = kwargs.pop('seqid', 5)
+    overlap = kwargs.pop('overlap', 50)
+    folder_name = kwargs.pop('folder_name', 'struc_homologs')
+    
+    dali_rec = dali.searchDali(pdb, chain, subset=subset_Dali)
+
+    while not dali_rec.isSuccess:
+        dali_rec.fetch()
+    
+    pdb_ids = dali_rec.filter(cutoff_len=cutoff_len, cutoff_rmsd=cutoff_rmsd)
+    pdb_hits = [ (i[:4], i[4:]) for i in pdb_ids ]
+    
+    list_pdbs = []
+    LOGGER.info('Separating chains and saving into PDB file')
+    for i in pdb_hits:
+        LOGGER.info('PDB code {} and chain {}'.format(i[0], i[1]))
+        p = parsePDB(i[0]).select('chain '+i[1]+' and protein')
+        writePDB(i[0]+i[1]+'.pdb', p)
+        list_pdbs.append(i[0]+i[1]+'.pdb')
+    
+    #LOGGER.info('Number of selected structures: ', len(list_pdbs))
+    LOGGER.info('Adding hydrogens to the structures..')
+    new_pdbids = fixStructuresMissingAtoms(list_pdbs, method='pdbfixer', model_residues=True, overwrite=True)
+
+    os.makedirs(folder_name)
+    structures = parsePDB(new_pdbids)
+    target = structures[0]
+    rmsds = []
+    for mobile in structures[1:]:
+        try:
+            LOGGER.info('Aligning the structures..')
+            i = mobile.getTitle()
+            LOGGER.info(i)
+            matches = matchChains(mobile.protein, target.protein, subset=subset, seqid=seqid, overlap=overlap)
+            m = matches[0]
+            m0_alg, T = superpose(m[0], m[1], weights=m[0].getFlags("mapped"))
+            rmsds.append(calcRMSD(m[0], m[1], weights=m[0].getFlags("mapped")))
+            source_file = 'align__'+i+'.pdb'
+            writePDB(source_file, mobile)
+            shutil.move(source_file, os.path.join(folder_name, os.path.basename(source_file)))
+        except TypeError:
+            raise TypeError('There is a problem with {}. Change seqid or overlap parameter to include the structure.'.format(i))
     
 
 def calcSignatureInteractions(mapping_file, PDB_folder, **kwargs):
