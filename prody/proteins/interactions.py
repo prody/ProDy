@@ -522,7 +522,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     
     :arg angleDHA: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
         default is 40.
-        angle also works
+        angle and angleDA also work
     :type angleDHA: int, float
     
     :arg seq_cutoff_HB: non-zero value, interactions will be found between atoms with index differences
@@ -576,6 +576,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     distA = kwargs.pop('distA', distDA)
 
     angleDHA = kwargs.pop('angleDA', 40)
+    angleDHA = kwargs.pop('angleDHA', angleDHA)
     angle = kwargs.pop('angle', angleDHA)
     
     seq_cutoff_HB = kwargs.pop('seq_cutoff_HB', 25)
