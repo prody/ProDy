@@ -3689,7 +3689,7 @@ class Interactions(object):
         """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
-                     If cutoff value is to big, top 30% with the higest values will be returned.
+                     If cutoff value is too big, top 30% with the higest values will be returned.
                      Default is 4.
         :type cutoff: int, float
 
