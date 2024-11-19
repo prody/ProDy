@@ -3798,9 +3798,13 @@ class Interactions(object):
             fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
             matplotlib.rcParams['font.size'] = '24'
 
-            ax.bar(ResNumb, matrix_en_sum, width, color='blue')
+            zeros_row = np.zeros(matrix_en_sum.shape)
+            pplot(zeros_row, atoms=atoms.ca)
+
+            ax.bar(ResList, matrix_en_sum, width, color='blue')
             
-            plt.xlim([ResNumb[0]-0.5, ResNumb[-1]+0.5])
+            #plt.xlim([ResList[0]-0.5, ResList[-1]+0.5])
+            plt.ylim([min(matrix_en_sum)-1,0])
             plt.tight_layout()    
             plt.xlabel('Residue')
             plt.ylabel('Cumulative Energy [kcal/mol]')
