@@ -522,7 +522,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     
     :arg angleDHA: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
         default is 40.
-        angle also works
+        angle and angleDA also work
     :type angleDHA: int, float
     
     :arg seq_cutoff_HB: non-zero value, interactions will be found between atoms with index differences
@@ -576,6 +576,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     distA = kwargs.pop('distA', distDA)
 
     angleDHA = kwargs.pop('angleDA', 40)
+    angleDHA = kwargs.pop('angleDHA', angleDHA)
     angle = kwargs.pop('angle', angleDHA)
     
     seq_cutoff_HB = kwargs.pop('seq_cutoff_HB', 25)
@@ -1336,7 +1337,7 @@ def calcDisulfideBonds(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distDB: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :arg distDB: non-zero value, maximal distance between atoms of cysteine residues.
         default is 3.
         distA works too
     :type distDB: int, float
@@ -1455,7 +1456,7 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
 
 def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs):
     """Compute selected type interactions for DCD trajectory or multi-model PDB 
-    using default parameters."""
+    using default parameters or those from kwargs."""
     
     try:
         coords = getCoords(atoms)
@@ -1517,7 +1518,7 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
 
 
 def calcProteinInteractions(atoms, **kwargs):
-    """Compute all protein interactions (shown below) using default parameters.
+    """Compute all protein interactions (shown below).
         (1) Hydrogen bonds
         (2) Salt Bridges
         (3) RepulsiveIonicBonding 
@@ -1525,6 +1526,10 @@ def calcProteinInteractions(atoms, **kwargs):
         (5) Pi-cation interactions
         (6) Hydrophobic interactions
         (7) Disulfide Bonds
+
+    kwargs can be passed on to the underlying functions as described
+    in their documentation. For example, distDA and angleDHA can be used
+    to control hydrogen bonds, or distA and angle can be used across types.
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1576,10 +1581,12 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
 
     :arg distA: non-zero value, maximal distance between donor and acceptor.
         default is 3.5
+        distDA also works
     :type distA: int, float
     
     :arg angle: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
         default is 40.
+        angleDHA also works
     :type angle: int, float
     
     :arg seq_cutoff: non-zero value, interactions will be found between atoms with index differences
@@ -1620,6 +1627,7 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses 
         of N and O atoms of negatively and positevely charged residues.
         default is 5.
+        distSB also works
     :type distA: int, float
     
     :arg selection: selection string
@@ -1656,6 +1664,7 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses 
             between N-N or O-O atoms of residues.
             default is 4.5.
+            distRB also works
     :type distA: int, float
 
     :arg selection: selection string
@@ -1692,6 +1701,7 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses 
                 of residues aromatic rings.
                 default is 5.
+                distPS also works
     :type distA: int, float
     
     :arg angle_min: minimal angle between aromatic rings.
@@ -1736,6 +1746,7 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses of aromatic ring 
                 and positively charge group.
                 default is 5.
+                distPC also works
     :type distA: int, float
     
     :arg selection: selection string
@@ -1771,6 +1782,7 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
         default is 4.5.
+        distHPh also works
     :type distA: int, float
 
     :arg selection: selection string
@@ -1803,8 +1815,9 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
     
-    :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :arg distA: non-zero value, maximal distance between atoms of cysteine residues.
         default is 2.5.
+        distDB also works
     :type distA: int, float
 
     :arg start_frame: index of first frame to read
@@ -3676,7 +3689,7 @@ class Interactions(object):
         """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
-                     If cutoff value is to big, top 30% with the higest values will be returned.
+                     If cutoff value is too big, top 30% with the higest values will be returned.
                      Default is 4.
         :type cutoff: int, float
 
