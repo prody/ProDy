@@ -334,11 +334,8 @@ class PDBBlastRecord(object):
 
     def writeSequences(self, filename, **kwargs):
         """
-        Returns a plot that contains a dendrogram of the sequence similarities among
-        the sequences in given hit list. 
-
-        :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
-        :type hits: dict
+        Writes a fasta file containing the hit sequences under 'hseq' field.
+        These are not equivalently aligned.
 
         Arguments of getHits can be parsed as kwargs.
         """
