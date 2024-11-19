@@ -522,7 +522,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     
     :arg angleDHA: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
         default is 40.
-        angle also works
+        angle and angleDA also work
     :type angleDHA: int, float
     
     :arg seq_cutoff_HB: non-zero value, interactions will be found between atoms with index differences
@@ -576,6 +576,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     distA = kwargs.pop('distA', distDA)
 
     angleDHA = kwargs.pop('angleDA', 40)
+    angleDHA = kwargs.pop('angleDHA', angleDHA)
     angle = kwargs.pop('angle', angleDHA)
     
     seq_cutoff_HB = kwargs.pop('seq_cutoff_HB', 25)
@@ -710,9 +711,11 @@ def calcChHydrogenBonds(atoms, **kwargs):
     
         ChainsHBs = [ i for i in HBS_calculations if str(i[2]) != str(i[5]) ]
         if not ChainsHBs:
-            ligand_name = list(set(atoms.select('all not protein and not ion').getResnames()))[0]
-            ChainsHBs = [ ii for ii in HBS_calculations if ii[0][:3] == ligand_name or ii[3][:3] == ligand_name ]
-        
+            ligand_sel = atoms.select('all not protein and not ion')
+            if ligand_sel:
+                ligand_name = list(set(ligand_sel.getResnames()))[0]
+                ChainsHBs = [ ii for ii in HBS_calculations if ii[0][:3] == ligand_name or ii[3][:3] == ligand_name ]
+
         return ChainsHBs 
         
 
@@ -1334,7 +1337,7 @@ def calcDisulfideBonds(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distDB: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :arg distDB: non-zero value, maximal distance between atoms of cysteine residues.
         default is 3.
         distA works too
     :type distDB: int, float
@@ -1453,7 +1456,7 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
 
 def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs):
     """Compute selected type interactions for DCD trajectory or multi-model PDB 
-    using default parameters."""
+    using default parameters or those from kwargs."""
     
     try:
         coords = getCoords(atoms)
@@ -1515,7 +1518,7 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
 
 
 def calcProteinInteractions(atoms, **kwargs):
-    """Compute all protein interactions (shown below) using default parameters.
+    """Compute all protein interactions (shown below).
         (1) Hydrogen bonds
         (2) Salt Bridges
         (3) RepulsiveIonicBonding 
@@ -1523,6 +1526,10 @@ def calcProteinInteractions(atoms, **kwargs):
         (5) Pi-cation interactions
         (6) Hydrophobic interactions
         (7) Disulfide Bonds
+
+    kwargs can be passed on to the underlying functions as described
+    in their documentation. For example, distDA and angleDHA can be used
+    to control hydrogen bonds, or distA and angle can be used across types.
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1574,10 +1581,12 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
 
     :arg distA: non-zero value, maximal distance between donor and acceptor.
         default is 3.5
+        distDA also works
     :type distA: int, float
     
     :arg angle: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
         default is 40.
+        angleDHA also works
     :type angle: int, float
     
     :arg seq_cutoff: non-zero value, interactions will be found between atoms with index differences
@@ -1618,6 +1627,7 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses 
         of N and O atoms of negatively and positevely charged residues.
         default is 5.
+        distSB also works
     :type distA: int, float
     
     :arg selection: selection string
@@ -1654,6 +1664,7 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses 
             between N-N or O-O atoms of residues.
             default is 4.5.
+            distRB also works
     :type distA: int, float
 
     :arg selection: selection string
@@ -1690,6 +1701,7 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses 
                 of residues aromatic rings.
                 default is 5.
+                distPS also works
     :type distA: int, float
     
     :arg angle_min: minimal angle between aromatic rings.
@@ -1734,6 +1746,7 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses of aromatic ring 
                 and positively charge group.
                 default is 5.
+                distPC also works
     :type distA: int, float
     
     :arg selection: selection string
@@ -1769,6 +1782,7 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
         default is 4.5.
+        distHPh also works
     :type distA: int, float
 
     :arg selection: selection string
@@ -1801,8 +1815,9 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
     
-    :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :arg distA: non-zero value, maximal distance between atoms of cysteine residues.
         default is 2.5.
+        distDB also works
     :type distA: int, float
 
     :arg start_frame: index of first frame to read
@@ -3558,8 +3573,43 @@ class Interactions(object):
             writePDB('filename', atoms, **kw)
             LOGGER.info('PDB file saved.')
 
-
-    def getFrequentInteractors(self, contacts_min=3):
+    
+    def getInteractors(self, residue_name):
+        """ Provide information about interactions for a particular residue
+        
+        :arg residue_name: name of a resiude
+                            example: LEU234A, where A is a chain name
+        :type residue_name: str
+        """
+        
+        atoms = self._atoms   
+        interactions = self._interactions
+        
+        InteractionsMap = np.empty([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()], dtype=object)
+        resIDs = list(atoms.select('name CA').getResnums())
+        resChIDs = list(atoms.select('name CA').getChids())
+        resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
+        interaction_type = ['hb','sb','rb','ps','pc','hp','dibs']
+        ListOfInteractions = []
+        
+        for nr,i in enumerate(interactions):
+            if i != []:
+                for ii in i: 
+                    m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
+                    m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
+                    ListOfInteractions.append(interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5])
+        
+        aa_ListOfInteractions = []
+        for i in ListOfInteractions:
+            inter = i.split(":")[1:][0]
+            if inter.split('-')[0] == residue_name or inter.split('-')[1] == residue_name:
+                LOGGER.info(i)
+                aa_ListOfInteractions.append(i)
+        
+        return aa_ListOfInteractions
+        
+    
+    def getFrequentInteractors(self, contacts_min=2):
         """Provide a list of residues with the most frequent interactions based 
         on the following interactions:
             (1) Hydrogen bonds (hb)
@@ -3571,7 +3621,7 @@ class Interactions(object):
             (7) Disulfide bonds (disb)
         
         :arg contacts_min: Minimal number of contacts which residue may form with other residues, 
-                           by default 3.
+                           by default 2.
         :type contacts_min: int  """
 
         atoms = self._atoms   
@@ -3588,18 +3638,43 @@ class Interactions(object):
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
-                    InteractionsMap[m1][m2] = interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5]
+
+                    if InteractionsMap[m1][m2] is None:
+                        InteractionsMap[m1][m2] = []
             
-        ListOfInteractions = [ list(filter(None, InteractionsMap[:,j])) for j in range(len(interactions[0])) ]
-        ListOfInteractions = list(filter(lambda x : x != [], ListOfInteractions))
-        ListOfInteractions = [k for k in ListOfInteractions if len(k) >= contacts_min ]
-        ListOfInteractions_list = [ (i[0].split('-')[-1], [ j.split('-')[0] for j in i]) for i in ListOfInteractions ]
-        LOGGER.info('The most frequent interactions between:')
-        for res in ListOfInteractions_list:
+                    InteractionsMap[m1][m2].append(interaction_type[nr] + ':' + ii[0] + ii[2] + '-' + ii[3] + ii[5])
+            
+        ListOfInteractions = [list(filter(None, [row[j] for row in InteractionsMap])) for j in range(len(InteractionsMap[0]))]
+        ListOfInteractions = list(filter(lambda x: x != [], ListOfInteractions))
+        ListOfInteractions_flattened = [j for sublist in ListOfInteractions for j in sublist]
+
+        swapped_ListOfInteractions_list = []
+        for interaction_group in ListOfInteractions_flattened:
+            swapped_group = []
+            for interaction in interaction_group:
+                interaction_type, pair = interaction.split(':')
+                swapped_pair = '-'.join(pair.split('-')[::-1])
+                swapped_group.append("{}:{}".format(interaction_type, swapped_pair))
+            swapped_ListOfInteractions_list.append(swapped_group)
+
+        doubleListOfInteractions_list = ListOfInteractions_flattened+swapped_ListOfInteractions_list
+        ListOfInteractions_list = [(i[0].split('-')[-1], [j.split('-')[0] for j in i]) for i in doubleListOfInteractions_list]
+
+        merged_dict = {}
+        for aa, ii in ListOfInteractions_list:
+            if aa in merged_dict:
+                merged_dict[aa].extend(ii)
+            else:
+                merged_dict[aa] = ii
+
+        ListOfInteractions_list = [(key, value) for key, value in merged_dict.items()] 
+        ListOfInteractions_list2 = [k for k in ListOfInteractions_list if len(k[-1]) >= contacts_min]
+            
+        for res in ListOfInteractions_list2:
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
-        LOGGER.info('Legend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
-                             'pc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
+        LOGGER.info('\nLegend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
+                             '\npc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
         
         try:
             from toolz.curried import count
@@ -3607,17 +3682,15 @@ class Interactions(object):
             LOGGER.warn('This function requires the module toolz')
             return
         
-        LOGGER.info('The biggest number of interactions: {}'.format(max(map(count, ListOfInteractions))))
-        
-        return ListOfInteractions_list
+        return ListOfInteractions_list2
         
 
-    def showFrequentInteractors(self, cutoff=5, **kwargs):
+    def showFrequentInteractors(self, cutoff=4, **kwargs):
         """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
-                     If cutoff value is to big, top 30% with the higest values will be returned.
-                     Default is 5.
+                     If cutoff value is too big, top 30% with the higest values will be returned.
+                     Default is 4.
         :type cutoff: int, float
 
         Nonstandard resiudes can be updated in a following way:
@@ -3738,9 +3811,13 @@ class Interactions(object):
             fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
             matplotlib.rcParams['font.size'] = '24'
 
-            ax.bar(ResNumb, matrix_en_sum, width, color='blue')
+            zeros_row = np.zeros(matrix_en_sum.shape)
+            pplot(zeros_row, atoms=atoms.ca)
+
+            ax.bar(ResList, matrix_en_sum, width, color='blue')
             
-            plt.xlim([ResNumb[0]-0.5, ResNumb[-1]+0.5])
+            #plt.xlim([ResList[0]-0.5, ResList[-1]+0.5])
+            plt.ylim([min(matrix_en_sum)-1,0])
             plt.tight_layout()    
             plt.xlabel('Residue')
             plt.ylabel('Cumulative Energy [kcal/mol]')
