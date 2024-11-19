@@ -52,7 +52,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
            'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
-           'extractMultiModelPDB', 'calcSignatureInteractions']
+           'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions']
 
 
 def cleanNumbers(listContacts):
@@ -3783,7 +3783,92 @@ def runDali(pdb, chain, **kwargs):
             shutil.move(source_file, os.path.join(folder_name, os.path.basename(source_file)))
         except:
             LOGGER.warn('There is a problem with {}. Change seqid or overlap parameter to include the structure.'.format(i))
+
+
+def runBLAST(pdb, chain, **kwargs):
+    """This function calls blastPDB to find homologs and downloads all of them in PDB format to the local directory,
+    separate chains that were identified by BLAST, add hydrogens and missing side chains,
+    and finally align them and put into the newly created folder.
+       
+    :arg pdb: A PDB code
+    :type pdb: str
+
+    :arg chain: chain identifier
+    :type chain: str
+
+    :arg fixer: The method for fixing lack of hydrogen bonds
+            by default is 'pdbfixer'
+    :type fixer: 'pdbfixer' or 'openbabel'
     
+    :arg subset: subsets of atoms: 'ca', 'bb', 'heavy', 'noh', 'all'  (see matchChains())
+            by default is 'bb'
+    :type subset: str
+
+    :arg seqid: Minimum value of the sequence identity (see matchChains())
+            by default 90
+    :type seqid: float
+    
+    :arg overlap: percent overlap (see matchChains())
+            by default 50
+    :type overlap: float
+
+    :arg folder_name: Folder where the results will be collected
+            by default is 'struc_homologs'
+    :type folder_name: str
+    """
+    
+    import os
+    import shutil
+    from prody.proteins.blastpdb import blastPDB
+    
+    fixer = kwargs.pop('fixer', 'pdbfixer')
+    seqid = kwargs.pop('seqid', 90)
+    overlap = kwargs.pop('overlap', 50)
+    subset = kwargs.pop('subset', 'bb')
+    folder_name = kwargs.pop('folder_name', 'struc_homologs')
+
+    ref_prot = parsePDB(pdb)
+    ref_hv = ref_prot.getHierView()[chain]
+    sequence = ref_hv.getSequence()
+
+    blast_record = blastPDB(sequence)
+    while not blast_record.isSuccess:
+        blast_record.fetch()
+
+    pdb_hits = []
+    for key, item in blast_record.getHits(seqid).items():
+        pdb_hits.append((key, item['chain_id']))
+
+    list_pdbs = []
+    LOGGER.info('Separating chains and saving into PDB file')
+    for i in pdb_hits:
+        LOGGER.info('PDB code {} and chain {}'.format(i[0], i[1]))
+        p = parsePDB(i[0]).select('chain '+i[1]+' and protein')
+        writePDB(i[0]+i[1]+'.pdb', p)
+        list_pdbs.append(i[0]+i[1]+'.pdb')
+    
+    LOGGER.info('Adding hydrogens to the structures..')
+    new_pdbids = fixStructuresMissingAtoms(list_pdbs, method='pdbfixer', model_residues=True, overwrite=True)
+
+    os.makedirs(folder_name)
+    structures = parsePDB(new_pdbids)
+    target = structures[0]
+    rmsds = []
+    for mobile in structures[1:]:
+        try:
+            LOGGER.info('Aligning the structures..')
+            i = mobile.getTitle()
+            LOGGER.info(i)
+            matches = matchChains(mobile.protein, target.protein, subset=subset, seqid=seqid, overlap=overlap)
+            m = matches[0]
+            m0_alg, T = superpose(m[0], m[1], weights=m[0].getFlags("mapped"))
+            rmsds.append(calcRMSD(m[0], m[1], weights=m[0].getFlags("mapped")))
+            source_file = 'align__'+i+'.pdb'
+            writePDB(source_file, mobile)
+            shutil.move(source_file, os.path.join(folder_name, os.path.basename(source_file)))
+        except:
+            LOGGER.warn('There is a problem with {}. Change seqid or overlap parameter to include the structure.'.format(i))
+
 
 def calcSignatureInteractions(mapping_file, PDB_folder, **kwargs):
     """Analyzes protein structures to identify various interactions using InSty. 
