@@ -228,7 +228,7 @@ def get_energy(pair, source):
     lookup = pair[0]+pair[1]
     
     try:
-        data_results = data[np.nonzero(np.array(aa_pairs)==lookup)[0]][0][2:][sources.index(source)][0]
+        data_results = data[np.nonzero(np.array(aa_pairs)==lookup)[0]][0][2:][sources.index(source)]
     except TypeError:
         raise TypeError('Please replace non-standard names of residues with standard names.')
 
