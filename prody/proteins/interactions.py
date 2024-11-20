@@ -228,7 +228,7 @@ def get_energy(pair, source):
     lookup = pair[0]+pair[1]
     
     try:
-        data_results = data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
+        data_results = data[np.nonzero(np.array(aa_pairs)==lookup)[0]][0][2:][sources.index(source)]
     except TypeError:
         raise TypeError('Please replace non-standard names of residues with standard names.')
 
@@ -3488,13 +3488,14 @@ class Interactions(object):
         resChIDs = list(atoms.select('name CA').getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
             
-        for nr_i,i in enumerate(interactions):
+        for i in interactions:
             if i != []:
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
                     scoring = get_energy([ii[0][:3], ii[3][:3]], energy_list_type)
-                    InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = InteractionsMap[m1][m2] + float(scoring) 
+                    if InteractionsMap[m1][m2] == 0:
+                        InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = float(scoring)
 
         self._interactions_matrix_en = InteractionsMap
         
