@@ -3460,6 +3460,17 @@ class Interactions(object):
         :arg energy_list_type: name of the list with energies 
                             default is 'IB_solv'
         :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+
+        'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
+        O Keskin, I Bahar and colleagues from [OK98]_.
+
+        'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
+        and Gary Wu.
+
+        .. [OK98] Keskin O, Bahar I, Badretdinov AY, Ptitsyn OB, Jernigan RL,
+        Empirical solvent-mediated potentials hold for both intra-molecular
+        and inter-molecular inter-residue interactions
+        *Protein Sci* **1998** 7(12):2578-2586.
         """
         
         import numpy as np
