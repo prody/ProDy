@@ -228,7 +228,7 @@ def get_energy(pair, source):
     lookup = pair[0]+pair[1]
     
     try:
-        data_results = data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
+        data_results = data[np.nonzero(np.array(aa_pairs)==lookup)[0]][0][2:][sources.index(source)]
     except TypeError:
         raise TypeError('Please replace non-standard names of residues with standard names.')
 
@@ -966,11 +966,11 @@ def calcPiStacking(atoms, **kwargs):
     distPS = kwargs.pop('distPS', 5.0)
     distA = kwargs.pop('distA', distPS)
 
-    angle_min_RB = kwargs.pop('angle_min_RB', 0)
-    angle_min = kwargs.pop('angle_min', angle_min_RB)
+    angle_min_PS = kwargs.pop('angle_min_PS', 0)
+    angle_min = kwargs.pop('angle_min', angle_min_PS)
 
-    angle_max_RB = kwargs.pop('angle_max_RB', 360)
-    angle_max = kwargs.pop('angle_max', angle_max_RB)
+    angle_max_PS = kwargs.pop('angle_max_PS', 360)
+    angle_max = kwargs.pop('angle_max', angle_max_PS)
     
     non_standard_PS = kwargs.get('non_standard_PS', {})
     non_standard = kwargs.get('non_standard', non_standard_PS)
@@ -3460,6 +3460,17 @@ class Interactions(object):
         :arg energy_list_type: name of the list with energies 
                             default is 'IB_solv'
         :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+
+        'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
+        O Keskin, I Bahar and colleagues from [OK98]_.
+
+        'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
+        and Gary Wu.
+
+        .. [OK98] Keskin O, Bahar I, Badretdinov AY, Ptitsyn OB, Jernigan RL,
+        Empirical solvent-mediated potentials hold for both intra-molecular
+        and inter-molecular inter-residue interactions
+        *Protein Sci* **1998** 7(12):2578-2586.
         """
         
         import numpy as np
@@ -3477,13 +3488,14 @@ class Interactions(object):
         resChIDs = list(atoms.select('name CA').getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
             
-        for nr_i,i in enumerate(interactions):
+        for i in interactions:
             if i != []:
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
                     scoring = get_energy([ii[0][:3], ii[3][:3]], energy_list_type)
-                    InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = InteractionsMap[m1][m2] + float(scoring) 
+                    if InteractionsMap[m1][m2] == 0:
+                        InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = float(scoring)
 
         self._interactions_matrix_en = InteractionsMap
         
