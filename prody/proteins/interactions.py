@@ -3036,6 +3036,7 @@ class Interactions(object):
         self._interactions = None
         self._interactions_matrix = None
         self._interactions_matrix_en = None
+        self._energy_type = None
         self._hbs = None
         self._sbs = None
         self._rib = None
@@ -3408,7 +3409,7 @@ class Interactions(object):
         atoms = self._atoms   
         interactions = self._interactions
         
-        LOGGER.info('Calculating interactions')
+        LOGGER.info('Calculating interaction matrix')
         InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
         resIDs = list(atoms.select('name CA').getResnums())
         resChIDs = list(atoms.select('name CA').getChids())
@@ -3456,10 +3457,11 @@ class Interactions(object):
 
     def buildInteractionMatrixEnergy(self, **kwargs):
         """Build matrix with interaction energy comming from energy of pairs of specific residues.
-        
+
         :arg energy_list_type: name of the list with energies 
                             default is 'IB_solv'
-        :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+                            acceptable values are 'IB_nosolv', 'IB_solv', 'CS'
+        :type energy_list_type: str
 
         'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
         O Keskin, I Bahar and colleagues from [OK98]_.
@@ -3482,7 +3484,7 @@ class Interactions(object):
         interactions = self._interactions
         energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
 
-        LOGGER.info('Calculating interactions')
+        LOGGER.info('Calculating interaction energies matrix with type {0}'.format(energy_list_type))
         InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
         resIDs = list(atoms.select('name CA').getResnums())
         resChIDs = list(atoms.select('name CA').getChids())
@@ -3498,6 +3500,7 @@ class Interactions(object):
                         InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = float(scoring)
 
         self._interactions_matrix_en = InteractionsMap
+        self._energy_type = energy_list_type
         
         return InteractionsMap
 
@@ -3792,6 +3795,26 @@ class Interactions(object):
         :arg energy: sum of the energy between residues
                     default is False
         :type energy: bool
+
+        :arg energy_list_type: name of the list with energies
+                            default is 'IB_solv'
+                            acceptable values are 'IB_nosolv', 'IB_solv', 'CS'
+        :type energy_list_type: str
+
+        :arg overwrite_energies: whether to overwrite energies
+                            default is False
+        :type overwrite_energies: bool
+
+        'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
+        O Keskin, I Bahar and colleagues from [OK98]_.
+
+        'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
+        and Gary Wu.
+
+        .. [OK98] Keskin O, Bahar I, Badretdinov AY, Ptitsyn OB, Jernigan RL,
+        Empirical solvent-mediated potentials hold for both intra-molecular
+        and inter-molecular inter-residue interactions
+        *Protein Sci* **1998** 7(12):2578-2586.
         """
 
         import numpy as np
@@ -3817,6 +3840,13 @@ class Interactions(object):
         
         if energy == True:
             matrix_en = self._interactions_matrix_en
+            energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
+            overwrite = kwargs.pop('overwrite_energies', False)
+            if matrix_en is None or overwrite:
+                LOGGER.warn('The energy matrix is recalculated with type {0}'.format(energy_list_type))
+                self.buildInteractionMatrixEnergy(energy_list_type=energy_list_type)
+                matrix_en = self._interactions_matrix_en
+
             matrix_en_sum = np.sum(matrix_en, axis=0)
 
             width = 0.8
