@@ -3847,6 +3847,9 @@ class Interactions(object):
                 self.buildInteractionMatrixEnergy(energy_list_type=energy_list_type)
                 matrix_en = self._interactions_matrix_en
 
+            elif self._energy_type != energy_list_type:
+                LOGGER.warn('The energy type is {0}, not {1}'.format(self._energy_type, energy_list_type))
+
             matrix_en_sum = np.sum(matrix_en, axis=0)
 
             width = 0.8
