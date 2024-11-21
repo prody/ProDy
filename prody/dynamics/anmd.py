@@ -182,6 +182,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
     ensembles = []
     for i in range(skip_modes, num_modes):
         modeNum = anm_ex.getIndices()[i]
+        LOGGER.info('\nGenerating {0} conformers for mode {1} ...\n'.format(num_confs, modeNum))
 
         eval_i=anm[i].getEigval()
         sc_rmsd=((1/eval_i)**0.5/(1/eval_0)**0.5)*max_rmsd
@@ -233,23 +234,43 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
 if __name__=='__main__':
     import sys
     from prody.tests.datafiles import pathDatafile
-    pdb_name=sys.argv[1] if len(sys.argv) > 1 else pathDatafile('1ubi')
-    num_modes=int(sys.argv[2]) if len(sys.argv) > 2 else 2
-    max_rmsd=float(sys.argv[3]) if len(sys.argv) > 3 else 2.
-    num_steps = int(sys.argv[5]) if len(sys.argv) > 5 else 2
-    tol=float(sys.argv[4]) if len(sys.argv) > 4 else 10.
 
-    pdb_name_ext = pdb_name
+    pdb_filename = sys.argv[1] if len(sys.argv) > 1 else pathDatafile('1ubi')
+    num_modes = int(sys.argv[2]) if len(sys.argv) > 2 else 2
+    max_rmsd = float(sys.argv[3]) if len(sys.argv) > 3 else 2.
+    tol = float(sys.argv[4]) if len(sys.argv) > 4 else 10.
+
+    num_steps = int(sys.argv[5]) if len(sys.argv) > 5 else 2
+    skip_modes = int(sys.argv[6]) if len(sys.argv) > 6 else 0
+
+    pos = bool(sys.argv[7]) if len(sys.argv) > 7 else True
+    neg = bool(sys.argv[8]) if len(sys.argv) > 8 else True
+    reverse = bool(sys.argv[9]) if len(sys.argv) > 9 else False
+
+    anm_filename = sys.argv[10] if len(sys.argv) > 10 else None
+    anm = None
+    if anm_filename is not None:
+        if anm.endswith('nmd'):
+            anm, _ = parseNMD(anm_filename)
+        elif anm.endswith('npz'):
+            anm = loadModel(anm_filename)
+        else:
+            raise ValueError('anm should be an nmd or npz file or None')
+
+    pdb_name_ext = pdb_filename
     if pdb_name_ext.endswith('.pdb'):
-        pdb_name = pdb_name_ext[:-4]
+        pdb_filename = pdb_name_ext[:-4]
     else:
         pdb_name_ext += '.pdb'
 
     pdb = parsePDB(pdb_name_ext, compressed=False)
 
-    x = runANMD(pdb, num_modes, max_rmsd, num_steps, tol)
+    x = runANMD(pdb, num_modes=num_modes, max_rmsd=max_rmsd,
+                num_steps=num_steps, skip_modes=skip_modes, tolerance=tol,
+                pos=pos, neg=neg, reverse=reverse,
+                anm=anm)
 
-    pdb_basename = os.path.basename(pdb_name)
+    pdb_basename = os.path.basename(pdb_filename)
     for ens in x:
         filename = pdb_basename + '_' + ens.getTitle().replace(' ', '_')
         LOGGER.info('writing PDB file {0}'.format(filename))
