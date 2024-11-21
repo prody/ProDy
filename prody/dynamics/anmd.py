@@ -69,7 +69,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
     :type num_steps: int
 
     :arg tolerance: tolerance for energy minimisation in OpenMM 
-        in kilojoule_per_mole. Default is 10
+        in kilojoule/mole/nanometer. Default is 10 as in OpenMM
     :type tolerance: float
 
     :arg skip_modes: number of modes to skip
@@ -91,7 +91,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
             Simulation, HBonds, NoCutoff
         from simtk.openmm import LangevinIntegrator
         from simtk.unit import nanometer, kelvin, picosecond, picoseconds, \
-            angstrom
+            angstrom, kilojoule, mole
     except ImportError:
         raise ImportError('Please install PDBFixer and OpenMM to use ANMD')
 
@@ -109,6 +109,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
 
     if not isinstance(tolerance, Number):
         raise TypeError('tolerance should be a float')
+    tolerance = tolerance * kilojoule/mole/nanometer
 
     pos = kwargs.get('pos', True)
     if not isinstance(pos, bool):
