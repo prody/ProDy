@@ -182,7 +182,6 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
     ensembles = []
     for i in range(skip_modes, num_modes):
         modeNum = anm_ex.getIndices()[i]
-        LOGGER.info('\nGenerating {0} conformers for mode {1} ...\n'.format(num_confs, modeNum))
 
         eval_i=anm[i].getEigval()
         sc_rmsd=((1/eval_i)**0.5/(1/eval_0)**0.5)*max_rmsd
