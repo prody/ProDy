@@ -3805,6 +3805,20 @@ class Interactions(object):
                             default is False
         :type overwrite_energies: bool
 
+        :arg percentile: a percentile threshold to remove outliers, i.e. only showing data within *p*-th
+                        to *100-p*-th percentile. Default is None, so no axis limits.
+        :type percentile: float
+
+        :arg vmin: a minimum value threshold to remove outliers, i.e. only showing data greater than vmin
+                This overrides percentile. Default is None, so no axis limits and little padding at the
+                bottom when energy=True.
+        :type vmin: float
+
+        :arg vmax: a maximum value threshold to remove outliers, i.e. only showing data less than vmax
+                This overrides percentile. Default is None, so no axis limits and a little padding for
+                interaction type labels.
+        :type vmax: float
+
         'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
         O Keskin, I Bahar and colleagues from [OK98]_.
 
@@ -3833,6 +3847,15 @@ class Interactions(object):
         if not isinstance(energy, bool):
             raise TypeError('energy should be True or False')
                     
+        p = kwargs.pop('percentile', None)
+        vmin = vmax = None
+        if p is not None:
+            vmin = np.percentile(matrix, p)
+            vmax = np.percentile(matrix, 100-p)
+
+        vmin = kwargs.pop('vmin', vmin)
+        vmax = kwargs.pop('vmax', vmax)
+
         ResNumb = atoms.select('protein and name CA').getResnums()
         ResName = atoms.select('protein and name CA').getResnames()
         ResChid = atoms.select('protein and name CA').getChids()
@@ -3861,8 +3884,13 @@ class Interactions(object):
 
             ax.bar(ResList, matrix_en_sum, width, color='blue')
             
-            #plt.xlim([ResList[0]-0.5, ResList[-1]+0.5])
-            plt.ylim([min(matrix_en_sum)-1,0])
+            if vmin is None:
+                vmin = np.min(matrix_en_sum) * 1.2
+
+            if vmax is None:
+                vmax = np.max(matrix_en_sum)
+
+            plt.ylim([vmin, vmax])
             plt.tight_layout()    
             plt.xlabel('Residue')
             plt.ylabel('Cumulative Energy [kcal/mol]')
@@ -3940,7 +3968,14 @@ class Interactions(object):
                 self._interactions_matrix = matrix_all
 
             ax.legend(ncol=7, loc='upper center')
-            plt.ylim([0,max(sum_matrix)+3])
+
+            if vmin is None:
+                vmin = np.min(sum_matrix)
+
+            if vmax is None:
+                vmax = np.max(sum_matrix) * 1.5
+
+            plt.ylim([vmin, vmax])
             plt.tight_layout()    
             plt.xlabel('Residue')
             plt.ylabel('Number of counts')
