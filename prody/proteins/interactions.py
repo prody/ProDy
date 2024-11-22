@@ -277,9 +277,11 @@ def checkNonstandardResidues(atoms):
 def showPairEnergy(data, **kwargs):
     """Return energies when a list of interactions is given. Energies will be added to each pair of residues 
     at the last position in the list. Energy is based on the residue types and not on the distances.
-    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated), 'IB_solv' (solvent-mediated) 
-    are taken from [OK98]_ and 'CS' from InSty paper (under preparation). 
+    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated) and
+    'IB_solv' (solvent-mediated) are taken from [OK98]_ and 'CS' from InSty paper (under preparation).
     Protonation of residues is not distinguished. The protonation of residues is not distinguished. 
+    'IB_solv' and 'IB_nosolv' have RT units and 'CS' has units of kcal/mol.
+
     Known residues such as HSD, HSE, HIE, and HID (used in MD simulations) are treated as HIS.
     
     :arg data: list with interactions from calcHydrogenBonds() or other types
@@ -2133,9 +2135,9 @@ def calcStatisticsInteractions(data, **kwargs):
     (2) average distance of interactions for each pair [in Ang], 
     (3) standard deviation [Ang.],
     (4) Energy [in kcal/mol] that is not distance dependent. Energy by default is solvent-mediated
-    from [OK98]_ ('IB_solv'). To use non-solvent-mediated entries ('IB_nosolv') from [OK98]_ or
-    solvent-mediated values obtained for InSty paper ('CS', under preparation) change 
-    `energy_list_type` parameter. 
+    from [OK98]_ ('IB_solv') in RT units. To use non-solvent-mediated (residue-mediated) entries ('IB_nosolv')
+    from [OK98]_ in RT units or solvent-mediated values obtained from MD for InSty paper ('CS', under preparation)
+    in kcal/mol, change `energy_list_type` parameter.
     If energy information is not available, please check whether the pair of residues is listed in 
     the "tabulated_energies.txt" file, which is localized in the ProDy directory.
         
@@ -3464,15 +3466,10 @@ class Interactions(object):
         :type energy_list_type: str
 
         'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
-        O Keskin, I Bahar and colleagues from [OK98]_.
+        O Keskin, I Bahar and colleagues from [OK98]_ and have RT units.
 
         'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
-        and Gary Wu.
-
-        .. [OK98] Keskin O, Bahar I, Badretdinov AY, Ptitsyn OB, Jernigan RL,
-        Empirical solvent-mediated potentials hold for both intra-molecular
-        and inter-molecular inter-residue interactions
-        *Protein Sci* **1998** 7(12):2578-2586.
+        and Gary Wu in the InSty paper (under preparation) and have units of kcal/mol.
         """
         
         import numpy as np
@@ -3820,15 +3817,10 @@ class Interactions(object):
         :type vmax: float
 
         'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
-        O Keskin, I Bahar and colleagues from [OK98]_.
+        O Keskin, I Bahar and colleagues from [OK98]_ and have RT units.
 
         'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
-        and Gary Wu.
-
-        .. [OK98] Keskin O, Bahar I, Badretdinov AY, Ptitsyn OB, Jernigan RL,
-        Empirical solvent-mediated potentials hold for both intra-molecular
-        and inter-molecular inter-residue interactions
-        *Protein Sci* **1998** 7(12):2578-2586.
+        and Gary Wu for the InSty paper (under preparation) and have units kcal/mol.
         """
 
         import numpy as np
