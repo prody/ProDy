@@ -2194,6 +2194,7 @@ def calcStatisticsInteractions(data, **kwargs):
                 }
 
     statistic = []
+    unit = 'RT' if energy_list_type in ['IB_solv', 'IB_nosolv'] else 'kcal/mol'
     for key, value in stats.items():
         if float(value['weight']) > weight_cutoff:
             LOGGER.info("Statistics for {0}:".format(key))
@@ -2201,7 +2202,7 @@ def calcStatisticsInteractions(data, **kwargs):
             LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
             LOGGER.info("  Weight: {0}".format(value['weight']))
             try:
-                LOGGER.info("  Energy [kcal/mol]: {0}".format(value['energy']))
+                LOGGER.info("  Energy [{0}]: {1}".format(unit, value['energy']))
                 statistic.append([key, value['weight'], value['mean'], value['stddev'], value['energy']])
             except:
                 statistic.append([key, value['weight'], value['mean'], value['stddev']])
@@ -3885,7 +3886,9 @@ class Interactions(object):
             plt.ylim([vmin, vmax])
             plt.tight_layout()    
             plt.xlabel('Residue')
-            plt.ylabel('Cumulative Energy [kcal/mol]')
+
+            unit = 'RT' if energy_list_type in ['IB_solv', 'IB_nosolv'] else 'kcal/mol'
+            plt.ylabel('Cumulative Energy [{0}]'.format(unit))
             plt.show()
             
             return matrix_en_sum
