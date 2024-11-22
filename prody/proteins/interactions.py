@@ -21,7 +21,7 @@ import numpy as np
 from numpy import *
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
-from prody.atomic import flags
+from prody.atomic import flags, sliceAtomicData
 from prody.utilities import importLA, checkCoords, showFigure, getCoords
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
@@ -3789,7 +3789,10 @@ class Interactions(object):
 
         :arg DiBs: score per disulfide bond
         :type DiBs: int, float 
-        
+
+        :arg selstr: selection string for focusing the plot
+        :type selection: str
+
         :arg energy: sum of the energy between residues
                     default is False
         :type energy: bool
@@ -3849,6 +3852,10 @@ class Interactions(object):
         vmin = kwargs.pop('vmin', vmin)
         vmax = kwargs.pop('vmax', vmax)
 
+        selstr = kwargs.pop('selstr', None)
+        if selstr is not None:
+            atoms = atoms.select(selstr)
+
         ResNumb = atoms.select('protein and name CA').getResnums()
         ResName = atoms.select('protein and name CA').getResnames()
         ResChid = atoms.select('protein and name CA').getChids()
@@ -3871,6 +3878,10 @@ class Interactions(object):
             width = 0.8
             fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
             matplotlib.rcParams['font.size'] = '24'
+
+            if selstr is not None:
+                matrix_en_sum = sliceAtomicData(matrix_en_sum,
+                                                self._atoms.ca, selstr)
 
             zeros_row = np.zeros(matrix_en_sum.shape)
             pplot(zeros_row, atoms=atoms.ca)
@@ -3920,6 +3931,23 @@ class Interactions(object):
             matrix_picat_sum = np.sum(matrix_picat, axis=0)
             matrix_hph_sum = np.sum(matrix_hph, axis=0)
             matrix_dibs_sum = np.sum(matrix_dibs, axis=0)
+
+            all_ca = self._atoms.ca
+            if selstr is not None:
+                matrix_hbs_sum = sliceAtomicData(matrix_hbs_sum,
+                                                 all_ca, selstr)
+                matrix_sbs_sum = sliceAtomicData(matrix_sbs_sum,
+                                                 all_ca, selstr)
+                matrix_rib_sum = sliceAtomicData(matrix_rib_sum,
+                                                 all_ca, selstr)
+                matrix_pistack_sum = sliceAtomicData(matrix_pistack_sum,
+                                                     all_ca, selstr)
+                matrix_picat_sum = sliceAtomicData(matrix_picat_sum,
+                                                   all_ca, selstr)
+                matrix_hph_sum = sliceAtomicData(matrix_hph_sum,
+                                                 all_ca, selstr)
+                matrix_dibs_sum = sliceAtomicData(matrix_dibs_sum,
+                                                  all_ca, selstr)
 
             width = 0.8
             fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
