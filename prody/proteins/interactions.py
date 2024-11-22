@@ -3870,17 +3870,20 @@ def runBLAST(pdb, chain, **kwargs):
             LOGGER.warn('There is a problem with {}. Change seqid or overlap parameter to include the structure.'.format(i))
 
 
-def calcSignatureInteractions(mapping_file, PDB_folder, **kwargs):
+def calcSignatureInteractions(PDB_folder, **kwargs):
     """Analyzes protein structures to identify various interactions using InSty. 
     Processes data from the MSA file and folder with selected models.
     
-    Example usage: calcSignatureInteractions('shortlisted_resind.msa','./struc_homologs')
-    
-    :arg mapping_file: Aligned residue indices, MSA file type
-    :type mapping_file: str
+    Example usage: 
+    >>> calcSignatureInteractions('./struc_homologs')
+    >>> calcSignatureInteractions('./struc_homologs', mapping_file='shortlisted_resind.msa')
 
     :arg PDB_folder: Directory containing PDB model files
     :type PDB_folder: str
+
+    :arg mapping_file: Aligned residue indices, MSA file type
+            required in Foldseek analyisis
+    :type mapping_file: str
 
     :arg fixer: The method for fixing lack of hydrogen bonds
             by default is 'pdbfixer'
@@ -3892,50 +3895,75 @@ def calcSignatureInteractions(mapping_file, PDB_folder, **kwargs):
     """
     
     import os
+    mapping_file = kwargs.get('mapping_file')
     
-    fixer = kwargs.pop('fixer', 'pdbfixer')
-    remove_tmp_files = kwargs.pop('remove_tmp_files', True)
-    n_per_plot = kwargs.pop('n_per_plot', None)
-    min_height = kwargs.pop('min_height', 8)
+    if not mapping_file:
+        # Dali and Blast approach 
+        align_files = [os.path.join(PDB_folder, file) for file in os.listdir(PDB_folder)]
+
+        functions = {
+            "HBs": calcHydrogenBonds,
+            "SBs": calcSaltBridges,
+            "RIB": calcRepulsiveIonicBonding,
+            "PiStack": calcPiStacking,
+            "PiCat": calcPiCation,
+            "HPh": calcHydrophobic,
+            "DiBs": calcDisulfideBonds
+        }
+
+        for bond_type, func in functions.items():
+            for file in align_files:
+                try:
+                    atoms = parsePDB(file)
+                    interactions = func(atoms.select('protein'))
+                    saveInteractionsAsDummyAtoms(atoms, interactions, filename ='INT_'+bond_type+'_'+file)
+                except: pass
     
-    functions = {
-        "HydrogenBonds": calcHydrogenBonds,
-        "SaltBridges": calcSaltBridges,
-        "RepulsiveIonicBonding": calcRepulsiveIonicBonding,
-        "PiStacking": calcPiStacking,
-        "PiCation": calcPiCation,
-        "Hydrophobic": calcHydrophobic,
-        "DisulfideBonds": calcDisulfideBonds
-    }
+    else:
+        # Foldseek approach
+        mapping_file = kwargs.pop('mapping_file', 'shortlisted_resind.msa')
+        fixer = kwargs.pop('fixer', 'pdbfixer')
+        remove_tmp_files = kwargs.pop('remove_tmp_files', True)
+        n_per_plot = kwargs.pop('n_per_plot', None)
+        min_height = kwargs.pop('min_height', 8)
+        
+        functions = {
+            "HydrogenBonds": calcHydrogenBonds,
+            "SaltBridges": calcSaltBridges,
+            "RepulsiveIonicBonding": calcRepulsiveIonicBonding,
+            "PiStacking": calcPiStacking,
+            "PiCation": calcPiCation,
+            "Hydrophobic": calcHydrophobic,
+            "DisulfideBonds": calcDisulfideBonds
+        }
 
-    # Process each bond type
-    for bond_type, func in functions.items():
-        # Check if the consensus file already exists
-        consensus_file = '{}_consensus.txt'.format(bond_type)
-        if os.path.exists(consensus_file):
-            log_message("Consensus file for {} already exists, skipping.".format(bond_type), "INFO")
-            continue
+        # Process each bond type
+        for bond_type, func in functions.items():
+            # Check if the consensus file already exists
+            consensus_file = '{}_consensus.txt'.format(bond_type)
+            if os.path.exists(consensus_file):
+                log_message("Consensus file for {} already exists, skipping.".format(bond_type), "INFO")
+                continue
 
-        log_message("Processing {}".format(bond_type))
-        result = process_data(mapping_file, PDB_folder, func, bond_type, fixer)
+            log_message("Processing {}".format(bond_type))
+            result = process_data(mapping_file, PDB_folder, func, bond_type, fixer)
 
-        # Check if the result is None (no valid bonds found)
-        if result is None:
-            log_message("No valid {} entries found, skipping further processing.".format(bond_type), "WARNING")
-            continue
+            # Check if the result is None (no valid bonds found)
+            if result is None:
+                log_message("No valid {} entries found, skipping further processing.".format(bond_type), "WARNING")
+                continue
 
-        result, fixed_files = result
+            result, fixed_files = result
 
-        # Proceed with plotting
-        plot_barh(result, bond_type, n_per_plot=n_per_plot, min_height=min_height)
+            # Proceed with plotting
+            plot_barh(result, bond_type, n_per_plot=n_per_plot, min_height=min_height)
 
-    # Remove all fixed files at the end
-    if remove_tmp_files == True:
-        for fixed_file in fixed_files:
-            if os.path.exists(fixed_file):
-                os.remove(fixed_file)
-                log_message("Removed fixed file: {}".format(fixed_file))
-
+        # Remove all fixed files at the end
+        if remove_tmp_files == True:
+            for fixed_file in fixed_files:
+                if os.path.exists(fixed_file):
+                    os.remove(fixed_file)
+                    log_message("Removed fixed file: {}".format(fixed_file))
 
 
 class Interactions(object):
