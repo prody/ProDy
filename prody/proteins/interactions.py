@@ -2609,7 +2609,7 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
                 tcl_file.write('mol addrep 0 \n')
             except: LOGGER.info("There was a problem.")
      
-    if len(interactions) == 7:   
+    if len(interactions) == 7 and isinstance(interactions[0][0], list):
         # For all seven types of interactions at once
         # HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations, Disulfide Bonds
         colors = ['blue', 'yellow', 'red', 'green', 'orange', 'silver', 'black']
