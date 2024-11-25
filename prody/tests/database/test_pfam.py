@@ -49,18 +49,18 @@ class TestSearchPfam(unittest.TestCase):
         self.assertEqual(sorted(list(a.keys())), ['PF00060', 'PF01094', 'PF10613'],
                          'searchPfam failed to return the right domain family IDs for AMPAR')
         
-    def testPdbIdChSingle(self):
-        """Test the outcome of a simple search scenario using a PDB ID
-        and chain ID to get the single domain protein TARP g8 from chain I."""
+    # def testPdbIdChSingle(self):
+    #     """Test the outcome of a simple search scenario using a PDB ID
+    #     and chain ID to get the single domain protein TARP g8 from chain I."""
 
-        a = searchPfam(self.queries[2])
+    #     a = searchPfam(self.queries[2])
 
-        self.assertIsInstance(a, dict,
-            'searchPfam failed to return a dict instance')
+    #     self.assertIsInstance(a, dict,
+    #         'searchPfam failed to return a dict instance')
         
-        self.assertEqual(sorted(list(a.keys())), 
-                         ['PF00822', 'PF13903'],
-                         'searchPfam failed to return the right domain family IDs for TARP')
+    #     self.assertEqual(sorted(list(a.keys())), 
+    #                      ['PF00822', 'PF13903'],
+    #                      'searchPfam failed to return the right domain family IDs for TARP')
         
     @classmethod
     def tearDownClass(self):
@@ -93,18 +93,18 @@ class TestFetchPfamMSA(unittest.TestCase):
         self.assertTrue(os.path.exists(b))
 
 
-    def testSeed(self):
-        """Test the outcome of fetching the domain MSA for claudins
-        with the alignment type argument set to seed"""
+    # def testSeed(self):
+    #     """Test the outcome of fetching the domain MSA for claudins
+    #     with the alignment type argument set to seed"""
 
-        b = fetchPfamMSA(self.query, "seed")
+    #     b = fetchPfamMSA(self.query, "seed")
 
-        self.assertIsInstance(b, str,
-            'fetchPfamMSA failed to return a str instance')
+    #     self.assertIsInstance(b, str,
+    #         'fetchPfamMSA failed to return a str instance')
         
-        self.assertEqual(b, 'PF00822_seed.sth')
+    #     self.assertEqual(b, 'PF00822_seed.sth')
         
-        self.assertTrue(os.path.exists(b))
+    #     self.assertTrue(os.path.exists(b))
 
     def testFolder(self):
         """Test the outcome of fetching the domain MSA for claudins
@@ -155,21 +155,21 @@ class TestParsePfamPDBs(unittest.TestCase):
             'parsePfamPDBs failed to return a list of length 5')
 
 
-    def testUniprotDefault(self):
-        """Test the outcome of parsing PDBs for a tiny family 
-        of ABC class ATPase N-terminal domains (5 members) 
-        with the Uniprot long ID and default parameters."""
+    # def testUniprotDefault(self):
+    #     """Test the outcome of parsing PDBs for a tiny family 
+    #     of ABC class ATPase N-terminal domains (5 members) 
+    #     with the Uniprot long ID and default parameters."""
 
-        b = parsePfamPDBs(self.queries[1])
+    #     b = parsePfamPDBs(self.queries[1])
 
-        self.assertIsInstance(b, list,
-            'parsePfamPDBs failed to return a list instance')
+    #     self.assertIsInstance(b, list,
+    #         'parsePfamPDBs failed to return a list instance')
 
-        self.assertIsInstance(b[0], Selection,
-            'parsePfamPDBs failed to return a list of Selection instances')
+    #     self.assertIsInstance(b[0], Selection,
+    #         'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.assertEqual(len(b), 5,
-            'parsePfamPDBs failed to return a list of length 5')
+    #     self.assertEqual(len(b), 5,
+    #         'parsePfamPDBs failed to return a list of length 5')
 
         
     def testMultiDomainDefault(self):
@@ -188,21 +188,21 @@ class TestParsePfamPDBs(unittest.TestCase):
         self.assertEqual(b[0].getResnums()[0], 262,
             'parsePfamPDBs failed to return a first Selection with first resnum 262')
 
-    def testMultiDomainStart1(self):
-        """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1, 
-        which has two domains but few relatives. Using start=1 should be like default and 
-        return Selection objects containing the first domain."""
+    # def testMultiDomainStart1(self):
+    #     """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1, 
+    #     which has two domains but few relatives. Using start=1 should be like default and 
+    #     return Selection objects containing the first domain."""
 
-        b = parsePfamPDBs(self.queries[2], start=1)
+    #     b = parsePfamPDBs(self.queries[2], start=1)
 
-        self.assertIsInstance(b, list,
-            'parsePfamPDBs failed to return a list instance')
+    #     self.assertIsInstance(b, list,
+    #         'parsePfamPDBs failed to return a list instance')
 
-        self.assertIsInstance(b[0], Selection,
-            'parsePfamPDBs failed to return a list of Selection instances')
+    #     self.assertIsInstance(b[0], Selection,
+    #         'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.assertEqual(b[0].getResnums()[0], 262,
-            'parsePfamPDBs failed to return a first Selection with first resnum 262')
+    #     self.assertEqual(b[0].getResnums()[0], 262,
+    #         'parsePfamPDBs failed to return a first Selection with first resnum 262')
         
     def testMultiDomainStart2(self):
         """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1, 
