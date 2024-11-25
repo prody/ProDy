@@ -278,6 +278,7 @@ def parseMMCIFStream(stream, **kwargs):
 
 
 parseMMCIFStream.__doc__ += _parseMMCIFdoc
+parseMMCIF.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
