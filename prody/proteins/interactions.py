@@ -3884,7 +3884,7 @@ class Interactions(object):
                                                 self._atoms.ca, selstr)
 
             zeros_row = np.zeros(matrix_en_sum.shape)
-            pplot(zeros_row, atoms=atoms.ca)
+            pplot(zeros_row, atoms=atoms.ca, **kwargs)
 
             ax.bar(ResList, matrix_en_sum, width, color='blue')
             
