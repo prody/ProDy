@@ -3400,6 +3400,26 @@ def runFoldseek(pdb_file, chain, **kwargs):
             by default '~/Downloads/foldseek/pdb'
             To download the database use: 'foldseek databases PDB pdb tmp' in the console 
     :type database_folder: str
+
+    :arg fixer: The method for fixing lack of hydrogen bonds
+            by default is 'pdbfixer'
+    :type fixer: 'pdbfixer' or 'openbabel'
+    
+    :arg subset: subsets of atoms: 'ca', 'bb', 'heavy', 'noh', 'all'  (see matchChains())
+            by default is 'ca'
+    :type subset: str
+
+    :arg seqid: Minimum value of the sequence identity (see matchChains())
+            by default 5
+    :type seqid: float
+    
+    :arg overlap: percent overlap (see matchChains())
+            by default 50
+    :type overlap: float
+
+    :arg folder_name: Folder where the results will be collected
+            by default is 'struc_homologs'
+    :type folder_name: str
     """
     
     import os
@@ -3410,6 +3430,10 @@ def runFoldseek(pdb_file, chain, **kwargs):
     database_folder = kwargs.pop('database_folder', '~/Downloads/foldseek/pdb')
     coverage_threshold = kwargs.pop('coverage_threshold', 0.3)
     tm_threshold = kwargs.pop('tm_threshold', 0.5)    
+    folder_name = kwargs.pop('folder_name', 'struc_homologs')
+    subset = kwargs.pop('subset', 'ca')
+    seqid = kwargs.pop('seqid', 5)
+    overlap = kwargs.pop('overlap', 50)
     
     if not isinstance(pdb_file, str):
         raise TypeError('Please provide the name of the PDB file.')
@@ -3683,9 +3707,34 @@ def runFoldseek(pdb_file, chain, **kwargs):
     fp9.close()
     fp10.close()
 
-    extractMultiModelPDB('aligned_structures.pdb', folder_name='struc_homologs')
+    extractMultiModelPDB('aligned_structures.pdb', folder_name=folder_name)
     subprocess.run("rm -f inp.pdb prot.seq target.pdb temp_coord.txt temp_resind.txt temp_seq.txt", shell=True)
     subprocess.run("rm -rf tmp2 temp", shell=True)
+
+    # New part
+    pwd = os.path.abspath(folder_name)
+    list_pdbs = [pwd+'/'+ff for ff in os.listdir(pwd) if ff.endswith('.pdb')]
+    list_pdbs.sort(key=lambda x: int(''.join(filter(str.isdigit, x)))) # all structures will be aligned on model1.pdb as in the oryginal code
+    
+    LOGGER.info('Adding hydrogens to the structures..')
+    new_pdbids = fixStructuresMissingAtoms(list_pdbs, method='pdbfixer', model_residues=True, overwrite=True)
+    
+    structures = parsePDB(new_pdbids)
+    target = structures[0]
+    rmsds = []
+    for mobile in structures[1:]:
+        try:
+            LOGGER.info('Aligning the structures..')
+            i = mobile.getTitle()
+            LOGGER.info(i)
+            matches = matchChains(mobile.protein, target.protein, subset=subset, seqid=seqid, overlap=overlap)
+            m = matches[0]
+            m0_alg, T = superpose(m[0], m[1], weights=m[0].getFlags("mapped"))
+            rmsds.append(calcRMSD(m[0], m[1], weights=m[0].getFlags("mapped")))
+            source_file = pwd+'/'+'align__'+i+'.pdb'
+            writePDB(source_file, mobile)
+        except:
+            LOGGER.warn('There is a problem with {}. Change seqid or overlap parameter to include the structure.'.format(i))
     
     
 def runDali(pdb, chain, **kwargs):
@@ -3761,7 +3810,6 @@ def runDali(pdb, chain, **kwargs):
         writePDB(i[0]+i[1]+'.pdb', p)
         list_pdbs.append(i[0]+i[1]+'.pdb')
     
-    #LOGGER.info('Number of selected structures: ', len(list_pdbs))
     LOGGER.info('Adding hydrogens to the structures..')
     new_pdbids = fixStructuresMissingAtoms(list_pdbs, method='pdbfixer', model_residues=True, overwrite=True)
 
@@ -3881,6 +3929,10 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
     :arg PDB_folder: Directory containing PDB model files
     :type PDB_folder: str
 
+    :arg use_prefix: Whether to use perfix to select particular file names in the PDB_folder
+            Default is True
+    :type use_prefix: bool
+
     :arg mapping_file: Aligned residue indices, MSA file type
             required in Foldseek analyisis
     :type mapping_file: str
@@ -3888,42 +3940,42 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
     :arg fixer: The method for fixing lack of hydrogen bonds
             by default is 'pdbfixer'
     :type fixer: 'pdbfixer' or 'openbabel'
-    
-    :arg remove_tmp_files: Removing intermediate files that are created in the process
-            by default is True
-    :type remove_tmp_files: True or False
     """
     
     import os
     mapping_file = kwargs.get('mapping_file')
+    use_prefix = kwargs.pop('use_prefix', True)
     
-    if not mapping_file:
-        # Dali and Blast approach 
+    if use_prefix == True:
+        align_files = [os.path.join(PDB_folder, file) for file in os.listdir(PDB_folder) if file.startswith("align_")]
+
+    else:
         align_files = [os.path.join(PDB_folder, file) for file in os.listdir(PDB_folder)]
 
-        functions = {
-            "HBs": calcHydrogenBonds,
-            "SBs": calcSaltBridges,
-            "RIB": calcRepulsiveIonicBonding,
-            "PiStack": calcPiStacking,
-            "PiCat": calcPiCation,
-            "HPh": calcHydrophobic,
-            "DiBs": calcDisulfideBonds
-        }
+    functions_dict = {
+        "HBs": calcHydrogenBonds,
+        "SBs": calcSaltBridges,
+        "RIB": calcRepulsiveIonicBonding,
+        "PiStack": calcPiStacking,
+        "PiCat": calcPiCation,
+        "HPh": calcHydrophobic,
+        "DiBs": calcDisulfideBonds
+    }
 
-        for bond_type, func in functions.items():
-            for file in align_files:
-                try:
-                    atoms = parsePDB(file)
-                    interactions = func(atoms.select('protein'))
-                    saveInteractionsAsDummyAtoms(atoms, interactions, filename ='INT_'+bond_type+'_'+file)
-                except: pass
+    for bond_type, func in functions_dict.items():
+        for file in align_files:
+            try:
+                LOGGER.info(file)
+                atoms = parsePDB(file)
+                interactions = func(atoms.select('protein'))
+                saveInteractionsAsDummyAtoms(atoms, interactions, filename=file.rstrip(file.split('/')[-1])+'INT_'+bond_type+'_'+file.split('/')[-1])
+            except: pass
     
-    else:
-        # Foldseek approach
+    
+    if mapping_file:
+        # for MSA file (Foldseek)
         mapping_file = kwargs.pop('mapping_file', 'shortlisted_resind.msa')
         fixer = kwargs.pop('fixer', 'pdbfixer')
-        remove_tmp_files = kwargs.pop('remove_tmp_files', True)
         n_per_plot = kwargs.pop('n_per_plot', None)
         min_height = kwargs.pop('min_height', 8)
         
@@ -3957,13 +4009,6 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
 
             # Proceed with plotting
             plot_barh(result, bond_type, n_per_plot=n_per_plot, min_height=min_height)
-
-        # Remove all fixed files at the end
-        if remove_tmp_files == True:
-            for fixed_file in fixed_files:
-                if os.path.exists(fixed_file):
-                    os.remove(fixed_file)
-                    log_message("Removed fixed file: {}".format(fixed_file))
 
 
 class Interactions(object):
