@@ -3749,35 +3749,35 @@ def runDali(pdb, chain, **kwargs):
 
     :arg cutoff_len: Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1)
             See searchDali for more details 
-            by default 0.5
+            Default is 0.5
     :type cutoff_len: float
 
     :arg cutoff_rmsd: RMSD cutoff (see searchDali)
-            by default 1.0
+            Default is 1.0
     :type cutoff_rmsd: float
     
-    :arg subsetDali: fullPDB, PDB25, PDB50, PDB90
-            by default is 'fullPDB'
-    :type subsetDali: str    
+    :arg subset_Dali: fullPDB, PDB25, PDB50, PDB90
+            Default is 'fullPDB'
+    :type subset_Dali: str    
     
     :arg fixer: The method for fixing lack of hydrogen bonds
-            by default is 'pdbfixer'
+            Default is 'pdbfixer'
     :type fixer: 'pdbfixer' or 'openbabel'
     
     :arg subset: subsets of atoms: 'ca', 'bb', 'heavy', 'noh', 'all'  (see matchChains())
-            by default is 'ca'
+            Default is 'ca'
     :type subset: str
 
     :arg seqid: Minimum value of the sequence identity (see matchChains())
-            by default 5
+            Default 5
     :type seqid: float
     
     :arg overlap: percent overlap (see matchChains())
-            by default 50
+            Default 50
     :type overlap: float
 
     :arg folder_name: Folder where the results will be collected
-            by default is 'struc_homologs'
+            Default is 'struc_homologs'
     :type folder_name: str
     """
 
