@@ -2386,6 +2386,16 @@ def showSelectionMatrix(matrix, atoms, selstr_x=None, selstr_y=None, **kwargs):
     """
     Show a matrix similarly to showAtomicMatrix but only for
     selected atoms based on *selstr_x* and *selstr_y*
+
+    :arg selstr_x: a selection string used with sliceAtomicData with axis=0
+        to slice the matrix in the x axis and label it with corresponding atoms
+    :type selstr_x: str
+
+    :arg selstr_y: a selection string used with sliceAtomicData with axis=1
+        to slice the matrix in the y axis and label it with corresponding atoms
+    :type selstr_y: str
+
+    If either of these are left as *None*, then no slicing is performed in that direction.
     """
     atoms_x = atoms
     atoms_y = atoms
