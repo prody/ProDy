@@ -1132,6 +1132,9 @@ def showOverlap(mode, modes, *args, **kwargs):
 
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
+
+    :arg abs: whether to take absolute values
+    :type abs: bool
     """
 
     import matplotlib.pyplot as plt
@@ -1149,9 +1152,16 @@ def showOverlap(mode, modes, *args, **kwargs):
                         .format(type(modes)))
 
     if mode.numModes() > 1:
-        overlap = abs(calcOverlap(mode, modes, diag=True))
+        overlap = calcOverlap(mode, modes, diag=True)
     else:
-        overlap = abs(calcOverlap(mode, modes, diag=False))
+        overlap = calcOverlap(mode, modes, diag=False)
+
+    take_abs = kwargs.pop('abs', True)
+    if not isinstance(take_abs, bool):
+        raise TypeError('abs should be a Boolean (True or False)')
+
+    if take_abs:
+        overlap = abs(overlap)
 
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
