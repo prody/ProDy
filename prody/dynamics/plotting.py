@@ -287,7 +287,7 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
 
     one_label = False
     if labels is not None:
-        if len(labels) == 1:
+        if len(labels) == 1 or np.isscalar(labels):
             one_label = True
             kwargs['label'] = labels
 
