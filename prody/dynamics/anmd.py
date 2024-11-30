@@ -53,7 +53,9 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
 
     kwargs of traverseMode can be provided: pos, neg and reverse
 
-    :arg atoms: an object with atom and coordinate data
+    :arg atoms: an object with atom and coordinate data.
+        This should be a complete atomic model. It is ok to be missing 
+        some side chain atoms and hydrogens, but not fragments, such as loops.
     :type atoms: :class:`.Atomic`
 
     :arg num_modes: number of modes to calculate
@@ -76,7 +78,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
         Default is 0
     :type skip_modes: int
 
-    :arg anm: your own NMA modes to ModeSet to use instead
+    :arg anm: your own NMA modes or ModeSet to use instead
         Default is None
     :type anm: :class:`.NMA`, :class:`.ANM`, :class:`.ModeSet`
 
