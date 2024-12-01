@@ -21,7 +21,7 @@ import numpy as np
 from numpy import *
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
-from prody.atomic import flags
+from prody.atomic import flags, sliceAtomicData
 from prody.utilities import importLA, checkCoords, showFigure, getCoords
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
@@ -228,7 +228,7 @@ def get_energy(pair, source):
     lookup = pair[0]+pair[1]
     
     try:
-        data_results = data[np.where(np.array(aa_pairs)==lookup)[0]][0][2:][np.where(np.array(sources)==source)][0]
+        data_results = data[np.nonzero(np.array(aa_pairs)==lookup)[0]][0][2:][sources.index(source)]
     except TypeError:
         raise TypeError('Please replace non-standard names of residues with standard names.')
 
@@ -277,9 +277,11 @@ def checkNonstandardResidues(atoms):
 def showPairEnergy(data, **kwargs):
     """Return energies when a list of interactions is given. Energies will be added to each pair of residues 
     at the last position in the list. Energy is based on the residue types and not on the distances.
-    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated), 'IB_solv' (solvent-mediated) 
-    are taken from [OK98]_ and 'CS' from InSty paper (under preparation). 
+    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated) and
+    'IB_solv' (solvent-mediated) are taken from [OK98]_ and 'CS' from InSty paper (under preparation).
     Protonation of residues is not distinguished. The protonation of residues is not distinguished. 
+    'IB_solv' and 'IB_nosolv' have RT units and 'CS' has units of kcal/mol.
+
     Known residues such as HSD, HSE, HIE, and HID (used in MD simulations) are treated as HIS.
     
     :arg data: list with interactions from calcHydrogenBonds() or other types
@@ -522,7 +524,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     
     :arg angleDHA: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
         default is 40.
-        angle also works
+        angle and angleDA also work
     :type angleDHA: int, float
     
     :arg seq_cutoff_HB: non-zero value, interactions will be found between atoms with index differences
@@ -576,6 +578,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     distA = kwargs.pop('distA', distDA)
 
     angleDHA = kwargs.pop('angleDA', 40)
+    angleDHA = kwargs.pop('angleDHA', angleDHA)
     angle = kwargs.pop('angle', angleDHA)
     
     seq_cutoff_HB = kwargs.pop('seq_cutoff_HB', 25)
@@ -710,9 +713,11 @@ def calcChHydrogenBonds(atoms, **kwargs):
     
         ChainsHBs = [ i for i in HBS_calculations if str(i[2]) != str(i[5]) ]
         if not ChainsHBs:
-            ligand_name = list(set(atoms.select('all not protein and not ion').getResnames()))[0]
-            ChainsHBs = [ ii for ii in HBS_calculations if ii[0][:3] == ligand_name or ii[3][:3] == ligand_name ]
-        
+            ligand_sel = atoms.select('all not protein and not ion')
+            if ligand_sel:
+                ligand_name = list(set(ligand_sel.getResnames()))[0]
+                ChainsHBs = [ ii for ii in HBS_calculations if ii[0][:3] == ligand_name or ii[3][:3] == ligand_name ]
+
         return ChainsHBs 
         
 
@@ -963,11 +968,11 @@ def calcPiStacking(atoms, **kwargs):
     distPS = kwargs.pop('distPS', 5.0)
     distA = kwargs.pop('distA', distPS)
 
-    angle_min_RB = kwargs.pop('angle_min_RB', 0)
-    angle_min = kwargs.pop('angle_min', angle_min_RB)
+    angle_min_PS = kwargs.pop('angle_min_PS', 0)
+    angle_min = kwargs.pop('angle_min', angle_min_PS)
 
-    angle_max_RB = kwargs.pop('angle_max_RB', 360)
-    angle_max = kwargs.pop('angle_max', angle_max_RB)
+    angle_max_PS = kwargs.pop('angle_max_PS', 360)
+    angle_max = kwargs.pop('angle_max', angle_max_PS)
     
     non_standard_PS = kwargs.get('non_standard_PS', {})
     non_standard = kwargs.get('non_standard', non_standard_PS)
@@ -1334,7 +1339,7 @@ def calcDisulfideBonds(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distDB: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :arg distDB: non-zero value, maximal distance between atoms of cysteine residues.
         default is 3.
         distA works too
     :type distDB: int, float
@@ -1453,7 +1458,7 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
 
 def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs):
     """Compute selected type interactions for DCD trajectory or multi-model PDB 
-    using default parameters."""
+    using default parameters or those from kwargs."""
     
     try:
         coords = getCoords(atoms)
@@ -1515,7 +1520,7 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
 
 
 def calcProteinInteractions(atoms, **kwargs):
-    """Compute all protein interactions (shown below) using default parameters.
+    """Compute all protein interactions (shown below).
         (1) Hydrogen bonds
         (2) Salt Bridges
         (3) RepulsiveIonicBonding 
@@ -1523,6 +1528,10 @@ def calcProteinInteractions(atoms, **kwargs):
         (5) Pi-cation interactions
         (6) Hydrophobic interactions
         (7) Disulfide Bonds
+
+    kwargs can be passed on to the underlying functions as described
+    in their documentation. For example, distDA and angleDHA can be used
+    to control hydrogen bonds, or distA and angle can be used across types.
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1574,10 +1583,12 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
 
     :arg distA: non-zero value, maximal distance between donor and acceptor.
         default is 3.5
+        distDA also works
     :type distA: int, float
     
     :arg angle: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
         default is 40.
+        angleDHA also works
     :type angle: int, float
     
     :arg seq_cutoff: non-zero value, interactions will be found between atoms with index differences
@@ -1618,6 +1629,7 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses 
         of N and O atoms of negatively and positevely charged residues.
         default is 5.
+        distSB also works
     :type distA: int, float
     
     :arg selection: selection string
@@ -1654,6 +1666,7 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses 
             between N-N or O-O atoms of residues.
             default is 4.5.
+            distRB also works
     :type distA: int, float
 
     :arg selection: selection string
@@ -1690,6 +1703,7 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses 
                 of residues aromatic rings.
                 default is 5.
+                distPS also works
     :type distA: int, float
     
     :arg angle_min: minimal angle between aromatic rings.
@@ -1734,6 +1748,7 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
     :arg distA: non-zero value, maximal distance between center of masses of aromatic ring 
                 and positively charge group.
                 default is 5.
+                distPC also works
     :type distA: int, float
     
     :arg selection: selection string
@@ -1769,6 +1784,7 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
         default is 4.5.
+        distHPh also works
     :type distA: int, float
 
     :arg selection: selection string
@@ -1801,8 +1817,9 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
     
-    :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :arg distA: non-zero value, maximal distance between atoms of cysteine residues.
         default is 2.5.
+        distDB also works
     :type distA: int, float
 
     :arg start_frame: index of first frame to read
@@ -2118,9 +2135,9 @@ def calcStatisticsInteractions(data, **kwargs):
     (2) average distance of interactions for each pair [in Ang], 
     (3) standard deviation [Ang.],
     (4) Energy [in kcal/mol] that is not distance dependent. Energy by default is solvent-mediated
-    from [OK98]_ ('IB_solv'). To use non-solvent-mediated entries ('IB_nosolv') from [OK98]_ or
-    solvent-mediated values obtained for InSty paper ('CS', under preparation) change 
-    `energy_list_type` parameter. 
+    from [OK98]_ ('IB_solv') in RT units. To use non-solvent-mediated (residue-mediated) entries ('IB_nosolv')
+    from [OK98]_ in RT units or solvent-mediated values obtained from MD for InSty paper ('CS', under preparation)
+    in kcal/mol, change `energy_list_type` parameter.
     If energy information is not available, please check whether the pair of residues is listed in 
     the "tabulated_energies.txt" file, which is localized in the ProDy directory.
         
@@ -2177,6 +2194,7 @@ def calcStatisticsInteractions(data, **kwargs):
                 }
 
     statistic = []
+    unit = 'RT' if energy_list_type in ['IB_solv', 'IB_nosolv'] else 'kcal/mol'
     for key, value in stats.items():
         if float(value['weight']) > weight_cutoff:
             LOGGER.info("Statistics for {0}:".format(key))
@@ -2184,7 +2202,7 @@ def calcStatisticsInteractions(data, **kwargs):
             LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
             LOGGER.info("  Weight: {0}".format(value['weight']))
             try:
-                LOGGER.info("  Energy [kcal/mol]: {0}".format(value['energy']))
+                LOGGER.info("  Energy [{0}]: {1}".format(unit, value['energy']))
                 statistic.append([key, value['weight'], value['mean'], value['stddev'], value['energy']])
             except:
                 statistic.append([key, value['weight'], value['mean'], value['stddev']])
@@ -2594,7 +2612,7 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
                 tcl_file.write('mol addrep 0 \n')
             except: LOGGER.info("There was a problem.")
      
-    if len(interactions) == 7:   
+    if len(interactions) == 7 and isinstance(interactions[0][0], list):
         # For all seven types of interactions at once
         # HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations, Disulfide Bonds
         colors = ['blue', 'yellow', 'red', 'green', 'orange', 'silver', 'black']
@@ -3021,6 +3039,7 @@ class Interactions(object):
         self._interactions = None
         self._interactions_matrix = None
         self._interactions_matrix_en = None
+        self._energy_type = None
         self._hbs = None
         self._sbs = None
         self._rib = None
@@ -3393,7 +3412,7 @@ class Interactions(object):
         atoms = self._atoms   
         interactions = self._interactions
         
-        LOGGER.info('Calculating interactions')
+        LOGGER.info('Calculating interaction matrix')
         InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
         resIDs = list(atoms.select('name CA').getResnums())
         resChIDs = list(atoms.select('name CA').getChids())
@@ -3441,10 +3460,17 @@ class Interactions(object):
 
     def buildInteractionMatrixEnergy(self, **kwargs):
         """Build matrix with interaction energy comming from energy of pairs of specific residues.
-        
+
         :arg energy_list_type: name of the list with energies 
                             default is 'IB_solv'
-        :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
+                            acceptable values are 'IB_nosolv', 'IB_solv', 'CS'
+        :type energy_list_type: str
+
+        'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
+        O Keskin, I Bahar and colleagues from [OK98]_ and have RT units.
+
+        'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
+        and Gary Wu in the InSty paper (under preparation) and have units of kcal/mol.
         """
         
         import numpy as np
@@ -3456,21 +3482,23 @@ class Interactions(object):
         interactions = self._interactions
         energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
 
-        LOGGER.info('Calculating interactions')
+        LOGGER.info('Calculating interaction energies matrix with type {0}'.format(energy_list_type))
         InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
         resIDs = list(atoms.select('name CA').getResnums())
         resChIDs = list(atoms.select('name CA').getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
             
-        for nr_i,i in enumerate(interactions):
+        for i in interactions:
             if i != []:
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
                     scoring = get_energy([ii[0][:3], ii[3][:3]], energy_list_type)
-                    InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = InteractionsMap[m1][m2] + float(scoring) 
+                    if InteractionsMap[m1][m2] == 0:
+                        InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = float(scoring)
 
         self._interactions_matrix_en = InteractionsMap
+        self._energy_type = energy_list_type
         
         return InteractionsMap
 
@@ -3558,8 +3586,43 @@ class Interactions(object):
             writePDB('filename', atoms, **kw)
             LOGGER.info('PDB file saved.')
 
-
-    def getFrequentInteractors(self, contacts_min=3):
+    
+    def getInteractors(self, residue_name):
+        """ Provide information about interactions for a particular residue
+        
+        :arg residue_name: name of a resiude
+                            example: LEU234A, where A is a chain name
+        :type residue_name: str
+        """
+        
+        atoms = self._atoms   
+        interactions = self._interactions
+        
+        InteractionsMap = np.empty([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()], dtype=object)
+        resIDs = list(atoms.select('name CA').getResnums())
+        resChIDs = list(atoms.select('name CA').getChids())
+        resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
+        interaction_type = ['hb','sb','rb','ps','pc','hp','dibs']
+        ListOfInteractions = []
+        
+        for nr,i in enumerate(interactions):
+            if i != []:
+                for ii in i: 
+                    m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
+                    m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
+                    ListOfInteractions.append(interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5])
+        
+        aa_ListOfInteractions = []
+        for i in ListOfInteractions:
+            inter = i.split(":")[1:][0]
+            if inter.split('-')[0] == residue_name or inter.split('-')[1] == residue_name:
+                LOGGER.info(i)
+                aa_ListOfInteractions.append(i)
+        
+        return aa_ListOfInteractions
+        
+    
+    def getFrequentInteractors(self, contacts_min=2):
         """Provide a list of residues with the most frequent interactions based 
         on the following interactions:
             (1) Hydrogen bonds (hb)
@@ -3571,7 +3634,7 @@ class Interactions(object):
             (7) Disulfide bonds (disb)
         
         :arg contacts_min: Minimal number of contacts which residue may form with other residues, 
-                           by default 3.
+                           by default 2.
         :type contacts_min: int  """
 
         atoms = self._atoms   
@@ -3588,18 +3651,43 @@ class Interactions(object):
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
-                    InteractionsMap[m1][m2] = interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5]
+
+                    if InteractionsMap[m1][m2] is None:
+                        InteractionsMap[m1][m2] = []
             
-        ListOfInteractions = [ list(filter(None, InteractionsMap[:,j])) for j in range(len(interactions[0])) ]
-        ListOfInteractions = list(filter(lambda x : x != [], ListOfInteractions))
-        ListOfInteractions = [k for k in ListOfInteractions if len(k) >= contacts_min ]
-        ListOfInteractions_list = [ (i[0].split('-')[-1], [ j.split('-')[0] for j in i]) for i in ListOfInteractions ]
-        LOGGER.info('The most frequent interactions between:')
-        for res in ListOfInteractions_list:
+                    InteractionsMap[m1][m2].append(interaction_type[nr] + ':' + ii[0] + ii[2] + '-' + ii[3] + ii[5])
+            
+        ListOfInteractions = [list(filter(None, [row[j] for row in InteractionsMap])) for j in range(len(InteractionsMap[0]))]
+        ListOfInteractions = list(filter(lambda x: x != [], ListOfInteractions))
+        ListOfInteractions_flattened = [j for sublist in ListOfInteractions for j in sublist]
+
+        swapped_ListOfInteractions_list = []
+        for interaction_group in ListOfInteractions_flattened:
+            swapped_group = []
+            for interaction in interaction_group:
+                interaction_type, pair = interaction.split(':')
+                swapped_pair = '-'.join(pair.split('-')[::-1])
+                swapped_group.append("{}:{}".format(interaction_type, swapped_pair))
+            swapped_ListOfInteractions_list.append(swapped_group)
+
+        doubleListOfInteractions_list = ListOfInteractions_flattened+swapped_ListOfInteractions_list
+        ListOfInteractions_list = [(i[0].split('-')[-1], [j.split('-')[0] for j in i]) for i in doubleListOfInteractions_list]
+
+        merged_dict = {}
+        for aa, ii in ListOfInteractions_list:
+            if aa in merged_dict:
+                merged_dict[aa].extend(ii)
+            else:
+                merged_dict[aa] = ii
+
+        ListOfInteractions_list = [(key, value) for key, value in merged_dict.items()] 
+        ListOfInteractions_list2 = [k for k in ListOfInteractions_list if len(k[-1]) >= contacts_min]
+            
+        for res in ListOfInteractions_list2:
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
-        LOGGER.info('Legend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
-                             'pc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
+        LOGGER.info('\nLegend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
+                             '\npc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
         
         try:
             from toolz.curried import count
@@ -3607,17 +3695,15 @@ class Interactions(object):
             LOGGER.warn('This function requires the module toolz')
             return
         
-        LOGGER.info('The biggest number of interactions: {}'.format(max(map(count, ListOfInteractions))))
-        
-        return ListOfInteractions_list
+        return ListOfInteractions_list2
         
 
-    def showFrequentInteractors(self, cutoff=5, **kwargs):
+    def showFrequentInteractors(self, cutoff=4, **kwargs):
         """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
-                     If cutoff value is to big, top 30% with the higest values will be returned.
-                     Default is 5.
+                     If cutoff value is too big, top 30% with the higest values will be returned.
+                     Default is 4.
         :type cutoff: int, float
 
         Nonstandard resiudes can be updated in a following way:
@@ -3703,10 +3789,42 @@ class Interactions(object):
 
         :arg DiBs: score per disulfide bond
         :type DiBs: int, float 
-        
+
+        :arg selstr: selection string for focusing the plot
+        :type selection: str
+
         :arg energy: sum of the energy between residues
                     default is False
         :type energy: bool
+
+        :arg energy_list_type: name of the list with energies
+                            default is 'IB_solv'
+                            acceptable values are 'IB_nosolv', 'IB_solv', 'CS'
+        :type energy_list_type: str
+
+        :arg overwrite_energies: whether to overwrite energies
+                            default is False
+        :type overwrite_energies: bool
+
+        :arg percentile: a percentile threshold to remove outliers, i.e. only showing data within *p*-th
+                        to *100-p*-th percentile. Default is None, so no axis limits.
+        :type percentile: float
+
+        :arg vmin: a minimum value threshold to remove outliers, i.e. only showing data greater than vmin
+                This overrides percentile. Default is None, so no axis limits and little padding at the
+                bottom when energy=True.
+        :type vmin: float
+
+        :arg vmax: a maximum value threshold to remove outliers, i.e. only showing data less than vmax
+                This overrides percentile. Default is None, so no axis limits and a little padding for
+                interaction type labels.
+        :type vmax: float
+
+        'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
+        O Keskin, I Bahar and colleagues from [OK98]_ and have RT units.
+
+        'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
+        and Gary Wu for the InSty paper (under preparation) and have units kcal/mol.
         """
 
         import numpy as np
@@ -3725,6 +3843,19 @@ class Interactions(object):
         if not isinstance(energy, bool):
             raise TypeError('energy should be True or False')
                     
+        p = kwargs.pop('percentile', None)
+        vmin = vmax = None
+        if p is not None:
+            vmin = np.percentile(matrix, p)
+            vmax = np.percentile(matrix, 100-p)
+
+        vmin = kwargs.pop('vmin', vmin)
+        vmax = kwargs.pop('vmax', vmax)
+
+        selstr = kwargs.pop('selstr', None)
+        if selstr is not None:
+            atoms = atoms.select(selstr)
+
         ResNumb = atoms.select('protein and name CA').getResnums()
         ResName = atoms.select('protein and name CA').getResnames()
         ResChid = atoms.select('protein and name CA').getChids()
@@ -3732,18 +3863,43 @@ class Interactions(object):
         
         if energy == True:
             matrix_en = self._interactions_matrix_en
+            energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
+            overwrite = kwargs.pop('overwrite_energies', False)
+            if matrix_en is None or overwrite:
+                LOGGER.warn('The energy matrix is recalculated with type {0}'.format(energy_list_type))
+                self.buildInteractionMatrixEnergy(energy_list_type=energy_list_type)
+                matrix_en = self._interactions_matrix_en
+
+            elif self._energy_type != energy_list_type:
+                LOGGER.warn('The energy type is {0}, not {1}'.format(self._energy_type, energy_list_type))
+
             matrix_en_sum = np.sum(matrix_en, axis=0)
 
             width = 0.8
             fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
             matplotlib.rcParams['font.size'] = '24'
 
-            ax.bar(ResNumb, matrix_en_sum, width, color='blue')
+            if selstr is not None:
+                matrix_en_sum = sliceAtomicData(matrix_en_sum,
+                                                self._atoms.ca, selstr)
+
+            zeros_row = np.zeros(matrix_en_sum.shape)
+            pplot(zeros_row, atoms=atoms.ca, **kwargs)
+
+            ax.bar(ResList, matrix_en_sum, width, color='blue')
             
-            plt.xlim([ResNumb[0]-0.5, ResNumb[-1]+0.5])
+            if vmin is None:
+                vmin = np.min(matrix_en_sum) * 1.2
+
+            if vmax is None:
+                vmax = np.max(matrix_en_sum)
+
+            plt.ylim([vmin, vmax])
             plt.tight_layout()    
             plt.xlabel('Residue')
-            plt.ylabel('Cumulative Energy [kcal/mol]')
+
+            unit = 'RT' if energy_list_type in ['IB_solv', 'IB_nosolv'] else 'kcal/mol'
+            plt.ylabel('Cumulative Energy [{0}]'.format(unit))
             plt.show()
             
             return matrix_en_sum
@@ -3775,6 +3931,23 @@ class Interactions(object):
             matrix_picat_sum = np.sum(matrix_picat, axis=0)
             matrix_hph_sum = np.sum(matrix_hph, axis=0)
             matrix_dibs_sum = np.sum(matrix_dibs, axis=0)
+
+            all_ca = self._atoms.ca
+            if selstr is not None:
+                matrix_hbs_sum = sliceAtomicData(matrix_hbs_sum,
+                                                 all_ca, selstr)
+                matrix_sbs_sum = sliceAtomicData(matrix_sbs_sum,
+                                                 all_ca, selstr)
+                matrix_rib_sum = sliceAtomicData(matrix_rib_sum,
+                                                 all_ca, selstr)
+                matrix_pistack_sum = sliceAtomicData(matrix_pistack_sum,
+                                                     all_ca, selstr)
+                matrix_picat_sum = sliceAtomicData(matrix_picat_sum,
+                                                   all_ca, selstr)
+                matrix_hph_sum = sliceAtomicData(matrix_hph_sum,
+                                                 all_ca, selstr)
+                matrix_dibs_sum = sliceAtomicData(matrix_dibs_sum,
+                                                  all_ca, selstr)
 
             width = 0.8
             fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
@@ -3818,7 +3991,14 @@ class Interactions(object):
                 self._interactions_matrix = matrix_all
 
             ax.legend(ncol=7, loc='upper center')
-            plt.ylim([0,max(sum_matrix)+3])
+
+            if vmin is None:
+                vmin = np.min(sum_matrix)
+
+            if vmax is None:
+                vmax = np.max(sum_matrix) * 1.5
+
+            plt.ylim([vmin, vmax])
             plt.tight_layout()    
             plt.xlabel('Residue')
             plt.ylabel('Number of counts')
