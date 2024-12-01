@@ -28,7 +28,7 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     or PDBFixer with OpenMM. 
     
     There are also options whether to *model_residues* (default False), *remove_heterogens* 
-    (default False), *keep_waters* (default True), *overwrite* (default False).
+    (default False), *keep_waters* (default True), *overwrite* (default False), *keep_ids* (default True).
     
     :arg infile: PDB file name
     :type infile: str
@@ -41,9 +41,17 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
             default is 'openbabel'
     :type method: str
     
-    :arg pH: pH value applyed only for PDBfixer.
+    :arg pH: pH value applied only for PDBfixer.
     :type pH: int, float
     
+    :arg model_residues: add all missing atoms from residues, applied only for PDBfixer.
+                    default is False
+    :type model_residues: bool
+    
+    :arg keep_ids: keep the original residue number, applied only for PDBfixer.
+                    default is True
+    :type keep_ids: bool
+
     Instalation of Openbabel:
     conda install -c conda-forge openbabel    
 
@@ -55,9 +63,11 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     Open Babel: An open chemical toolbox *Journal of cheminformatics* **2011** 3:1-14. """
     
     model_residues = kwargs.get("model_residues", False)
+    add_hydrogens = kwargs.get("add_hydrogens", True)
     remove_heterogens = kwargs.get("remove_heterogens", False)
     keep_water = kwargs.get("keep_water", True)
     overwrite = kwargs.get("overwrite", False)
+    keep_ids = kwargs.get("keep_ids", True)
 
     import os
 
@@ -69,6 +79,9 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
 
     if not isinstance(keep_water, bool):
         raise TypeError('keep_water should be True or False')
+
+    if not isinstance(keep_ids, bool):
+        raise TypeError('keep_ids should be True or False')
 
     if not isinstance(overwrite, bool):
         raise TypeError('overwrite should be True or False')
@@ -110,7 +123,10 @@ Set overwrite=True to overwrite it'.format(outfile))
         obconversion.SetInFormat("pdb")
         mol = openbabel.OBMol()
         obconversion.ReadFile(mol, infile)
-        mol.AddHydrogens()
+
+        if add_hydrogens:
+            mol.AddHydrogens()
+
         obconversion.WriteFile(mol, outfile)
         LOGGER.info("Hydrogens were added to the structure. Structure {0} is saved in the local directry.".format(outfile))
 
@@ -135,8 +151,11 @@ Set overwrite=True to overwrite it'.format(outfile))
 
             fixer.findMissingAtoms()
             fixer.addMissingAtoms()
-            fixer.addMissingHydrogens(pH)
-            PDBFile.writeFile(fixer.topology, fixer.positions, open(outfile, 'w'))
+
+            if add_hydrogens:
+                fixer.addMissingHydrogens(pH)
+
+            PDBFile.writeFile(fixer.topology, fixer.positions, open(outfile, 'w'), keepIds=keep_ids)
             LOGGER.info("Hydrogens were added to the structure. New structure is saved as {0}.".format(outfile))
 
         except ImportError:
@@ -165,8 +184,16 @@ def fixStructuresMissingAtoms(infiles, method='openbabel', pH=7.0, outfiles=None
             'pdbfixer': PDBFixer and OpenMM
             default is 'openbabel'
     :type method: str
+
+    :arg model_residues: add all missing atoms from residues, applied only for PDBfixer.
+                    default is False
+    :type model_residues: bool
     
-    :arg pH: pH value applyed only for PDBfixer.
+    :arg keep_ids: keep the original residue number, applied only for PDBfixer.
+                    default is True
+    :type keep_ids: bool
+    
+    :arg pH: pH value applied only for PDBfixer.
     :type pH: int, float
     
     Instalation of Openbabel:

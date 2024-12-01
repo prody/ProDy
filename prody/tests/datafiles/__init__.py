@@ -358,7 +358,10 @@ DATA_FILES = {
     },
     '2k39_disu': {
         'file': '2k39_disu.npy'
-    },    
+    },
+    '3o21_disu': {
+        'file': '3o21_disu.npy'
+    },
     '2k39_all': {
         'file': '2k39_all.npy'
     },
@@ -381,6 +384,32 @@ DATA_FILES = {
         'file': 'pdb7pbl.pdb',
         'atoms': 31396,
         'nucleoside': 252
+    },
+    'pqrUnknown': {
+        'file': 'pqr_snippet1.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'pqrTranscomp': {
+        'file': 'pqr_snippet2_transcomp.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'pqrFpocket': {
+        'file': 'pqr_snippet3_fpocket.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'pqrPymol': {
+        'file': 'pqr_snippet4_pymol.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'anmd': {
+        'pdb': '1ubi',
+        'file': '1ubi_anmd_mode1_ens.pdb',
+        'n_atoms': 683,
+        'models': 5
     }
 }
 

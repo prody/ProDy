@@ -7,14 +7,16 @@ from os.path import isfile, join
 from setuptools import setup
 from setuptools import Extension
 
+import shutil
+
 if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
     sys.exit()
 
 if sys.version_info[:2] == (2, 7) or sys.version_info[:2] <= (3, 5):
-    INSTALL_REQUIRES=['numpy>=1.10,<1.25', 'biopython<=1.76', 'pyparsing', 'scipy']
+    INSTALL_REQUIRES=['numpy>=1.10', 'biopython<=1.76', 'pyparsing', 'scipy']
 else:
-    INSTALL_REQUIRES=['numpy>=1.10,<1.24', 'biopython', 'pyparsing<=3.1.1', 'scipy<=1.13.1', 'setuptools']
+    INSTALL_REQUIRES=['numpy>=1.10,<2', 'biopython', 'pyparsing<=3.1.1', 'scipy', 'setuptools']
 
 if sys.version_info[0] == 3 and sys.version_info[1] < 6:
     sys.stderr.write('Python 3.5 and older is not supported\n')
@@ -85,7 +87,8 @@ PACKAGE_DATA = {
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
                     'datafiles/msa*',
-                    'datafiles/mmcif*cif',]
+                    'datafiles/mmcif*cif',],
+    'prody.proteins': ['tabulated_energies.txt'],
 }
 
 PACKAGE_DIR = {}
@@ -94,7 +97,15 @@ for pkg in PACKAGES:
     
 from glob import glob
 tntDir = join('prody', 'utilities', 'tnt')
-hpbDir = join('prody', 'proteins', 'hpbmodule')
+hpbSoDir = join('prody', 'proteins', 'hpbmodule',
+                'hpb_Python{0}.{1}'.format(sys.version_info[0],
+                                           sys.version_info[1]))
+proteinsDir = join('prody', 'proteins')
+
+try:
+    shutil.copy(hpbSoDir + "/hpb.so", proteinsDir)
+except FileNotFoundError:
+    pass
 
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
@@ -164,8 +175,8 @@ SCRIPTS = ['prody=prody.apps:prody_main', 'evol=prody.apps:evol_main']
 setup(
     name='ProDy',
     version=__version__,
-    author='James Krieger, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan, and others',
-    author_email='kriegerj@pitt.edu',
+    author='James Krieger, Karolina Mikulska-Ruminska, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan, and others',
+    author_email='jamesmkrieger@gmail.com',
     description='A Python Package for Protein Dynamics Analysis',
     long_description=long_description,
     url='http://www.csb.pitt.edu/ProDy',
