@@ -356,7 +356,7 @@ def append_residue_code(residue_num, residue_dict):
     aa_code = residue_dict.get(residue_num, "X")  # Use "X" for unknown residues
     return "{}{}".format(aa_code, residue_num)
 
-def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
+def process_data(mapping_file, pdb_folder, interaction_func, bond_type, files_for_analysis):
     """Process the mapping file and the PDB folder to compute interaction counts and percentages."""
     log_message("Loading mapping file: {}".format(mapping_file))
 
@@ -382,33 +382,14 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
     processed_files = 0  # To track the number of files successfully processed
     fixed_files = []  # Store paths of fixed files to remove at the end
 
-    for i, files in enumerate(os.listdir(pdb_folder)):
-        # Skip any file that has already been processed (files with 'addH_' prefix)
-        if files.startswith('addH_'):
-            log_message("Skipping already fixed file: {}".format(files), "INFO")
-            continue
-
+    for i, files in enumerate(files_for_analysis):
         log_message("Processing file {}: {}".format(i + 1, files))
         
-        pdb_file_path = os.path.join(pdb_folder, files)
-        fixed_pdb_path = pdb_file_path.replace(files, 'addH_' + files)
-
-        # Check if the fixed file already exists, skip fixing if it does
-        if not os.path.exists(fixed_pdb_path):
-            try:
-                log_message("Running fixer on {} using {}.".format(pdb_file_path, fixer))
-                addMissingAtoms(pdb_file_path, method=fixer)
-            except Exception as e:
-                log_message("Error adding missing atoms: {}".format(e), "ERROR")
-                continue
-        else:
-            log_message("Using existing fixed file: {}".format(fixed_pdb_path))
-
         try:
-            coords = parsePDB(fixed_pdb_path)
+            coords = parsePDB(files)
             atoms = coords.select('protein')
-            interactions = Interactions()
             bonds = interaction_func(atoms)
+            saveInteractionsAsDummyAtoms(atoms, bonds, filename=files.rstrip(files.split('/')[-1])+'INT_'+bond_type+'_'+files.split('/')[-1])
         except Exception as e:
             log_message("Error processing PDB file {}: {}".format(files, e), "ERROR")
             continue
@@ -419,7 +400,7 @@ def process_data(mapping_file, pdb_folder, interaction_func, bond_type, fixer):
             continue
 
         processed_files += 1  # Increment successfully processed files
-        fixed_files.append(fixed_pdb_path)
+        fixed_files.append(files)
 
         if processed_files == 1:  # First valid file with bonds determines target indices
             for entries in bonds:
@@ -3572,6 +3553,12 @@ def runFoldseek(pdb_file, chain, **kwargs):
         awk_command = "awk '{{if (substr($0, 22, 1) == \"{0}\") print}}'".format(chain)
         subprocess.run("cat ./temp/{0} | grep -E '^(ATOM|HETATM)' | {1} > target.pdb".format(fname, awk_command), shell=True)
 
+        # Check if target.pdb has fewer than 5 lines
+        if sum(1 for _ in open("target.pdb")) < 5:
+            LOGGER.info("target.pdb has fewer than 5 lines. Skipping further processing.")
+            subprocess.run(['rm', 'target.pdb'])
+            continue
+
         with open('target.pdb', 'r') as target_file:
             file4 = target_file.readlines()
 
@@ -3936,10 +3923,6 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
     :arg mapping_file: Aligned residue indices, MSA file type
             required in Foldseek analyisis
     :type mapping_file: str
-
-    :arg fixer: The method for fixing lack of hydrogen bonds
-            by default is 'pdbfixer'
-    :type fixer: 'pdbfixer' or 'openbabel'
     """
     
     import os
@@ -3962,35 +3945,23 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
         "DiBs": calcDisulfideBonds
     }
 
-    for bond_type, func in functions_dict.items():
-        for file in align_files:
-            try:
-                LOGGER.info(file)
-                atoms = parsePDB(file)
-                interactions = func(atoms.select('protein'))
-                saveInteractionsAsDummyAtoms(atoms, interactions, filename=file.rstrip(file.split('/')[-1])+'INT_'+bond_type+'_'+file.split('/')[-1])
-            except: pass
-    
-    
+    if not mapping_file:
+        for bond_type, func in functions_dict.items():
+            for file in align_files:
+                try:
+                    LOGGER.info(file)
+                    atoms = parsePDB(file)
+                    interactions = func(atoms.select('protein'))
+                    saveInteractionsAsDummyAtoms(atoms, interactions, filename=file.rstrip(file.split('/')[-1])+'INT_'+bond_type+'_'+file.split('/')[-1])
+                except: pass
+        
     if mapping_file:
         # for MSA file (Foldseek)
-        mapping_file = kwargs.pop('mapping_file', 'shortlisted_resind.msa')
-        fixer = kwargs.pop('fixer', 'pdbfixer')
         n_per_plot = kwargs.pop('n_per_plot', None)
         min_height = kwargs.pop('min_height', 8)
         
-        functions = {
-            "HydrogenBonds": calcHydrogenBonds,
-            "SaltBridges": calcSaltBridges,
-            "RepulsiveIonicBonding": calcRepulsiveIonicBonding,
-            "PiStacking": calcPiStacking,
-            "PiCation": calcPiCation,
-            "Hydrophobic": calcHydrophobic,
-            "DisulfideBonds": calcDisulfideBonds
-        }
-
         # Process each bond type
-        for bond_type, func in functions.items():
+        for bond_type, func in functions_dict.items():
             # Check if the consensus file already exists
             consensus_file = '{}_consensus.txt'.format(bond_type)
             if os.path.exists(consensus_file):
@@ -3998,7 +3969,7 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
                 continue
 
             log_message("Processing {}".format(bond_type))
-            result = process_data(mapping_file, PDB_folder, func, bond_type, fixer)
+            result = process_data(mapping_file, PDB_folder, func, bond_type, files_for_analysis=align_files)
 
             # Check if the result is None (no valid bonds found)
             if result is None:
@@ -4009,6 +3980,7 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
 
             # Proceed with plotting
             plot_barh(result, bond_type, n_per_plot=n_per_plot, min_height=min_height)
+            
 
 
 class Interactions(object):
