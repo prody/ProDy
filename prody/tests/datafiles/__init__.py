@@ -358,7 +358,10 @@ DATA_FILES = {
     },
     '2k39_disu': {
         'file': '2k39_disu.npy'
-    },    
+    },
+    '3o21_disu': {
+        'file': '3o21_disu.npy'
+    },
     '2k39_all': {
         'file': '2k39_all.npy'
     },
@@ -401,6 +404,12 @@ DATA_FILES = {
         'file': 'pqr_snippet4_pymol.pqr',
         'atoms': 5,
         'models': 1
+    },
+    'anmd': {
+        'pdb': '1ubi',
+        'file': '1ubi_anmd_mode1_ens.pdb',
+        'n_atoms': 683,
+        'models': 5
     }
 }
 
