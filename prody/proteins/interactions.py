@@ -471,11 +471,11 @@ def plot_barh(result, bond_type, **kwargs):
     """Plot horizontal bar plots of percentages of interactions, splitting the data into fixed-sized plots.
 
     :arg n_per_plot: The number of results per one plot
-        by default is 20 if set to None 
+        Default is 20 if set to None 
     :type n_per_plot: int
     
     :arg min_height: Size of the bar plot
-        by default is 8
+        Default is 8
     :type min_height: int
     """
 
@@ -614,15 +614,15 @@ def calcSASA(atoms, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg selection: selection string
-        by default all the protein structure is used
+        Default all the protein structure is used
     :type selection: str
     
     :arg sasa_cutoff: cutoff for SASA values
-        default is 0.0
+        Default is 0.0
     :type sasa_cutoff: float, int
 
     :arg resnames: residues name included
-        default is False
+        Default is False
     :type resnames: bool    
     """
     
@@ -672,19 +672,19 @@ def calcVolume(atoms, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg selection: selection string
-        by default all the protein structure is used
+        Default all the protein structure is used
     :type selection: str
     
     :arg volume_cutoff: cutoff for volume
-        default is 0.0 to include all the results
+        Default is 0.0 to include all the results
     :type sasa_volume: float, int
 
     :arg split_residues: it will provide values for each residue
-        default is False
+        Default is False
     :type split_residues: bool
 
     :arg resnames: residues name included
-        default is False
+        Default is False
         True - will give residue names and values for each residue
         False - will give only the values for each residues
     :type resnames: bool
@@ -2114,35 +2114,35 @@ def showInteractionsGraph(statistics, **kwargs):
     :type statistics: list
     
     :arg cutoff: Minimal number of counts per residue in the trajectory
-        by default 0.1.
+        Default is 0.1.
     :type cutoff: int, float
 
     :arg code: representation of the residues, 3-letter or 1-letter
-        by default 3-letter
+        Default is 3-letter
     :type code: str
 
     :arg multiple_chains: display chain name for structure with many chains
-        by default False
+        Default is False
     :type multiple_chains: bool
     
     :arg edge_cmap: color of the residue connection
-        by default plt.cm.Blues (blue color)
+        Default is plt.cm.Blues (blue color)
     :type edge_cmap: str
 
     :arg node_size: size of the nodes which describes residues
-        by default 300
+        Default is 300
     :type node_size: int
     
     :arg node_distance: value which will scale residue-residue interactions
-        by default 5
+        Default is 5
     :type node_distance: int
 
     :arg font_size: size of the font
-        by default 14
+        Default is 14
     :type font_size: int
 
     :arg seed: random number which affect the distribution of residues
-        by default 42
+        Default is 42
     :type seed: int
     """
     
@@ -2278,11 +2278,11 @@ def showInteractionsHist(statistics, **kwargs):
     :type statistics: list
     
     :arg clip: maxmimal number of residue pairs on the bar plot
-        by default 20
+        Default is 20
     :type clip: int
 
     :arg font_size: size of the font
-        by default 18
+        Default is 18
     :type font_size: int
     """
 
@@ -2584,7 +2584,7 @@ def listLigandInteractions(PLIP_output, **kwargs):
     
     :arg output: parameter to print the interactions on the screen
                  while analyzing the structure (True | False)
-                 by default is False
+                 Default is False
     :type output: bool     
     
     Note that five types of interactions are considered: hydrogen bonds, salt bridges, 
@@ -2966,23 +2966,23 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
     :arg protein_selection: selection string for the protein and other compoment
                             of the system that should be included,
                             e.g. "protein and chain A",
-                            by default "protein" 
+                            Default is "protein" 
     :type protein_selection: str
     
     :arg ligand_selection: selection string for ligand,
                            e.g. "resname ADP",
-                           by default "all not protein"
+                           Default is "all not protein"
     :type ligand_selection: str
     
     :arg ligand_selection: scoring function (vina or vinardo)
-                           by default is "vina"
+                           Default is "vina"
     
     :type ligand_selection: str
     
     :arg atom_terms: write per-atom interaction term values.
                      It will provide more information as dictionary for each frame/model,
                      and details for atom terms will be saved in terms_*frame_number*.txt,    
-                     by default is False
+                     Default is False
 
     :type atom_terms: bool
      
@@ -3370,38 +3370,37 @@ def runFoldseek(pdb_file, chain, **kwargs):
     :type chain: str
 
     :arg coverage_threshold: Coverage threshold 
-            by default 0.3
+            Default is 0.3
     :type coverage_threshold: float
 
     :arg tm_threshold: TM-score threshold
-            by default 0.5
+            Default is 0.5
     :type tm_threshold: float
     
     :arg database_folder: Folder with the database
-            by default '~/Downloads/foldseek/pdb'
+            Default is '~/Downloads/foldseek/pdb'
             To download the database use: 'foldseek databases PDB pdb tmp' in the console 
     :type database_folder: str
 
     :arg fixer: The method for fixing lack of hydrogen bonds
-            by default is 'pdbfixer'
+            Default is 'pdbfixer'
     :type fixer: 'pdbfixer' or 'openbabel'
     
     :arg subset: subsets of atoms: 'ca', 'bb', 'heavy', 'noh', 'all'  (see matchChains())
-            by default is 'ca'
+            Default is 'ca'
     :type subset: str
 
     :arg seqid: Minimum value of the sequence identity (see matchChains())
-            by default 5
+            Default is 5
     :type seqid: float
     
     :arg overlap: percent overlap (see matchChains())
-            by default 50
+            Default is 50
     :type overlap: float
 
     :arg folder_name: Folder where the results will be collected
-            by default is 'struc_homologs'
-    :type folder_name: str
-    """
+            Default is 'struc_homologs'
+    :type folder_name: str """
     
     import os
     import subprocess
@@ -3756,17 +3755,16 @@ def runDali(pdb, chain, **kwargs):
     :type subset: str
 
     :arg seqid: Minimum value of the sequence identity (see matchChains())
-            Default 5
+            Default is 5
     :type seqid: float
     
     :arg overlap: percent overlap (see matchChains())
-            Default 50
+            Default is 50
     :type overlap: float
 
     :arg folder_name: Folder where the results will be collected
             Default is 'struc_homologs'
-    :type folder_name: str
-    """
+    :type folder_name: str """
 
     import os
     import shutil
@@ -3832,25 +3830,24 @@ def runBLAST(pdb, chain, **kwargs):
     :type chain: str
 
     :arg fixer: The method for fixing lack of hydrogen bonds
-            by default is 'pdbfixer'
+            Default is 'pdbfixer'
     :type fixer: 'pdbfixer' or 'openbabel'
     
     :arg subset: subsets of atoms: 'ca', 'bb', 'heavy', 'noh', 'all'  (see matchChains())
-            by default is 'bb'
+            Default is 'bb'
     :type subset: str
 
     :arg seqid: Minimum value of the sequence identity (see matchChains())
-            by default 90
+            Default is 90
     :type seqid: float
     
     :arg overlap: percent overlap (see matchChains())
-            by default 50
+            Default is 50
     :type overlap: float
 
     :arg folder_name: Folder where the results will be collected
-            by default is 'struc_homologs'
-    :type folder_name: str
-    """
+            Default is 'struc_homologs'
+    :type folder_name: str """
     
     import os
     import shutil
@@ -3922,8 +3919,7 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
 
     :arg mapping_file: Aligned residue indices, MSA file type
             required in Foldseek analyisis
-    :type mapping_file: str
-    """
+    :type mapping_file: str """
     
     import os
     mapping_file = kwargs.get('mapping_file')
@@ -4415,7 +4411,7 @@ class Interactions(object):
         """Build matrix with interaction energy comming from energy of pairs of specific residues.
         
         :arg energy_list_type: name of the list with energies 
-                            default is 'IB_solv'
+                            Default is 'IB_solv'
         :type energy_list_type: 'IB_nosolv', 'IB_solv', 'CS'
         """
         
@@ -4578,7 +4574,7 @@ class Interactions(object):
             (7) Disulfide bonds (disb)
         
         :arg contacts_min: Minimal number of contacts which residue may form with other residues, 
-                           by default 2.
+                           Default is 2.
         :type contacts_min: int  """
 
         atoms = self._atoms   
@@ -5611,7 +5607,7 @@ class LigandInteractionsTrajectory(object):
         :arg include_frames: used with filters, it will leave selected keyword in orginal 
                     lists, if False it will collect selected interactions in one list,
                     Use True to assign new selection using setLigandInteractions.
-                    by default True
+                    Default is True
         :type include_frames: bool            
         """
         
@@ -5661,7 +5657,7 @@ class LigandInteractionsTrajectory(object):
         be a total number of interactions or it can be divided into interaction types.
         
         :arg types: Interaction types can be included (True) or not (False).
-                    by default is True. 
+                    Default is True. 
         :type types: bool
         """
 
@@ -5803,7 +5799,7 @@ class LigandInteractionsTrajectory(object):
         :type filename: str  
         
         :arg ligand_sele: ligand selection,
-                          by default is 'all not (protein or water or ion)'.
+                          Default is 'all not (protein or water or ion)'.
         :type ligand_sele: str          
         """
         
