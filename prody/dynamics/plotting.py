@@ -37,7 +37,7 @@ __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showTree', 'showTree_networkx',
            'showAtomicMatrix', 'pimshow', 'showAtomicLines', 'pplot', 
-           'showDomainBar']
+           'showDomainBar', 'showSelectionMatrix']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -2403,3 +2403,37 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
         showFigure()
 
     return mpl.gca()
+
+def showSelectionMatrix(matrix, atoms, selstr_x=None, selstr_y=None, **kwargs):
+    """
+    Show a matrix similarly to showAtomicMatrix but only for
+    selected atoms based on *selstr_x* and *selstr_y*
+
+    :arg selstr_x: a selection string used with sliceAtomicData with axis=0
+        to slice the matrix in the x axis and label it with corresponding atoms
+    :type selstr_x: str
+
+    :arg selstr_y: a selection string used with sliceAtomicData with axis=1
+        to slice the matrix in the y axis and label it with corresponding atoms
+    :type selstr_y: str
+
+    If either of these are left as *None*, then no slicing is performed in that direction.
+    """
+    atoms_x = atoms
+    atoms_y = atoms
+
+    if selstr_x is not None:
+        if not isinstance(selstr_x, str):
+            raise TypeError('selstr_x should be a str')
+
+        matrix = sliceAtomicData(matrix, atoms, selstr_x, axis=0)
+        _, atoms_x = sliceAtoms(atoms, selstr_x)
+
+    if selstr_y is not None:
+        if not isinstance(selstr_y, str):
+            raise TypeError('selstr_y should be a str')
+
+        matrix = sliceAtomicData(matrix, atoms, selstr_y, axis=1)
+        _, atoms_y = sliceAtoms(atoms, selstr_y)
+
+    return showAtomicMatrix(matrix, atoms=[atoms_x, atoms_y], **kwargs)

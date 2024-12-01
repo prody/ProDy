@@ -21,7 +21,7 @@ import numpy as np
 from numpy import *
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
-from prody.atomic import flags
+from prody.atomic import flags, sliceAtomicData
 from prody.utilities import importLA, checkCoords, showFigure, getCoords
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
@@ -277,9 +277,11 @@ def checkNonstandardResidues(atoms):
 def showPairEnergy(data, **kwargs):
     """Return energies when a list of interactions is given. Energies will be added to each pair of residues 
     at the last position in the list. Energy is based on the residue types and not on the distances.
-    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated), 'IB_solv' (solvent-mediated) 
-    are taken from [OK98]_ and 'CS' from InSty paper (under preparation). 
+    The unit of energy is kcal/mol. The energies defined as 'IB_nosolv' (non-solvent-mediated) and
+    'IB_solv' (solvent-mediated) are taken from [OK98]_ and 'CS' from InSty paper (under preparation).
     Protonation of residues is not distinguished. The protonation of residues is not distinguished. 
+    'IB_solv' and 'IB_nosolv' have RT units and 'CS' has units of kcal/mol.
+
     Known residues such as HSD, HSE, HIE, and HID (used in MD simulations) are treated as HIS.
     
     :arg data: list with interactions from calcHydrogenBonds() or other types
@@ -2133,9 +2135,9 @@ def calcStatisticsInteractions(data, **kwargs):
     (2) average distance of interactions for each pair [in Ang], 
     (3) standard deviation [Ang.],
     (4) Energy [in kcal/mol] that is not distance dependent. Energy by default is solvent-mediated
-    from [OK98]_ ('IB_solv'). To use non-solvent-mediated entries ('IB_nosolv') from [OK98]_ or
-    solvent-mediated values obtained for InSty paper ('CS', under preparation) change 
-    `energy_list_type` parameter. 
+    from [OK98]_ ('IB_solv') in RT units. To use non-solvent-mediated (residue-mediated) entries ('IB_nosolv')
+    from [OK98]_ in RT units or solvent-mediated values obtained from MD for InSty paper ('CS', under preparation)
+    in kcal/mol, change `energy_list_type` parameter.
     If energy information is not available, please check whether the pair of residues is listed in 
     the "tabulated_energies.txt" file, which is localized in the ProDy directory.
         
@@ -2192,6 +2194,7 @@ def calcStatisticsInteractions(data, **kwargs):
                 }
 
     statistic = []
+    unit = 'RT' if energy_list_type in ['IB_solv', 'IB_nosolv'] else 'kcal/mol'
     for key, value in stats.items():
         if float(value['weight']) > weight_cutoff:
             LOGGER.info("Statistics for {0}:".format(key))
@@ -2199,7 +2202,7 @@ def calcStatisticsInteractions(data, **kwargs):
             LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
             LOGGER.info("  Weight: {0}".format(value['weight']))
             try:
-                LOGGER.info("  Energy [kcal/mol]: {0}".format(value['energy']))
+                LOGGER.info("  Energy [{0}]: {1}".format(unit, value['energy']))
                 statistic.append([key, value['weight'], value['mean'], value['stddev'], value['energy']])
             except:
                 statistic.append([key, value['weight'], value['mean'], value['stddev']])
@@ -3464,15 +3467,10 @@ class Interactions(object):
         :type energy_list_type: str
 
         'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
-        O Keskin, I Bahar and colleagues from [OK98]_.
+        O Keskin, I Bahar and colleagues from [OK98]_ and have RT units.
 
         'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
-        and Gary Wu.
-
-        .. [OK98] Keskin O, Bahar I, Badretdinov AY, Ptitsyn OB, Jernigan RL,
-        Empirical solvent-mediated potentials hold for both intra-molecular
-        and inter-molecular inter-residue interactions
-        *Protein Sci* **1998** 7(12):2578-2586.
+        and Gary Wu in the InSty paper (under preparation) and have units of kcal/mol.
         """
         
         import numpy as np
@@ -3791,7 +3789,10 @@ class Interactions(object):
 
         :arg DiBs: score per disulfide bond
         :type DiBs: int, float 
-        
+
+        :arg selstr: selection string for focusing the plot
+        :type selection: str
+
         :arg energy: sum of the energy between residues
                     default is False
         :type energy: bool
@@ -3805,16 +3806,25 @@ class Interactions(object):
                             default is False
         :type overwrite_energies: bool
 
+        :arg percentile: a percentile threshold to remove outliers, i.e. only showing data within *p*-th
+                        to *100-p*-th percentile. Default is None, so no axis limits.
+        :type percentile: float
+
+        :arg vmin: a minimum value threshold to remove outliers, i.e. only showing data greater than vmin
+                This overrides percentile. Default is None, so no axis limits and little padding at the
+                bottom when energy=True.
+        :type vmin: float
+
+        :arg vmax: a maximum value threshold to remove outliers, i.e. only showing data less than vmax
+                This overrides percentile. Default is None, so no axis limits and a little padding for
+                interaction type labels.
+        :type vmax: float
+
         'IB_solv' and 'IB_nosolv' are derived from empirical potentials from
-        O Keskin, I Bahar and colleagues from [OK98]_.
+        O Keskin, I Bahar and colleagues from [OK98]_ and have RT units.
 
         'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
-        and Gary Wu.
-
-        .. [OK98] Keskin O, Bahar I, Badretdinov AY, Ptitsyn OB, Jernigan RL,
-        Empirical solvent-mediated potentials hold for both intra-molecular
-        and inter-molecular inter-residue interactions
-        *Protein Sci* **1998** 7(12):2578-2586.
+        and Gary Wu for the InSty paper (under preparation) and have units kcal/mol.
         """
 
         import numpy as np
@@ -3833,6 +3843,19 @@ class Interactions(object):
         if not isinstance(energy, bool):
             raise TypeError('energy should be True or False')
                     
+        p = kwargs.pop('percentile', None)
+        vmin = vmax = None
+        if p is not None:
+            vmin = np.percentile(matrix, p)
+            vmax = np.percentile(matrix, 100-p)
+
+        vmin = kwargs.pop('vmin', vmin)
+        vmax = kwargs.pop('vmax', vmax)
+
+        selstr = kwargs.pop('selstr', None)
+        if selstr is not None:
+            atoms = atoms.select(selstr)
+
         ResNumb = atoms.select('protein and name CA').getResnums()
         ResName = atoms.select('protein and name CA').getResnames()
         ResChid = atoms.select('protein and name CA').getChids()
@@ -3856,16 +3879,27 @@ class Interactions(object):
             fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
             matplotlib.rcParams['font.size'] = '24'
 
+            if selstr is not None:
+                matrix_en_sum = sliceAtomicData(matrix_en_sum,
+                                                self._atoms.ca, selstr)
+
             zeros_row = np.zeros(matrix_en_sum.shape)
-            pplot(zeros_row, atoms=atoms.ca)
+            pplot(zeros_row, atoms=atoms.ca, **kwargs)
 
             ax.bar(ResList, matrix_en_sum, width, color='blue')
             
-            #plt.xlim([ResList[0]-0.5, ResList[-1]+0.5])
-            plt.ylim([min(matrix_en_sum)-1,0])
+            if vmin is None:
+                vmin = np.min(matrix_en_sum) * 1.2
+
+            if vmax is None:
+                vmax = np.max(matrix_en_sum)
+
+            plt.ylim([vmin, vmax])
             plt.tight_layout()    
             plt.xlabel('Residue')
-            plt.ylabel('Cumulative Energy [kcal/mol]')
+
+            unit = 'RT' if energy_list_type in ['IB_solv', 'IB_nosolv'] else 'kcal/mol'
+            plt.ylabel('Cumulative Energy [{0}]'.format(unit))
             plt.show()
             
             return matrix_en_sum
@@ -3897,6 +3931,23 @@ class Interactions(object):
             matrix_picat_sum = np.sum(matrix_picat, axis=0)
             matrix_hph_sum = np.sum(matrix_hph, axis=0)
             matrix_dibs_sum = np.sum(matrix_dibs, axis=0)
+
+            all_ca = self._atoms.ca
+            if selstr is not None:
+                matrix_hbs_sum = sliceAtomicData(matrix_hbs_sum,
+                                                 all_ca, selstr)
+                matrix_sbs_sum = sliceAtomicData(matrix_sbs_sum,
+                                                 all_ca, selstr)
+                matrix_rib_sum = sliceAtomicData(matrix_rib_sum,
+                                                 all_ca, selstr)
+                matrix_pistack_sum = sliceAtomicData(matrix_pistack_sum,
+                                                     all_ca, selstr)
+                matrix_picat_sum = sliceAtomicData(matrix_picat_sum,
+                                                   all_ca, selstr)
+                matrix_hph_sum = sliceAtomicData(matrix_hph_sum,
+                                                 all_ca, selstr)
+                matrix_dibs_sum = sliceAtomicData(matrix_dibs_sum,
+                                                  all_ca, selstr)
 
             width = 0.8
             fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
@@ -3940,7 +3991,14 @@ class Interactions(object):
                 self._interactions_matrix = matrix_all
 
             ax.legend(ncol=7, loc='upper center')
-            plt.ylim([0,max(sum_matrix)+3])
+
+            if vmin is None:
+                vmin = np.min(sum_matrix)
+
+            if vmax is None:
+                vmax = np.max(sum_matrix) * 1.5
+
+            plt.ylim([vmin, vmax])
             plt.tight_layout()    
             plt.xlabel('Residue')
             plt.ylabel('Number of counts')
