@@ -32,12 +32,12 @@ class TestANMD(unittest.TestCase):
     def testAnmdNumModesWrongType(self):
         """Test response to wrong type *num_modes* argument."""
         if prody.PY3K:
-            self.assertRaises(TypeError, self.runANMD, self.ATOMS, 'nogood')
+            self.assertRaises(TypeError, self.runANMD, self.ATOMS, 'nogood', num_steps=2)
 
     def testAnmdRmsdWrongType(self):
         """Test response to wrong type *max_rmsd* argument."""
         if prody.PY3K:
-            self.assertRaises(TypeError, self.runANMD, self.ATOMS, max_rmsd='nogood')
+            self.assertRaises(TypeError, self.runANMD, self.ATOMS, max_rmsd='nogood', num_steps=2)
 
     def testAnmdStepsWrongType(self):
         """Test response to wrong type *num_steps* argument."""
@@ -47,14 +47,14 @@ class TestANMD(unittest.TestCase):
     def testAnmdToleranceWrongType(self):
         """Test response to wrong type *tolerance* argument."""
         if prody.PY3K:
-            self.assertRaises(TypeError, self.runANMD, self.ATOMS, tolerance='nogood')
+            self.assertRaises(TypeError, self.runANMD, self.ATOMS, tolerance='nogood', num_steps=2)
 
 class TestAnmdResults(TestANMD):
 
     def testResults(self):
         """Test results with default parameters"""
         if prody.PY3K:
-            DEFAULT_RESULTS = runANMD(self.ATOMS)
+            DEFAULT_RESULTS = runANMD(self.ATOMS, num_steps=2)
             ens1 = DEFAULT_RESULTS[0]
 
             assert_equal(len(DEFAULT_RESULTS), 2,
@@ -70,7 +70,7 @@ class TestAnmdResults(TestANMD):
     def testResultsNumModes1(self):
         """Test that num_modes=1 gives 1 ensemble"""
         if prody.PY3K:
-            RESULTS = runANMD(self.ATOMS, num_modes=1)
+            RESULTS = runANMD(self.ATOMS, num_modes=1, num_steps=2)
             assert_equal(len(RESULTS), 1,
                         'runANMD with num_modes=1 failed to give 1 ensemble')
 
