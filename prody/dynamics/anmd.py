@@ -43,7 +43,7 @@ from prody.dynamics.sampling import traverseMode
 
 __all__ = ['runANMD']
 
-def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
+def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=5, tolerance=10.0,
             **kwargs):
     """Runs the ANMD hybrid simulation method ([CM22]_), which generates conformations
     along single modes using :func:`.traverseModes` and minimises them. 
@@ -67,7 +67,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
     :type max_rmsd: float
 
     :arg num_steps: number of conformers in each direction for each mode
-        Default is 2
+        Default is 5
     :type num_steps: int
 
     :arg tolerance: tolerance for energy minimisation in OpenMM 
