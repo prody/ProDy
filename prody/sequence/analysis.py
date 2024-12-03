@@ -750,9 +750,15 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     
     align = kwargs.get('align', True)
     method = kwargs.get('method', 'local')
+    outfilename = kwargs.get('outfilename', title + '.fasta')
+
     # 1. check if sequences are in a fasta file and if not make one
     if isinstance(sequences, str):
         filename = sequences
+        if os.path.splitext(filename)[1] == '.sth' and 'clustalw' in method:
+            msa = parseMSA(filename)
+            filename = os.path.splitext(filename)[0] + '.fasta'
+            writeMSA(filename, msa)
     elif not isinstance(sequences, MSA):
         try:
             max_len = 0
@@ -826,7 +832,14 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
                     raise EnvironmentError("The executable for clustalw was not found, "
                                             "install clustalw or add it to the path.")
 
-            os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
+            outfilename_old = outfilename
+            if os.path.splitext(outfilename)[1] != '.aln':
+                outfilename = os.path.splitext(outfilename)[0] + '.aln'
+            os.system('"%s" -infile=%s -outorder=input -outfile=%s' %(clustalw, filename, outfilename))
+
+            # 3. parse and return the new MSA
+            msa = parseMSA(outfilename)
+            writeMSA(outfilename_old, msa)
 
         elif 'clustalo' in method:
             clustalo = which('clustalo')
@@ -834,10 +847,10 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
                 raise EnvironmentError("The executable for clustalo was not found, "
                                         "install clustalo or add it to the path.")
 
-            os.system('"%s" -i %s --output-order=input-order -o output.fasta --force'%(clustalo, filename))
+            os.system('"%s" -i %s --output-order=input-order -o %s --force'%(clustalo, filename, outfilename))
 
             # 3. parse and return the new MSA
-            msa = parseMSA('output.fasta')
+            msa = parseMSA(outfilename)
 
         else:
             alignTool = which(method)
