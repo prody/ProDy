@@ -804,6 +804,8 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
 
         if align and 'clustal' in method:
             filename = writeMSA(title + '.fasta', msa)
+    else:
+        filename = writeMSA(title + '.fasta', sequences)
 
     if align:
         # 2. find and run alignment method
