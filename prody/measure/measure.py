@@ -16,11 +16,11 @@ from prody import LOGGER, PY2K
 if PY2K:
     range = xrange
 
-__all__ = ['buildDistMatrix', 'calcDistance',
-           'calcCenter', 'calcGyradius', 'calcAngle',
-           'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
-           'calcMSF', 'calcRMSF',
-           'calcDeformVector',
+__all__ = ['buildDistMatrix', 'calcDistance', 'calcGyradius',
+           'calcCenter', 'calcAngle', 'calcDihedral',
+           'getCenter', 'getAngle', 'getDihedral',
+           'calcOmega', 'calcPhi', 'calcPsi',
+           'calcMSF', 'calcRMSF', 'calcDeformVector',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
            'pickCentral', 'pickCentralAtom', 'pickCentralConf', 'getWeights',
            'calcInertiaTensor', 'calcPrincAxes', 'calcDistanceMatrix',
