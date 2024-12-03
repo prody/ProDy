@@ -1202,11 +1202,19 @@ class TestDirectInfo(TestCase):
 class TestBuildMSA(TestCase):
 
     def testBuildMSAlocal(self):
-        sequences = [ags[0].protein["A"].getSequence(), 
+        sequences = [ags[0].protein["A"].getSequence(),
                      ags[1].protein["A"].getSequence()]
 
         expect1 = parseMSA(pathDatafile('msa_3hsyA_3o21A.fasta'))
         expect2 = parseMSA(pathDatafile('msa_3hsyA_3o21A_new.fasta'))
         result = buildMSA(sequences, method="local", labels=["A2", "A3"])
         assert result in (expect1, expect2), "The list of expected buildMSA results did not contain " + result
-        
+
+    def testBuildMSAclustalw(self):
+        sequences = [ags[0].protein["A"].getSequence(),
+                     ags[1].protein["A"].getSequence()]
+
+        expect1 = parseMSA(pathDatafile('msa_3hsyA_3o21A.fasta'))
+        expect2 = parseMSA(pathDatafile('msa_3hsyA_3o21A_new.fasta'))
+        result = buildMSA(sequences, method="clustalw", labels=["A2", "A3"])
+        assert result in (expect1, expect2), "The list of expected buildMSA results did not contain " + result
