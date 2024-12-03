@@ -723,7 +723,7 @@ def alignSequencesByChain(PDBs, **kwargs):
 
 def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     """
-    Aligns sequences with clustalw or clustalw2 or Biopython and returns the resulting MSA.
+    Aligns sequences with a clustal program or Biopython and returns the resulting MSA.
 
     :arg sequences: a file, MSA object or a list or array containing sequences
        as Atomic objects with :func:`getSequence` or Sequence objects or strings. 
@@ -742,7 +742,8 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     :type align: bool
 
     :arg method: alignment method, one of either Biopython 'global',
-        Biopython 'local', clustalw(2), or another software in your path.
+        Biopython 'local', 'clustalw', 'clustalw2', 'clustal' 
+        or another software in your path.
         Default is 'local'
     :type align: str
     """
@@ -825,8 +826,16 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
 
             os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
 
+        elif 'clustalo' in method:
+            clustalo = which('clustalo')
+            if clustalo is None:
+                raise EnvironmentError("The executable for clustalo was not found, "
+                                        "install clustalo or add it to the path.")
+
+            os.system('"%s" -i %s --output-order=input-order -o output.fasta --force'%(clustalo, filename))
+
             # 3. parse and return the new MSA
-            msa = parseMSA(title + '.aln')
+            msa = parseMSA('output.fasta')
 
         else:
             alignTool = which(method)
