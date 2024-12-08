@@ -515,7 +515,7 @@ class DaliRecord(object):
 
         return self._title
 
-def daliFilterMultimer(atoms, dali_rec, n_chains=None):
+def daliFilterMultimer(atoms, dali_rec, n_chains=None, reverse=False):
     """
     Filters multimers to only include chains with Dali mappings.
 
@@ -524,6 +524,14 @@ def daliFilterMultimer(atoms, dali_rec, n_chains=None):
 
     :arg dali_rec: the DaliRecord object with which to filter chains
     :type dali_rec: :class:`.DaliRecord`
+
+    :arg n_chains: the number of chains in multimers to keep
+        Default is None, keeping all multimers
+    :arg n_chains: int
+
+    :arg reverse: whether to reverse filtering to exclude by n_chain
+        Default is False
+    :type reverse: bool
     """
     if not isinstance(atoms, Atomic):
         raise TypeError("atoms should be an Atomic object")
@@ -534,6 +542,12 @@ def daliFilterMultimer(atoms, dali_rec, n_chains=None):
         keys = dali_rec._alignPDB
     except:
         raise AttributeError("Dali Record does not have any data yet. Please run fetch.")
+
+    if not isinstance(n_chains, (int, type(None))):
+        raise TypeError('n_chains should be None or an integer')
+
+    if not isinstance(reverse, bool):
+        raise TypeError('reverse should be a Boolean')
 
     numChains = 0
     atommap = None
@@ -546,17 +560,32 @@ def daliFilterMultimer(atoms, dali_rec, n_chains=None):
             else:
                 atommap += chain
 
-    if n_chains is None or numChains == n_chains:
-        return atommap
-    else:
-        return None
+    if n_chains is None or \
+        not reverse and numChains == n_chains or \
+            reverse and numChains != n_chains:
+        return atommap       
+    return None
 
-def daliFilterMultimers(structures, dali_rec, n_chains=None):
+def daliFilterMultimers(structures, dali_rec, n_chains=None, reverse=False):
     """A wrapper for daliFilterMultimer to apply to multiple structures.
+
+    :arg structures: a list of :class:`.Atomic` objects to be filtered
+    :type structures: list
+
+    :arg dali_rec: the DaliRecord object with which to filter chains
+    :type dali_rec: :class:`.DaliRecord`
+
+    :arg n_chains: the number of chains in multimers to keep
+        Default is None, keeping all multimers
+    :arg n_chains: int
+
+    :arg reverse: whether to reverse filtering to exclude by n_chain
+        Default is False
+    :type reverse: bool
     """
     dali_ags = []
     for entry in structures:
-        result = daliFilterMultimer(entry, dali_rec, n_chains)
+        result = daliFilterMultimer(entry, dali_rec, n_chains, reverse)
         if result is not None:
             dali_ags.append(result)
     return dali_ags
