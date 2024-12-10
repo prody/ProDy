@@ -272,7 +272,11 @@ def parseNMD(filename, type=NMA):
 
     line, coords = atomic.pop('coordinates', None)
     if coords is not None:
-        coords = np.fromstring(coords, dtype=float, sep=' ')
+        try:
+            coords = np.fromstring(coords, dtype=float, sep=' ')
+        except:
+            coords = np.frombuffer(coords, dtype=float, sep=' ')
+
         dof = coords.shape[0]
         if dof % 3 != 0:
             LOGGER.warn('Coordinate data in {0} at line {1} is corrupt '
@@ -325,7 +329,11 @@ def parseNMD(filename, type=NMA):
     eigvals = []
     count = 0
     for i, (line, mode) in enumerate(modes):
-        mode = np.fromstring(mode, dtype=float, sep=' ')
+        try:
+            mode = np.fromstring(mode, dtype=float, sep=' ')
+        except:
+            mode = np.frombuffer(mode, dtype=float, sep=' ')
+
         diff = len(mode) - dof
         if diff < 0 or diff > 2:
             LOGGER.warn('Mode data in {0} at line {1} is corrupt.'
