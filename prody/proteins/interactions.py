@@ -148,10 +148,17 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
                 LOGGER.warn('selection did not work, so no filtering is performed')
                 return list_of_interactions
 
-            x = p.select(kwargs['selection']).getResnames()
-            y = p.select(kwargs['selection']).getResnums()
-            listOfselection = np.unique(list(map(lambda x, y: x + str(y), x, y)))
-            final = [i for i in list_of_interactions if i[0] in listOfselection or i[3] in listOfselection]
+            selection = kwargs['selection']
+            x = p.select(selection).getResnames()
+            y = p.select(selection).getResnums()
+            c = p.select(selection).getChids()
+            listOfselection = np.unique(list(map(lambda x, y, c: (c, x + str(y)),
+                                                 x, y, c)),
+                                        axis=0)
+            listOfselection = [list(x) for x in listOfselection]
+            final = [i for i in list_of_interactions
+                     if (([i[2], i[0]] in listOfselection)
+                         or ([i[5], i[3]] in listOfselection))]
     elif 'selection2' in kwargs:
         LOGGER.warn('selection2 by itself is ignored')
     else:
