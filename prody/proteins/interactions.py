@@ -5110,7 +5110,7 @@ class InteractionsTrajectory(object):
             except TypeError:
                 raise TypeError('coords must be an object '
                                 'with `getCoords` method')
-        
+
         HBs_all = []
         SBs_all = []
         RIB_all = []
@@ -5134,153 +5134,93 @@ class InteractionsTrajectory(object):
         stop_frame = kwargs.pop('stop_frame', -1)
         max_proc = kwargs.pop('max_proc', mp.cpu_count()//2)
 
-        if trajectory is not None:
-            if isinstance(trajectory, Atomic):
-                trajectory = Ensemble(trajectory)
-        
-            nfi = trajectory._nfi
-            trajectory.reset()
-            numFrames = trajectory._n_csets
-
-            if stop_frame == -1:
-                traj = trajectory[start_frame:]
-            else:
-                traj = trajectory[start_frame:stop_frame+1]
-
-            atoms_copy = atoms.copy()
-            protein = atoms_copy.protein
-
-            def analyseFrame(j0, frame0, interactions_all, interactions_nb):
-                LOGGER.info('Frame: {0}'.format(j0))
-                atoms_copy.setCoords(frame0.getCoords())
-                
-                hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
-                salt_bridges = calcSaltBridges(protein, **kwargs)
-                RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
-                Pi_stacking = calcPiStacking(protein, **kwargs)
-                Pi_cation = calcPiCation(protein, **kwargs)
-                hydrophobic = calcHydrophobic(protein, **kwargs)
-                Disulfide_Bonds = calcDisulfideBonds(protein, **kwargs)
-
-                interactions_all[0].append(hydrogen_bonds)
-                interactions_all[1].append(salt_bridges)
-                interactions_all[2].append(RepulsiveIonicBonding)
-                interactions_all[3].append(Pi_stacking)
-                interactions_all[4].append(Pi_cation)
-                interactions_all[5].append(hydrophobic)
-                interactions_all[6].append(Disulfide_Bonds)
-            
-                interactions_nb[0].append(len(hydrogen_bonds))
-                interactions_nb[1].append(len(salt_bridges))
-                interactions_nb[2].append(len(RepulsiveIonicBonding))
-                interactions_nb[3].append(len(Pi_stacking))
-                interactions_nb[4].append(len(Pi_cation))
-                interactions_nb[5].append(len(hydrophobic))
-                interactions_nb[6].append(len(Disulfide_Bonds))
-
-            if max_proc == 1:
-                interactions_all = []
-                interactions_all.extend(interactions_traj)
-                interactions_nb = []
-                interactions_nb.extend(interactions_nb_traj)
-                for j0, frame0 in enumerate(traj, start=start_frame):
-                    analyseFrame(j0, frame0, interactions_all, interactions_nb)
-            else:
-                with mp.Manager() as manager:
-                    interactions_all = manager.list()
-                    interactions_all.extend([manager.list() for _ in interactions_traj])
-
-                    interactions_nb = manager.list()
-                    interactions_nb.extend([manager.list() for _ in interactions_nb_traj])
-
-                    j0 = start_frame
-                    while j0 < traj.numConfs()+start_frame:
-
-                        processes = []
-                        for _ in range(max_proc):
-                            frame0 = traj[j0-start_frame]
-                            
-                            p = mp.Process(target=analyseFrame, args=(j0, frame0,
-                                                                      interactions_all,
-                                                                      interactions_nb))
-                            p.start()
-                            processes.append(p)
-
-                            j0 += 1
-                            if j0 >= traj.numConfs()+start_frame:
-                                break
-
-                        for p in processes:
-                            p.join()
-
-                    interactions_all = [entry[:] for entry in interactions_all]
-                    interactions_nb = [entry[:] for entry in interactions_nb]
-        else:
+        if trajectory is None:
             if atoms.numCoordsets() > 1:
-                def analyseFrame(i, interactions_all, interactions_nb):
-                    LOGGER.info('Model: {0}'.format(i+start_frame))
-                    atoms.setACSIndex(i+start_frame) 
-                    protein = atoms.select('protein')
-                    
-                    hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
-                    salt_bridges = calcSaltBridges(protein, **kwargs)
-                    RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
-                    Pi_stacking = calcPiStacking(protein, **kwargs)
-                    Pi_cation = calcPiCation(protein, **kwargs)
-                    hydrophobic = calcHydrophobic(protein, **kwargs)
-                    Disulfide_Bonds = calcDisulfideBonds(protein, **kwargs)
-
-                    interactions_all[0].append(hydrogen_bonds)
-                    interactions_all[1].append(salt_bridges)
-                    interactions_all[2].append(RepulsiveIonicBonding)
-                    interactions_all[3].append(Pi_stacking)
-                    interactions_all[4].append(Pi_cation)
-                    interactions_all[5].append(hydrophobic)
-                    interactions_all[6].append(Disulfide_Bonds)
-                
-                    interactions_nb[0].append(len(hydrogen_bonds))
-                    interactions_nb[1].append(len(salt_bridges))
-                    interactions_nb[2].append(len(RepulsiveIonicBonding))
-                    interactions_nb[3].append(len(Pi_stacking))
-                    interactions_nb[4].append(len(Pi_cation))
-                    interactions_nb[5].append(len(hydrophobic))
-                    interactions_nb[6].append(len(Disulfide_Bonds))
-
-                if max_proc == 1:
-                    interactions_all = []
-                    interactions_all.extend(interactions_traj)
-                    interactions_nb = []
-                    interactions_nb.extend(interactions_nb_traj)
-                    for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                        analyseFrame(i, interactions_all, interactions_nb)
-                else:
-                    with mp.Manager() as manager:
-                        interactions_all = manager.list()
-                        interactions_all.extend([manager.list() for _ in interactions_traj])
-
-                        interactions_nb = manager.list()
-                        interactions_nb.extend([manager.list() for _ in interactions_nb_traj])
-
-                        i = start_frame
-                        while i < len(atoms.getCoordsets()[start_frame:stop_frame]):
-                            processes = []
-                            for _ in range(max_proc):
-                                p = mp.Process(target=analyseFrame, args=(i, interactions_all,
-                                                                          interactions_nb))
-                                p.start()
-                                processes.append(p)
-
-                                i += 1
-                                if i >= len(atoms.getCoordsets()[start_frame:stop_frame]):
-                                    break
-
-                            for p in processes:
-                                p.join()
-
-                    interactions_all = [entry[:] for entry in interactions_all]
-                    interactions_nb = [entry[:] for entry in interactions_nb]
+                trajectory = atoms
             else:
-                LOGGER.info('Include trajectory or use multi-model PDB file.') 
+                LOGGER.info('Include trajectory or use multi-model PDB file.')
+                return interactions_nb_traj
+
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)
+    
+        #nfi = trajectory._nfi
+        #trajectory.reset()
+        #numFrames = trajectory._n_csets
+
+        if stop_frame == -1:
+            traj = trajectory[start_frame:]
+        else:
+            traj = trajectory[start_frame:stop_frame+1]
+
+        atoms_copy = atoms.copy()
+        protein = atoms_copy.protein
+
+        def analyseFrame(j0, frame0, interactions_all, interactions_nb):
+            LOGGER.info('Frame: {0}'.format(j0))
+            atoms_copy.setCoords(frame0.getCoords())
+            
+            hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
+            salt_bridges = calcSaltBridges(protein, **kwargs)
+            RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
+            Pi_stacking = calcPiStacking(protein, **kwargs)
+            Pi_cation = calcPiCation(protein, **kwargs)
+            hydrophobic = calcHydrophobic(protein, **kwargs)
+            Disulfide_Bonds = calcDisulfideBonds(protein, **kwargs)
+
+            interactions_all[0].append(hydrogen_bonds)
+            interactions_all[1].append(salt_bridges)
+            interactions_all[2].append(RepulsiveIonicBonding)
+            interactions_all[3].append(Pi_stacking)
+            interactions_all[4].append(Pi_cation)
+            interactions_all[5].append(hydrophobic)
+            interactions_all[6].append(Disulfide_Bonds)
+        
+            interactions_nb[0].append(len(hydrogen_bonds))
+            interactions_nb[1].append(len(salt_bridges))
+            interactions_nb[2].append(len(RepulsiveIonicBonding))
+            interactions_nb[3].append(len(Pi_stacking))
+            interactions_nb[4].append(len(Pi_cation))
+            interactions_nb[5].append(len(hydrophobic))
+            interactions_nb[6].append(len(Disulfide_Bonds))
+
+        if max_proc == 1:
+            interactions_all = []
+            interactions_all.extend(interactions_traj)
+            interactions_nb = []
+            interactions_nb.extend(interactions_nb_traj)
+            for j0, frame0 in enumerate(traj, start=start_frame):
+                analyseFrame(j0, frame0, interactions_all, interactions_nb)
+        else:
+            with mp.Manager() as manager:
+                interactions_all = manager.list()
+                interactions_all.extend([manager.list() for _ in interactions_traj])
+
+                interactions_nb = manager.list()
+                interactions_nb.extend([manager.list() for _ in interactions_nb_traj])
+
+                j0 = start_frame
+                while j0 < traj.numConfs()+start_frame:
+
+                    processes = []
+                    for _ in range(max_proc):
+                        frame0 = traj[j0-start_frame]
+                        
+                        p = mp.Process(target=analyseFrame, args=(j0, frame0,
+                                                                    interactions_all,
+                                                                    interactions_nb))
+                        p.start()
+                        processes.append(p)
+
+                        j0 += 1
+                        if j0 >= traj.numConfs()+start_frame:
+                            break
+
+                    for p in processes:
+                        p.join()
+
+                interactions_all = [entry[:] for entry in interactions_all]
+                interactions_nb = [entry[:] for entry in interactions_nb]
         
         self._atoms = atoms
         self._traj = trajectory
