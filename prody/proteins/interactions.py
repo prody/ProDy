@@ -127,33 +127,51 @@ def get_permutation_from_dic(dictionary, key):
 
 
 def filterInteractions(list_of_interactions, atoms, **kwargs):
-    """Return interactions based on selection."""
+    """Return interactions based on *selection* and *selection2*."""
     
+    if 'selection1' in kwargs:
+        kwargs['selection'] = kwargs['selection1']
+
     if 'selection' in kwargs:
+        selection = atoms.select(kwargs['selection'])
+        if selection is None:
+            LOGGER.warn('selection did not work, so no filtering is performed')
+            return list_of_interactions
+
+        ch1 = selection.getChids()
+        x1 = selection.getResnames()
+        y1 = selection.getResnums()
+        listOfselection = np.unique(list(map(lambda x1, y1, ch1: (ch1, x1 + str(y1)),
+                                             x1, y1, ch1)),
+                                    axis=0)
+        listOfselection = [list(i) for i in listOfselection] # needed for in check to work
+
         if 'selection2' in kwargs:
-            if not 'chid' in kwargs['selection'] and not 'chain' in kwargs['selection']:
-                LOGGER.warn('selection does not include chid or chain, so no filtering is performed')
+            selection2 = atoms.select(kwargs['selection2'])
+            if selection2 is None:
+                LOGGER.warn('selection2 did not work, so no filtering is performed')
                 return list_of_interactions
+            
+            ch2 = selection2.getChids()
+            x2 = selection2.getResnames()
+            y2 = selection2.getResnums()
+            listOfselection2 = np.unique(list(map(lambda x2, y2, ch2: (ch2, x2 + str(y2)),
+                                                  x2, y2, ch2)),
+                                         axis=0)
+            listOfselection2 = [list(i) for i in listOfselection2] # needed for in check to work
 
-            if not 'chid' in kwargs['selection2'] and not 'chain' in kwargs['selection2']:
-                LOGGER.warn('selection2 does not include chid or chain, so no filtering is performed')
-                return list_of_interactions
-
-            ch1 = kwargs['selection'].split()[-1] 
-            ch2 = kwargs['selection2'].split()[-1] 
-            final = [i for i in list_of_interactions if (i[2] == ch1 and i[5] == ch2) or (i[5] == ch1 and i[2] == ch2)]
+            final = [i for i in list_of_interactions if (([i[2], i[0]] in listOfselection)
+                                                         and ([i[5], i[3]] in listOfselection2)
+                                                         or ([i[2], i[0]] in listOfselection2)
+                                                         and ([i[5], i[3]] in listOfselection))]
         else:
-            p = atoms.select('same residue as protein within 10 of ('+kwargs['selection']+')')
-            if p is None:
-                LOGGER.warn('selection did not work, so no filtering is performed')
-                return list_of_interactions
+            final = [i for i in list_of_interactions
+                     if (([i[2], i[0]] in listOfselection)
+                         or ([i[5], i[3]] in listOfselection))]
 
-            x = p.select(kwargs['selection']).getResnames()
-            y = p.select(kwargs['selection']).getResnums()
-            listOfselection = np.unique(list(map(lambda x, y: x + str(y), x, y)))
-            final = [i for i in list_of_interactions if i[0] in listOfselection or i[3] in listOfselection]
     elif 'selection2' in kwargs:
         LOGGER.warn('selection2 by itself is ignored')
+        final = list_of_interactions
     else:
         final = list_of_interactions
     return final
