@@ -544,7 +544,7 @@ def plot_barh(result, bond_type, **kwargs):
         plt.ylim(-1, result_chunk.shape[0])
         plt.ylabel('{} Pairs of Residue Numbers'.format(bond_type))
         plt.xlabel('Percentage')
-        plt.title('Persistence of {} Bonds (entries {}-{})'.format(bond_type, start_idx + 1, end_idx))
+        plt.title('Persistence of {} (entries {}-{})'.format(bond_type, start_idx + 1, end_idx))
         # Save each plot with an incremented filename for multiple plots
         output_plot_file = '{}_plot_part{}.png'.format(bond_type, plot_idx + 1)
         log_message("Saving plot to: {}".format(output_plot_file))
