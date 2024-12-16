@@ -5255,7 +5255,11 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
         
     while True:
         s_prv.set_state(*s_tmp.get_state())
-        s_tmp.set_state(*calculator.delete_simplices3d(coords, *s_tmp.get_state(), vdw_radii, r1, True))
+        #s_tmp.set_state(*calculator.delete_simplices3d(coords, *s_tmp.get_state(), vdw_radii, r1, True))
+        state = s_tmp.get_state()
+        result = calculator.delete_simplices3d(coords, *state, vdw_radii, r1, True)
+        s_tmp.set_state(*result)
+        
         if s_tmp == s_prv:
             break
         
