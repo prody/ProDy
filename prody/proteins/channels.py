@@ -47,10 +47,18 @@ def checkAndImport(package_name):
     if not isinstance(package_name, str):
         raise TypeError('package_name should be a string')
 
-    import importlib.util
-    if importlib.util.find_spec(package_name) is None:
-        LOGGER.warn("Package " + str(package_name) + " is not installed. Please install it to use this function.")
-        return False
+    if PY3K:
+        import importlib.util
+        if importlib.util.find_spec(package_name) is None:
+            LOGGER.warn("Package " + str(package_name) + " is not installed. Please install it to use this function.")
+            return False
+    else:
+        try:
+            __import__(package_name)
+        except ImportError:
+            LOGGER.warn("Package " + str(package_name) + " is not installed. Please install it to use this function.")
+            return False
+    
     return True
 
 def getVmdModel(vmd_path, atoms):
