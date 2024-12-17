@@ -61,6 +61,7 @@ def checkAndImport(package_name):
     
     return True
 
+
 def getVmdModel(vmd_path, atoms):
     """
     Generates a 3D model of molecular structures using VMD and returns it as an Open3D TriangleMesh.
@@ -88,7 +89,7 @@ def getVmdModel(vmd_path, atoms):
     Example usage:
     model = getVmdModel('/path/to/vmd', atoms)
     """
-    
+
     required = ['subprocess', 'pathlib', 'tempfile', 'open3d']
     missing = []
     errorMsg = None
@@ -106,19 +107,27 @@ def getVmdModel(vmd_path, atoms):
         raise ImportError(errorMsg)
 
     import subprocess
-    from pathlib import Path
     import tempfile
     import open3d as o3d
+    import os
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        Path = lambda x: x 
 
     with tempfile.NamedTemporaryFile(suffix=".pdb", delete=False) as temp_pdb:
         temp_pdb_path = Path(temp_pdb.name)
         writePDB(temp_pdb.name, atoms)
-    
+
     with tempfile.NamedTemporaryFile(suffix=".tcl", delete=False) as temp_script:
         temp_script_path = Path(temp_script.name)
-        
-        output_path = temp_script_path.parent / "output.stl"
-        
+
+        if PY3K:
+            output_path = temp_script_path.parent / "output.stl"
+        else:
+            output_path = os.path.join(os.path.dirname(temp_script.name), "output.stl")
+
         vmd_script = """
         set file_path [lindex $argv 0]
         set output_path [lindex $argv 1]
@@ -136,33 +145,39 @@ def getVmdModel(vmd_path, atoms):
 
         exit
         """
-        
         temp_script.write(vmd_script.encode('utf-8'))
-    
+
     command = [vmd_path, '-e', str(temp_script_path), '-args', str(temp_pdb_path), str(output_path)]
-    
+
     try:
-        subprocess.run(command, check=True)
-    except subprocess.CalledProcessError as e:
-        LOGGER.info("VMD exited with status " + str(e.returncode) + ".")
+        if PY3K:
+            subprocess.run(command, check=True)
+        else:
+            returncode = subprocess.call(command)
+            if returncode != 0:
+                LOGGER.info("VMD exited with status " + str(returncode) + ".")
     except Exception as e:
         LOGGER.warn("An unexpected error occurred: " + str(e))
     finally:
-        temp_script_path.unlink(missing_ok=True)
-        temp_pdb_path.unlink(missing_ok=True)
-        if not output_path.exists() or output_path.stat().st_size == 0:
+        if os.path.exists(temp_script_path):
+            os.unlink(temp_script_path)
+        if os.path.exists(temp_pdb_path):
+            os.unlink(temp_pdb_path)
+
+        if not os.path.exists(output_path) or os.stat(output_path).st_size == 0:
             raise ValueError("STL file was not created or is empty.")
-            
+
         stl_mesh = o3d.io.read_triangle_mesh(str(output_path))
-            
+
         if stl_mesh.is_empty():
             raise ValueError("Failed to read the STL file as a TriangleMesh.")
-            
-        if output_path.exists():
-            output_path.unlink(missing_ok=True)
-            
+
+        if os.path.exists(output_path):
+            os.unlink(output_path)
+
         LOGGER.info("Model created successfully.")
         return stl_mesh
+
 
 def showChannels(channels, model=None, surface=None):
     """
