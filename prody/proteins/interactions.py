@@ -5156,7 +5156,7 @@ class InteractionsTrajectory(object):
         atoms_copy = atoms.copy()
         protein = atoms_copy.protein
 
-        def analyseFrame(j0, frame0, interactions_all, interactions_nb):
+        def analyseFrame(j0, frame0, interactions_all, interactions_nb, j0_list):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             
@@ -5184,13 +5184,17 @@ class InteractionsTrajectory(object):
             interactions_nb[5].append(len(hydrophobic))
             interactions_nb[6].append(len(Disulfide_Bonds))
 
+            j0_list.append(j0)
+
         if max_proc == 1:
             interactions_all = []
             interactions_all.extend(interactions_traj)
             interactions_nb = []
             interactions_nb.extend(interactions_nb_traj)
+            j0_list = []
             for j0, frame0 in enumerate(traj, start=start_frame):
-                analyseFrame(j0, frame0, interactions_all, interactions_nb)
+                analyseFrame(j0, frame0, interactions_all, interactions_nb,
+                             j0_list)
         else:
             with mp.Manager() as manager:
                 interactions_all = manager.list()
@@ -5200,6 +5204,7 @@ class InteractionsTrajectory(object):
                 interactions_nb.extend([manager.list() for _ in interactions_nb_traj])
 
                 j0 = start_frame
+                j0_list = manager.list()
                 while j0 < traj.numConfs()+start_frame:
 
                     processes = []
@@ -5207,8 +5212,9 @@ class InteractionsTrajectory(object):
                         frame0 = traj[j0-start_frame]
                         
                         p = mp.Process(target=analyseFrame, args=(j0, frame0,
-                                                                    interactions_all,
-                                                                    interactions_nb))
+                                                                  interactions_all,
+                                                                  interactions_nb,
+                                                                  j0_list))
                         p.start()
                         processes.append(p)
 
@@ -5221,6 +5227,13 @@ class InteractionsTrajectory(object):
 
                 interactions_all = [entry[:] for entry in interactions_all]
                 interactions_nb = [entry[:] for entry in interactions_nb]
+                j0_list = [entry for entry in j0_list]
+
+            ids = np.argsort(j0_list)
+            interactions_all = [list(np.array(interactions_type, dtype=object)[ids])
+                                     for interactions_type in interactions_all]
+            interactions_nb = [list(np.array(interactions_type, dtype=object)[ids])
+                                     for interactions_type in interactions_nb]
         
         self._atoms = atoms
         self._traj = trajectory
