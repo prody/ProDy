@@ -73,7 +73,7 @@ class TestInteractions(unittest.TestCase):
         order can be also different in the interactions"""
 
         if prody.PY3K:                
-            data_test = calcHydrogenBondsTrajectory(self.ATOMS, stop_frame=13)
+            data_test = calcHydrogenBondsTrajectory(self.ATOMS)
             assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HBS_INTERACTIONS]),
                          'failed to get correct hydrogen bonds')        
                      
@@ -81,7 +81,7 @@ class TestInteractions(unittest.TestCase):
         """Test for salt bridges without saving and loading."""
 
         if prody.PY3K:                
-            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS, stop_frame=13)
+            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS)
             assert_equal(sorted([i[-1][-1] for i in self.data_sbs]), sorted([i[-1][-1] for i in self.SBS_INTERACTIONS]),
                          'failed to get correct salt bridges')
 
@@ -90,7 +90,7 @@ class TestInteractions(unittest.TestCase):
         """Test for salt bridges with saving and loading (one type with results)."""
 
         if prody.PY3K:                
-            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS, stop_frame=13)
+            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS)
             
             np.save('test_2k39_sbs.npy', np.array(self.data_sbs, dtype=object), allow_pickle=True)
 
@@ -103,7 +103,7 @@ class TestInteractions(unittest.TestCase):
         """Test for repulsive ionic bonding."""
 
         if prody.PY3K:                
-            data_test = calcRepulsiveIonicBondingTrajectory(self.ATOMS, stop_frame=13)
+            data_test = calcRepulsiveIonicBondingTrajectory(self.ATOMS)
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.RIB_INTERACTIONS if len(i) > 0]),
                          'failed to get correct repulsive ionic bonding')                             
 
@@ -111,7 +111,7 @@ class TestInteractions(unittest.TestCase):
         """Test for pi-stacking interactions."""
 
         if prody.PY3K:                
-            data_test = calcPiStackingTrajectory(self.ATOMS, stop_frame=13)
+            data_test = calcPiStackingTrajectory(self.ATOMS)
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PISTACK_INTERACTIONS if len(i) > 0]),
                          'failed to get correct pi-stacking interactions')                             
                      
@@ -119,7 +119,7 @@ class TestInteractions(unittest.TestCase):
         """Test for pi-stacking interactions."""
 
         if prody.PY3K:                
-            data_test = calcPiCationTrajectory(self.ATOMS, stop_frame=13)
+            data_test = calcPiCationTrajectory(self.ATOMS)
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if len(i) > 0]),
                          'failed to get correct pi-cation interactions')
 
@@ -128,7 +128,7 @@ class TestInteractions(unittest.TestCase):
         """Test for hydrophobic interactions."""
 
         if prody.PY3K:        
-            data_test = calcHydrophobicTrajectory(self.ATOMS, stop_frame=13)
+            data_test = calcHydrophobicTrajectory(self.ATOMS)
             try:
                 assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HPH_INTERACTIONS2]),
                          'failed to get correct hydrophobic interactions without hpb.so')
@@ -140,7 +140,7 @@ class TestInteractions(unittest.TestCase):
     def testDisulfideBondsCalcNone(self):
         """Test for disulfide bonds interactions without saving and loading."""
         if prody.PY3K:
-            data_test = calcDisulfideBondsTrajectory(self.ATOMS, stop_frame=13)
+            data_test = calcDisulfideBondsTrajectory(self.ATOMS)
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), 
                          sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
                          'failed to get correct disulfide bonds from 2k39 (None) from calculation')
@@ -148,7 +148,7 @@ class TestInteractions(unittest.TestCase):
     def testDisulfideBondsSaveNone(self):
         """Test for disulfide bonds interactions with saving and loading (one type of interactions with 0)."""
         if prody.PY3K:
-            data_test = calcDisulfideBondsTrajectory(self.ATOMS, stop_frame=13)
+            data_test = calcDisulfideBondsTrajectory(self.ATOMS)
             np.save('test_2k39_disu.npy', np.array(data_test, dtype=object), 
                     allow_pickle=True)
 
