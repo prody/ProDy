@@ -53,7 +53,8 @@ class TestInteractions(unittest.TestCase):
         """Test for saving and loading all types of interactions."""
         if prody.PY3K:
             self.INTERACTIONS_ALL = InteractionsTrajectory()
-            self.data_all = self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS)
+            self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS,
+                                                                                             stop_frame=13))
 
             np.save('test_2k39_all.npy', np.array(self.data_all, dtype=object), allow_pickle=True)
 
