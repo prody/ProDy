@@ -264,6 +264,10 @@ except SyntaxError:
 else:
     __all__.extend(waterbridges.__all__)
 
+from . import channels
+from .channels import *
+__all__.extend(channels.__all__)
+
 from . import fixer
 from .fixer import *
 __all__.extend(fixer.__all__)
