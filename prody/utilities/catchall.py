@@ -610,6 +610,14 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
                      to *100-p*-th percentile
     :type percentile: float
 
+    :arg vmin: a minimum value threshold to remove outliers, i.e. only showing data greater than vmin
+               This overrides percentile.
+    :type vmin: float
+
+    :arg vmax: a maximum value threshold to remove outliers, i.e. only showing data less than vmax
+               This overrides percentile.
+    :type vmax: float
+
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
 
