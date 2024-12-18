@@ -377,6 +377,7 @@ def showCavities(surface, show_surface=False):
     vis.run()
     vis.destroy_window()
 
+
 def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
     """
     Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
@@ -637,6 +638,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
 
     return channels_all, surfaces_all
 
+
 def getChannelParameters(channels):
     """
     Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels.
@@ -666,6 +668,7 @@ def getChannelParameters(channels):
         volumes.append(channel.volume)
         
     return lengths, bottlenecks, volumes
+
 
 def getChannelAtoms(channels, protein=None, num_samples=5):
     """
@@ -698,7 +701,12 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
     Example usage:
     atomic_structure = getChannelAtoms(channels, protein)
     """
-    import io
+    
+    if PY3K:
+        import io
+    else:
+        import StringIO as io
+    
     from prody import parsePDBStream, writePDBStream
 
     def convert_lines_to_atomic(atom_lines):
@@ -741,6 +749,7 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
 
     channels_atomic = convert_lines_to_atomic(pdb_lines)
     return channels_atomic
+    
     
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
