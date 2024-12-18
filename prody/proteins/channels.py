@@ -482,7 +482,8 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
         s_prv.set_state(*s_tmp.get_state())
         
         if PY3K:
-            s_tmp.set_state(*calculator.delete_simplices3d(coords, *(s_tmp.get_state() + [vdw_radii, r1, True])))
+            #s_tmp.set_state(*calculator.delete_simplices3d(coords, *(s_tmp.get_state() + [vdw_radii, r1, True])))
+            s_tmp.set_state(*calculator.delete_simplices3d(coords, *(s_tmp.get_state() + tuple([vdw_radii, r1, True]))))
         else:
             tmp_state = calculator.delete_simplices3d(coords, *(s_tmp.get_state() + [vdw_radii, r1, True]))
             s_tmp.set_state(*tmp_state)
@@ -491,7 +492,8 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
             break
         
     s_srf = State(*s_tmp.get_state())
-    s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + [vdw_radii, r2, False])))
+    #s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + [vdw_radii, r2, False])))
+    s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + tuple([vdw_radii, r2, False]))))
 
     l_first_layer_simp, l_second_layer_simp = calculator.surface_layer(s_srf.simp, s_inr.simp, s_srf.neigh)
     s_clr = State(*calculator.delete_section(l_first_layer_simp, *s_inr.get_state()))
@@ -504,7 +506,8 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
         
     for cavity in c_filtered_cavities:
-        calculator.dijkstra(cavity, *(s_clr.get_state() + [coords, vdw_radii]))
+        #calculator.dijkstra(cavity, *(s_clr.get_state() + [coords, vdw_radii]))
+        calculator.dijkstra(cavity, *(s_clr.get_state() + tuple([coords, vdw_radii])))
         
     calculator.filter_channels_by_bottleneck(c_filtered_cavities, bottleneck)
     channels = [channel for cavity in c_filtered_cavities for channel in cavity.channels]
