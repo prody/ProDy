@@ -1735,8 +1735,9 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
         
-        nfi = trajectory._nfi    
-        trajectory.reset()
+        if isinstance(trajectory, Trajectory):
+            nfi = trajectory._nfi
+            trajectory.reset()
         numFrames = trajectory._n_csets
         
         if stop_frame == -1:
@@ -1745,7 +1746,7 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
             traj = trajectory[start_frame:stop_frame+1]
         
         atoms_copy = atoms.copy()
-        def analyseFrame(j0, start_frame, frame0, interactions_all):
+        def analyseFrame(j0, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             protein = atoms_copy.select('protein')
@@ -1755,13 +1756,10 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
         if max_proc == 1:
             interactions_all = []
             for j0, frame0 in enumerate(traj, start=start_frame):
-                interactions_all.append([])
-                analyseFrame(j0, start_frame, frame0, interactions_all)
+                analyseFrame(j0, frame0, interactions_all)
         else:
             with mp.Manager() as manager:
                 interactions_all = manager.list()
-                for j0, frame0 in enumerate(traj, start=start_frame):
-                    interactions_all.append([])
 
                 j0 = start_frame
                 while j0 < traj.numConfs()+start_frame:
@@ -1770,8 +1768,7 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
                     for _ in range(max_proc):
                         frame0 = traj[j0-start_frame]
                         
-                        p = mp.Process(target=analyseFrame, args=(j0, start_frame,
-                                                                 frame0,
+                        p = mp.Process(target=analyseFrame, args=(j0, frame0,
                                                                  interactions_all))
                         p.start()
                         processes.append(p)
@@ -1785,7 +1782,8 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
 
                 interactions_all = interactions_all[:]
 
-        trajectory._nfi = nfi
+        if isinstance(trajectory, Trajectory):
+            trajectory._nfi = nfi
     
     else:
         if atoms.numCoordsets() > 1:
@@ -1796,16 +1794,19 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
                 interactions = interactions_dic[interaction_type](protein, **kwargs)
                 interactions_all.append(interactions)
 
+            if stop_frame == -1:
+                stop_frame = atoms.numCoordsets()
+
             if max_proc == 1:
                 interactions_all = []
-                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
                     analyseFrame(i, interactions_all)
             else:
                 with mp.Manager() as manager:
                     interactions_all = manager.list()
 
                     i = start_frame
-                    while i < len(atoms.getCoordsets()[start_frame:stop_frame]):
+                    while i < len(atoms.getCoordsets()[start_frame:stop_frame+1]):
                         processes = []
                         for _ in range(max_proc):
                             p = mp.Process(target=analyseFrame, args=(i, interactions_all))
@@ -3127,8 +3128,9 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
     
-        nfi = trajectory._nfi
-        trajectory.reset()
+        if isinstance(trajectory, Trajectory):
+            nfi = trajectory._nfi
+            trajectory.reset()
         numFrames = trajectory._n_csets
 
         if stop_frame == -1:
@@ -3164,7 +3166,8 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 bindingAffinity.append(data['Affinity'])
                 data_final.append(data)
         
-        trajectory._nfi = nfi
+        if isinstance(trajectory, Trajectory):
+            trajectory._nfi = nfi
                 
     else:
         if atoms.numCoordsets() == 1:
@@ -5159,9 +5162,10 @@ class InteractionsTrajectory(object):
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
     
-        #nfi = trajectory._nfi
-        #trajectory.reset()
-        #numFrames = trajectory._n_csets
+        if isinstance(trajectory, Trajectory):
+            nfi = trajectory._nfi
+            trajectory.reset()
+        numFrames = trajectory._n_csets
 
         if stop_frame == -1:
             traj = trajectory[start_frame:]
@@ -5267,6 +5271,9 @@ class InteractionsTrajectory(object):
             with open(str(filename)+'.pkl', 'wb') as f:
                 pickle.dump(self._interactions_traj, f)  
             LOGGER.info('File with interactions saved.')
+
+        if isinstance(trajectory, Trajectory):
+            trajectory._nfi = nfi
             
         return interactions_nb
 
@@ -5771,8 +5778,9 @@ class LigandInteractionsTrajectory(object):
             if isinstance(trajectory, Atomic):
                 trajectory = Ensemble(trajectory)
         
-            nfi = trajectory._nfi
-            trajectory.reset()
+            if isinstance(trajectory, Trajectory):
+                nfi = trajectory._nfi
+                trajectory.reset()
             numFrames = trajectory._n_csets
 
             if stop_frame == -1:
