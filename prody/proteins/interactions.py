@@ -1795,6 +1795,9 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
                 interactions = interactions_dic[interaction_type](protein, **kwargs)
                 interactions_all.append(interactions)
 
+            if stop_frame == -1:
+                stop_frame = atoms.numCoordsets()
+
             if max_proc == 1:
                 interactions_all = []
                 for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
