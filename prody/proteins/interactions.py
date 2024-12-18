@@ -1799,14 +1799,14 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
 
             if max_proc == 1:
                 interactions_all = []
-                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
                     analyseFrame(i, interactions_all)
             else:
                 with mp.Manager() as manager:
                     interactions_all = manager.list()
 
                     i = start_frame
-                    while i < len(atoms.getCoordsets()[start_frame:stop_frame]):
+                    while i < len(atoms.getCoordsets()[start_frame:stop_frame+1]):
                         processes = []
                         for _ in range(max_proc):
                             p = mp.Process(target=analyseFrame, args=(i, interactions_all))
