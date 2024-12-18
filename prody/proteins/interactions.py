@@ -16,7 +16,6 @@ __author__ = 'Karolina Mikulska-Ruminska'
 __credits__ = ['James Krieger', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'jamesmkrieger@gmail.com']
 
-
 import numpy as np
 from numpy import *
 from prody import LOGGER, SETTINGS, PY3K
@@ -6084,4 +6083,5 @@ class LigandInteractionsTrajectory(object):
             LOGGER.info('PDB file saved.')
 
         return freq_contacts_list
+       
 
