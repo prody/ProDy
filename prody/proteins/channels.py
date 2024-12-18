@@ -470,16 +470,23 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     voro = Voronoi(coords)
         
     s_prt = State(dela.simplices, dela.neighbors, voro.vertices)
-    s_tmp = State(*s_prt.get_state())
-    s_prv = State(None, None, None) 
+    
+    if PY3K:
+        s_tmp = State(*s_prt.get_state())
+        s_prv = State(None, None, None)
+    else:
+        s_tmp = apply(State, s_prt.get_state())
+        s_prv = State(None, None, None) 
         
     while True:
         s_prv.set_state(*s_tmp.get_state())
-        #s_tmp.set_state(*calculator.delete_simplices3d(coords, *s_tmp.get_state(), vdw_radii, r1, True))
-        state = s_tmp.get_state()
-        result = calculator.delete_simplices3d(coords, *state, vdw_radii, r1, True)
-        s_tmp.set_state(*result)
         
+        if PY3K:
+            s_tmp.set_state(*calculator.delete_simplices3d(coords, *s_tmp.get_state(), vdw_radii, r1, True))
+        else:
+            tmp_state = calculator.delete_simplices3d(coords, *s_tmp.get_state(), vdw_radii, r1, True)
+            s_tmp.set_state(*tmp_state)
+
         if s_tmp == s_prv:
             break
         
