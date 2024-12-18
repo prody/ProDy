@@ -123,7 +123,6 @@ class TestInteractions(unittest.TestCase):
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if len(i) > 0]),
                          'failed to get correct pi-cation interactions')
 
-
     def testHydrophobicInteractions(self):
         """Test for hydrophobic interactions."""
 
@@ -176,6 +175,14 @@ class TestInteractions(unittest.TestCase):
             assert_equal(sorted([i[-1] for i in data_test if len(i) > 0]), 
                          sorted([i[-1] for i in self.DISU_INTERACTIONS_3O21 if len(i) > 0]),
                          'failed to get correct disulfide bonds from 3o21 from saving and loading')
+
+    def testPiCationTrajArg(self):
+        """Test for pi-stacking interactions."""
+
+        if prody.PY3K:
+            data_test = calcPiCationTrajectory(self.ATOMS, trajectory=self.ATOMS, stop_frame=13)
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if len(i) > 0]),
+                         'failed to get correct pi-cation interactions')
 
     def testImportHpb(self):
 

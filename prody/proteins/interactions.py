@@ -1756,13 +1756,10 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
         if max_proc == 1:
             interactions_all = []
             for j0, frame0 in enumerate(traj, start=start_frame):
-                interactions_all.append([])
                 analyseFrame(j0, frame0, interactions_all)
         else:
             with mp.Manager() as manager:
                 interactions_all = manager.list()
-                for j0, frame0 in enumerate(traj, start=start_frame):
-                    interactions_all.append([])
 
                 j0 = start_frame
                 while j0 < traj.numConfs()+start_frame:
