@@ -32,7 +32,7 @@ class TestInteractions(unittest.TestCase):
             self.DISU_INTERACTIONS = parseDatafile('2k39_disu')
 
             self.ATOMS_FIRST = parseDatafile('2k39_insty_first')
-            self.DCD = parseDatafile('2k39_insty_dcd')
+            self.DCD = Trajectory(pathDatafile('2k39_insty_dcd'))
             self.DCD.link(self.ATOMS_FIRST)
             self.DCD.setCoords(self.ATOMS_FIRST)
 
