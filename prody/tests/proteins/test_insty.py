@@ -31,6 +31,11 @@ class TestInteractions(unittest.TestCase):
             self.HPH_INTERACTIONS2 = parseDatafile('2k39_hph2')
             self.DISU_INTERACTIONS = parseDatafile('2k39_disu')
 
+            self.ATOMS_FIRST = parseDatafile('2k39_insty_first')
+            self.DCD = parseDatafile('2k39_insty_dcd')
+            self.DCD.link(self.ATOMS_FIRST)
+            self.DCD.setCoords(self.ATOMS_FIRST)
+
             self.ATOMS_3O21 = parseDatafile('3o21') # has disulfides & not traj
             self.DISU_INTERACTIONS_3O21 = parseDatafile('3o21_disu')
 
@@ -67,6 +72,22 @@ class TestInteractions(unittest.TestCase):
                 assert_equal(data_test, self.ALL_INTERACTIONS,
                              'failed to get correct interactions with hpb.so from saving and loading')
     
+    def testAllInteractionsCalcWithTraj(self):
+        """Test for calculating all types of interactions."""
+
+        if prody.PY3K:
+            self.INTERACTIONS_ALL = InteractionsTrajectory()
+            self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS_FIRST,
+                                                                                             trajectory=self.DCD,
+                                                                                             stop_frame=13))
+
+            try:
+                assert_equal(self.data_all, self.ALL_INTERACTIONS2,
+                             'failed to get correct interactions without hpb.so from calculation')
+            except AssertionError:
+                assert_equal(self.data_all, self.ALL_INTERACTIONS,
+                             'failed to get correct interactions with hpb.so from calculation')
+
     def testHydrogenBonds(self):
         """Test for hydrogen bonds.
         Last column is compared becasue pairs of residues can be reversed and

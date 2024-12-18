@@ -337,6 +337,12 @@ DATA_FILES = {
     },    
     '2k39_insty': {
         'file': '2k39_insty.pdb'
+    },    
+    '2k39_insty_first': {
+        'file': '2k39_insty_first.pdb'
+    },    
+    '2k39_insty_dcd': {
+        'file': '2k39_insty.dcd'
     },
     '2k39_hbs': {
         'file': '2k39_hbs.npy'
