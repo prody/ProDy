@@ -284,6 +284,7 @@ def showChannels(channels, model=None, surface=None):
     else:
         LOGGER.info("Nothing to visualize.")
 
+
 def showCavities(surface, show_surface=False):
     """
     Visualizes the cavities within a molecular surface using Open3D.
@@ -459,7 +460,11 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
         raise ImportError(errorMsg)
 
     from scipy.spatial import Voronoi, Delaunay
-    from pathlib import Path
+    
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
     
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
     
@@ -524,6 +529,7 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
         LOGGER.info("No output path given.")
                 
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
+
             
 def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, **kwargs):
     """
@@ -560,12 +566,19 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15)
     """
     
-    if not checkAndImport('pathlib'):
-        errorMsg = 'To run showChannels, please install open3d.'
-        raise ImportError(errorMsg)
-            
-    from pathlib import Path
-    
+    if PY3K:
+        if not checkAndImport('pathlib'):
+            errorMsg = 'To run showChannels, please install open3d.'
+            raise ImportError(errorMsg)
+                
+        from pathlib import Path
+    else:
+        if not checkAndImport('pathlib2'):
+            errorMsg = 'To run showChannels, please install pathlib2 for Python 2.7.'
+            raise ImportError(errorMsg)
+        
+        from pathlib2 import Path
+        
     try:
         coords = getCoords(atoms)
     except AttributeError:
