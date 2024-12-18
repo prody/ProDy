@@ -42,8 +42,8 @@ def checkAndImport(package_name):
 
     :arg import_command: optional command to import submodules or with an alias
         default **None** means use "import {0}".format(package_name)
-    :type import_command: None, str
-    """
+    :type import_command: None, str """
+    
     if not isinstance(package_name, str):
         raise TypeError('package_name should be a string')
 
@@ -63,8 +63,7 @@ def checkAndImport(package_name):
 
 
 def getVmdModel(vmd_path, atoms):
-    """
-    Generates a 3D model of molecular structures using VMD and returns it as an Open3D TriangleMesh.
+    """Generates a 3D model of molecular structures using VMD and returns it as an Open3D TriangleMesh.
 
     This function creates a temporary PDB file from the provided atomic data and uses VMD (Visual Molecular Dynamics)
     to render this data into an STL file, which is then loaded into Open3D as a TriangleMesh. The function handles
@@ -87,8 +86,7 @@ def getVmdModel(vmd_path, atoms):
     :rtype: open3d.geometry.TriangleMesh
 
     Example usage:
-    model = getVmdModel('/path/to/vmd', atoms)
-    """
+    model = getVmdModel('/path/to/vmd', atoms) """
 
     required = ['subprocess', 'pathlib', 'tempfile', 'open3d']
     missing = []
@@ -180,8 +178,7 @@ def getVmdModel(vmd_path, atoms):
 
 
 def showChannels(channels, model=None, surface=None):
-    """
-    Visualizes the channels, and optionally, the molecular model and surface, using Open3D.
+    """Visualizes the channels, and optionally, the molecular model and surface, using Open3D.
     
     This function renders a 3D visualization of molecular channels based on their spline representations.
     It can also display a molecular model (e.g., the protein structure) and a surface (e.g., cavity surface)
@@ -207,8 +204,7 @@ def showChannels(channels, model=None, surface=None):
     :returns: None. This function only renders the visualization.
     
     Example usage:
-    showChannels(channels, model=protein_mesh, surface=surface_data)
-    """
+    showChannels(channels, model=protein_mesh, surface=surface_data) """
     
     if not checkAndImport('open3d'):
         errorMsg = 'To run showChannels, please install open3d.'
@@ -286,8 +282,7 @@ def showChannels(channels, model=None, surface=None):
 
 
 def showCavities(surface, show_surface=False):
-    """
-    Visualizes the cavities within a molecular surface using Open3D.
+    """Visualizes the cavities within a molecular surface using Open3D.
 
     This function displays a 3D visualization of cavities detected in a molecular structure.
     It uses the Open3D library to render the cavities as a triangle mesh. Optionally, it can also
@@ -310,8 +305,7 @@ def showCavities(surface, show_surface=False):
     :returns: None
 
     Example usage:
-    showCavities(surface_data, show_surface=True)
-    """
+    showCavities(surface_data, show_surface=True) """
     
     if not checkAndImport('open3d'):
         errorMsg = 'To run showChannels, please install open3d.'
@@ -379,8 +373,7 @@ def showCavities(surface, show_surface=False):
 
 
 def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
-    """
-    Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
+    """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
     within the molecular structure. It employs Voronoi and Delaunay tessellations to identify these regions,
@@ -441,8 +434,7 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
        saves the results to a PDB file or visualizes them based on the specified parameters.
        
     Example usage:
-    channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15)
-    """
+    channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) """
     
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
     missing = []
@@ -533,8 +525,7 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
 
             
 def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, **kwargs):
-    """
-    Compute channels for each frame in a given trajectory or multi-model PDB file.
+    """Compute channels for each frame in a given trajectory or multi-model PDB file.
 
     This function calculates the channels for each frame in a trajectory or for each model
     in a multi-model PDB file. The `kwargs` can include parameters necessary for channel calculation.
@@ -564,8 +555,8 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     :rtype: list of lists
 
     Example usage:
-    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15)
-    """
+    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
+                                   separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) """
     
     if PY3K:
         if not checkAndImport('pathlib'):
@@ -640,8 +631,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
 
 
 def getChannelParameters(channels):
-    """
-    Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels.
+    """Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels.
 
     This function iterates through a list of channel objects, extracting the length, bottleneck, 
     and volume of each channel. These values are collected into separate lists, which are returned 
@@ -656,8 +646,7 @@ def getChannelParameters(channels):
     :rtype: tuple (list, list, list)
 
     Example usage:
-    lengths, bottlenecks, volumes = getChannelParameters(channels)
-    """
+    lengths, bottlenecks, volumes = getChannelParameters(channels) """
     
     lengths = []
     bottlenecks = []
@@ -671,8 +660,7 @@ def getChannelParameters(channels):
 
 
 def getChannelAtoms(channels, protein=None, num_samples=5):
-    """
-    Generates an AtomGroup object representing the atoms along the paths of the given channels
+    """Generates an AtomGroup object representing the atoms along the paths of the given channels
     and optionally combines them with an existing protein structure.
 
     This function takes a list of channel objects and generates atomic representations of the
@@ -699,8 +687,7 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
     :rtype: prody.atomic.AtomGroup
 
     Example usage:
-    atomic_structure = getChannelAtoms(channels, protein)
-    """
+    atomic_structure = getChannelAtoms(channels, protein) """
     
     if PY3K:
         import io
@@ -763,6 +750,7 @@ class Channel:
     def get_splines(self):
         return self.centerline_spline, self.radius_spline
     
+    
 class State:
     def __init__(self, simplices, neighbors, vertices):
         self.simp = simplices
@@ -807,6 +795,7 @@ class Cavity:
         
     def add_channel(self, channel):
         self.channels.append(channel)
+    
         
 class ChannelCalculator:
     def __init__(self, atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
