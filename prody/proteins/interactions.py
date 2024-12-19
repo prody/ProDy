@@ -1004,6 +1004,10 @@ def calcSaltBridges(atoms, **kwargs):
     distA = kwargs.pop('distA', distSB)
 
     atoms_KRED = atoms.select('protein and ((resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh) or (resname HIS HSE HSD HSP and name NE2))')
+    if atoms_KRED is None:
+        LOGGER.warn('There are no side chain heavy atoms for residues K, R, E, D and H, so not salt bridges are calculated')
+        return []
+
     charged_residues = list(set(zip(atoms_KRED.getResnums(), atoms_KRED.getChids())))
     
     LOGGER.info('Calculating salt bridges.')
