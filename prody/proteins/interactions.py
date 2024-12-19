@@ -3832,7 +3832,8 @@ def runDali(pdb, chain, **kwargs):
     :arg chain: chain identifier
     :type chain: str
 
-    :arg cutoff_len: Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1)
+    :arg cutoff_len: Length of aligned residues < cutoff_len
+            (must be an integer or a float between 0 and 1)
             See searchDali for more details 
             Default is 0.5
     :type cutoff_len: float
@@ -3841,6 +3842,18 @@ def runDali(pdb, chain, **kwargs):
             Default is 1.0
     :type cutoff_rmsd: float
     
+    :arg cutoff_Z: Z score cutoff (see searchDali)
+            Default is None
+    :type cutoff_Z: float
+
+    :arg cutoff_identity: RMSD cutoff (see searchDali)
+            Default is None
+    :type cutoff_identity: float
+
+    :arg stringency: stringency for Dali cutoffs (see searchDali)
+            Default is False
+    :type stringency: bool
+
     :arg subset_Dali: fullPDB, PDB25, PDB50, PDB90
             Default is 'fullPDB'
     :type subset_Dali: str    
@@ -3871,6 +3884,10 @@ def runDali(pdb, chain, **kwargs):
     
     cutoff_len = kwargs.pop('cutoff_len', 0.5)
     cutoff_rmsd = kwargs.pop('cutoff_rmsd', 1.0)
+    cutoff_Z = kwargs.pop('cutoff_Z', None)
+    cutoff_identity = kwargs.pop('cutoff_identity', None)
+    stringency = kwargs.pop('stringency', False)
+
     fixer = kwargs.pop('fixer', 'pdbfixer')
     subset_Dali = kwargs.pop('subset_Dali', 'fullPDB')
     subset = kwargs.pop('subset', 'ca')
@@ -3883,7 +3900,9 @@ def runDali(pdb, chain, **kwargs):
     while not dali_rec.isSuccess:
         dali_rec.fetch()
     
-    pdb_ids = dali_rec.filter(cutoff_len=cutoff_len, cutoff_rmsd=cutoff_rmsd)
+    pdb_ids = dali_rec.filter(cutoff_len=cutoff_len, cutoff_rmsd=cutoff_rmsd,
+                              cutoff_Z=cutoff_Z, cutoff_identity=cutoff_identity,
+                              stringency=stringency)
     pdb_hits = [ (i[:4], i[4:]) for i in pdb_ids ]
     
     list_pdbs = []
