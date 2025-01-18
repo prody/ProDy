@@ -716,7 +716,7 @@ for func in _[1:]:
     FUNCNAMES_OPLIST = FUNCNAMES_OPLIST | kwfunc
     FUNCNAMES_EXPR += ~kwfunc
 
-RE_SCHARS = re_compile('`[\w\W]*?`')
+RE_SCHARS = re_compile(r'`[\w\W]*?`')
 PP_SCHARS = pp.Regex(RE_SCHARS)
 
 
@@ -735,7 +735,7 @@ def specialCharsParseAction(sel, loc, token):
 PP_SCHARS.setParseAction(specialCharsParseAction)
 
 
-RE_REGEXP = re_compile('"[\w\W]*"')
+RE_REGEXP = re_compile(r'"[\w\W]*"')
 PP_REGEXP = pp.Regex(RE_REGEXP.pattern)
 
 
@@ -754,11 +754,11 @@ def regularExpParseAction(sel, loc, token):
 
 PP_REGEXP.setParseAction(regularExpParseAction)
 
-_ = '[-+]?\d+(\.\d*)?([eE]\d+)?'
+_ = r'[-+]?\d+(\.\d*)?([eE]\d+)?'
 RE_NRANGE = re_compile(_ + '\ *(to|:)\ *' + _)
 
 PP_NRANGE = pp.Group(pp.Regex(RE_NRANGE.pattern) +
-                     pp.Optional(pp.Regex('(\ *:\ *' + _ + ')')))
+                     pp.Optional(pp.Regex(r'(\ *:\ *' + _ + ')')))
 
 
 def rangeParseAction(sel, loc, tokens):
