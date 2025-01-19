@@ -755,11 +755,12 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     For example:
     pdb_files = [file for file in os.listdir('.') if file.startswith('7lafA_') and file.endswith('.pdb')]
     pdb_files = [file for file in os.listdir('.') if '5kbd' in file and file.endswith('.pdb')]
-    
+
     :arg atoms: an Atomic object from which residues are selected 
     :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
 
     :arg residue_sele: selection string
+                        for example: 'resid 377 and chain A', 'resid 10 to 20'
     :type residue_sele: str
     
     :arg folder_name: The name of the folder to which PDBs will be extracted
@@ -768,6 +769,16 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     :arg distA: non-zero value, maximal distance between donor and acceptor.
         default is 5
     :type distA: int, float """
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
     
     import os, shutil
     import numpy as np
@@ -790,7 +801,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         
             if sele_FIL is not None:
                 shutil.copy(i, folder_name)
-                LOGGER.info('Filtered files are now in: ', folder_name)
+                LOGGER.info("Filtered files are now in: {}".format(folder_name))
             else:
                 pass 
     
