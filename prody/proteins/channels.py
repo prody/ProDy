@@ -792,7 +792,8 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         pdb_files = [file for file in os.listdir('.') if file.endswith('.pdb')]
 
     residue_sele = atoms.select(residue_sele)
-    os.makedirs(folder_name, exist_ok=True)
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
 
     for i in pdb_files:
         channel = parsePDB(i)
