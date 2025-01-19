@@ -29,7 +29,8 @@ from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 
 
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
-           'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities']
+           'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
+           'selectChannelBySelection']
 
 
 
@@ -746,7 +747,52 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
 
     channels_atomic = convert_lines_to_atomic(pdb_lines)
     return channels_atomic
+
+def selectChannelBySelection(atoms, residue_sele, **kwargs):
+    """Select PDB files with channels that are having FIL residues within certain distance (distA) from 
+    selected residue (temporarly one residue).
+    If not all files should be included use pdb_files to provide the new list. 
+    For example:
+    pdb_files = [file for file in os.listdir('.') if file.startswith('7lafA_') and file.endswith('.pdb')]
+    pdb_files = [file for file in os.listdir('.') if '5kbd' in file and file.endswith('.pdb')]
     
+    :arg atoms: an Atomic object from which residues are selected 
+    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+
+    :arg residue_sele: selection string
+    :type residue_sele: str
+    
+    :arg folder_name: The name of the folder to which PDBs will be extracted
+    :type folder_name: str
+
+    :arg distA: non-zero value, maximal distance between donor and acceptor.
+        default is 5
+    :type distA: int, float """
+    
+    import os, shutil
+    import numpy as np
+    
+    pdb_files = kwargs.pop('pdb_files', False)
+    distA = kwargs.pop('distA', 5)
+    folder_name = kwargs.pop('folder_name', 'selected_files')
+    
+    if pdb_files == False:
+        # take all PDBs from the current dir
+        pdb_files = [file for file in os.listdir('.') if file.endswith('.pdb')]
+
+    residue_sele = atoms.select(residue_sele)
+    os.makedirs(folder_name, exist_ok=True)
+
+    for i in pdb_files:
+        channel = parsePDB(i)
+        if 'FIL' in np.unique(channel.getResnames()):
+            sele_FIL = channel.select('same residue as exwithin '+str(distA)+' of center', center=residue_sele.getCoords())
+        
+            if sele_FIL is not None:
+                shutil.copy(i, folder_name)
+                LOGGER.info('Filtered files are now in: ', folder_name)
+            else:
+                pass 
     
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
