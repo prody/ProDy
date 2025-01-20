@@ -28,6 +28,7 @@ jobs:
       run: |
         conda create --yes -n test python=${{ matrix.python-version }}
         source activate test
+        conda config --add channels conda-forge
         conda install --yes numpy scipy nose requests
         conda install --yes pdbfixer mdtraj
         pip install mmtf-python scikit-learn
