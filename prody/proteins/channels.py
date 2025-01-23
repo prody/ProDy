@@ -768,7 +768,15 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
 
     :arg distA: non-zero value, maximal distance between donor and acceptor.
         default is 5
-    :type distA: int, float """
+    :type distA: int, float 
+        
+    :arg residues_file: File with residues forming the channel created by getChannelResidues()
+        default is False 
+    :type residues_file: bool
+
+    :arg param_file: File with residues forming the channel created by getChannelParameters()
+        default is False
+    :type param_file: bool  """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -786,6 +794,9 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     pdb_files = kwargs.pop('pdb_files', False)
     distA = kwargs.pop('distA', 5)
     folder_name = kwargs.pop('folder_name', 'selected_files')
+    residues_file = kwargs.pop('residues_file', False)
+    param_file = kwargs.pop('param_file', False)
+    copied_files_list = []
     
     if pdb_files == False:
         # take all PDBs from the current dir
@@ -802,9 +813,48 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         
             if sele_FIL is not None:
                 shutil.copy(i, folder_name)
-                LOGGER.info("Filtered files are now in: {}".format(folder_name))
+                LOGGER.info('Filtered files are now in: {0}'.format(folder_name))
+                copied_files_list.append(i)
             else:
                 pass 
+
+    # Extract paramaters and/or residues with channel selection
+    if residues_file == True:
+        selected_residues = []
+        for file in copied_files_list:
+            try:
+                PDB_id, channel_name = file[:-4].split('_')
+                f = open(PDB_id+'_Residues_All_channels.txt', 'r').readlines()
+                for line in f:
+                    if line.startswith(channel_name+':'):
+                        new_line = file.split('_')[0]+'_'+line
+                        selected_residues.append(new_line)
+            except:
+                LOGGER.info('File {0} was not analyzed due to the lack of file or multiple channel file.'.format(file))
+                pass
+
+        with open('Selected_channel_residues.txt', 'w') as f_out:
+            f_out.writelines(selected_residues)
+
+    if param_file == True:
+        selected_param = []
+        for file in copied_files_list:
+            try:
+                PDB_id, channel_name = file[:-4].split('_')
+                f = open(PDB_id+'_Parameters_All_channels.txt', 'r').readlines()
+                for line in f:
+                    if line.startswith(file.split('_')[0]+'_'+channel_name+':'):
+                        selected_param.append(line)
+            except:
+                LOGGER.info('File {0} was not analyzed due to the lack of file or multiple channel file.'.format(file))
+                pass
+
+        with open('Selected_channel_parameters.txt', 'w') as f_out:
+            f_out.writelines(selected_param)
+
+    LOGGER.info('Selected files: ')
+    LOGGER.info(' '.join(copied_files_list))
+
     
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
