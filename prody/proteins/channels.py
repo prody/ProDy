@@ -30,7 +30,7 @@ from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
-           'selectChannelBySelection']
+           'selectChannelBySelection', 'getChannelResidueNames']
 
 
 
@@ -759,6 +759,83 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
 
     channels_atomic = convert_lines_to_atomic(pdb_lines)
     return channels_atomic
+
+
+def getChannelResidueNames(atoms, channels, **kwargs):
+    '''Provides the resnames and resid of residues that are forming the channel(s). Residues are extracted based on distA
+    which is the distance between FIL atoms (channel atoms) and protein residues.
+    Results could be save as txt file by providing the `residues_file_name` parameter.
+    
+    :arg atoms: an Atomic object from which residues are selected 
+    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+
+    :param channels: A list of channel objects. Each channel has a method `get_splines()` that
+        returns the centerline spline and radius spline of the channel.
+    :type channels: list
+
+    :arg distA: Residues will be provided based on this value.
+        default is 4 [Ang]
+    :type distA: int, float 
+    
+    :arg residues_file_name: The file with residues will be saved in a text file with the provided name.
+        Use one word which will be added to '_Residues_All_channels.txt' sufix.
+        If further analysis will be performed with selectChannelBySelection() function, the preferable 
+        residues_file_name is PDB+chain for example: '1bbhA'.
+    :type residues_file_name: str  '''
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    distA = kwargs.pop('distA', 4)
+    residues_file_name = kwargs.pop('residues_file_name', None) 
+    
+    if isinstance(channels, list):
+        # Multiple channels
+        selected_residues_ch = []
+    
+        for i, channel in enumerate(channels):
+            atoms_protein = getChannelAtoms(channel, atoms)
+            residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
+    
+            if residues is not None:
+                resnames = residues.select('name CA').getResnames()
+                resnums = residues.select('name CA').getResnums()
+                residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
+                residues_list = ", ".join(residues_info)
+                residues_list = 'channel'+str(i)+': '+residues_list
+                selected_residues_ch.append(residues_list)
+            else:
+                residues_list = "None"
+            
+    else:
+        # Single channel analysis in case someone provide channels[0]
+        atoms_protein = getChannelAtoms(channels, atoms)
+        residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
+        selected_residues_ch = []
+        
+        if residues is not None:
+            resnames = residues.select('name CA').getResnames()
+            resnums = residues.select('name CA').getResnums()
+            residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
+            residues_list = ", ".join(residues_info)
+            selected_residues_ch.append(residues_list)
+        else:
+            residues_list = "None"
+
+    if residues_file_name is not None:
+        with open(residues_file_name+'_Residues_All_channels.txt', "a") as f_res:
+            for k in selected_residues_ch:
+                f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
+                
+    return selected_residues_ch
+
 
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
     """Select PDB files with channels that are having FIL residues within certain distance (distA) from 
