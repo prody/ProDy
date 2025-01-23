@@ -641,7 +641,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     return channels_all, surfaces_all
 
 
-def getChannelParameters(channels):
+def getChannelParameters(channels, **kwargs):
     """Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels.
 
     This function iterates through a list of channel objects, extracting the length, bottleneck, 
@@ -653,6 +653,12 @@ def getChannelParameters(channels):
         (bottleneck) along its path, and the total volume of the channel, respectively.
     :type channels: list
 
+    :arg param_file_name: The files with parameters will be saved in a text file with the provided name.
+        Use one word which will be added to '_Parameters_All_channels.txt' sufix.
+        If further analysis will be performed with selectChannelBySelection() function, the preferable 
+        param_file_name is PDB+chain for example: '1bbhA'.
+    :type param_file_name: str 
+
     :returns: Three lists containing the lengths, bottlenecks, and volumes of the channels.
     :rtype: tuple (list, list, list)
 
@@ -662,11 +668,17 @@ def getChannelParameters(channels):
     lengths = []
     bottlenecks = []
     volumes = []
-    for channel in channels:
+    param_file_name = kwargs.pop('param_file_name', None)
+    
+    for nr_ch, channel in enumerate(channels):
         lengths.append(channel.length)
         bottlenecks.append(channel.bottleneck)
         volumes.append(channel.volume)
         
+        if param_file_name is not None:
+            with open(param_file_name+'_Parameters_All_channels.txt', "a") as f_par:
+                f_par.write(("{0}_channel{1}: {2} {3} {4}\n".format(param_file_name, nr_ch, channel.length, channel.bottleneck, channel.volume)))
+            
     return lengths, bottlenecks, volumes
 
 
