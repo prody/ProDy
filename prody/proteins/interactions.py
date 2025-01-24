@@ -4919,9 +4919,6 @@ class Interactions(object):
                     
         p = kwargs.pop('percentile', None)
         vmin = vmax = None
-        if p is not None:
-            vmin = np.percentile(matrix, p)
-            vmax = np.percentile(matrix, 100-p)
 
         vmin = kwargs.pop('vmin', vmin)
         vmax = kwargs.pop('vmax', vmax)
@@ -4961,7 +4958,11 @@ class Interactions(object):
             pplot(zeros_row, atoms=atoms.ca, **kwargs)
 
             ax.bar(ResList, matrix_en_sum, width, color='blue')
-            
+
+            if p is not None:
+                vmin = np.percentile(matrix_en_sum, p)
+                vmax = np.percentile(matrix_en_sum, 100-p)
+
             if vmin is None:
                 vmin = np.min(matrix_en_sum) * 1.2
 
