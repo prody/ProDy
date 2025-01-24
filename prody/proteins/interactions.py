@@ -19,7 +19,6 @@ __email__ = ['karolamik@fizyka.umk.pl', 'jamesmkrieger@gmail.com']
 from collections import Counter
 import multiprocessing as mp
 import numpy as np
-# from numpy import *
 
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atomic, sliceAtomicData
@@ -1245,10 +1244,16 @@ def calcPiStacking(atoms, **kwargs):
                                   [str(sele1.getResnames()[0])+str(sele1.getResnums()[0]), '_'.join(map(str,sele1.getIndices())), str(sele1.getChids()[0]),
                                    str(sele2.getResnames()[0])+str(sele2.getResnums()[0]), '_'.join(map(str,sele2.getIndices())), str(sele2.getChids()[0])]])
 
-    # create a process pool that uses all cpus
-    with mp.Pool() as pool:
-        # call the function for each item in parallel with multiple arguments
-        for result in pool.starmap(calcPiStacking_once, items):
+    if kwargs.get('parallel_piStacking', True):
+        # create a process pool that uses all cpus
+        with mp.Pool() as pool:
+            # call the function for each item in parallel with multiple arguments
+            for result in pool.starmap(calcPiStacking_once, items):
+                if result is not None:
+                    PiStack_calculations.append(result)
+    else:
+        for item in items:
+            result = calcPiStacking_once(*item)
             if result is not None:
                 PiStack_calculations.append(result)
     
@@ -5038,8 +5043,24 @@ class Interactions(object):
             plt.ylabel('Number of counts')
         
             return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
-      
-        
+
+def analyseFrame(atoms_copy, j0, frame0, kwargs):
+    kwargs['parallel_piStacking'] = False
+    LOGGER.info('Frame: {0}'.format(j0))
+    atoms_copy.setCoords(frame0.getCoords())
+    protein = atoms_copy.protein
+
+    hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
+    salt_bridges = calcSaltBridges(protein, **kwargs)
+    RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
+    Pi_stacking = calcPiStacking(protein, **kwargs)
+    Pi_cation = calcPiCation(protein, **kwargs)
+    hydrophobic = calcHydrophobic(protein, **kwargs)
+    Disulfide_Bonds = calcDisulfideBonds(protein, **kwargs)
+
+    return (hydrogen_bonds, salt_bridges, RepulsiveIonicBonding, 
+            Pi_stacking, Pi_cation, hydrophobic, Disulfide_Bonds)
+
 class InteractionsTrajectory(object):
 
     """Class for Interaction analysis of DCD trajectory or multi-model PDB (Ensemble PDB)."""
@@ -5127,8 +5148,8 @@ class InteractionsTrajectory(object):
         HPh_nb = []
         DiBs_nb = []
 
-        interactions_traj = [HBs_all, SBs_all, RIB_all, PiStack_all, PiCat_all, HPh_all, DiBs_all]
-        interactions_nb_traj = [HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb, DiBs_nb]
+        interactions_all = [HBs_all, SBs_all, RIB_all, PiStack_all, PiCat_all, HPh_all, DiBs_all]
+        interactions_nb = [HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb, DiBs_nb]
 
         start_frame = kwargs.pop('start_frame', 0)
         stop_frame = kwargs.pop('stop_frame', -1)
@@ -5148,94 +5169,121 @@ class InteractionsTrajectory(object):
             nfi = trajectory._nfi
             trajectory.reset()
 
-        if stop_frame == -1:
-            traj = trajectory[start_frame:]
-        else:
-            traj = trajectory[start_frame:stop_frame+1]
+        # if stop_frame == -1:
+        #     traj = trajectory[start_frame:]
+        # else:
+        #     traj = trajectory[start_frame:stop_frame+1]
 
         atoms_copy = atoms.copy()
-        protein = atoms_copy.protein
-
-        def analyseFrame(j0, frame0, interactions_all, interactions_nb, j0_list):
-            LOGGER.info('Frame: {0}'.format(j0))
-            atoms_copy.setCoords(frame0.getCoords())
-            
-            hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
-            salt_bridges = calcSaltBridges(protein, **kwargs)
-            RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
-            Pi_stacking = calcPiStacking(protein, **kwargs)
-            Pi_cation = calcPiCation(protein, **kwargs)
-            hydrophobic = calcHydrophobic(protein, **kwargs)
-            Disulfide_Bonds = calcDisulfideBonds(protein, **kwargs)
-
-            interactions_all[0].append(hydrogen_bonds)
-            interactions_all[1].append(salt_bridges)
-            interactions_all[2].append(RepulsiveIonicBonding)
-            interactions_all[3].append(Pi_stacking)
-            interactions_all[4].append(Pi_cation)
-            interactions_all[5].append(hydrophobic)
-            interactions_all[6].append(Disulfide_Bonds)
         
-            interactions_nb[0].append(len(hydrogen_bonds))
-            interactions_nb[1].append(len(salt_bridges))
-            interactions_nb[2].append(len(RepulsiveIonicBonding))
-            interactions_nb[3].append(len(Pi_stacking))
-            interactions_nb[4].append(len(Pi_cation))
-            interactions_nb[5].append(len(hydrophobic))
-            interactions_nb[6].append(len(Disulfide_Bonds))
 
-            j0_list.append(j0)
+            # interactions_all[0].append(hydrogen_bonds)
+            # interactions_all[1].append(salt_bridges)
+            # interactions_all[2].append(RepulsiveIonicBonding)
+            # interactions_all[3].append(Pi_stacking)
+            # interactions_all[4].append(Pi_cation)
+            # interactions_all[5].append(hydrophobic)
+            # interactions_all[6].append(Disulfide_Bonds)
+        
+            # interactions_nb[0].append(len(hydrogen_bonds))
+            # interactions_nb[1].append(len(salt_bridges))
+            # interactions_nb[2].append(len(RepulsiveIonicBonding))
+            # interactions_nb[3].append(len(Pi_stacking))
+            # interactions_nb[4].append(len(Pi_cation))
+            # interactions_nb[5].append(len(hydrophobic))
+            # interactions_nb[6].append(len(Disulfide_Bonds))
+
+        if stop_frame == -1:
+            items = list(enumerate(trajectory))[start_frame:]
+        else:
+            items = list(enumerate(trajectory))[start_frame:stop_frame+1]
+
+        items = [(atoms_copy, *item, kwargs) for item in items]
 
         if max_proc == 1:
-            interactions_all = []
-            interactions_all.extend(interactions_traj)
-            interactions_nb = []
-            interactions_nb.extend(interactions_nb_traj)
-            j0_list = []
-            for j0, frame0 in enumerate(traj, start=start_frame):
-                analyseFrame(j0, frame0, interactions_all, interactions_nb,
-                             j0_list)
+            for item in items:
+                results = analyseFrame(*item)
+
+                (hydrogen_bonds, salt_bridges, RepulsiveIonicBonding, 
+                 Pi_stacking, Pi_cation, hydrophobic, Disulfide_Bonds) = results
+
+                interactions_all[0].append(hydrogen_bonds)
+                interactions_all[1].append(salt_bridges)
+                interactions_all[2].append(RepulsiveIonicBonding)
+                interactions_all[3].append(Pi_stacking)
+                interactions_all[4].append(Pi_cation)
+                interactions_all[5].append(hydrophobic)
+                interactions_all[6].append(Disulfide_Bonds)
+            
+                interactions_nb[0].append(len(hydrogen_bonds))
+                interactions_nb[1].append(len(salt_bridges))
+                interactions_nb[2].append(len(RepulsiveIonicBonding))
+                interactions_nb[3].append(len(Pi_stacking))
+                interactions_nb[4].append(len(Pi_cation))
+                interactions_nb[5].append(len(hydrophobic))
+                interactions_nb[6].append(len(Disulfide_Bonds))
         else:
-            with mp.Manager() as manager:
-                interactions_all = manager.list()
-                interactions_all.extend([manager.list() for _ in interactions_traj])
+            with mp.Pool(max_proc) as pool:
+                for results in pool.starmap(analyseFrame, items):
+                    (hydrogen_bonds, salt_bridges, RepulsiveIonicBonding, 
+                    Pi_stacking, Pi_cation, hydrophobic, Disulfide_Bonds) = results
 
-                interactions_nb = manager.list()
-                interactions_nb.extend([manager.list() for _ in interactions_nb_traj])
+                    interactions_all[0].append(hydrogen_bonds)
+                    interactions_all[1].append(salt_bridges)
+                    interactions_all[2].append(RepulsiveIonicBonding)
+                    interactions_all[3].append(Pi_stacking)
+                    interactions_all[4].append(Pi_cation)
+                    interactions_all[5].append(hydrophobic)
+                    interactions_all[6].append(Disulfide_Bonds)
+                
+                    interactions_nb[0].append(len(hydrogen_bonds))
+                    interactions_nb[1].append(len(salt_bridges))
+                    interactions_nb[2].append(len(RepulsiveIonicBonding))
+                    interactions_nb[3].append(len(Pi_stacking))
+                    interactions_nb[4].append(len(Pi_cation))
+                    interactions_nb[5].append(len(hydrophobic))
+                    interactions_nb[6].append(len(Disulfide_Bonds))
 
-                j0 = start_frame
-                j0_list = manager.list()
-                while j0 < traj.numConfs()+start_frame:
+            # with mp.Manager() as manager:
+            #     interactions_all = manager.list()
+            #     interactions_all.extend([manager.list() for _ in interactions_traj])
 
-                    processes = []
-                    # pool = mp.Pool(max_proc)
-                    for _ in range(max_proc):
-                        frame0 = traj[j0-start_frame]
+            #     interactions_nb = manager.list()
+            #     interactions_nb.extend([manager.list() for _ in interactions_nb_traj])
+
+                # j0 = start_frame
+                # j0_list = manager.list()
+
+                # while j0 < traj.numConfs()+start_frame:
+                    
+            #         for _ in range(max_proc):
+            #             frame0 = traj[j0-start_frame]
                         
-                        p = mp.Process(target=analyseFrame, args=(j0, frame0,
-                                                                  interactions_all,
-                                                                  interactions_nb,
-                                                                  j0_list))
-                        p.start()
-                        processes.append(p)
+            #             # processes = pool.imap()
+            #             p = mp.Process(target=analyseFrame, args=(j0, frame0,
+            #                                                       interactions_all,
+            #                                                       interactions_nb,
+            #                                                       j0_list))
+            #             p.start()
+            #             processes.append(p)
 
-                        j0 += 1
-                        if j0 >= traj.numConfs()+start_frame:
-                            break
+            #             j0 += 1
+            #             if j0 >= traj.numConfs()+start_frame:
+            #                 break
 
-                    for p in processes:
-                        p.join()
+            #         for p in processes:
+            #             p.join()
 
-                interactions_all = [entry[:] for entry in interactions_all]
-                interactions_nb = [entry[:] for entry in interactions_nb]
-                j0_list = [entry for entry in j0_list]
+            #     interactions_all = [entry[:] for entry in interactions_all]
+            #     interactions_nb = [entry[:] for entry in interactions_nb]
+            #     j0_list = [entry for entry in j0_list]
 
-            ids = np.argsort(j0_list)
-            interactions_all = [list(np.array(interactions_type, dtype=object)[ids])
-                                     for interactions_type in interactions_all]
-            interactions_nb = [list(np.array(interactions_type, dtype=object)[ids])
-                                     for interactions_type in interactions_nb]
-        
+            # ids = np.argsort(j0_list)
+            # interactions_all = [list(np.array(interactions_type, dtype=object)[ids])
+            #                          for interactions_type in interactions_all]
+            # interactions_nb = [list(np.array(interactions_type, dtype=object)[ids])
+            #                          for interactions_type in interactions_nb]
+
         self._atoms = atoms
         self._traj = trajectory
         self._interactions_traj = interactions_all

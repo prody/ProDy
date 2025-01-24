@@ -54,6 +54,22 @@ class TestInteractions(unittest.TestCase):
                 assert_equal(self.data_all, self.ALL_INTERACTIONS,
                              'failed to get correct interactions with hpb.so from calculation')
 
+    def testAllInteractionsCalcSerial(self):
+        """Test for calculating all types of interactions."""
+
+        if prody.PY3K:
+            self.INTERACTIONS_ALL = InteractionsTrajectory()
+            self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS,
+                                                                                             stop_frame=13,
+                                                                                             max_proc=1))
+
+            try:
+                assert_equal(self.data_all, self.ALL_INTERACTIONS2,
+                             'failed to get correct interactions without hpb.so from calculation')
+            except AssertionError:
+                assert_equal(self.data_all, self.ALL_INTERACTIONS,
+                             'failed to get correct interactions with hpb.so from calculation')
+
     def testAllInteractionsSave(self):
         """Test for saving and loading all types of interactions."""
         if prody.PY3K:
