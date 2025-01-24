@@ -16,25 +16,22 @@ __author__ = 'Karolina Mikulska-Ruminska'
 __credits__ = ['James Krieger', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolamik@fizyka.umk.pl', 'jamesmkrieger@gmail.com']
 
-
-import numpy as np
-from numpy import *
-from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
-from prody.atomic import flags, sliceAtomicData
-from prody.utilities import importLA, checkCoords, showFigure, getCoords
-from prody.measure import calcDistance, calcAngle, calcCenter
-from prody.measure.contacts import findNeighbors
-from prody.proteins import writePDB, parsePDB
 from collections import Counter
-
-from prody.trajectory import TrajBase, Trajectory, Frame
-from prody.ensemble import Ensemble
-
 import multiprocessing as mp
-from .fixer import *
-from .compare import *
-from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
+import numpy as np
+# from numpy import *
+
+from prody import LOGGER, SETTINGS, PY3K
+from prody.atomic import AtomGroup, Atomic, sliceAtomicData
+from prody.ensemble import Ensemble
+from prody.measure import (calcDistance, calcAngle, calcCenter, 
+                           calcRMSD, superpose, findNeighbors)
+from prody.trajectory import Trajectory
+from prody.utilities import checkCoords, showFigure, getCoords
+
+from prody.proteins.compare import matchChains
+from prody.proteins.fixer import fixStructuresMissingAtoms
+from prody.proteins.pdbfile import writePDB, parsePDB
 
 
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
@@ -54,6 +51,9 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
            'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions']
 
+coords_error_string = 'coords must be an object with `getCoords` method'
+name_ca_string = 'name CA'
+protein_ca_selstr = 'protein and name CA'
 
 def cleanNumbers(listContacts):
     """Provide short list with indices and value of distance."""
@@ -73,9 +73,6 @@ def calcPlane(atoms):
     
     coordinates = getCoords(atoms)
     p1, p2, p3 = coordinates[:3] # 3 points will be enough to obtain the plane
-    x1, y1, z1 = p1
-    x2, y2, z2 = p2
-    x3, y3, z3 = p3    
     vec1 = p3 - p1 # These two vectors are in the plane
     vec2 = p2 - p1
     cp = np.cross(vec1, vec2) # the cross product is a vector normal to the plane
@@ -103,7 +100,7 @@ def removeDuplicates(list_of_interactions):
     ls=[]
     newList = []
     for no, i in enumerate(list_of_interactions):
-       i = sorted(list(array(i).astype(str)))
+       i = sorted(list(np.array(i).astype(str)))
        if i not in ls:
            ls.append(i)
            newList.append(list_of_interactions[no])
@@ -200,13 +197,13 @@ def get_energy(pair, source):
         'CYX': 'CYS',   # Cystine (disulfide bridge)
         'CYM': 'CYS',   # Deprotonated cysteine, anion
 
-        # Aspartic acid (Asp)
-        'ASH': 'ASP',   # Protonated Asp
+        # Protonated Aspartic acid (Asp)
+        'ASH': 'ASP',
         'ASPP': 'ASP',
 
-        # Glutamic acid (Glu)
-        'GLH': 'GLU',   # Protonated Glu
-        'GLUP': 'GLU',  # Protonated Glu
+        # Protonated Glutamic acid (Glu)
+        'GLH': 'GLU',
+        'GLUP': 'GLU',
 
         # Lysine (Lys)
         'LYN': 'LYS',   # Deprotonated lysine (neutral)
@@ -225,10 +222,6 @@ def get_energy(pair, source):
 
         # Tyrosine (Tyr)
         'PTR': 'TYR',   # Phosphorylated tyrosine (GROMACS/AMBER)
-
-        # Non-standard names for aspartic and glutamic acids in low pH environments
-        'ASH': 'ASP',   # Protonated Asp
-        'GLH': 'GLU',   # Protonated Glu
     }
     
     pair = [aa_correction.get(aa, aa) for aa in pair]    
@@ -274,14 +267,13 @@ def checkNonstandardResidues(atoms):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
     
     amino_acids = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLU", "GLN", "GLY", "HIS", "ILE", 
                    "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
 
-    aa_list = atoms.select('name CA').getResnames()
-    aa_list_nr = atoms.select('name CA').getResnums()
+    aa_list = atoms.select(name_ca_string).getResnames()
+    aa_list_nr = atoms.select(name_ca_string).getResnums()
     nonstandard = []
     
     for nr_i,i in enumerate(aa_list):
@@ -809,8 +801,7 @@ def calcHydrogenBonds(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
 
     if atoms.hydrogen is None:
         raise ValueError('atoms should have hydrogens to calculate hydrogen bonds. '
@@ -943,8 +934,7 @@ def calcChHydrogenBonds(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
 
     distA = kwargs.pop('distA', 3.5)
     angle = kwargs.pop('angle', 40)
@@ -997,13 +987,13 @@ def calcSaltBridges(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
     
     distSB = kwargs.pop('distSB', 5.)
     distA = kwargs.pop('distA', distSB)
 
-    atoms_KRED = atoms.select('protein and ((resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh) or (resname HIS HSE HSD HSP and name NE2))')
+    atoms_KRED = atoms.select('protein and ((resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh) '
+                              'or (resname HIS HSE HSD HSP and name NE2))')
     if atoms_KRED is None:
         LOGGER.warn('There are no side chain heavy atoms for residues K, R, E, D and H, so not salt bridges are calculated')
         return []
@@ -1030,9 +1020,12 @@ def calcSaltBridges(atoms, **kwargs):
                     distance = calcDistance(sele1_center,sele2_single.getCoords())
                 
                 if distance < distA and sele1.getNames()[0][0] != sele2_single.getNames()[0][0]:
-                    SaltBridges_list.append([sele1.getResnames()[0]+str(sele1.getResnums()[0]), sele1.getNames()[0]+'_'+'_'.join(map(str,sele1.getIndices())), sele1.getChids()[0],
-                                                  sele2_single.getResnames()[0]+str(sele2_single.getResnums()[0]), sele2_single.getNames()[0]+'_'+'_'.join(map(str,sele2_single.getIndices())), 
-                                                  sele2_single.getChids()[0], round(distance,4)])
+                    SaltBridges_list.append([sele1.getResnames()[0]+str(sele1.getResnums()[0]), 
+                                             sele1.getNames()[0]+'_'+'_'.join(map(str,sele1.getIndices())), 
+                                             sele1.getChids()[0],
+                                             sele2_single.getResnames()[0]+str(sele2_single.getResnums()[0]),
+                                             sele2_single.getNames()[0]+'_'+'_'.join(map(str,sele2_single.getIndices())),
+                                             sele2_single.getChids()[0], round(distance,4)])
     
     SaltBridges_list = sorted(SaltBridges_list, key=lambda x : x[-1])
     [ SaltBridges_list.remove(j) for i in SaltBridges_list for j in SaltBridges_list if Counter(i) == Counter(j) ]
@@ -1086,8 +1079,7 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
     
     distRB = kwargs.pop('distRB', 4.5)
     distA = kwargs.pop('distA', distRB)
@@ -1115,9 +1107,12 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
                     distance = calcDistance(sele1_center,sele2_single.getCoords())
                 
                 if distance < distA and sele1.getNames()[0][0] == sele2_single.getNames()[0][0] and distance > 0:
-                    RepulsiveIonicBonding_list.append([sele1.getResnames()[0]+str(sele1.getResnums()[0]), sele1.getNames()[0]+'_'+'_'.join(map(str,sele1.getIndices())), sele1.getChids()[0],
-                                                  sele2_single.getResnames()[0]+str(sele2_single.getResnums()[0]), sele2_single.getNames()[0]+'_'+'_'.join(map(str,sele2_single.getIndices())), 
-                                                  sele2_single.getChids()[0], round(distance,4)])
+                    RepulsiveIonicBonding_list.append([sele1.getResnames()[0]+str(sele1.getResnums()[0]), 
+                                                       sele1.getNames()[0]+'_'+'_'.join(map(str,sele1.getIndices())), 
+                                                       sele1.getChids()[0],
+                                                       sele2_single.getResnames()[0]+str(sele2_single.getResnums()[0]), 
+                                                       sele2_single.getNames()[0]+'_'+'_'.join(map(str,sele2_single.getIndices())),
+                                                       sele2_single.getChids()[0], round(distance,4)])
     
     [ RepulsiveIonicBonding_list.remove(j) for i in RepulsiveIonicBonding_list for j in RepulsiveIonicBonding_list if Counter(i) == Counter(j) ]
     RepulsiveIonicBonding_list = sorted(RepulsiveIonicBonding_list, key=lambda x : x[-1])
@@ -1201,8 +1196,7 @@ def calcPiStacking(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
 
     aromatic_dic = {'TRP':'noh and not backbone and not name CB NE1 CD1 CG',
                 'PHE':'noh and not backbone and not name CB',
@@ -1261,8 +1255,6 @@ def calcPiStacking(atoms, **kwargs):
     PiStack_calculations = sorted(PiStack_calculations, key=lambda x : x[-2])   
     PiStack_calculations_final = removeDuplicates(PiStack_calculations)
     
-    selection = kwargs.get('selection', None)
-    selection2 = kwargs.get('selection2', None)    
     sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
     PiStack_calculations_final2 = filterInteractions(PiStack_calculations_final, atoms, **sel_kwargs)
     
@@ -1323,8 +1315,7 @@ def calcPiCation(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
     
     aromatic_dic = {'TRP':'noh and not backbone and not name CB NE1 CD1 CG',
                 'PHE':'noh and not backbone and not name CB',
@@ -1377,6 +1368,10 @@ def calcPiCation(atoms, **kwargs):
     PiCation_calculations = sorted(PiCation_calculations, key=lambda x : x[-1]) 
     PiCation_calculations_final = removeDuplicates(PiCation_calculations)
     
+    
+    selection = kwargs.get('selection', None)
+    selection2 = kwargs.get('selection2', None)    
+
     selection = kwargs.get('selection', None)
     selection2 = kwargs.get('selection2', None)    
     sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
@@ -1439,8 +1434,7 @@ def calcHydrophobic(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
     
     distHph = kwargs.pop('distHph', 4.5)
     distA = kwargs.pop('distA', distHph)
@@ -1459,8 +1453,6 @@ def calcHydrophobic(atoms, **kwargs):
     for key, value in non_standard.items():
         hydrophobic_dic[key] = value
 
-    
-    Hydrophobic_list = []  
     # All residues, also non-standard will be included in the selection:
     residue_list = list(hydrophobic_dic.keys())
     atoms_hydrophobic = atoms.select('resname '+' '.join(residue_list))
@@ -1469,6 +1461,9 @@ def calcHydrophobic(atoms, **kwargs):
     if atoms.aromatic is None:
         return []
     
+    
+    aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
+
     aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
     aromatic = list(set(atoms.aromatic.getResnames()))
     
@@ -1533,6 +1528,10 @@ def calcHydrophobic(atoms, **kwargs):
                                                     minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
                                                     round(minDistancePair[-1],4)])                         
     
+    
+    selection = kwargs.get('selection', None)
+    selection2 = kwargs.get('selection2', None) 
+
     selection = kwargs.get('selection', None)
     selection2 = kwargs.get('selection2', None) 
     sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
@@ -1598,8 +1597,7 @@ def calcDisulfideBonds(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
     
     distDB = kwargs.pop('distDB', 3)
     distA = kwargs.pop('distA', distDB)
@@ -1678,8 +1676,7 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
     
     try:
         atoms_ions = atoms.select('ion and not name '+' '.join(excluded_ions)+' or (name '+' '.join(map(str,extraIons))+')')
@@ -1717,8 +1714,7 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')    
+            raise TypeError(coords_error_string)    
     
     interactions_all = []
     start_frame = kwargs.pop('start_frame', 0)
@@ -1742,7 +1738,6 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
         if isinstance(trajectory, Trajectory):
             nfi = trajectory._nfi
             trajectory.reset()
-        numFrames = trajectory._n_csets
         
         if stop_frame == -1:
             traj = trajectory[start_frame:]
@@ -1867,8 +1862,7 @@ def calcProteinInteractions(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
 
     LOGGER.info('Calculating interations.') 
     HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in counting
@@ -2315,10 +2309,12 @@ def showInteractionsGraph(statistics, **kwargs):
     code = kwargs.pop('code', None)
     if code is None:
         code = '3-letter'
-    elif isinstance(code, str):
-        code = code
-    elif isinstance(code, int):
-        raise TypeError('code must be 3-letter or 1-letter')
+
+    if not isinstance(code, str):
+        raise TypeError('code must be a string')
+    
+    if code not in ['3-letter', '1-letter']:
+        raise ValueError('code must be 3-letter or 1-letter')
 
     edge_cmap = kwargs.pop('edge_cmap', plt.cm.Blues)
     node_size = kwargs.pop('node_size', 300)
@@ -2516,9 +2512,8 @@ def calcStatisticsInteractions(data, **kwargs):
             try:
                 LOGGER.info("  Energy [{0}]: {1}".format(unit, value['energy']))
                 statistic.append([key, value['weight'], value['mean'], value['stddev'], value['energy']])
-            except:
+            except KeyError:
                 statistic.append([key, value['weight'], value['mean'], value['stddev']])
-        else: pass
     
     statistic.sort(key=lambda x: x[1], reverse=True)
     
@@ -2545,7 +2540,6 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
         'distance' or 'angle' depends on the type of interaction
     :type metrics: str
     """
-    import matplotlib
     import matplotlib.pyplot as plt
     metrics = kwargs.pop('metrics', 'distance')
     
@@ -2561,9 +2555,7 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
         additional_residues = list(set(additional_residues))
         additional_residues.remove(residue1)
         
-        if (additional_residues) == []:
-            pass
-        else:
+        if len(additional_residues) > 0:
             LOGGER.info('Possible contacts for '+residue1+':')
             for i in additional_residues:
                 LOGGER.info(i)
@@ -2597,9 +2589,7 @@ def calcDistribution(interactions, residue1, residue2=None, **kwargs):
         additional_residues.remove(residue1)
         additional_residues.remove(residue2)
 
-        if (additional_residues) == []:
-            pass
-        else:
+        if len(additional_residues) > 0:
             LOGGER.info('Additional contacts for '+residue1+':')
             for i in additional_residues:
                 LOGGER.info(i)
@@ -2630,8 +2620,7 @@ def saveInteractionsAsDummyAtoms(atoms, interactions, filename, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
                             
     RESNAME_dummy = kwargs.pop('RESNAME_dummy', 'DUM')
     
@@ -2670,7 +2659,7 @@ def saveInteractionsAsDummyAtoms(atoms, interactions, filename, **kwargs):
     else:
         LOGGER.info('Creating file with dummy atoms')
         dummyAtoms = AtomGroup()
-        coords = array([all_DUMs], dtype=float)
+        coords = np.array([all_DUMs], dtype=float)
         dummyAtoms.setCoords(coords)
         dummyAtoms.setNames([RESNAME_dummy]*len(dummyAtoms))
         dummyAtoms.setResnums(range(1, len(dummyAtoms)+1))
@@ -2785,8 +2774,7 @@ def calcLigandInteractions(atoms, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
     try:
         from plip.structure.preparation import PDBComplex
 
@@ -2876,16 +2864,13 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
 
     if not isinstance(interactions, list):
         raise TypeError('interactions must be a list of interactions.')
     
-    try:
-        filename = kwargs['filename']
-    except:
-        filename = atoms.getTitle()+'_interaction.tcl'
+    filename = kwargs.get('filename', 
+                          atoms.getTitle()+'_interaction.tcl')
     
     tcl_file = open(filename, 'w') 
     
@@ -2973,8 +2958,7 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
 
     if not isinstance(interactions, list):
         raise TypeError('interactions must be a list of interactions.')
@@ -3103,7 +3087,6 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
 
     import tempfile
     import subprocess
-    import re
 
     if isinstance(atoms, LigandInteractionsTrajectory):
         atoms = atoms._atoms
@@ -3116,8 +3099,7 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
 
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
@@ -3255,8 +3237,7 @@ def calcSminaPerAtomInteractions(atoms, list_terms):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError(coords_error_string)
     
     if not isinstance(list_terms, list):
         raise TypeError('list_terms must be a list of text files with per-atom interaction term values.')
@@ -3325,7 +3306,7 @@ def showSminaTermValues(data):
     term_values = calcSminaTermValues(data)
     non_zero_values = {key: [v for v in value if v != 0] for key, value in term_values.items()}
 
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     colors = ['blue', 'orange', 'red', 'green', 'purple', 'silver', 'cyan', 'magenta', 'yellow']
     alpha = 0.5
 
@@ -4073,9 +4054,12 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
                     LOGGER.info(file)
                     atoms = parsePDB(file)
                     interactions = func(atoms.select('protein'))
-                    saveInteractionsAsDummyAtoms(atoms, interactions, filename=file.rstrip(file.split('/')[-1])+'INT_'+bond_type+'_'+file.split('/')[-1])
-                except: pass
-        
+                    saveInteractionsAsDummyAtoms(atoms, interactions, 
+                                                 filename=file.rstrip(file.split('/')[-1])+'INT_'\
+                                                    +bond_type+'_'+file.split('/')[-1])
+                except:
+                    LOGGER.warn('Some problem for {0}'.format(file))
+
     if mapping_file:
         # for MSA file (Foldseek)
         n_per_plot = kwargs.pop('n_per_plot', None)
@@ -4097,7 +4081,7 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
                 log_message("No valid {} entries found, skipping further processing.".format(bond_type), "WARNING")
                 continue
 
-            result, fixed_files = result
+            result, fixed_files = result # TODO: return these results to a variable, not just files
 
             # Proceed with plotting
             plot_barh(result, bond_type, n_per_plot=n_per_plot, min_height=min_height)
@@ -4122,7 +4106,6 @@ class Interactions(object):
         self._piCat = None
         self._hps = None
         self._dibs = None
-        #super(Interactions, self).__init__(name)
 
 
     def setTitle(self, title):
@@ -4151,8 +4134,7 @@ class Interactions(object):
             try:
                 checkCoords(coords)
             except TypeError:
-                raise TypeError('coords must be an object '
-                                'with `getCoords` method')
+                raise TypeError(coords_error_string)
 
         LOGGER.info('Calculating interations.') 
         HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in scoring
@@ -4488,39 +4470,26 @@ class Interactions(object):
         interactions = self._interactions
         
         LOGGER.info('Calculating interaction matrix')
-        InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
-        resIDs = list(atoms.select('name CA').getResnums())
-        resChIDs = list(atoms.select('name CA').getChids())
+        InteractionsMap = np.zeros([atoms.select(name_ca_string).numAtoms(),atoms.select(name_ca_string).numAtoms()])
+        resIDs = list(atoms.select(name_ca_string).getResnums())
+        resChIDs = list(atoms.select(name_ca_string).getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
         
-        dic_interactions = {'HBs':'Hydrogen Bonds', 'SBs':'Salt Bridges', 'RIB':'Repulsive Ionic Bonding', 
-        'PiStack':'Pi-stacking interactions', 'PiCat':'Pi-cation interactions', 'HPh':'Hydrophobic interactions',
-        'DiBs':'Disulfide Bonds'}
+        dic_interactions = {'HBs':'Hydrogen Bonds', 'SBs':'Salt Bridges', 'RIB':'Repulsive Ionic Bonding',
+                            'PiStack':'Pi-stacking interactions', 'PiCat':'Pi-cation interactions', 
+                            'HPh':'Hydrophobic interactions', 'DiBs':'Disulfide Bonds'}
 
-        if not 'HBs' in kwargs:
-            kwargs['HBs'] = 1
-        if not 'SBs' in kwargs:
-            kwargs['SBs'] = 1
-        if not 'RIB' in kwargs:
-            kwargs['RIB'] = 1
-        if not 'PiStack' in kwargs:
-            kwargs['PiStack'] = 1
-        if not 'PiCat' in kwargs:
-            kwargs['PiCat'] = 1
-        if not 'HPh' in kwargs:
-            kwargs['HPh'] = 1            
-        if not 'DiBs' in kwargs:
-            kwargs['DiBs'] = 1            
-        
-        scoring = [kwargs['HBs'], kwargs['SBs'], kwargs['RIB'], kwargs['PiStack'], kwargs['PiCat'], kwargs['HPh'], kwargs['DiBs']]        
+        for key in dic_interactions.keys():
+            kwargs[key] = kwargs.get(key, 1)        
 
-        if all(x in [0, 1] for x in scoring):
-            pass
-        else:
+        scoring = [kwargs['HBs'], kwargs['SBs'], kwargs['RIB'], kwargs['PiStack'], kwargs['PiCat'], 
+                   kwargs['HPh'], kwargs['DiBs']]        
+
+        if not all(x in [0, 1] for x in scoring):
             LOGGER.info('Following scores will be used:')        
             for key,value in kwargs.items(): 
                 LOGGER.info('{0} = {1}'.format(dic_interactions[key], value))
-        
+
         for nr_i,i in enumerate(interactions):
             if i != []:
                 for ii in i: 
@@ -4557,9 +4526,9 @@ class Interactions(object):
         energy_list_type = kwargs.pop('energy_list_type', 'IB_solv')
 
         LOGGER.info('Calculating interaction energies matrix with type {0}'.format(energy_list_type))
-        InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
-        resIDs = list(atoms.select('name CA').getResnums())
-        resChIDs = list(atoms.select('name CA').getChids())
+        InteractionsMap = np.zeros([atoms.select(name_ca_string).numAtoms(),atoms.select(name_ca_string).numAtoms()])
+        resIDs = list(atoms.select(name_ca_string).getResnums())
+        resChIDs = list(atoms.select(name_ca_string).getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
             
         for i in interactions:
@@ -4593,16 +4562,16 @@ class Interactions(object):
         atoms = self._atoms 
         
         freq_contacts_residues = np.sum(interaction_matrix, axis=0)
-        ResNumb = atoms.select('protein and name CA').getResnums()
-        ResName = atoms.select('protein and name CA').getResnames()
-        ResChid = atoms.select('protein and name CA').getChids()
+        ResNumb = atoms.select(protein_ca_selstr).getResnums()
+        ResName = atoms.select(protein_ca_selstr).getResnames()
+        ResChid = atoms.select(protein_ca_selstr).getChids()
 
         ResList = [ i[0]+str(i[1])+i[2] for i in list(zip(ResName, ResNumb, ResChid)) ]
         
         if SETTINGS['auto_show']:
             matplotlib.rcParams['font.size'] = '20' 
-            fig = plt.figure(num=None, figsize=(12,6), facecolor='w')
-        show = showAtomicLines(freq_contacts_residues, atoms=atoms.select('name CA'), **kwargs)
+            plt.figure(num=None, figsize=(12,6), facecolor='w')
+        show = showAtomicLines(freq_contacts_residues, atoms=atoms.select(name_ca_string), **kwargs)
         plt.ylabel('Score of interactions')
         plt.xlabel('Residue')
         plt.tight_layout()
@@ -4642,7 +4611,7 @@ class Interactions(object):
         atoms = atoms.select("protein and noh")
         lista_ext = []
         aa_counter = Counter(atoms.getResindices())
-        calphas = atoms.select('name CA')
+        calphas = atoms.select(name_ca_string)
         
         for i in range(calphas.numAtoms()):
             if energy == True:
@@ -4653,13 +4622,9 @@ class Interactions(object):
                 lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])        
 
         kw = {'occupancy': lista_ext}
-        if 'filename' in kwargs:
-            writePDB(kwargs['filename'], atoms, **kw)
-            LOGGER.info('PDB file saved.')
-        else:
-            writePDB('filename', atoms, **kw)
-            LOGGER.info('PDB file saved.')
-
+        filename = kwargs.get('filename', 'filename')
+        writePDB(filename, atoms, **kw)
+        LOGGER.info('PDB file saved.')
     
     def getInteractors(self, residue_name):
         """ Provide information about interactions for a particular residue
@@ -4672,9 +4637,9 @@ class Interactions(object):
         atoms = self._atoms   
         interactions = self._interactions
         
-        InteractionsMap = np.empty([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()], dtype=object)
-        resIDs = list(atoms.select('name CA').getResnums())
-        resChIDs = list(atoms.select('name CA').getChids())
+        InteractionsMap = np.empty([atoms.select(name_ca_string).numAtoms(),atoms.select(name_ca_string).numAtoms()], dtype=object)
+        resIDs = list(atoms.select(name_ca_string).getResnums())
+        resChIDs = list(atoms.select(name_ca_string).getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
         interaction_type = ['hb','sb','rb','ps','pc','hp','dibs']
         ListOfInteractions = []
@@ -4714,9 +4679,9 @@ class Interactions(object):
         atoms = self._atoms   
         interactions = self._interactions
         
-        InteractionsMap = np.empty([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()], dtype=object)
-        resIDs = list(atoms.select('name CA').getResnums())
-        resChIDs = list(atoms.select('name CA').getChids())
+        InteractionsMap = np.empty([atoms.select(name_ca_string).numAtoms(),atoms.select(name_ca_string).numAtoms()], dtype=object)
+        resIDs = list(atoms.select(name_ca_string).getResnums())
+        resChIDs = list(atoms.select(name_ca_string).getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
         interaction_type = ['hb','sb','rb','ps','pc','hp','dibs']
 
@@ -4762,13 +4727,7 @@ class Interactions(object):
 
         LOGGER.info('\nLegend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
                              '\npc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
-        
-        try:
-            from toolz.curried import count
-        except ImportError:
-            LOGGER.warn('This function requires the module toolz')
-            return
-        
+
         return ListOfInteractions_list2
         
 
@@ -4803,9 +4762,9 @@ class Interactions(object):
             aa_dict[key] = value
 
         freq_contacts_residues = np.sum(interaction_matrix, axis=0)
-        ResNumb = atoms.select('protein and name CA').getResnums()
-        ResName = atoms.select('protein and name CA').getResnames()
-        ResChid = atoms.select('protein and name CA').getChids()
+        ResNumb = atoms.select(protein_ca_selstr).getResnums()
+        ResName = atoms.select(protein_ca_selstr).getResnames()
+        ResChid = atoms.select(protein_ca_selstr).getChids()
         ResList = [ i[0]+str(i[1])+i[2] for i in list(zip(ResName, ResNumb, ResChid)) ]
 
         all_y = [ aa_dic[i[:3]]+i[3:] for i in  ResList]
@@ -4822,10 +4781,10 @@ class Interactions(object):
 
         if SETTINGS['auto_show']:
             matplotlib.rcParams['font.size'] = '12' 
-            fig = plt.figure(num=None, figsize=(16,5), facecolor='w')
+            plt.figure(num=None, figsize=(16,5), facecolor='w')
         
         y_pos = np.arange(len(y))
-        show = plt.bar(y_pos, x, align='center', alpha=0.5, color='blue')
+        plt.bar(y_pos, x, align='center', alpha=0.5, color='blue')
         plt.xticks(y_pos, y, rotation=45, fontsize=16)
         plt.ylabel('Number of interactions', fontsize=16)
         plt.tight_layout()
@@ -4927,9 +4886,9 @@ class Interactions(object):
         if selstr is not None:
             atoms = atoms.select(selstr)
 
-        ResNumb = atoms.select('protein and name CA').getResnums()
-        ResName = atoms.select('protein and name CA').getResnames()
-        ResChid = atoms.select('protein and name CA').getChids()
+        ResNumb = atoms.select(protein_ca_selstr).getResnums()
+        ResName = atoms.select(protein_ca_selstr).getResnames()
+        ResChid = atoms.select(protein_ca_selstr).getChids()
         ResList = [ i[0]+str(i[1])+i[2] for i in list(zip([ aa_dic[i] for i in ResName ], ResNumb, ResChid)) ]
         
         if energy == True:
@@ -5150,8 +5109,7 @@ class InteractionsTrajectory(object):
             try:
                 checkCoords(coords)
             except TypeError:
-                raise TypeError('coords must be an object '
-                                'with `getCoords` method')
+                raise TypeError(coords_error_string)
 
         HBs_all = []
         SBs_all = []
@@ -5189,7 +5147,6 @@ class InteractionsTrajectory(object):
         if isinstance(trajectory, Trajectory):
             nfi = trajectory._nfi
             trajectory.reset()
-        numFrames = trajectory._n_csets
 
         if stop_frame == -1:
             traj = trajectory[start_frame:]
@@ -5251,6 +5208,7 @@ class InteractionsTrajectory(object):
                 while j0 < traj.numConfs()+start_frame:
 
                     processes = []
+                    # pool = mp.Pool(max_proc)
                     for _ in range(max_proc):
                         frame0 = traj[j0-start_frame]
                         
@@ -5787,8 +5745,7 @@ class LigandInteractionsTrajectory(object):
             try:
                 checkCoords(coords)
             except TypeError:
-                raise TypeError('coords must be an object '
-                                'with `getCoords` method')
+                raise TypeError(coords_error_string)
         
         interactions_all = []
         interactions_all_nb = []
@@ -6100,7 +6057,7 @@ class LigandInteractionsTrajectory(object):
         ligand_occupancy = np.zeros(len(ligands.getResnums()))
         
         aa_counter = Counter(atoms.getResindices())
-        calphas = atoms.select('name CA')
+        calphas = atoms.select(name_ca_string)
         for i in range(calphas.numAtoms()):
             # in PDB values are normalized to 100 (max value)
             lista_ext.extend(list(aa_counter.values())[i]*[round((freq_contacts_list[i]/np.max(freq_contacts_list)*100), 8)])
