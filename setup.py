@@ -1,13 +1,12 @@
 import os
-import sys
-import platform
-from os import sep as dirsep
 from os.path import isfile, join
+import platform
 
 from setuptools import setup
 from setuptools import Extension
 
 import shutil
+import sys
 
 if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
@@ -102,10 +101,11 @@ hpbSoDir = join('prody', 'proteins', 'hpbmodule',
                                            sys.version_info[1]))
 proteinsDir = join('prody', 'proteins')
 
-try:
-    shutil.copy(hpbSoDir + "/hpb.so", proteinsDir)
-except FileNotFoundError:
-    pass
+if not os.path.exists(join(proteinsDir, 'hpb.so')):
+    try:
+        shutil.copy(hpbSoDir + "/hpb.so", proteinsDir)
+    except FileNotFoundError:
+        pass
 
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
@@ -136,13 +136,6 @@ if platform.system() == 'Darwin':
     os.environ['CXX'] = 'clang++'
     #extra_compile_args.append('-stdlib=libc++')
 
-
-# extra compilation of reg_tet.f (hpb):
-# import subprocess
-# subprocess.call(['gfortran', '-O3', '-fPIC', '-c',
-#                  join('prody', 'proteins', 'hpbmodule', 'reg_tet.f'),
-#                  '-o', join('prody', 'proteins', 'hpbmodule', 'reg_tet.o')])
-
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
@@ -151,12 +144,6 @@ CONTRIBUTED = [
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
               include_dirs=[tntDir], language='c++'),
-    #Extension('prody.proteins.hpb',
-    #          [join('prody', 'proteins', 'hpbmodule', 'reg_tet.c')],
-    #          include_dirs=[hpbDir], language='c++',
-    #          extra_compile_args=['-O3', '-fPIC'],
-    #          extra_objects=[join(hpbDir, 'libf2c', 'libf2c.a')]
-    #          )
 ]
 
 for ext in CONTRIBUTED:
