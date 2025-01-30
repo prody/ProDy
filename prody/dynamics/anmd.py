@@ -38,12 +38,13 @@ from prody.dynamics.clustenm import ClustENM
 from prody.dynamics.editing import extendModel
 from prody.dynamics.modeset import ModeSet
 from prody.dynamics.nma import NMA
+from prody.dynamics.pca import PCA
 from prody.dynamics.sampling import traverseMode
 
 
 __all__ = ['runANMD']
 
-def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
+def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=5, tolerance=10.0,
             **kwargs):
     """Runs the ANMD hybrid simulation method ([CM22]_), which generates conformations
     along single modes using :func:`.traverseModes` and minimises them. 
@@ -67,7 +68,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
     :type max_rmsd: float
 
     :arg num_steps: number of conformers in each direction for each mode
-        Default is 2
+        Default is 5
     :type num_steps: int
 
     :arg tolerance: tolerance for energy minimisation in OpenMM 
@@ -177,6 +178,12 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=2, tolerance=10.0,
         anm=ANM()
         anm.buildHessian(calphas)
         anm.calcModes(n_modes=num_modes)
+    elif isinstance(anm, PCA):
+        eigvecs = anm.getEigvecs()
+        eigvals = 1/anm.getEigvals()
+        anm = ANM()
+        anm.setEigens(eigvecs, eigvals)
+
     anm_ex, atoms_all = extendModel(anm, calphas, pdb_fixed)
     anm_ex._indices = anm.getIndices()
     eval_0=anm[0].getEigval()
