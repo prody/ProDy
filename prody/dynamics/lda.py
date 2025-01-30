@@ -46,7 +46,7 @@ class LDA(NMA):
         :arg n_shuffles: number of random shuffles of labels to assess variability
         :type n_shuffles: int
 
-        Other kwargs for the LDA class can also be used. n_components defaults to n_modes
+        Other kwargs for the LinearDiscriminantAnalysis class can also be used. n_components defaults to n_modes
         """
         try:
             from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
@@ -96,7 +96,6 @@ class LDA(NMA):
         self._eigvals = values
         self._n_modes = len(self._eigvals)
         self._vars = values
-        self._n_modes = len(self._eigvals)
 
         self._array = np.array([self._lda.scalings_[:,i]/(self._lda.scalings_[:,i]**2).sum()**0.5 
                                 for i in range(self._n_modes)]).T
@@ -119,17 +118,25 @@ class LDA(NMA):
             
         self._shuffled_ldas = [LDA('shuffle '+str(n)) for n in range(self._n_shuffles)]
         self._coordsets_reshaped = self._coordsets.reshape(self._coordsets.shape[0], self._n_atoms, -1)
-        labelsNew = self._labels.copy()
-        for n in range(self._n_shuffles):
+
+        n = 0
+        while n < self._n_shuffles:
+            labelsNew = self._labels.copy()
             # use random generator with None, 
             # then fresh, unpredictable entropy will be pulled from the OS
-            rng = np.random.default_rng() 
+            rng = np.random.default_rng()
             rng.shuffle(labelsNew) # in place
+
             self._shuffled_ldas[n].calcModes(self._coordsets_reshaped, 
                                              labelsNew, quiet=True)
             
-        self._shuffled_ldas = np.array(self._shuffled_ldas)
-        self._shuffled_ldas = self._shuffled_ldas.flatten()
+            if np.allclose(abs(np.dot(self._shuffled_ldas[n].getEigvecs()[0],
+                                      self.getEigvecs()[0])), 
+                           1):
+                # LDA has flipped direction as labels match or are exactly flipped
+                continue
+            
+            n += 1
 
         if self._n_shuffles > 0 and not quiet:
             if self._n_modes > 1:
@@ -161,5 +168,8 @@ class LDA(NMA):
     def getShuffledEigvecs(self):
         return np.array([lda.getEigvecs() for lda in self._shuffled_ldas])
 
-    def getShuffledPercentile(self, percentile):
-        return np.percentile(self.getShuffledEigvecs(), percentile)
+    def getShuffledPercentile(self, percentile, take_abs=True):
+        shuffles = self.getShuffledEigvecs()
+        if take_abs:
+            shuffles = abs(shuffles)
+        return np.percentile(shuffles, percentile)
