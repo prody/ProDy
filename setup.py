@@ -86,8 +86,10 @@ PACKAGE_DATA = {
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
                     'datafiles/msa*',
-                    'datafiles/mmcif*cif',],
-    'prody.proteins': ['tabulated_energies.txt'],
+                    'datafiles/mmcif*cif',
+                    'datafiles/*.mmtf'],
+    'prody.proteins': ['tabulated_energies.txt',
+                       'hpb.so'],
 }
 
 PACKAGE_DIR = {}
