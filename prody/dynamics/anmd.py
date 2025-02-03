@@ -38,6 +38,7 @@ from prody.dynamics.clustenm import ClustENM
 from prody.dynamics.editing import extendModel
 from prody.dynamics.modeset import ModeSet
 from prody.dynamics.nma import NMA
+from prody.dynamics.pca import PCA
 from prody.dynamics.sampling import traverseMode
 
 
@@ -177,6 +178,12 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=5, tolerance=10.0,
         anm=ANM()
         anm.buildHessian(calphas)
         anm.calcModes(n_modes=num_modes)
+    elif isinstance(anm, PCA):
+        eigvecs = anm.getEigvecs()
+        eigvals = 1/anm.getEigvals()
+        anm = ANM()
+        anm.setEigens(eigvecs, eigvals)
+
     anm_ex, atoms_all = extendModel(anm, calphas, pdb_fixed)
     anm_ex._indices = anm.getIndices()
     eval_0=anm[0].getEigval()

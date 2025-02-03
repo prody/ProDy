@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["2.7", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v2
@@ -26,11 +26,11 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        if [[ ${{ matrix.python-version }} != "2.7" ]]; then conda config --add channels conda-forge; fi
         conda create --yes -n test python=${{ matrix.python-version }}
         source activate test
+        conda config --add channels conda-forge
         conda install --yes numpy scipy nose requests
-        if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; else conda install --yes pdbfixer mdtraj; fi
+        conda install --yes pdbfixer mdtraj
         conda install -c bioconda clustalw
         pip install mmtf-python scikit-learn
         pip install .

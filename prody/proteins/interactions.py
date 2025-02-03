@@ -31,7 +31,7 @@ from collections import Counter
 from prody.trajectory import TrajBase, Trajectory, Frame
 from prody.ensemble import Ensemble
 
-import multiprocessing
+import multiprocessing as mp
 from .fixer import *
 from .compare import *
 from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
@@ -47,7 +47,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcSASA', 'calcVolume','compareInteractions', 'showInteractionsGraph',
            'showInteractionsHist', 'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
-           'calcHydrogenBondsTrajectory', 'calcHydrophobicOverlapingAreas',
+           'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
@@ -127,33 +127,51 @@ def get_permutation_from_dic(dictionary, key):
 
 
 def filterInteractions(list_of_interactions, atoms, **kwargs):
-    """Return interactions based on selection."""
+    """Return interactions based on *selection* and *selection2*."""
     
+    if 'selection1' in kwargs:
+        kwargs['selection'] = kwargs['selection1']
+
     if 'selection' in kwargs:
+        selection = atoms.select(kwargs['selection'])
+        if selection is None:
+            LOGGER.warn('selection did not work, so no filtering is performed')
+            return list_of_interactions
+
+        ch1 = selection.getChids()
+        x1 = selection.getResnames()
+        y1 = selection.getResnums()
+        listOfselection = np.unique(list(map(lambda x1, y1, ch1: (ch1, x1 + str(y1)),
+                                             x1, y1, ch1)),
+                                    axis=0)
+        listOfselection = [list(i) for i in listOfselection] # needed for in check to work
+
         if 'selection2' in kwargs:
-            if not 'chid' in kwargs['selection'] and not 'chain' in kwargs['selection']:
-                LOGGER.warn('selection does not include chid or chain, so no filtering is performed')
+            selection2 = atoms.select(kwargs['selection2'])
+            if selection2 is None:
+                LOGGER.warn('selection2 did not work, so no filtering is performed')
                 return list_of_interactions
+            
+            ch2 = selection2.getChids()
+            x2 = selection2.getResnames()
+            y2 = selection2.getResnums()
+            listOfselection2 = np.unique(list(map(lambda x2, y2, ch2: (ch2, x2 + str(y2)),
+                                                  x2, y2, ch2)),
+                                         axis=0)
+            listOfselection2 = [list(i) for i in listOfselection2] # needed for in check to work
 
-            if not 'chid' in kwargs['selection2'] and not 'chain' in kwargs['selection2']:
-                LOGGER.warn('selection2 does not include chid or chain, so no filtering is performed')
-                return list_of_interactions
-
-            ch1 = kwargs['selection'].split()[-1] 
-            ch2 = kwargs['selection2'].split()[-1] 
-            final = [i for i in list_of_interactions if (i[2] == ch1 and i[5] == ch2) or (i[5] == ch1 and i[2] == ch2)]
+            final = [i for i in list_of_interactions if (([i[2], i[0]] in listOfselection)
+                                                         and ([i[5], i[3]] in listOfselection2)
+                                                         or ([i[2], i[0]] in listOfselection2)
+                                                         and ([i[5], i[3]] in listOfselection))]
         else:
-            p = atoms.select('same residue as protein within 10 of ('+kwargs['selection']+')')
-            if p is None:
-                LOGGER.warn('selection did not work, so no filtering is performed')
-                return list_of_interactions
+            final = [i for i in list_of_interactions
+                     if (([i[2], i[0]] in listOfselection)
+                         or ([i[5], i[3]] in listOfselection))]
 
-            x = p.select(kwargs['selection']).getResnames()
-            y = p.select(kwargs['selection']).getResnums()
-            listOfselection = np.unique(list(map(lambda x, y: x + str(y), x, y)))
-            final = [i for i in list_of_interactions if i[0] in listOfselection or i[3] in listOfselection]
     elif 'selection2' in kwargs:
         LOGGER.warn('selection2 by itself is ignored')
+        final = list_of_interactions
     else:
         final = list_of_interactions
     return final
@@ -526,7 +544,7 @@ def plot_barh(result, bond_type, **kwargs):
         plt.ylim(-1, result_chunk.shape[0])
         plt.ylabel('{} Pairs of Residue Numbers'.format(bond_type))
         plt.xlabel('Percentage')
-        plt.title('Persistence of {} Bonds (entries {}-{})'.format(bond_type, start_idx + 1, end_idx))
+        plt.title('Persistence of {} (entries {}-{})'.format(bond_type, start_idx + 1, end_idx))
         # Save each plot with an incremented filename for multiple plots
         output_plot_file = '{}_plot_part{}.png'.format(bond_type, plot_idx + 1)
         log_message("Saving plot to: {}".format(output_plot_file))
@@ -986,6 +1004,10 @@ def calcSaltBridges(atoms, **kwargs):
     distA = kwargs.pop('distA', distSB)
 
     atoms_KRED = atoms.select('protein and ((resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh) or (resname HIS HSE HSD HSP and name NE2))')
+    if atoms_KRED is None:
+        LOGGER.warn('There are no side chain heavy atoms for residues K, R, E, D and H, so not salt bridges are calculated')
+        return []
+
     charged_residues = list(set(zip(atoms_KRED.getResnums(), atoms_KRED.getChids())))
     
     LOGGER.info('Calculating salt bridges.')
@@ -1230,7 +1252,7 @@ def calcPiStacking(atoms, **kwargs):
                                    str(sele2.getResnames()[0])+str(sele2.getResnums()[0]), '_'.join(map(str,sele2.getIndices())), str(sele2.getChids()[0])]])
 
     # create a process pool that uses all cpus
-    with multiprocessing.Pool() as pool:
+    with mp.Pool() as pool:
         # call the function for each item in parallel with multiple arguments
         for result in pool.starmap(calcPiStacking_once, items):
             if result is not None:
@@ -1682,7 +1704,12 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
 
 def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs):
     """Compute selected type interactions for DCD trajectory or multi-model PDB 
-    using default parameters or those from kwargs."""
+    using default parameters or those from kwargs.
+
+    :arg max_proc: maximum number of processes to use
+        default is half of the number of CPUs
+    :type max_proc: int
+    """
     
     try:
         coords = getCoords(atoms)
@@ -1696,6 +1723,7 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
     interactions_all = []
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
+    max_proc = kwargs.pop('max_proc', mp.cpu_count()//2)
 
     interactions_dic = {
     "HBs": calcHydrogenBonds,
@@ -1711,8 +1739,9 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
         
-        nfi = trajectory._nfi    
-        trajectory.reset()
+        if isinstance(trajectory, Trajectory):
+            nfi = trajectory._nfi
+            trajectory.reset()
         numFrames = trajectory._n_csets
         
         if stop_frame == -1:
@@ -1721,22 +1750,81 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
             traj = trajectory[start_frame:stop_frame+1]
         
         atoms_copy = atoms.copy()
-        for j0, frame0 in enumerate(traj, start=start_frame):
+        def analyseFrame(j0, frame0, interactions_all):
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             protein = atoms_copy.select('protein')
             interactions = interactions_dic[interaction_type](protein, **kwargs)
             interactions_all.append(interactions)
-        trajectory._nfi = nfi
+
+        if max_proc == 1:
+            interactions_all = []
+            for j0, frame0 in enumerate(traj, start=start_frame):
+                analyseFrame(j0, frame0, interactions_all)
+        else:
+            with mp.Manager() as manager:
+                interactions_all = manager.list()
+
+                j0 = start_frame
+                while j0 < traj.numConfs()+start_frame:
+
+                    processes = []
+                    for _ in range(max_proc):
+                        frame0 = traj[j0-start_frame]
+                        
+                        p = mp.Process(target=analyseFrame, args=(j0, frame0,
+                                                                 interactions_all))
+                        p.start()
+                        processes.append(p)
+
+                        j0 += 1
+                        if j0 >= traj.numConfs()+start_frame:
+                            break
+
+                    for p in processes:
+                        p.join()
+
+                interactions_all = interactions_all[:]
+
+        if isinstance(trajectory, Trajectory):
+            trajectory._nfi = nfi
     
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+            def analyseFrame(i, interactions_all):
                 LOGGER.info('Model: {0}'.format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
                 protein = atoms.select('protein')
                 interactions = interactions_dic[interaction_type](protein, **kwargs)
                 interactions_all.append(interactions)
+
+            if stop_frame == -1:
+                stop_frame = atoms.numCoordsets()
+
+            if max_proc == 1:
+                interactions_all = []
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
+                    analyseFrame(i, interactions_all)
+            else:
+                with mp.Manager() as manager:
+                    interactions_all = manager.list()
+
+                    i = start_frame
+                    while i < len(atoms.getCoordsets()[start_frame:stop_frame+1]):
+                        processes = []
+                        for _ in range(max_proc):
+                            p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                            p.start()
+                            processes.append(p)
+
+                            i += 1
+                            if i >= len(atoms.getCoordsets()[start_frame:stop_frame]):
+                                break
+
+                        for p in processes:
+                            p.join()
+
+                    interactions_all = interactions_all[:]
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
     
@@ -3044,8 +3132,9 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
     
-        nfi = trajectory._nfi
-        trajectory.reset()
+        if isinstance(trajectory, Trajectory):
+            nfi = trajectory._nfi
+            trajectory.reset()
         numFrames = trajectory._n_csets
 
         if stop_frame == -1:
@@ -3081,7 +3170,8 @@ def calcSminaBindingAffinity(atoms, trajectory=None, **kwargs):
                 bindingAffinity.append(data['Affinity'])
                 data_final.append(data)
         
-        trajectory._nfi = nfi
+        if isinstance(trajectory, Trajectory):
+            trajectory._nfi = nfi
                 
     else:
         if atoms.numCoordsets() == 1:
@@ -3749,7 +3839,8 @@ def runDali(pdb, chain, **kwargs):
     :arg chain: chain identifier
     :type chain: str
 
-    :arg cutoff_len: Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1)
+    :arg cutoff_len: Length of aligned residues < cutoff_len
+            (must be an integer or a float between 0 and 1)
             See searchDali for more details 
             Default is 0.5
     :type cutoff_len: float
@@ -3758,6 +3849,18 @@ def runDali(pdb, chain, **kwargs):
             Default is 1.0
     :type cutoff_rmsd: float
     
+    :arg cutoff_Z: Z score cutoff (see searchDali)
+            Default is None
+    :type cutoff_Z: float
+
+    :arg cutoff_identity: RMSD cutoff (see searchDali)
+            Default is None
+    :type cutoff_identity: float
+
+    :arg stringency: stringency for Dali cutoffs (see searchDali)
+            Default is False
+    :type stringency: bool
+
     :arg subset_Dali: fullPDB, PDB25, PDB50, PDB90
             Default is 'fullPDB'
     :type subset_Dali: str    
@@ -3788,6 +3891,10 @@ def runDali(pdb, chain, **kwargs):
     
     cutoff_len = kwargs.pop('cutoff_len', 0.5)
     cutoff_rmsd = kwargs.pop('cutoff_rmsd', 1.0)
+    cutoff_Z = kwargs.pop('cutoff_Z', None)
+    cutoff_identity = kwargs.pop('cutoff_identity', None)
+    stringency = kwargs.pop('stringency', False)
+
     fixer = kwargs.pop('fixer', 'pdbfixer')
     subset_Dali = kwargs.pop('subset_Dali', 'fullPDB')
     subset = kwargs.pop('subset', 'ca')
@@ -3800,7 +3907,9 @@ def runDali(pdb, chain, **kwargs):
     while not dali_rec.isSuccess:
         dali_rec.fetch()
     
-    pdb_ids = dali_rec.filter(cutoff_len=cutoff_len, cutoff_rmsd=cutoff_rmsd)
+    pdb_ids = dali_rec.filter(cutoff_len=cutoff_len, cutoff_rmsd=cutoff_rmsd,
+                              cutoff_Z=cutoff_Z, cutoff_identity=cutoff_identity,
+                              stringency=stringency)
     pdb_hits = [ (i[:4], i[4:]) for i in pdb_ids ]
     
     list_pdbs = []
@@ -5023,6 +5132,10 @@ class InteractionsTrajectory(object):
         :arg stop_frame: index of last frame to read
         :type stop_frame: int
     
+        :arg max_proc: maximum number of processes to use
+            default is half of the number of CPUs
+        :type max_proc: int
+
         Selection:
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
@@ -5038,7 +5151,7 @@ class InteractionsTrajectory(object):
             except TypeError:
                 raise TypeError('coords must be an object '
                                 'with `getCoords` method')
-        
+
         HBs_all = []
         SBs_all = []
         RIB_all = []
@@ -5055,105 +5168,137 @@ class InteractionsTrajectory(object):
         HPh_nb = []
         DiBs_nb = []
 
+        interactions_traj = [HBs_all, SBs_all, RIB_all, PiStack_all, PiCat_all, HPh_all, DiBs_all]
+        interactions_nb_traj = [HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb, DiBs_nb]
+
         start_frame = kwargs.pop('start_frame', 0)
         stop_frame = kwargs.pop('stop_frame', -1)
+        max_proc = kwargs.pop('max_proc', mp.cpu_count()//2)
 
-        if trajectory is not None:
-            if isinstance(trajectory, Atomic):
-                trajectory = Ensemble(trajectory)
-        
+        if trajectory is None:
+            if atoms.numCoordsets() > 1:
+                trajectory = atoms
+            else:
+                LOGGER.info('Include trajectory or use multi-model PDB file.')
+                return interactions_nb_traj
+
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)
+    
+        if isinstance(trajectory, Trajectory):
             nfi = trajectory._nfi
             trajectory.reset()
-            numFrames = trajectory._n_csets
+        numFrames = trajectory._n_csets
 
-            if stop_frame == -1:
-                traj = trajectory[start_frame:]
-            else:
-                traj = trajectory[start_frame:stop_frame+1]
-
-            atoms_copy = atoms.copy()
-            protein = atoms_copy.protein
-
-            for j0, frame0 in enumerate(traj, start=start_frame):
-                LOGGER.info('Frame: {0}'.format(j0))
-                atoms_copy.setCoords(frame0.getCoords())
-                
-                hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
-                salt_bridges = calcSaltBridges(protein, **kwargs)
-                RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
-                Pi_stacking = calcPiStacking(protein, **kwargs)
-                Pi_cation = calcPiCation(protein, **kwargs)
-                hydrophobic = calcHydrophobic(protein, **kwargs)
-                Disulfide_Bonds = calcDisulfideBonds(protein, **kwargs)
-
-                HBs_all.append(hydrogen_bonds)
-                SBs_all.append(salt_bridges)
-                RIB_all.append(RepulsiveIonicBonding)
-                PiStack_all.append(Pi_stacking)
-                PiCat_all.append(Pi_cation)
-                HPh_all.append(hydrophobic)
-                DiBs_all.append(Disulfide_Bonds)
-            
-                HBs_nb.append(len(hydrogen_bonds))
-                SBs_nb.append(len(salt_bridges))
-                RIB_nb.append(len(RepulsiveIonicBonding))
-                PiStack_nb.append(len(Pi_stacking))
-                PiCat_nb.append(len(Pi_cation))
-                HPh_nb.append(len(hydrophobic))
-                DiBs_nb.append(len(Disulfide_Bonds))
-      
+        if stop_frame == -1:
+            traj = trajectory[start_frame:]
         else:
-            if atoms.numCoordsets() > 1:
-                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                    LOGGER.info('Model: {0}'.format(i+start_frame))
-                    atoms.setACSIndex(i+start_frame) 
-                    protein = atoms.select('protein')
-                    
-                    hydrogen_bonds = calcHydrogenBonds(atoms.protein, **kwargs)
-                    salt_bridges = calcSaltBridges(atoms.protein, **kwargs)
-                    RepulsiveIonicBonding = calcRepulsiveIonicBonding(atoms.protein, **kwargs)
-                    Pi_stacking = calcPiStacking(atoms.protein, **kwargs)
-                    Pi_cation = calcPiCation(atoms.protein, **kwargs)
-                    hydrophobic = calcHydrophobic(atoms.protein, **kwargs)
-                    Disulfide_Bonds = calcDisulfideBonds(atoms.protein, **kwargs)
+            traj = trajectory[start_frame:stop_frame+1]
 
-                    HBs_all.append(hydrogen_bonds)
-                    SBs_all.append(salt_bridges)
-                    RIB_all.append(RepulsiveIonicBonding)
-                    PiStack_all.append(Pi_stacking)
-                    PiCat_all.append(Pi_cation)
-                    HPh_all.append(hydrophobic)
-                    DiBs_all.append(Disulfide_Bonds)
+        atoms_copy = atoms.copy()
+        protein = atoms_copy.protein
+
+        def analyseFrame(j0, frame0, interactions_all, interactions_nb, j0_list):
+            LOGGER.info('Frame: {0}'.format(j0))
+            atoms_copy.setCoords(frame0.getCoords())
             
-                    HBs_nb.append(len(hydrogen_bonds))
-                    SBs_nb.append(len(salt_bridges))
-                    RIB_nb.append(len(RepulsiveIonicBonding))
-                    PiStack_nb.append(len(Pi_stacking))
-                    PiCat_nb.append(len(Pi_cation))
-                    HPh_nb.append(len(hydrophobic))
-                    DiBs_nb.append(len(Disulfide_Bonds))
-            else:
-                LOGGER.info('Include trajectory or use multi-model PDB file.') 
+            hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
+            salt_bridges = calcSaltBridges(protein, **kwargs)
+            RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
+            Pi_stacking = calcPiStacking(protein, **kwargs)
+            Pi_cation = calcPiCation(protein, **kwargs)
+            hydrophobic = calcHydrophobic(protein, **kwargs)
+            Disulfide_Bonds = calcDisulfideBonds(protein, **kwargs)
+
+            interactions_all[0].append(hydrogen_bonds)
+            interactions_all[1].append(salt_bridges)
+            interactions_all[2].append(RepulsiveIonicBonding)
+            interactions_all[3].append(Pi_stacking)
+            interactions_all[4].append(Pi_cation)
+            interactions_all[5].append(hydrophobic)
+            interactions_all[6].append(Disulfide_Bonds)
+        
+            interactions_nb[0].append(len(hydrogen_bonds))
+            interactions_nb[1].append(len(salt_bridges))
+            interactions_nb[2].append(len(RepulsiveIonicBonding))
+            interactions_nb[3].append(len(Pi_stacking))
+            interactions_nb[4].append(len(Pi_cation))
+            interactions_nb[5].append(len(hydrophobic))
+            interactions_nb[6].append(len(Disulfide_Bonds))
+
+            j0_list.append(j0)
+
+        if max_proc == 1:
+            interactions_all = []
+            interactions_all.extend(interactions_traj)
+            interactions_nb = []
+            interactions_nb.extend(interactions_nb_traj)
+            j0_list = []
+            for j0, frame0 in enumerate(traj, start=start_frame):
+                analyseFrame(j0, frame0, interactions_all, interactions_nb,
+                             j0_list)
+        else:
+            with mp.Manager() as manager:
+                interactions_all = manager.list()
+                interactions_all.extend([manager.list() for _ in interactions_traj])
+
+                interactions_nb = manager.list()
+                interactions_nb.extend([manager.list() for _ in interactions_nb_traj])
+
+                j0 = start_frame
+                j0_list = manager.list()
+                while j0 < traj.numConfs()+start_frame:
+
+                    processes = []
+                    for _ in range(max_proc):
+                        frame0 = traj[j0-start_frame]
+                        
+                        p = mp.Process(target=analyseFrame, args=(j0, frame0,
+                                                                  interactions_all,
+                                                                  interactions_nb,
+                                                                  j0_list))
+                        p.start()
+                        processes.append(p)
+
+                        j0 += 1
+                        if j0 >= traj.numConfs()+start_frame:
+                            break
+
+                    for p in processes:
+                        p.join()
+
+                interactions_all = [entry[:] for entry in interactions_all]
+                interactions_nb = [entry[:] for entry in interactions_nb]
+                j0_list = [entry for entry in j0_list]
+
+            ids = np.argsort(j0_list)
+            interactions_all = [list(np.array(interactions_type, dtype=object)[ids])
+                                     for interactions_type in interactions_all]
+            interactions_nb = [list(np.array(interactions_type, dtype=object)[ids])
+                                     for interactions_type in interactions_nb]
         
         self._atoms = atoms
         self._traj = trajectory
-        self._interactions_traj = [HBs_all, SBs_all, RIB_all, PiStack_all, PiCat_all, HPh_all, DiBs_all]
-        self._interactions_nb_traj = [HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb, DiBs_nb]
-        self._hbs_traj = HBs_all
-        self._sbs_traj = SBs_all  
-        self._rib_traj = RIB_all
-        self._piStack_traj = PiStack_all
-        self._piCat_traj = PiCat_all
-        self._hps_traj = HPh_all
-        self._dibs_traj = DiBs_all
+        self._interactions_traj = interactions_all
+        self._interactions_nb_traj = interactions_nb
+        self._hbs_traj = interactions_all[0]
+        self._sbs_traj = interactions_all[1]
+        self._rib_traj = interactions_all[2]
+        self._piStack_traj = interactions_all[3]
+        self._piCat_traj = interactions_all[4]
+        self._hps_traj = interactions_all[5]
+        self._dibs_traj = interactions_all[6]
         
         if filename is not None:
             import pickle
             with open(str(filename)+'.pkl', 'wb') as f:
                 pickle.dump(self._interactions_traj, f)  
             LOGGER.info('File with interactions saved.')
+
+        if isinstance(trajectory, Trajectory):
+            trajectory._nfi = nfi
             
-        return HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb, DiBs_nb
+        return interactions_nb
 
 
     def getInteractions(self, **kwargs):
@@ -5656,8 +5801,9 @@ class LigandInteractionsTrajectory(object):
             if isinstance(trajectory, Atomic):
                 trajectory = Ensemble(trajectory)
         
-            nfi = trajectory._nfi
-            trajectory.reset()
+            if isinstance(trajectory, Trajectory):
+                nfi = trajectory._nfi
+                trajectory.reset()
             numFrames = trajectory._n_csets
 
             if stop_frame == -1:
