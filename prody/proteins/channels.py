@@ -931,7 +931,6 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
             try:
                 PDB_id = file[:-4].split('_channel')[0] 
                 channel_name = file[:-4].split('_')[-1]
-                print(PDB_id, channel_name)
                 f = open(PDB_id+'_Parameters_All_channels.txt', 'r').readlines()
                 for line in f:
                     if line.startswith(file.split('_')[0]+'_'+channel_name+':'):
