@@ -912,14 +912,12 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         selected_residues = []
         for file in copied_files_list:
             try:
-                PDB_id, channel_name = file[:-4].split('_')
+                PDB_id = file[:-4].split('_channel')[0] 
+                channel_name = file[:-4].split('_')[-1]
                 f = open(PDB_id+'_Residues_All_channels.txt', 'r').readlines()
                 for line in f:
                     if line.startswith(file.split('_')[0]+'_'+channel_name+':'):
                         selected_residues.append(line)
-                    #if line.startswith(channel_name+':'):
-                    #    new_line = file.split('_')[0]+'_'+line
-                    #    selected_residues.append(new_line)
             except:
                 LOGGER.info('File {0} was not analyzed due to the lack of file or multiple channel file.'.format(file))
                 pass
@@ -931,7 +929,9 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         selected_param = []
         for file in copied_files_list:
             try:
-                PDB_id, channel_name = file[:-4].split('_')
+                PDB_id = file[:-4].split('_channel')[0] 
+                channel_name = file[:-4].split('_')[-1]
+                print(PDB_id, channel_name)
                 f = open(PDB_id+'_Parameters_All_channels.txt', 'r').readlines()
                 for line in f:
                     if line.startswith(file.split('_')[0]+'_'+channel_name+':'):
@@ -945,6 +945,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
 
     LOGGER.info('Selected files: ')
     LOGGER.info(' '.join(copied_files_list))
+    LOGGER.info('If newly created files are empty please check whether the parameter names are: PDB_id+_Parameters_All_channels.txt')
 
     
 class Channel:
