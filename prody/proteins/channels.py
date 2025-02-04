@@ -916,7 +916,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
                 channel_name = file[:-4].split('_')[-1]
                 f = open(PDB_id+'_Residues_All_channels.txt', 'r').readlines()
                 for line in f:
-                    if line.startswith(file.split('_')[0]+'_'+channel_name+':'):
+                    if line.startswith(PDB_id+'_'+channel_name+':'):
                         selected_residues.append(line)
             except:
                 LOGGER.info('File {0} was not analyzed due to the lack of file or multiple channel file.'.format(file))
@@ -933,7 +933,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
                 channel_name = file[:-4].split('_')[-1]
                 f = open(PDB_id+'_Parameters_All_channels.txt', 'r').readlines()
                 for line in f:
-                    if line.startswith(file.split('_')[0]+'_'+channel_name+':'):
+                    if line.startswith(PDB_id+'_'+channel_name+':'):
                         selected_param.append(line)
             except:
                 LOGGER.info('File {0} was not analyzed due to the lack of file or multiple channel file.'.format(file))
