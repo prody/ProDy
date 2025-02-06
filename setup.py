@@ -80,8 +80,7 @@ PACKAGES = ['prody',
             'prody.tests.utilities',]
 PACKAGE_DATA = {
     'prody.utilities': ['datafiles/*.dat'],
-    'prody.tests': ['datafiles/pdb*.pdb',
-                    'datafiles/addH*.pdb',
+    'prody.tests': ['datafiles/*.pdb',
                     'datafiles/*.dat',
                     'datafiles/*.coo',
                     'datafiles/dcd*.dcd',
