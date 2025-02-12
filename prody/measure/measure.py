@@ -828,10 +828,13 @@ def calcInertiaTensor(coords):
     return dot(coords.transpose(), coords)
 
 
-def calcPrincAxes(coords, turbo=True):
+def calcPrincAxes(coords, turbo=True, return_vals=False):
     """Calculate principal axes from coords"""
     M = calcInertiaTensor(coords)
-    _, vectors, _ = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
+    eigvals, vectors, _ = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
+
+    if return_vals:
+        return eigvals, vectors.transpose()
     return vectors.transpose()
 
 
