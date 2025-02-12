@@ -313,12 +313,12 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     stop = 0
     while not doneAtomBlock:
         line = lines[i]
-        if line[:11] == '_atom_site.':
+        if line.strip()[:11] == '_atom_site.':
             fieldCounter += 1
             fields[line.split('.')[1].strip()] = fieldCounter
             foundAtomFields = True
 
-        elif foundAtomFields and line.strip() != '#':
+        elif foundAtomFields and line.strip() not in ['#', '']:
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
