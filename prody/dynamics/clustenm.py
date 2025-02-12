@@ -494,7 +494,8 @@ class ClustENM(Ensemble):
 
         anm = ANM()
         anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma,
-                         sparse=self._sparse, kdtree=self._kdtree)
+                         sparse=self._sparse, kdtree=self._kdtree,
+                         nproc=self._nproc)
 
         return anm
 
@@ -531,7 +532,8 @@ class ClustENM(Ensemble):
         if not self._checkANM(anm_cg):
             return None
 
-        anm_cg.calcModes(self._n_modes, turbo=self._turbo)
+        anm_cg.calcModes(self._n_modes, turbo=self._turbo,
+                         nproc=self._nproc)
 
         anm_ex = self._extendModel(anm_cg, cg, tmp)
         ens_ex = sampleModes(anm_ex, atoms=tmp,
@@ -1070,6 +1072,10 @@ class ClustENM(Ensemble):
             Setting 0 or True means run as many as there are CPUs on the machine.
         :type parallel: bool
 
+        :arg threads: Number of threads to use for an individual simulation using the thread setting from OpenMM
+            Default of 0 uses all CPUs on the machine.
+        :type threads: int
+
         :arg fitmap: Cryo-EM map for fitting using a protocol similar to MDeNM-EMFit
             Default *None*
         :type fitmap: EMDMAP
@@ -1093,6 +1099,7 @@ class ClustENM(Ensemble):
         self._sparse = kwargs.get('sparse', False)
         self._kdtree = kwargs.get('kdtree', False)
         self._turbo = kwargs.get('turbo', False)
+        self._nproc = kwargs.pop('nproc', 0)
         if kwargs.get('zeros', False):
             LOGGER.warn('ClustENM cannot use zero modes so ignoring this kwarg')
 
