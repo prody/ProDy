@@ -41,7 +41,7 @@ ProDy has a modular structure with modules inside various subpackages.
 
 The main ones are:
 
-- :mod:`~prody.atomic`` handles all :class:`~prody.atomic.Atomic` objects including :class:`~prody.atomic.AtomGroup` and :class:`.Selection`
+- :mod:`~prody.atomic` handles all :class:`~prody.atomic.Atomic` objects including :class:`~prody.atomic.AtomGroup` and :class:`.Selection`
 
 - :mod:`~prody.database` interfaces with databases such as CATH, DALI, UniProt and Pfam
 

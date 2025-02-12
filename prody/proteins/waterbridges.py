@@ -31,6 +31,7 @@ from copy import copy
 
 from prody import LOGGER, SETTINGS
 from prody.atomic import Atom, Atomic, AtomGroup
+from prody.atomic.flags import DEFAULTS
 from prody.ensemble import Ensemble
 from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
@@ -1332,7 +1333,7 @@ def findClusterCenters(file_pattern, **kwargs):
     :type file_pattern: str
     
     :arg selection: selection string
-        by default water and name OH2 is used
+        by default 'water and name "O.*"' is used
     :type selection: str
     
     :arg distC: distance to other molecules
@@ -1352,7 +1353,7 @@ def findClusterCenters(file_pattern, **kwargs):
     import glob
     import numpy as np
 
-    selection = kwargs.pop('selection', 'water and name OH2')
+    selection = kwargs.pop('selection', 'water and name "O.*"')
     distC = kwargs.pop('distC', 0.3)
     numC = kwargs.pop('numC', 3)
     filename = kwargs.pop('filename', None)
@@ -1368,14 +1369,21 @@ def findClusterCenters(file_pattern, **kwargs):
     removeResid = []
     removeCoords = []
     for ii in range(len(coords_all)):
-        sel = coords_all.select('water within '+str(distC)+' of center', 
-                                center=coords_all.getCoords()[ii])
+        if 'water' in selection.split() or np.any([water in selection.split() for water in DEFAULTS['water']]):
+            sel = coords_all.select('water within '+str(distC)+' of center', 
+                                    center=coords_all.getCoords()[ii])
+        else:
+            sel = coords_all.select(str(selection)+' within '+str(distC)+' of center',
+                                    center=coords_all.getCoords()[ii])
+        
         if sel is not None and len(sel) <= int(numC):
             removeResid.append(coords_all.getResnums()[ii])
             removeCoords.append(list(coords_all.getCoords()[ii]))
 
     if len(removeCoords) == coords_all.numAtoms():
-        raise ValueError('No waters were selected. You may need to align your trajectory')
+        raise ValueError('No waters were selected. You may need to align your trajectory \
+        or change default parameters for detecting water clusters (increase distC \
+        or decrease numC)')
 
     selectedWaters = AtomGroup()
     sel_waters = [] 
