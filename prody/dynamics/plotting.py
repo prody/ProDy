@@ -37,7 +37,7 @@ __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showTree', 'showTree_networkx',
            'showAtomicMatrix', 'pimshow', 'showAtomicLines', 'pplot', 
-           'showDomainBar']
+           'showDomainBar', 'showSelectionMatrix']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -110,7 +110,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
             show = child
             break
     if show is None:
-        show = cf.add_subplot(projection="3d")
+        show = cf.add_subplot(111,projection="3d")
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
         onto = list(onto)
@@ -271,6 +271,8 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
         weights = kwargs.pop('weights', None)
         weights = None
 
+    markersize = kwargs.pop('markersize', None)
+
     num = projection.shape[0]
 
     use_labels = kwargs.pop('use_labels', True)
@@ -283,8 +285,14 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
             labels = modes.getModel()._labels.tolist()
             LOGGER.info('using labels from LDA model')
 
-    if labels is not None and len(labels) != num:
-        raise ValueError('label should have the same length as ensemble')
+    one_label = False
+    if labels is not None:
+        if len(labels) == 1 or np.isscalar(labels):
+            one_label = True
+            kwargs['label'] = labels
+
+        elif len(labels) != num:
+            raise ValueError('label should have the same length as ensemble')
 
     c = kwargs.pop('c', 'b')
     colors = kwargs.pop('color', c)
@@ -297,14 +305,14 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
         if len(colors) != num:
             raise ValueError('length of color must be {0}'.format(num))
     elif isinstance(colors, dict):
-        if labels is None:
+        if labels is None or one_label:
             raise TypeError('color must be a string or a list unless labels are provided')
         colors_dict = colors
         colors = [colors_dict[label] for label in labels]
     else:
         raise TypeError('color must be a string or a list or a dict if labels are provided')
 
-    if labels is not None and len(colors_dict) == 0:
+    if labels is not None and not one_label and len(colors_dict) == 0:
         cycle_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         for i, label in enumerate(set(labels)):
             colors_dict[label] = cycle_colors[i % len(cycle_colors)]
@@ -318,6 +326,8 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
             show = plt.plot(range(len(projection)), projection.flatten(), *args, **kwargs)
             if use_weights:
                 kwargs['s'] = weights
+            elif markersize is not None:
+                kwargs['s'] = markersize
             if labels is not None and use_labels:
                 for label in set(labels):
                     kwargs['c'] = colors_dict[label]
@@ -421,7 +431,7 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
                 show = child
                 break
         if show is None:
-            show = cf.add_subplot(projection="3d")
+            show = cf.add_subplot(111,projection="3d")
         plot = show.plot
         text = show.text
 
@@ -444,6 +454,8 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
             kwargs['c'] = color
             if weights is not None and use_weights:
                 kwargs['s'] = weights
+            elif markersize is not None:
+                kwargs['s'] = markersize
             plot(*(list(projection[indices].T) + args), **kwargs)
         else:
             kwargs['color'] = color
@@ -1132,6 +1144,9 @@ def showOverlap(mode, modes, *args, **kwargs):
 
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
+
+    :arg abs: whether to take absolute values
+    :type abs: bool
     """
 
     import matplotlib.pyplot as plt
@@ -1149,9 +1164,16 @@ def showOverlap(mode, modes, *args, **kwargs):
                         .format(type(modes)))
 
     if mode.numModes() > 1:
-        overlap = abs(calcOverlap(mode, modes, diag=True))
+        overlap = calcOverlap(mode, modes, diag=True)
     else:
-        overlap = abs(calcOverlap(mode, modes, diag=False))
+        overlap = calcOverlap(mode, modes, diag=False)
+
+    take_abs = kwargs.pop('abs', True)
+    if not isinstance(take_abs, bool):
+        raise TypeError('abs should be a Boolean (True or False)')
+
+    if take_abs:
+        overlap = abs(overlap)
 
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
@@ -2381,3 +2403,37 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
         showFigure()
 
     return mpl.gca()
+
+def showSelectionMatrix(matrix, atoms, selstr_x=None, selstr_y=None, **kwargs):
+    """
+    Show a matrix similarly to showAtomicMatrix but only for
+    selected atoms based on *selstr_x* and *selstr_y*
+
+    :arg selstr_x: a selection string used with sliceAtomicData with axis=0
+        to slice the matrix in the x axis and label it with corresponding atoms
+    :type selstr_x: str
+
+    :arg selstr_y: a selection string used with sliceAtomicData with axis=1
+        to slice the matrix in the y axis and label it with corresponding atoms
+    :type selstr_y: str
+
+    If either of these are left as *None*, then no slicing is performed in that direction.
+    """
+    atoms_x = atoms
+    atoms_y = atoms
+
+    if selstr_x is not None:
+        if not isinstance(selstr_x, str):
+            raise TypeError('selstr_x should be a str')
+
+        matrix = sliceAtomicData(matrix, atoms, selstr_x, axis=0)
+        _, atoms_x = sliceAtoms(atoms, selstr_x)
+
+    if selstr_y is not None:
+        if not isinstance(selstr_y, str):
+            raise TypeError('selstr_y should be a str')
+
+        matrix = sliceAtomicData(matrix, atoms, selstr_y, axis=1)
+        _, atoms_y = sliceAtoms(atoms, selstr_y)
+
+    return showAtomicMatrix(matrix, atoms=[atoms_x, atoms_y], **kwargs)

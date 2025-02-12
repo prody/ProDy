@@ -214,13 +214,15 @@ def _parsePDB(pdb, **kwargs):
         if filename is None:
             try:
                 LOGGER.warn("Trying to parse mmCIF file instead")
+                chain = kwargs.pop('chain', chain)
                 return parseMMCIF(pdb+chain, **kwargs)
-            except:
+            except OSError:
                 try:
                     LOGGER.warn("Trying to parse EMD file instead")
+                    chain = kwargs.pop('chain', chain)
                     return parseEMD(pdb+chain, **kwargs)
                 except:
-                    raise IOError('PDB file for {0} could not be downloaded.'
+                    raise IOError('PDB file for {0} could not be parsed.'
                                 .format(pdb))
         pdb = filename
     if title is None:
@@ -490,11 +492,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
         bfactors = np.zeros(asize, dtype=ATOMIC_FIELDS['beta'].dtype)
         occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
-        anisou = None
         siguij = None
     else:
         radii = np.zeros(asize, dtype=ATOMIC_FIELDS['radius'].dtype)
-
+    anisou = None
     asize = 2000 # increase array length by this much when needed
 
     start = split
@@ -537,19 +538,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     dec = True
     while i < stop:
         line = lines[i]
-        if not isPDB:
-            fields = line.split()
-            if len(fields) == 10:
-                fields.insert(4, '')
-            elif len(fields) != 11:
-                LOGGER.warn('wrong number of fields for PQR format at line %d'%i)
-                i += 1
-                continue
-
-        if isPDB:
-            startswith = line[0:6].strip()
-        else:
-            startswith = fields[0]
+        startswith = line[0:6].strip()
 
         if startswith == 'ATOM' or startswith == 'HETATM':
             if isPDB:
@@ -560,6 +549,17 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 else:
                     resname = line[17:20].strip()
             else:
+                fields = line.split()
+                if fields[5].find('.') != -1:
+                    # coords too early as no chid
+                    fields.insert(4, '')
+                if len(fields) != 11:
+                    try:
+                        fields = fields[:6] + [line[30:38].strip(), line[38:46].strip(), line[46:54].strip()] + line[54:].split()
+                    except:
+                        LOGGER.warn('wrong number of fields for PQR format at line %d'%i)
+                        i += 1
+                        continue
                 atomname= fields[2]
                 resname = fields[3]
 
@@ -1689,7 +1689,10 @@ def writePQRStream(stream, atoms, **kwargs):
     write = stream.write
 
     calphas = atoms.ca
-    ssa = calphas.getSecstrs()
+    if calphas is not None:
+        ssa = calphas.getSecstrs()
+    else:
+        ssa = None
     helix = []
     sheet = []
     if ssa is not None:

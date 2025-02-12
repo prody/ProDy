@@ -40,4 +40,4 @@ the output files are prefixed with :file:`p38_anm`::
 
 The output file :file:`p38_anm.nmd` can be visualized using `NMWiz`_.
 
-.. _NMWiz: http://prody.csb.pitt.edu/nmwiz/
+.. _NMWiz: http://www.bahargroup.org/prody/nmwiz/
