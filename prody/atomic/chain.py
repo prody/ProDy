@@ -8,9 +8,14 @@ from .atomic import AAMAP
 
 __all__ = ['Chain']
 
-def getSequence(resnames):
-    """Returns polypeptide sequence as from list of *resnames* (residue
-    name abbreviations)."""
+def getSequence(resnames, **kwargs):
+    """Returns polypeptide sequence from a list of *resnames* using one-letter residue
+    name abbreviations by default, or long (usually three letter) abbrevations
+    if *longSeq* is **True**."""
+
+    longSeq = kwargs.get('longSeq', False)
+    if longSeq:
+        return ' '.join(resnames)
 
     get = AAMAP.get
     return ''.join([get(rn, 'X') for rn in resnames])
@@ -134,13 +139,16 @@ class Chain(AtomSubset):
 
         if kwargs.get('allres', False):
             get = AAMAP.get
-            seq = ''.join([get(res.getResname(), 'X') for res in self])
+            if kwargs.get('longSeq', False):
+                seq = ' '.join([res.getResname() for res in self])
+            else:
+                seq = ''.join([get(res.getResname(), 'X') for res in self])
         elif self._seq:
             seq = self._seq
         else:
             calpha = self.calpha
             if calpha:
-                seq = getSequence(calpha.getResnames())
+                seq = getSequence(calpha.getResnames(), **kwargs)
             else:
                 seq = ''
             self._seq = seq
