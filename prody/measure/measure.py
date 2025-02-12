@@ -733,7 +733,7 @@ def calcADPAxes(atoms, **kwargs):
         # Make sure the direction that correlates with the previous atom
         # is selected
         vals = vals * sign((vecs * axes[(i-1)*3:(i)*3, :]).sum(0))
-        axes[i*3:i*3, :] = vals * vecs
+        axes[i*3:i*3+3, :] = vals * vecs
     # Resort the columns before returning array
     axes = axes[:, [2, 1, 0]]
     torf = None
