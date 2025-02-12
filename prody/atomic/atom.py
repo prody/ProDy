@@ -94,6 +94,27 @@ class Atom(AtomPointer):
         self._ag._coords[acsi, self._index] = coords
         self._ag._setTimeStamp(acsi)
 
+    def getAnisou(self):
+        """Returns a copy of anisotropic temperature factors of the atom from the active coordinate
+        set."""
+
+        if self._ag._anisous is not None:
+            return self._ag._anisous[self.getACSIndex(), self._index].copy()
+
+    def _getAnisou(self):
+        """Returns a view of anisotropic temperature factors of the atom from the active coordinate
+        set."""
+
+        if self._ag._anisous is not None:
+            return self._ag._anisous[self.getACSIndex(), self._index]
+
+    def setAnisou(self, anisou):
+        """Set anisotropic temperature factors of the atom in the active coordinate set."""
+
+        acsi = self.getACSIndex()
+        self._ag._anisous[acsi, self._index] = anisou
+        self._ag._setTimeStamp(acsi)
+
     def getCoordsets(self, indices=None):
         """Returns a copy of coordinate set(s) at given *indices*."""
 
@@ -254,7 +275,7 @@ class Atom(AtomPointer):
             self.getAltloc(), self.getIcode(),
             self.getCharge(), self.getElement(),
             self.getOccupancy(), self.getResname(),
-            None, self.getACSIndex(), self.getChid(),
+            self.getACSIndex(), self.getChid(),
             self.getResnum())
 
 

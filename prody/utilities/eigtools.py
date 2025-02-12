@@ -8,9 +8,11 @@ __all__ = ['solveEig', 'ZERO']
 
 ZERO = 1e-6
 
-def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, reverse=False):
+def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, reverse=False, **kwargs):
     linalg = importLA()
     dof = M.shape[0]
+
+    nproc = kwargs.get('nproc', 0)
 
     if expct_n_zeros is None:
         expct_n_zeros = 0
@@ -38,7 +40,13 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, rever
             if eigvals:
                 turbo = False
             if not issparse(M):
-                values, vectors = linalg.eigh(M, turbo=turbo, eigvals=eigvals)
+                try:
+                    values, vectors = linalg.eigh(M, turbo=turbo, eigvals=eigvals)
+                except TypeError:
+                    if turbo:
+                        values, vectors = linalg.eigh(M, driver='evd', subset_by_index=eigvals)
+                    else:
+                        values, vectors = linalg.eigh(M, subset_by_index=eigvals)
             else:
                 try:
                     from scipy.sparse import linalg as scipy_sparse_la
@@ -85,7 +93,16 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, rever
         n_zeros = sum(w < ZERO)
         return n_zeros
 
-    values, vectors = _eigh(M, eigvals, turbo)
+    if nproc > 0:
+        try:
+            from threadpoolctl import threadpool_limits
+        except ImportError:
+            raise ImportError('Please install threadpoolctl to control threads')
+
+        with threadpool_limits(limits=nproc, user_api="blas"):
+            values, vectors = _eigh(M, eigvals, turbo)
+    else:
+        values, vectors = _eigh(M, eigvals, turbo)
     n_zeros = sum(values < ZERO)
 
     if warn_zeros:

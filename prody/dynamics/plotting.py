@@ -18,24 +18,26 @@ from .nma import NMA
 from .gnm import GNMBase, GNM
 from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
-from .analysis import calcSqFlucts, calcProjection
+from .analysis import calcSqFlucts, calcProjection, calcRMSFlucts
 from .analysis import calcCrossCorr, calcCovariance, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
+from .lda import LDA
+from .logistic import LRA
 
 __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showCumulOverlap', 'showFractVars',
            'showCumulFractVars', 'showMode',
            'showOverlap', 'showOverlaps', 'showOverlapTable', 
            'showProjection', 'showCrossProjection', 
-           'showEllipsoid', 'showSqFlucts', 'showScaledSqFlucts', 
+           'showEllipsoid', 'showSqFlucts', 'showRMSFlucts', 'showScaledSqFlucts', 
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showTree', 'showTree_networkx',
            'showAtomicMatrix', 'pimshow', 'showAtomicLines', 'pplot', 
-           'showDomainBar']
+           'showDomainBar', 'showSelectionMatrix']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -108,7 +110,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
             show = child
             break
     if show is None:
-        show = Axes3D(cf)
+        show = cf.add_subplot(111,projection="3d")
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
         onto = list(onto)
@@ -177,7 +179,7 @@ def showCumulFractVars(modes, *args, **kwargs):
     fracts = calcFractVariance(modes).cumsum()
     show = plt.plot(indices, fracts, *args, **kwargs)
     axis = list(plt.axis())
-    axis[0] = 0.5
+    axis[0] = -0.5
     axis[2] = 0
     axis[3] = 1
     plt.axis(axis)
@@ -188,7 +190,7 @@ def showCumulFractVars(modes, *args, **kwargs):
     return show
 
 
-def showProjection(ensemble, modes, *args, **kwargs):
+def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
     """Show a projection of conformational deviations onto up to three normal
     modes from the same model.
 
@@ -200,6 +202,22 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
+    :keyword show_density: whether to show a density histogram or kernel density estimate
+        rather than a 2D scatter of points or a 1D projection by time (number of steps) 
+        on the x-axis. This option is not valid for 3D projections.
+        Default is **True** for 1D and **False** for 2D to maintain old behaviour.
+    :type show_density: bool
+
+    :keyword use_weights: whether to use weights in a density histogram or kernel density estimate
+        or for the size of points in 2D scatter of points or a 1D projection by time (number of steps) 
+        on the x-axis. This option is not valid for 3D projections.
+        Default is **False** to maintain old behaviour.
+    :type use_weights: bool
+
+    :keyword weights: weights for histograms or point sizes
+        Default is to use ensemble.getData('size')
+    :type weights: int, list, :class:`~numpy.ndarray`
+    
     :keyword color: a color name or a list of color names or values, 
         default is ``'blue'``
     :type color: str, list
@@ -231,25 +249,114 @@ def showProjection(ensemble, modes, *args, **kwargs):
     import matplotlib.pyplot as plt
     import matplotlib
 
-    cmap = kwargs.pop('cmap', plt.cm.jet)
+    cmap = kwargs.pop('cmap', None)
 
     if SETTINGS['auto_show']:
         fig = plt.figure()
- 
-    projection = calcProjection(ensemble, modes, 
-                                kwargs.pop('rmsd', True), 
-                                kwargs.pop('norm', False))
+
+    rmsd = kwargs.pop('rmsd', True)
+    norm = kwargs.pop('norm', False)
+
+    if projection is None:
+        projection = calcProjection(ensemble, modes, 
+                                    rmsd, norm)
+    
+    use_weights = kwargs.pop('use_weights', False)
+    if use_weights:
+        if ensemble is not None:
+            weights = kwargs.pop('weights', ensemble.getData('size'))
+        else:
+            weights = kwargs.pop('weights', None)
+    else:
+        weights = kwargs.pop('weights', None)
+        weights = None
+
+    markersize = kwargs.pop('markersize', None)
+
+    num = projection.shape[0]
+
+    use_labels = kwargs.pop('use_labels', True)
+    labels = kwargs.pop('label', None)
+    if labels is None and  use_labels and modes is not None:
+        if isinstance(modes, (LDA, LRA)):
+            labels = modes._labels.tolist()
+            LOGGER.info('using labels from LDA modes')
+        elif isinstance(modes.getModel(), (LDA, LRA)):
+            labels = modes.getModel()._labels.tolist()
+            LOGGER.info('using labels from LDA model')
+
+    one_label = False
+    if labels is not None:
+        if len(labels) == 1 or np.isscalar(labels):
+            one_label = True
+            kwargs['label'] = labels
+
+        elif len(labels) != num:
+            raise ValueError('label should have the same length as ensemble')
+
+    c = kwargs.pop('c', 'b')
+    colors = kwargs.pop('color', c)
+    colors_dict = {}
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+    if isinstance(colors, (str, tuple)) or colors is None:
+        colors = [colors] * num
+    elif isinstance(colors, list):
+        if len(colors) != num:
+            raise ValueError('length of color must be {0}'.format(num))
+    elif isinstance(colors, dict):
+        if labels is None or one_label:
+            raise TypeError('color must be a string or a list unless labels are provided')
+        colors_dict = colors
+        colors = [colors_dict[label] for label in labels]
+    else:
+        raise TypeError('color must be a string or a list or a dict if labels are provided')
+
+    if labels is not None and not one_label and len(colors_dict) == 0:
+        cycle_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        for i, label in enumerate(set(labels)):
+            colors_dict[label] = cycle_colors[i % len(cycle_colors)]
+        colors = [colors_dict[label] for label in labels]
 
     if projection.ndim == 1 or projection.shape[1] == 1:
-        show = plt.hist(projection.flatten(), *args, **kwargs)
-        plt.xlabel('Mode {0} coordinate'.format(str(modes)))
-        plt.ylabel('Number of conformations')
+        by_time = not kwargs.pop('show_density', True)
+        by_time = kwargs.pop('by_time', by_time)
+        
+        if by_time:
+            show = plt.plot(range(len(projection)), projection.flatten(), *args, **kwargs)
+            if use_weights:
+                kwargs['s'] = weights
+            elif markersize is not None:
+                kwargs['s'] = markersize
+            if labels is not None and use_labels:
+                for label in set(labels):
+                    kwargs['c'] = colors_dict[label]
+                    inds = np.nonzero(np.array(labels) == label)[0]
+                    show = plt.scatter(inds, projection[inds].flatten(), *args, **kwargs)
+            else:
+                show = plt.scatter(range(len(projection)),
+                                   projection.flatten(), *args, **kwargs)
+            plt.ylabel('Mode {0} coordinate'.format(str(modes)))
+            plt.xlabel('Conformation number')  
+        else:
+            if weights is not None and use_weights:
+                kwargs['weights'] = weights
+
+            if labels is not None and use_labels:
+                for label in set(labels):
+                    kwargs['color'] = colors_dict[label]
+                    inds = np.nonzero(np.array(labels) == label)[0]
+                    if projection.ndim == 1:
+                        projection = projection.reshape(projection.shape[0], 1)
+                    show = plt.hist(projection[inds].flatten(), *args, **kwargs)
+            else:
+                show = plt.hist(projection.flatten(), *args, **kwargs)
+            plt.xlabel('Mode {0} coordinate'.format(str(modes)))
+            plt.ylabel('Number of conformations')
         return show
     elif projection.shape[1] > 3:
         raise ValueError('Projection onto up to 3 modes can be shown. '
                          'You have given {0} mode.'.format(len(modes)))
-
-    num = projection.shape[0]
 
     markers = kwargs.pop('marker', 'o')
     if isinstance(markers, str) or markers is None:
@@ -259,18 +366,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
             raise ValueError('length of marker must be {0}'.format(num))
     else:
         raise TypeError('marker must be a string or a list')
-
-    c = kwargs.pop('c', 'blue')
-    colors = kwargs.pop('color', c)
-    if isinstance(colors, np.ndarray):
-        colors = tuple(colors)
-    if isinstance(colors, (str, tuple)) or colors is None:
-        colors = [colors] * num
-    elif isinstance(colors, list):
-        if len(colors) != num:
-            raise ValueError('length of color must be {0}'.format(num))
-    else:
-        raise TypeError('color must be a string or a list')
 
     color_norm = None
     if isinstance(colors[0], Number):
@@ -288,6 +383,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
     kwargs['linestyle'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
 
     texts = kwargs.pop('text', None)
+    adjust = kwargs.pop('adjust', True)
     if texts:
         if not isinstance(texts, list):
             raise TypeError('text must be a list')
@@ -299,13 +395,35 @@ def showProjection(ensemble, modes, *args, **kwargs):
     for i, opts in enumerate(zip(markers, colors, labels)):  # PY3K: OK
         indict[opts].append(i)
 
-    modes = [m for m in modes]
-    if len(modes) == 2: 
-        plot = plt.plot
+    if modes is None:
+        modes = list(range(projection.shape[1]))
+    else:
+        modes = [m for m in modes]
+    if len(modes) == 2:
+        show_density = kwargs.pop("show_density", False)
+        if show_density:
+            try:
+                import seaborn as sns
+                plot = sns.kdeplot
+                if cmap is not None:
+                    kwargs["cmap"] = cmap
+            except ImportError:
+                raise ImportError('Please install seaborn to plot kernel density estimates')
+        else:
+            plot = plt.scatter
         show = plt.gcf()
         text = plt.text
     else: 
         from mpl_toolkits.mplot3d import Axes3D
+        show_density = kwargs.pop("show_density", False)
+        if show_density:
+            LOGGER.warn("show_density is not supported yet for 3D projections")
+            show_density = False
+
+        if use_weights:
+            LOGGER.warn("use_weights is not supported yet for 3D projections")
+            use_weights = False
+
         cf = plt.gcf()
         show = None
         for child in cf.get_children():
@@ -313,7 +431,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 show = child
                 break
         if show is None:
-            show = Axes3D(cf)
+            show = cf.add_subplot(111,projection="3d")
         plot = show.plot
         text = show.text
 
@@ -326,14 +444,24 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 color = cmap.colors[color_norm(color)]
             except:
                 color = cmap(color_norm(color))
-        kwargs['c'] = color
 
-        if label:
+        if label is not None:
             kwargs['label'] = label
         else:
             kwargs.pop('label', None)
 
-        plot(*(list(projection[indices].T) + args), **kwargs)
+        if not show_density:
+            kwargs['c'] = color
+            if weights is not None and use_weights:
+                kwargs['s'] = weights
+            elif markersize is not None:
+                kwargs['s'] = markersize
+            plot(*(list(projection[indices].T) + args), **kwargs)
+        else:
+            kwargs['color'] = color
+            if weights is not None and use_weights:
+                kwargs['weights'] = weights
+            plot(x=list(projection[indices,0]), y=list(projection[indices,1]), **kwargs)
 
     if texts:
         ts = []
@@ -348,7 +476,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
         except ImportError:
             pass
         else:
-            adjust_text(ts)
+            if len(modes) == 2 and adjust == True:
+                adjust_text(ts)
 
     if len(modes) == 2:
         plt.xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
@@ -457,6 +586,28 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         raise TypeError('label must be a string or a list')
 
     kwargs['ls'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
+
+    colors_dict = {}
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+    if isinstance(colors, (str, tuple)) or colors is None:
+        colors = [colors] * num
+    elif isinstance(colors, list):
+        if len(colors) != num:
+            raise ValueError('length of color must be {0}'.format(num))
+    elif isinstance(colors, dict):
+        if labels is None:
+            raise TypeError('color must be a string or a list unless labels are provided')
+        colors_dict = colors
+        colors = [colors_dict[label] for label in labels]
+    else:
+        raise TypeError('color must be a string or a list or a dict if labels are provided')
+
+    if labels is not None and len(colors_dict) == 0:
+        cycle_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        for i, label in enumerate(set(labels)):
+            colors_dict[label] = cycle_colors[i % len(cycle_colors)]
+        colors = [colors_dict[label] for label in labels]
 
     texts = kwargs.pop('text', None)
     if texts:
@@ -598,7 +749,9 @@ def showCrossCorr(modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    cross_correlations = calcCrossCorr(modes)
+    norm = kwargs.pop('norm', True)
+    cross_correlations = calcCrossCorr(modes, norm=norm) 
+
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
@@ -813,6 +966,136 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     show = showSqFlucts(modes, *args, norm=norm, **kwargs)
     return show
 
+def showRMSFlucts(modes, *args, **kwargs):
+    """Show square fluctuations using :func:`.showAtomicLines`.  See
+    also :func:`.calcRMSFlucts`."""
+
+    from matplotlib.pyplot import title, ylabel, xlabel
+
+    def _showRMSFlucts(modes, *args, **kwargs):
+        show_hinge = kwargs.pop('hinges', False)
+        show_hinge = kwargs.pop('hinges', show_hinge)
+        show_hinge = kwargs.pop('show_hinge', show_hinge)
+        show_hinge = kwargs.pop('hinge', show_hinge)
+        norm = kwargs.pop('norm', False)
+
+        sqf = calcRMSFlucts(modes)
+        
+        scaled = kwargs.pop('scaled', None)
+        if scaled is not None:
+            scale = scaled / sqf.mean()
+        else:
+            scale = 1.
+        scale = kwargs.pop('scale', scale)
+
+        if norm:
+            sqf = sqf / (sqf**2).sum()**0.5
+        
+        if scale != 1.:
+            sqf *= scale
+            def_label = '{0} (x{1:.2f})'.format(str(modes), scale)
+        else:
+            def_label = str(modes)
+
+        label = kwargs.pop('label', def_label)
+        mode = kwargs.pop('mode', None)
+
+        if mode is not None:
+            is3d = False
+            try:
+                arr = mode.getArray()
+                is3d = mode.is3d()
+                n_nodes = mode.numAtoms()
+            except AttributeError:
+                arr = mode
+                is3d = len(arr) == len(sqf)*3
+                n_nodes = len(arr)//3 if is3d else len(arr)
+            if n_nodes != len(sqf):
+                raise RuntimeError('size mismatch between the protein ({0} residues) and the mode ({1} nodes).'
+                                    .format(len(sqf), n_nodes))
+
+            if is3d:
+                raise ValueError('Cannot color sqFlucts by mode direction for 3D modes')
+
+            rbody = []
+            first_sign = np.sign(arr[0])
+            rcolor = ['red', 'red', 'blue']
+            n = 1
+            for i, a in enumerate(arr):
+                s = np.sign(a)
+                if s == 0: 
+                    s = first_sign
+                if first_sign != s or i == len(arr)-1:
+                    show = showAtomicLines(rbody, sqf[rbody], label=label,
+                                           color=rcolor[int(first_sign+1)],
+                                           **kwargs)
+                    rbody = []
+                    n += 1
+                    first_sign = s
+                rbody.append(i)
+        else:
+            show = showAtomicLines(sqf, *args, label=label, **kwargs)
+
+        if show_hinge and not modes.is3d():
+            hinges = calcHinges(modes)
+            if hinges is not None:
+                kwargs.pop('final', False)
+                showAtomicLines(hinges, sqf[hinges], 'r*', final=False, **kwargs)
+        return show, sqf
+
+    scaled = kwargs.pop('scaled', False)
+    final = kwargs.pop('final', True)
+
+    args = list(args)
+    modesarg = []
+    i = 0
+    while i < len(args):
+        if isinstance(args[i], (VectorBase, ModeSet, NMA)):
+            modesarg.append(args.pop(i))
+        else:
+            i += 1
+
+    shows = []
+    _final = len(modesarg) == 0 and final
+    show, sqf = _showRMSFlucts(modes, *args, final=_final, **kwargs)
+    shows.append(show)
+    if scaled:
+        mean = sqf.mean()
+    else:
+        mean = None
+
+    for i, modes in enumerate(modesarg):
+        if i == len(modesarg)-1:
+            _final = final
+        
+        show, sqf = _showRMSFlucts(modes, *args, scaled=mean, final=_final, **kwargs)
+        shows.append(show)
+
+    xlabel('Residue')
+    ylabel('Root Square fluctuations')
+    if len(modesarg) == 0:
+        title(str(modes))
+
+    return shows
+
+
+def showScaledRMSFlucts(modes, *args, **kwargs):
+    """Show scaled root square fluctuations using :func:`~matplotlib.pyplot.plot`.
+    Modes or mode sets given as additional arguments will be scaled to have
+    the same mean squared fluctuations as *modes*."""
+
+    scaled = kwargs.pop('scaled', True)
+    show = showRMSFlucts(modes, *args, scaled=scaled, **kwargs)
+    return show
+
+
+def showNormedRMSFlucts(modes, *args, **kwargs):
+    """Show normalized root square fluctuations via :func:`~matplotlib.pyplot.plot`.
+    """
+
+    norm = kwargs.pop('norm', True)
+    show = showRMSFlucts(modes, *args, norm=norm, **kwargs)
+    return show
 
 def showContactMap(enm, **kwargs):
     """Show contact map using :func:`showAtomicMatrix`. *enm* can be 
@@ -861,6 +1144,9 @@ def showOverlap(mode, modes, *args, **kwargs):
 
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
+
+    :arg abs: whether to take absolute values
+    :type abs: bool
     """
 
     import matplotlib.pyplot as plt
@@ -878,9 +1164,16 @@ def showOverlap(mode, modes, *args, **kwargs):
                         .format(type(modes)))
 
     if mode.numModes() > 1:
-        overlap = abs(calcOverlap(mode, modes, diag=True))
+        overlap = calcOverlap(mode, modes, diag=True)
     else:
-        overlap = abs(calcOverlap(mode, modes, diag=False))
+        overlap = calcOverlap(mode, modes, diag=False)
+
+    take_abs = kwargs.pop('abs', True)
+    if not isinstance(take_abs, bool):
+        raise TypeError('abs should be a Boolean (True or False)')
+
+    if take_abs:
+        overlap = abs(overlap)
 
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
@@ -1365,6 +1658,11 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
     interactive = kwargs.pop('interactive', True)
+    
+    import matplotlib
+    if float(matplotlib.__version__[:-2]) >= 3.6:
+        LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
+        interactive = False
 
     if isinstance(fig, Figure):
         fig_num = fig.number
@@ -1718,10 +2016,10 @@ def showAtomicLines(*args, **kwargs):
                         _y.append(y[last:last+len(resnums)])
                         if dy is not None:
                             _dy.append(dy[last:last+len(resnums)])
-                        last = len(resnums)
+                        last += len(resnums)
                     else:
                         x.extend(resnums + last)
-                        last = resnums[-1]
+                        last += resnums[-1]
                     
         if gap:
             if overlay:
@@ -2079,7 +2377,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
     networkx.draw_networkx_edges(G, pos=layout)
     
     if np.isscalar(node_shape):
-        networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=sizes, 
+        networkx.draw_networkx_nodes(G, pos=layout, label=None, node_size=sizes, 
                                         node_shape=node_shape, node_color=colors)
     else:
         for shape in shape_groups:
@@ -2087,7 +2385,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
             nodesizes = [sizes[i] for i in shape_groups[shape]]
             nodecolors = [colors[i] for i in shape_groups[shape]]
             if not nodelist: continue
-            networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=nodesizes, 
+            networkx.draw_networkx_nodes(G, pos=layout, label=None, node_size=nodesizes, 
                                         node_shape=shape, node_color=nodecolors, 
                                         nodelist=nodelist)
 
@@ -2105,3 +2403,37 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
         showFigure()
 
     return mpl.gca()
+
+def showSelectionMatrix(matrix, atoms, selstr_x=None, selstr_y=None, **kwargs):
+    """
+    Show a matrix similarly to showAtomicMatrix but only for
+    selected atoms based on *selstr_x* and *selstr_y*
+
+    :arg selstr_x: a selection string used with sliceAtomicData with axis=0
+        to slice the matrix in the x axis and label it with corresponding atoms
+    :type selstr_x: str
+
+    :arg selstr_y: a selection string used with sliceAtomicData with axis=1
+        to slice the matrix in the y axis and label it with corresponding atoms
+    :type selstr_y: str
+
+    If either of these are left as *None*, then no slicing is performed in that direction.
+    """
+    atoms_x = atoms
+    atoms_y = atoms
+
+    if selstr_x is not None:
+        if not isinstance(selstr_x, str):
+            raise TypeError('selstr_x should be a str')
+
+        matrix = sliceAtomicData(matrix, atoms, selstr_x, axis=0)
+        _, atoms_x = sliceAtoms(atoms, selstr_x)
+
+    if selstr_y is not None:
+        if not isinstance(selstr_y, str):
+            raise TypeError('selstr_y should be a str')
+
+        matrix = sliceAtomicData(matrix, atoms, selstr_y, axis=1)
+        _, atoms_y = sliceAtoms(atoms, selstr_y)
+
+    return showAtomicMatrix(matrix, atoms=[atoms_x, atoms_y], **kwargs)

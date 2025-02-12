@@ -11,7 +11,7 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import Atomic, AtomGroup
 from prody.atomic import getSequence
 from prody.measure import Transformation
-from prody.utilities import openFile
+from prody.utilities import openFile, decToHybrid36
 
 from .localpdb import fetchPDB
 
@@ -113,9 +113,9 @@ class Polymer(object):
     sequence    str     polymer chain sequence (SEQRES)
     dbrefs      list    sequence database records (DBREF[1|2] and SEQADV),
                         see :class:`DBRef`
-    modified    list    | modified residues (SEQMOD)
+    modified    list    | modified residues (MODRES)
                         | when modified residues are present, each will be
-                          represented as: ``(resname, resnum, icode, stdname,
+                          represented as: ``(resname, chid, resnum, icode, stdname,
                           comment)``
     pdbentry    str     PDB entry that polymer data is extracted from
     ==========  ======  ======================================================
@@ -185,7 +185,8 @@ _PDB_DBREF = {
     'UNP': 'UniProt',
     'NORINE': 'Norine',
     'UNIMES': 'UNIMES',
-    'EMDB': 'EMDB'
+    'EMDB': 'EMDB',
+    'BMRB': 'BMRB'
 }
 
 
@@ -384,6 +385,38 @@ def _getResolution(lines):
             except:
                 return None
 
+def _getSCALE(lines):
+    ctof = np.identity(4)
+    if len(lines['SCALE1']) == 0: return {}
+    ctof[0] = lines['SCALE1'][0][1].split()[1:5]
+    ctof[1] = lines['SCALE2'][0][1].split()[1:5]
+    ctof[2] = lines['SCALE3'][0][1].split()[1:5]
+    ftoc = np.linalg.inv(ctof)
+    return {'ctof':ctof, 'ftoc':ftoc}
+
+def _getSpaceGroup(lines):
+    rowct = 0
+    mat = []
+    xform = []
+    sg = None
+    for i, line in lines['REMARK 290']:
+        if 'SYMMETRY OPERATORS FOR SPACE GROUP:' in line:
+            try:
+                sg = line.split('GROUP:')[1].strip()
+            except:
+                pass
+        if line[13:18] == 'SMTRY':
+            w = line.split()
+            mat.append([float(x) for x in w[4:]])
+            rowct += 1
+            if rowct==3:
+                mat.append( (0,0,0,1) )
+                matnp = np.array(mat)
+                #if np.sum(matnp-np.identity(4))!=0.0:
+                xform.append(np.array(mat))
+                rowct = 0
+                mat = []
+    return {'spaceGroup':sg, 'symMats': xform}
 
 def _getRelatedEntries(lines):
 
@@ -469,8 +502,8 @@ def _getSheet(lines):
     for i, line in lines['SHEET ']:
         try:
             chid = line[21]
-            value = (int(line[38:40]), int(line[7:10]),
-                     line[11:14].strip())
+                     # sense           # strand num     # sheet id
+            value = (int(line[38:40]), int(line[7:10]), line[11:14].strip())
         except:
             continue
 
@@ -707,8 +740,9 @@ def _getPolymers(lines):
         polymers[ch] = poly
         if poly.modified is None:
             poly.modified = []
-        poly.modified.append((line[12:15].strip(), line[18:22].strip() +
-                              line[22].strip(), line[24:27].strip(),
+        poly.modified.append((line[12:15].strip(), line[16],
+                              line[18:22].strip() + line[22].strip(), 
+                              line[24:27].strip(),
                               line[29:70].strip()))
 
     for i, line in lines['SEQADV']:
@@ -716,7 +750,7 @@ def _getPolymers(lines):
         ch = line[16]
         if ch == ' ':
             if not len(polymers) == 1:
-                LOGGER.warn('MODRES chain identifier is not specified '
+                LOGGER.warn('SEQADV chain identifier is not specified '
                             '({0}:{1})'.format(pdbid, i))
                 continue
             else:
@@ -825,7 +859,7 @@ def _getChemicals(lines):
         chem_names[chem] += line[15:70].rstrip()
     for i, line in lines['HETSYN']:
         chem = line[11:14].strip()
-        chem_synonyms[chem] += line[15:70].rstrip()
+        chem_synonyms[chem] += line[15:70].strip()
     for i, line in lines['FORMUL']:
         chem = line[12:15].strip()
         chem_formulas[chem] += line[18:70].rstrip()
@@ -833,7 +867,7 @@ def _getChemicals(lines):
     for chem, name in chem_names.items():  # PY3K: OK
         name = cleanString(name)
         for chem in chemicals[chem]:
-            chem.name = name
+            chem.name = cleanString(name, nows=True)
     for chem, formula in chem_formulas.items():  # PY3K: OK
         formula = cleanString(formula)
         for chem in chemicals[chem]:
@@ -842,7 +876,7 @@ def _getChemicals(lines):
         synonyms = cleanString(synonyms)
         synonyms = synonyms.split(';')
         for chem in chemicals[chem]:
-            chem.synonyms = synonyms
+            chem.synonyms = [syn.strip() for syn in synonyms]
 
     alist = []
     for chem in chemicals.values():  # PY3K: OK
@@ -874,6 +908,87 @@ def _getNumModels(lines):
         except:
             pass
 
+def _getCRYST1(lines):
+    line = lines['CRYST1']
+    if line:
+       i, line = line[0]
+       try:
+           return {'cellLength': (float(line[6:15]),
+                                  float(line[15:24]),
+                                  float(line[24:33])),
+                   'cellAngles': (float(line[33:40]),
+                                  float(line[40:47]),
+                                  float(line[47:54])),
+                   'spaceGroup': line[55:66].strip(),
+                   'Z value' : int(line[66:70])
+                   }
+       except:
+           pass
+
+def _missingResidues(lines):
+    """
+    Parse REMARK 465, Missing residues records
+    REMARK 465   M RES C SSSEQI
+    REMARK 465     GLU B   448
+    header['missing_residues'] = [(chid, resname, resnum, icode, modelNum)]
+    """
+    mr = []
+    header = True
+    for i, line in lines['REMARK 465']:
+        #skip header records
+        if line.startswith("REMARK 465   M RES C SSSEQI"):
+            header=False
+            continue
+        if header: continue
+        modelNumStr = line[10:14].strip()
+        if modelNumStr: modelNum = int(modelNumStr)
+        else: modelNum = None
+        w = line[15:].split()
+        icode = ''
+        if w[2][-1].isalpha():
+            icode = w[2][-1]
+            resnum = int(w[2][:-1])
+        else:
+            resnum = int(w[2])
+        mr.append((w[1], w[0], resnum, icode, modelNumStr))
+    return mr
+    
+def _missingAtoms(lines):
+    """
+    Parse REMARK 470,  Missing Atom records
+    REMARK 470   M RES CSSEQI  ATOMS
+    REMARK 470     ARG A 412    CG   CD   NE   CZ   NH1  NH2  
+    header['missing_atoms'] = [(chid, resname, resnum, icode, modelNum, [atom names])]
+    """
+    ma = []
+    res_repr_to_ma_index = {} # {residue_string_repr: index of this residue in ma list}
+    header = True
+    for i, line in lines['REMARK 470']:
+        #skip header records
+        if line.startswith("REMARK 470   M RES CSSEQI  ATOMS"):
+            header=False
+            continue
+        if header:
+            continue
+        modelNumStr = line[10:14].strip()
+        if modelNumStr:
+            modelNum = int(modelNumStr)
+        else:
+            modelNum = None
+        resname = line[15:18]
+        chid = line[19]
+        resnum = int(line[20:24])
+        icode = line[24]
+        if icode == ' ':
+            icode = ''
+        key = '%s:%s%d%s'%(chid,resname,resnum,icode)
+        if key in res_repr_to_ma_index: # missing atoms record for a residue can span multiple lines 1vzq.pdb
+            ma[res_repr_to_ma_index[key]][-1].extend(line[25:].split())
+        else:
+            res_repr_to_ma_index[key] = len(ma)
+            ma.append((chid, resname, resnum, icode, line[25:].split()))
+    return ma
+    
 # Make sure that lambda functions defined below won't raise exceptions
 _PDB_HEADER_MAP = {
     'helix': _getHelix,
@@ -910,6 +1025,10 @@ _PDB_HEADER_MAP = {
     'n_models': _getNumModels,
     'space_group': _getSpaceGroup,
     'related_entries': _getRelatedEntries,
+    'CRYST1': _getCRYST1,
+    'SCALE': _getSCALE,
+    'missing_residues': _missingResidues,
+    'missing_atoms': _missingAtoms,
 }
 
 mapHelix = {
@@ -936,7 +1055,7 @@ def isSheet(secstrs):
     torf = secstrs == 'E'
     return torf
 
-def assignSecstr(header, atoms, coil=False):
+def assignSecstr(header, atoms, coil=True):
     """Assign secondary structure from *header* dictionary to *atoms*.
     *header* must be a dictionary parsed using the :func:`.parsePDB`.
     *atoms* may be an instance of :class:`.AtomGroup`, :class:`.Selection`,
@@ -1002,7 +1121,7 @@ def assignSecstr(header, atoms, coil=False):
                       ATOMIC_FIELDS['secindex'].dtype))  
 
     prot = atoms.select('protein')
-    if prot is not None:
+    if prot is not None and coil:
         prot.setSecstrs('C')
     hierview = atoms.getHierView()
     count = 0
@@ -1109,10 +1228,13 @@ def buildBiomolecules(header, atoms, biomol=None):
             translation[2] = line2[3]
             t = Transformation(rotation, translation)
 
-            newag = atoms.select('chain ' + ' '.join(mt[times*4+0])).copy()
+            newag = atoms.select('chain ' + ' or chain '.join(mt[times*4+0]))
             if newag is None:
                 continue
-            newag.all.setSegnames(segnm.pop(0))
+            newag = newag.copy()
+            segnames = newag.all.getSegnames()
+            newag.all.setSegnames(np.array([segname + decToHybrid36(times+1, resnum=True) 
+                                            for segname in segnames]))
             for acsi in range(newag.numCoordsets()):
                 newag.setACSIndex(acsi)
                 newag = t.apply(newag)
