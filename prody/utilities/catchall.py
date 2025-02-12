@@ -679,7 +679,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     interactive = kwargs.pop('interactive', True)
 
     import matplotlib
-    if float(matplotlib.__version__[:-2]) >= 3.6:
+    if float(matplotlib.__version__.split('.')[0]) >= 3 or float(matplotlib.__version__.split('.')[1]) >= 6:
         LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
         interactive = False
 
