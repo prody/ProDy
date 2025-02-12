@@ -214,13 +214,15 @@ def _parsePDB(pdb, **kwargs):
         if filename is None:
             try:
                 LOGGER.warn("Trying to parse mmCIF file instead")
+                chain = kwargs.pop('chain', chain)
                 return parseMMCIF(pdb+chain, **kwargs)
-            except:
+            except OSError:
                 try:
                     LOGGER.warn("Trying to parse EMD file instead")
+                    chain = kwargs.pop('chain', chain)
                     return parseEMD(pdb+chain, **kwargs)
                 except:
-                    raise IOError('PDB file for {0} could not be downloaded.'
+                    raise IOError('PDB file for {0} could not be parsed.'
                                 .format(pdb))
         pdb = filename
     if title is None:
