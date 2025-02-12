@@ -610,6 +610,14 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
                      to *100-p*-th percentile
     :type percentile: float
 
+    :arg vmin: a minimum value threshold to remove outliers, i.e. only showing data greater than vmin
+               This overrides percentile.
+    :type vmin: float
+
+    :arg vmax: a maximum value threshold to remove outliers, i.e. only showing data less than vmax
+               This overrides percentile.
+    :type vmax: float
+
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
 
@@ -739,6 +747,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax,
                         norm=norm, cmap=cmap, origin=origin, **kwargs)
     else:
+        zeros_matrix = np.zeros(matrix.shape)
+        im = ax3.imshow(zeros_matrix, vmin=-1, vmax=1, cmap='seismic')
         plot_list = []
         for rows,cols in zip(np.where(matrix!=0)[0],np.where(matrix!=0)[1]):
             plot_list.append([cols,rows,matrix[rows,cols]])

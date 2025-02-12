@@ -756,8 +756,11 @@ def _getReference(lines):
             except:
                 continue
             if what == 'AUTH':
-                surname, initials = value.split(',')
-                author = initials+surname
+                try:
+                    surname, initials = value.split(',')
+                    author = initials+surname
+                except ValueError:
+                    author = value
                 authors.append(author.strip().upper())
 
         ref['authors'] = authors
