@@ -6,7 +6,7 @@ import numpy as np
 
 from prody.atomic import Atomic
 
-__all__ = ['Gamma', 'GammaStructureBased', 'GammaVariableCutoff']
+__all__ = ['Gamma', 'GammaStructureBased', 'GammaVariableCutoff', 'GammaED', 'GammaGOdMD']
 
 
 class Gamma(object):
@@ -37,7 +37,7 @@ class GammaStructureBased(Gamma):
     """Facilitate setting the spring constant based on the secondary structure
     and connectivity of the residues.
 
-    A recent systematic study [LT10]_ of a large set of NMR-structures analyzed
+    A systematic study [LT10]_ of a large set of NMR-structures analyzed
     using a method based on entropy maximization showed that taking into
     consideration properties such as sequential separation between
     contacting residues and the secondary structure types of the interacting
@@ -299,3 +299,124 @@ class GammaVariableCutoff(Gamma):
                   'effective cutoff:', str(cutoff), 'distance:',
                   str(dist2**0.5), 'gamma:', str(gamma)]))  # PY3K: OK
         return gamma
+
+
+class GammaED(Gamma):
+    """Facilitate setting the spring constant based on 
+    sequence distance and spatial distance as in ed-ENM [OL10]_.
+    This ENM is refined based on comparison to essential dynamics 
+    from MD simulations and can reproduce flexibility in NMR ensembles.
+
+    It has also been implemented in FlexServ [CJ09]_ and 
+    used in MDdMD [SP12]_ and GOdMD [SP13]_.
+
+    The sequence distance-dependent term is Cseq/(S**2)
+    for S=abs(i,j) <= Slim
+
+    The structure distance-dependent term is (Ccart/dist)**Ex
+
+    .. [OL10] Orellana L, Rueda M, Ferrer-Costa C, Lopez-Blanco JR, Chacón P, Orozco M. 
+       Approaching Elastic Network Models to Molecular Dynamics Flexibility.
+       *J Chem Theory Comput* **2010** 6(9):2910-23.
+
+    .. [CJ09] Camps J, Carrillo O, Emperador A, Orellana L, Hospital A, Rueda M, 
+       Cicin-Sain D, D'Abramo M, Gelpí JL, Orozco M.
+       FlexServ: an integrated tool for the analysis of protein flexibility.
+       *Bioinformatics* **2009** 25(13):1709-10.
+
+    .. [SP12] Sfriso P, Emperador A, Orellana L, Hospital A, Gelpí JL, Orozco M.
+       Finding Conformational Transition Pathways from Discrete Molecular Dynamics Simulations.
+       *J Chem Theory Comput* **2012** 8(11):4707-18.
+
+    .. [SP13] Sfriso P, Hospital A, Emperador A, Orozco M. 
+       Exploration of conformational transition pathways from coarse-grained simulations.
+       *Bioinformatics* **2013** 29(16):1980-6.     
+       
+    **Example**:
+
+    Let's parse coordinates from a PDB file.
+
+    .. ipython:: python
+
+       from prody import *
+       ubi = parsePDB('1aar', chain='A', subset='calpha')
+
+    In the above we parsed only the atoms needed for this calculation, i.e.
+    Cα atoms from chain A.
+
+    We build the Hessian matrix using GOdMD spring constants as
+    follows;
+
+    .. ipython:: python
+
+       gamma = GammaGOdMD(ubi)
+       anm = ANM('')
+       anm.buildHessian(ubi, gamma=gamma)
+    
+    """
+
+    def __init__(self, atoms, Ccart=6., Ex=6, Cseq=60., Slim=3):
+        """Setup the parameters.
+
+        :arg atoms: A set of atoms
+        :type atoms: :class:`.Atomic`
+
+        :arg Ccart: Multiplication constant inside the exponential
+            in the spatial distance-dependent term 
+            Default is 6.
+        :type Ccart: float
+
+        :arg Ex: Exponent in spatial distance-dependent term
+            Default is 6
+        :type sheet: float
+
+        :arg Cseq: Multiplication constant in sequence distance-dependent term 
+            Default is 60.
+        :type Cseq: float
+
+        :arg Slim: Sequence distance limit for sequence distance-dependence
+            This limit is used with a less-or-equal operator
+            Default is 3
+        :type Slim: float
+
+    """
+
+        if not isinstance(atoms, Atomic):
+            raise TypeError('atoms must be an Atomic instance')
+
+        n_atoms = atoms.numAtoms()
+        if n_atoms < 3:
+            raise ValueError('number of atoms must be larger than 2')
+
+        rnum = atoms.getResindices()
+        assert rnum is not None, 'residue numbers must be set'
+
+        Ccart = float(Ccart)
+        assert Ccart > 0, 'gamma must be greater than 0'
+
+        Cseq = float(Cseq)
+        assert Cseq > 0, 'Cseq must be greater than 0'
+
+        self._Ccart = Ccart
+        self._Ex = Ex
+
+        self._Cseq = Cseq
+        self._Slim = Slim
+
+    def gamma(self, dist2, i, j):
+        """Returns force constant."""
+
+        Ccart = self._Ccart
+        Ex = self._Ex
+
+        Cseq = self._Cseq
+        Slim = self._Slim
+
+        S = abs(i-j)
+        if S <= Slim:
+            return Cseq/(S**2)
+        else:
+            dist = dist2**0.5
+            return (Ccart/dist)**Ex
+
+GammaGOdMD = GammaED

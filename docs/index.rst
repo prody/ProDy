@@ -11,7 +11,7 @@ ProDy Manual
 .. only:: rtd and html
 
     This is a partial copy of ProDy documentation.  Please visit
-    `ProDy Homepage <http://prody.csb.pitt.edu>`_ for complete
+    `ProDy Homepage <http://www.bahargroup.org/prody>`_ for complete
     documentation with tutorials.
 
 

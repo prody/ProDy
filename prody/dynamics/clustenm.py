@@ -86,6 +86,7 @@ class ClustENM(Ensemble):
 
         self._sol = 'imp'
         self._padding = None
+        self._boxSize = None
         self._ionicStrength = 0.0
         self._force_field = None
         self._tolerance = 10.0
@@ -109,6 +110,8 @@ class ClustENM(Ensemble):
         self._indexer = None
         self._targeted = False
         self._tmdk = 10.
+
+        self._cc = None
 
         super(ClustENM, self).__init__('Unknown')   # dummy title; will be replaced in the next line
         self._title = title
@@ -267,9 +270,14 @@ class ClustENM(Ensemble):
         if self._sol == 'exp':
             forcefield = ForceField(*self._force_field)
 
-            modeller.addSolvent(forcefield,
-                                padding=self._padding*nanometers,
-                                ionicStrength=self._ionicStrength*molar)
+            if self._boxSize:
+                modeller.addSolvent(forcefield,
+                                    ionicStrength=self._ionicStrength*molar,
+                                    boxSize=self._boxSize*nanometers)
+            else:
+                modeller.addSolvent(forcefield,
+                                    padding=self._padding*nanometers,
+                                    ionicStrength=self._ionicStrength*molar)
 
             system = forcefield.createSystem(modeller.topology,
                                              nonbondedMethod=PME,
@@ -451,7 +459,8 @@ class ClustENM(Ensemble):
         if not self._checkANM(anm_cg):
             return None
 
-        anm_cg.calcModes(self._n_modes)
+        anm_cg.calcModes(self._n_modes, turbo=self._turbo,
+                         nproc=self._nproc)
 
         anm_ex = self._extendModel(anm_cg, cg, tmp)
         a = np.array(list(product([-1, 0, 1], repeat=self._n_modes)))
@@ -478,7 +487,9 @@ class ClustENM(Ensemble):
     def _buildANM(self, cg):
 
         anm = ANM()
-        anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma)
+        anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma,
+                         sparse=self._sparse, kdtree=self._kdtree,
+                         nproc=self._nproc)
 
         return anm
 
@@ -510,16 +521,53 @@ class ClustENM(Ensemble):
 
         anm_cg = self._buildANM(cg)
 
+        n_confs = self._n_confs
+
         if not self._checkANM(anm_cg):
             return None
 
-        anm_cg.calcModes(self._n_modes)
+        anm_cg.calcModes(self._n_modes, turbo=self._turbo,
+                         nproc=self._nproc)
 
         anm_ex = self._extendModel(anm_cg, cg, tmp)
         ens_ex = sampleModes(anm_ex, atoms=tmp,
                              n_confs=self._n_confs,
                              rmsd=self._rmsd[self._cycle])
         coordsets = ens_ex.getCoordsets()
+
+        if self._fitmap is not None:
+            LOGGER.info('Filtering for fitting in generation %d ...' % self._cycle)
+
+            kept_coordsets = []
+            if self._fitmap is not None:
+                kept_coordsets.extend(self._filter(coordsets))
+                n_confs = n_confs - len(kept_coordsets)
+
+            if len(kept_coordsets) == 0:
+                while len(kept_coordsets) == 0:
+                    anm_ex = self._extendModel(anm_cg, cg, tmp)
+                    ens_ex = sampleModes(anm_ex, atoms=tmp,
+                                        n_confs=n_confs,
+                                        rmsd=self._rmsd[self._cycle])
+                    coordsets = ens_ex.getCoordsets()
+
+                    if self._fitmap is not None:
+                        kept_coordsets.extend(self._filter(coordsets))
+                        n_confs = n_confs - len(kept_coordsets)
+
+            if self._replace_filtered:
+                while n_confs > 0: 
+                    anm_ex = self._extendModel(anm_cg, cg, tmp)
+                    ens_ex = sampleModes(anm_ex, atoms=tmp,
+                                        n_confs=n_confs,
+                                        rmsd=self._rmsd[self._cycle])
+                    coordsets = ens_ex.getCoordsets()
+
+                    if self._fitmap is not None:
+                        kept_coordsets.extend(self._filter(coordsets))
+                        n_confs = n_confs - len(kept_coordsets)
+
+            coordsets = np.array(kept_coordsets)
 
         if self._targeted:
             if self._parallel:
@@ -598,8 +646,25 @@ class ClustENM(Ensemble):
             centers[i] = idx[i][tmp]
 
         return centers, wei
+    
+    def _filter(self, *args):
 
-    def _generate(self, confs):
+        ag = self._atoms.copy()
+        confs = args[0]
+        ccList = np.zeros(len(args[0]))
+        for i in range(len(confs)-1,-1,-1):
+            ag.setCoords(confs[i])
+            sim_map = self._blurrer(ag.toTEMPyStructure(), self._fit_resolution, self._fitmap)
+            cc = self._scorer.CCC(sim_map, self._fitmap)
+            ccList[i] = cc
+            if cc - self._cc_prev < 0:
+                confs = np.delete(confs, i, 0)
+
+        self._cc.extend(ccList)
+
+        return confs
+
+    def _generate(self, confs, **kwargs):
 
         LOGGER.info('Sampling conformers in generation %d ...' % self._cycle)
         LOGGER.timeit('_clustenm_gen')
@@ -623,8 +688,24 @@ class ClustENM(Ensemble):
         centers, wei = self._centers(confs_cg, label_cg)
         LOGGER.report('Centroids were generated in %.2fs.',
                       label='_clustenm_gen')
+        
+        confs_centers = confs_ex[centers]
+        
+        if self._fitmap is not None:
+            self._cc_prev = max(self._cc)
+            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(confs_cg)))
 
-        return confs_ex[centers], wei
+        if len(confs_cg) > 1:
+            LOGGER.info('Clustering in generation %d ...' % self._cycle)
+            label_cg = self._hc(confs_cg)
+            centers, wei = self._centers(confs_cg, label_cg)
+            LOGGER.report('Centroids were generated in %.2fs.',
+                        label='_clustenm_gen')
+            confs_centers = confs_ex[centers]
+        else:
+            confs_centers, wei = confs_cg, [len(confs_cg)]
+
+        return confs_centers, wei
 
     def _outliers(self, arg):
 
@@ -840,7 +921,7 @@ class ClustENM(Ensemble):
 
         :arg single: If it is True (default), then the conformers will be saved into a single PDB file with
             each conformer as a model. Otherwise, a directory will be created with the filename,
-            and each conformer will be saved as a separate PDB fle.
+            and each conformer will be saved as a separate PDB file.
         :type single: bool
         '''
 
@@ -971,6 +1052,18 @@ class ClustENM(Ensemble):
 
         :arg parallel: If it is True (default is False), conformer generation will be parallelized.
         :type parallel: bool
+
+        :arg fitmap: Cryo-EM map for fitting using a protocol similar to MDeNM-EMFit
+            Default *None*
+        :type fitmap: EMDMAP
+
+        :arg fit_resolution: Resolution for comparing to cryo-EM map for fitting
+            Default 5 Angstroms
+        :type fit_resolution: float
+
+        :arg replace_filtered: If it is True (default is False), conformer sampling and filtering 
+            will be repeated until the desired number of conformers have been kept.
+        :type replace_filtered: bool  
         '''
 
         if self._isBuilt():
@@ -980,6 +1073,13 @@ class ClustENM(Ensemble):
         self._cutoff = cutoff
         self._n_modes = n_modes
         self._gamma = gamma
+        self._sparse = kwargs.get('sparse', False)
+        self._kdtree = kwargs.get('kdtree', False)
+        self._turbo = kwargs.get('turbo', False)
+        self._nproc = kwargs.pop('nproc', 0)
+        if kwargs.get('zeros', False):
+            LOGGER.warn('ClustENM cannot use zero modes so ignoring this kwarg')
+
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
         self._n_gens = n_gens
@@ -987,6 +1087,20 @@ class ClustENM(Ensemble):
         self._parallel = kwargs.pop('parallel', False)
         self._targeted = kwargs.pop('targeted', False)
         self._tmdk = kwargs.pop('tmdk', 15.)
+
+        self._fitmap = kwargs.pop('fitmap', None)
+        if self._fitmap is not None:
+            try:
+                from TEMPy.protein.structure_blurrer import StructureBlurrer
+                from TEMPy.protein.scoring_functions import ScoringFunctions
+            except ImportError:
+                LOGGER.warn('TEMPy must be installed to use fitmap so ignoring this kwarg')
+                self._fitmap = None
+        
+        if self._fitmap is not None:
+            self._fitmap = self._fitmap.toTEMPyMap()
+            self._fit_resolution = kwargs.get('fit_resolution', 5)
+            self._replace_filtered = kwargs.pop('replace_filtered', False)
 
         if maxclust is None and threshold is None and n_gens > 0:
             raise ValueError('Either maxclust or threshold should be set!')
@@ -1015,6 +1129,7 @@ class ClustENM(Ensemble):
 
         self._sol = solvent if self._nuc is None else 'exp'
         self._padding = kwargs.pop('padding', 1.0)
+        self._boxSize = kwargs.pop('boxSize', None)
         self._ionicStrength = kwargs.pop('ionicStrength', 0.0)
         if self._sol == 'imp':
             self._force_field = ('amber99sbildn.xml', 'amber99_obc.xml') if force_field is None else force_field
@@ -1045,6 +1160,16 @@ class ClustENM(Ensemble):
                      - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
         if rank_diff != 0:
             raise ValueError('atoms has disconnected parts; please check the structure')
+
+        if self._fitmap is not None:
+            self._blurrer = StructureBlurrer().gaussian_blur_real_space
+            sim_map_start = self._blurrer(self._atoms.toTEMPyStructure(),
+                                          self._fit_resolution,
+                                          self._fitmap)
+            self._scorer = ScoringFunctions()
+            self._cc_prev = self._scorer.CCC(self._fitmap, sim_map_start)
+            self._cc = [self._cc_prev]
+            LOGGER.info('Starting CC is %f' % self._cc_prev)
 
         LOGGER.timeit('_clustenm_overall')
 

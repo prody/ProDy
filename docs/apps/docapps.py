@@ -1,14 +1,18 @@
 #!/usr/bin/python
 
 import os
-import imp
+import sys
+import importlib
 from subprocess import Popen, PIPE
 
-path = [imp.find_module('prody')[1]]
-apps = imp.load_module('prody.apps',
-                           *imp.find_module('apps', path))
+from prody.utilities.misctools import impLoadModule
 
-for cmd, subcmds in [('prody', apps.PRODY_APPS), ('evol', apps.EVOL_APPS)]:
+path_apps = importlib.util.find_spec("prody.apps").submodule_search_locations[0]
+
+prody_apps = impLoadModule('prody.apps.prody_apps', path_apps + '/prody_apps/', '__init__')
+evol_apps = impLoadModule('prody.apps.evol_apps', path_apps + '/evol_apps/', '__init__')
+
+for cmd, subcmds in [('prody', prody_apps.PRODY_APPS), ('evol', evol_apps.EVOL_APPS)]:
 
     pipe = Popen([cmd, '-h'], stdout=PIPE, stderr=PIPE)
     with open(os.path.join(cmd, cmd + '.txt'), 'w') as rst:

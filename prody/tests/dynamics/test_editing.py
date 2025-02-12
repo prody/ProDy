@@ -1,11 +1,13 @@
 """This module contains unit tests for :mod:`~prody.KDTree` module."""
 
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 
-from numpy import concatenate
+from numpy import concatenate, array
 
 from prody.dynamics import calcGNM, calcANM
-from prody.dynamics import extendModel, extendMode, extendVector
+from prody.dynamics import (extendModel, extendMode, extendVector,
+                            sliceModel, sliceMode, sliceVector,
+                            interpolateModel)
 
 from prody.tests import unittest
 from prody.tests.datafiles import parseDatafile
@@ -27,6 +29,14 @@ EXT1D = concatenate([[i] * len(res)
 
 EXT3D = concatenate([list(range(i*3, (i+1)*3)) * len(res)
                      for i, res in enumerate(ATOMS.iterResidues())])
+
+SLC1D = concatenate([[i] for i in ATOMS.ca.getIndices()])
+
+SLC3D = concatenate([list(range(i*3, (i+1)*3))
+                     for i in ATOMS.ca.getIndices()])
+
+ANM_AA, NODES_AA = calcANM(ATOMS, selstr='all', cutoff=8)
+GNM_AA = calcGNM(ATOMS, selstr='all', cutoff=4)[0]
 
 
 class TestExtending(unittest.TestCase):
@@ -67,3 +77,50 @@ class TestExtending(unittest.TestCase):
         ext = extendVector(vector, NODES, ATOMS)[0]
         assert_array_equal(ext._getArray(), vector._getArray()[EXT1D])
 
+
+class TestSlicing(unittest.TestCase):
+
+    def testModel3d(self):
+
+        slc = sliceModel(ANM_AA, NODES_AA, NODES)[0]
+        assert_array_equal(slc._getArray(), ANM_AA._getArray()[SLC3D, :])
+
+    def testModel1d(self):
+
+        slc = sliceModel(GNM_AA, NODES_AA, NODES)[0]
+        assert_array_equal(slc._getArray(), GNM_AA._getArray()[SLC1D, :])
+
+    def testMode3d(self):
+
+        mode = ANM_AA[0]
+        slc = sliceMode(mode, NODES_AA, NODES)[0]
+        assert_array_equal(slc._getArray(), mode._getArray()[SLC3D] *
+                                            mode.getVariance()**0.5)
+
+    def testMode1d(self):
+
+        mode = GNM_AA[0]
+        slc = sliceMode(mode, NODES_AA, NODES)[0]
+        assert_array_equal(slc._getArray(), mode._getArray()[SLC1D] *
+                                            mode.getVariance()**0.5)
+
+    def testVector3d(self):
+
+        vector = ANM_AA[0] * 1
+        slc = sliceVector(vector, NODES_AA, NODES)[0]
+        assert_array_equal(slc._getArray(), vector._getArray()[SLC3D])
+
+    def testVector1d(self):
+
+        vector = GNM_AA[0] * 1
+        slc = sliceVector(vector, NODES_AA, NODES)[0]
+        assert_array_equal(slc._getArray(), vector._getArray()[SLC1D])
+
+
+class TestInterpolating(unittest.TestCase):
+
+    def testModel3d(self):
+
+        interp, atoms = interpolateModel(ANM, NODES, ATOMS)
+        assert_equal(interp._getArray().shape, ANM._getArray()[EXT3D, :].shape)
+        assert_equal(atoms.numAtoms(), NODES_AA.numAtoms())

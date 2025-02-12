@@ -102,6 +102,17 @@ class TestPDBEnsemble(TestCase):
                      ATOMS.getCoordsets([0,2])[WEIGHTS_BOOL[[0,2]]],
                     'failed to delete middle coordinate set')
 
+    def testDelCoordsetMiddleTrans(self):
+
+        PDBENSEMBLEB = PDBENSEMBLEA[:]
+        PDBENSEMBLEB.iterpose()
+
+        ensemble = PDBENSEMBLEB[:]
+        ensemble.delCoordset(1)
+        assert_equal(ensemble._trans,
+                     PDBENSEMBLEB._trans[[0,2]],
+                     'failed to delete middle transformation')
+
     def testDelCoordsetAll(self):
         """Test consequences of deleting all coordinate sets."""
 

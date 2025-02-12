@@ -22,6 +22,12 @@ __pycache__
 *.nmd
 *.pdb
 *.pdb.gz
+*.cif
+*.cif.gz
+*.mmtf
+*.map
+*.mrc
+*.dcd
 
 # Docs
 /docs/_build/
