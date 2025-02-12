@@ -74,7 +74,8 @@ class ANMBase(NMA):
         """Build Hessian matrix for given coordinate set.
 
         :arg coords: a coordinate set or an object with ``getCoords`` method
-        :type coords: :class:`numpy.ndarray`
+        :type coords: :class:`numpy.ndarray`, :class:`Atomic`, 
+            :class:`Ensemble`, :class:`Trajectory`
 
         :arg cutoff: cutoff distance (Å) for pairwise interactions,
             default is 15.0 Å, minimum is 4.0 Å
@@ -95,7 +96,14 @@ class ANMBase(NMA):
         accepted as *gamma* argument.
 
         When Scipy is available, user can select to use sparse matrices for
-        efficient usage of memory at the cost of computation speed."""
+        efficient usage of memory at the cost of computation speed.
+        
+        Any atoms or points can be used for building a Hessian matrix, including 
+        calphas, phosphorus and carbon atoms from nucleic acids, all atoms, or 
+        pseudoatoms fitted to density maps with algorithms such as TRN. 
+        
+        The cutoff distance may need to be adjusted depending on the coarse graining 
+        level of the atoms or points used."""
 
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
@@ -189,7 +197,7 @@ class ANMBase(NMA):
         self._n_atoms = n_atoms
         self._dof = dof
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, **kwargs):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Hessian matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
@@ -203,6 +211,10 @@ class ANMBase(NMA):
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is **True**
+
+        :arg nproc: number of processors for thread pool limit,
+            default is **0**, meaning don't impose limit
+        :type nproc: int
         """
 
         if self._hessian is None:
@@ -216,7 +228,7 @@ class ANMBase(NMA):
         self._clear()
         LOGGER.timeit('_anm_calc_modes')
         values, vectors, vars = solveEig(self._hessian, n_modes=n_modes, zeros=zeros, 
-                                         turbo=turbo, expct_n_zeros=6)
+                                         turbo=turbo, expct_n_zeros=6, **kwargs)
         self._eigvals = values
         self._array = vectors
         self._vars = vars

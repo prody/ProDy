@@ -264,7 +264,7 @@ class PDBBlastRecord(object):
                             query_len)
                 data['percent_coverage'] = p_overlap
                 
-                for item in (hit['id'] + hit['def']).split('>gi'):
+                for item in (hit['id'] + hit['def']).split('>pdb'):
                     head, title = item.split(None, 1)
                     head = head.split('|')
                     pdb_id = head[-2].lower()
@@ -297,10 +297,10 @@ class PDBBlastRecord(object):
             to or higher than this value will be returned, default is ``0.``
         :type percent_identity: float
         :arg percent_overlap: PDB hits with percent coverage of the query
-          sequence equivalent or better will be returned, default is ``0.``
+            sequence equivalent or better will be returned, default is ``0.``
         :type percent_overlap: float
         :arg chain: if chain is **True**, individual chains in a PDB file
-          will be considered as separate hits , default is **False**
+            will be considered as separate hits, default is **False**
         :type chain: bool"""
 
         assert isinstance(percent_identity, (float, int)), \
@@ -334,11 +334,8 @@ class PDBBlastRecord(object):
 
     def writeSequences(self, filename, **kwargs):
         """
-        Returns a plot that contains a dendrogram of the sequence similarities among
-        the sequences in given hit list. 
-
-        :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
-        :type hits: dict
+        Writes a fasta file containing the hit sequences under 'hseq' field.
+        These are not equivalently aligned.
 
         Arguments of getHits can be parsed as kwargs.
         """

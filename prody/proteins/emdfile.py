@@ -26,7 +26,7 @@ class EMDParseError(Exception):
 
 
 def parseEMD(emd, **kwargs):
-    """Parses an EM density map in EMD/MRC2015 format and 
+    """Parses an EM density map in EMD/MRC2014 format and 
     optionally returns an :class:`.AtomGroup` containing  
     beads built in the density using the TRN algorithm [_TM94]. 
 
@@ -72,8 +72,12 @@ def parseEMD(emd, **kwargs):
 
             if os.path.isfile(emd + '.map'):
                 filename = emd + '.map'
+                LOGGER.debug('EMD file is found in working directory ({0}).'
+                            .format(filename))
             elif os.path.isfile(emd + '.map.gz'):
                 filename = emd + '.map.gz'
+                LOGGER.debug('EMD file is found in working directory ({0}).'
+                            .format(filename))
             else:
                 filename = fetchPDB(emd, report=True,
                                     format='emd', compressed=False)
@@ -90,6 +94,14 @@ def parseEMD(emd, **kwargs):
     emdStream = openFile(emd, 'rb')
     result = parseEMDStream(emdStream, **kwargs)
     emdStream.close()
+
+    if hasattr(result, 'numAtoms'):
+        LOGGER.info('Output is an AtomGroup with {0} atoms fitted.'.format(result.numAtoms()))
+    elif hasattr(result, 'apix'):
+        LOGGER.info('Output is an EMDMAP with {:4.2f} A/pix.'.format(result.apix[0]))
+    else:
+        LOGGER.warn('Atomic data could not be parsed, please '
+                    'check the input file.')
 
     return result
 
@@ -128,8 +140,6 @@ def parseEMDStream(stream, **kwargs):
     else:
         make_nodes = False
         map = True
-        LOGGER.info('As n_nodes is less than or equal to 0, no nodes will be'
-                    ' made and the raw map will be returned')
 
     emd = EMDMAP(stream, min_cutoff, max_cutoff)
 
@@ -448,7 +458,7 @@ class EMDMAP(object):
             raise ImportError('TEMPy needs to be installed for this functionality')
         
         header = MapParser.readMRCHeader(self.filename)
-        newOrigin = np.array((self.ncstart, self.nrstart, self.nsstart)) * self.apix
+        newOrigin = np.array((self.x0, self.y0, self.z0))
         return Map(self.density, newOrigin, self.apix, self.filename, header)
 
     def copyMap(self):

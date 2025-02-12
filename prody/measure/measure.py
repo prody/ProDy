@@ -5,7 +5,7 @@ from numbers import Integral, Number
 
 from numpy import ndarray, power, sqrt, array, zeros, arccos, dot
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
-from numpy import unique, where
+from numpy import unique, where, divide, power
 
 from prody.atomic import Atomic, Residue, Atom, extendAtomicData
 from prody.kdtree import KDTree
@@ -16,11 +16,11 @@ from prody import LOGGER, PY2K
 if PY2K:
     range = xrange
 
-__all__ = ['buildDistMatrix', 'calcDistance',
-           'calcCenter', 'calcGyradius', 'calcAngle',
-           'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
-           'calcMSF', 'calcRMSF',
-           'calcDeformVector',
+__all__ = ['buildDistMatrix', 'calcDistance', 'calcGyradius',
+           'calcCenter', 'calcAngle', 'calcDihedral',
+           'getCenter', 'getAngle', 'getDihedral',
+           'calcOmega', 'calcPhi', 'calcPsi',
+           'calcMSF', 'calcRMSF', 'calcDeformVector',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
            'pickCentral', 'pickCentralAtom', 'pickCentralConf', 'getWeights',
            'calcInertiaTensor', 'calcPrincAxes', 'calcDistanceMatrix',
@@ -31,7 +31,7 @@ RAD2DEG = 180 / pi
 DISTMAT_FORMATS = set(['mat', 'rcd', 'arr'])
 
 
-def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
+def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat', seqsep=None):
     """Returns distance matrix.  When *atoms2* is given, a distance matrix
     with shape ``(len(atoms1), len(atoms2))`` is built.  When *atoms2* is
     **None**, a symmetric matrix with shape ``(len(atoms1), len(atoms1))``
@@ -50,7 +50,16 @@ def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
     :arg format: format of the resulting array, one of ``'mat'`` (matrix,
         default), ``'rcd'`` (arrays of row indices, column indices, and
         distances), or ``'arr'`` (only array of distances)
-    :type format: bool"""
+    :type format: bool
+    
+    :arg seqsep: if provided, distances will only be measured between atoms 
+        with resnum differences that are greater than or equal to seqsep. 
+    :type seqsep: int
+    """
+
+    spacing = 1
+    if seqsep is not None:
+        spacing = seqsep - 1
 
     if not isinstance(atoms1, ndarray):
         try:
@@ -86,10 +95,10 @@ def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
             raise ValueError('format must be one of mat, rcd, or arr')
         if format == 'mat':
             for i, xyz in enumerate(atoms1[:-1]):
-                dist[i, i+1:] = dist[i+1:, i] = getDistance(xyz, atoms2[i+1:],
+                dist[i, i+spacing:] = dist[i+spacing:, i] = getDistance(xyz, atoms2[i+spacing:],
                                                             unitcell)
         else:
-            dist = concatenate([getDistance(xyz, atoms2[i+1:], unitcell)
+            dist = concatenate([getDistance(xyz, atoms2[i+spacing:], unitcell)
                                 for i, xyz in enumerate(atoms1)])
             if format == 'rcd':
                 n_atoms = len(atoms1)
@@ -198,13 +207,17 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
     a3 = coords4 - coords3
 
     v1 = cross(a1, a2)
-    v1 = v1 / (v1 * v1).sum(-1)**0.5
+    v1 = divide(v1, power((v1 * v1).sum(-1), 0.5).reshape(-1,1))
     v2 = cross(a2, a3)
-    v2 = v2 / (v2 * v2).sum(-1)**0.5
+    v2 = divide(v2, power((v2 * v2).sum(-1), 0.5).reshape(-1,1))
     porm = sign((v1 * a3).sum(-1))
     rad = arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
-    if not porm == 0:
+    if not all(porm == 0):
         rad = rad * porm
+
+    if rad.shape[0] == 1:
+        rad = rad[0]
+        
     if radian:
         return rad
     else:
@@ -720,7 +733,7 @@ def calcADPAxes(atoms, **kwargs):
         # Make sure the direction that correlates with the previous atom
         # is selected
         vals = vals * sign((vecs * axes[(i-1)*3:(i)*3, :]).sum(0))
-        axes[i*3:(i+1)*3, :] = vals * vecs
+        axes[i*3:i*3, :] = vals * vecs
     # Resort the columns before returning array
     axes = axes[:, [2, 1, 0]]
     torf = None
@@ -802,7 +815,7 @@ def buildADPMatrix(atoms):
         element[0, 1] = element[1, 0] = anisou[3]
         element[0, 2] = element[2, 0] = anisou[4]
         element[1, 2] = element[2, 1] = anisou[5]
-        adp[i*3:(i+1)*3, i*3:(i+1)*3] = element
+        adp[i*3:i*3+3, i*3:i*3+3] = element
     return adp
 
 
@@ -819,7 +832,7 @@ def calcPrincAxes(coords, turbo=True):
     """Calculate principal axes from coords"""
     M = calcInertiaTensor(coords)
     _, vectors, _ = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
-    return vectors
+    return vectors.transpose()
 
 
 def calcDistanceMatrix(coords, cutoff=None):
@@ -860,7 +873,7 @@ def calcDistanceMatrix(coords, cutoff=None):
         r += 1
 
     for i in range(n_atoms):
-        for j in range(i+1, n_atoms):
+        for j in range(i, n_atoms):
             if dist_mat[i, j] == 0.:
                 dist_mat[i, j] = dist_mat[j, i] = max(dists)
 
@@ -891,7 +904,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
 
     :arg shortest_block: smallest number of residues to be included 
         in a block before merging with the previous block
-        Default is **2**
+        Default is **4** as smaller numbers can cause problems for distance matrices.
     :type shortest_block: int
 
     :arg longest_block: largest number of residues to be included 
@@ -922,7 +935,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
     if not isinstance(secstr, bool):
         raise TypeError('secstr should be a Boolean')
 
-    shortest_block = kwargs.get('shortest_block', 2)
+    shortest_block = kwargs.get('shortest_block', 4)
     shortest_block = kwargs.get('min_size', shortest_block)
     if not isinstance(shortest_block, Integral):
         raise TypeError("shortest_block should be an integer")
@@ -1015,7 +1028,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
         block = where(blocks == i)[0]
         if len(block) < shortest_block:
             block_im1 = where(blocks == i-1)[0]
-            block_ip1 = where(blocks == i+1)[0]
+            block_ip1 = where(blocks == i+spacing)[0]
 
             dist_back = calcDistance(atoms[block_im1][-1], atoms[block][0])
             dist_fwd = calcDistance(atoms[block][-1], atoms[block_ip1][0])
@@ -1025,7 +1038,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
                 blocks[where(blocks == i)[0]] = i-1
             elif dist_fwd < min_dist_cutoff:
                 # join onto next block
-                blocks[where(blocks == i)[0]] = i+1                
+                blocks[where(blocks == i)[0]] = i
 
     blocks, amap = extendAtomicData(blocks, sel_ca, atoms)
 

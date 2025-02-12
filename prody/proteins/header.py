@@ -11,7 +11,7 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.atomic import Atomic, AtomGroup
 from prody.atomic import getSequence
 from prody.measure import Transformation
-from prody.utilities import openFile
+from prody.utilities import openFile, decToHybrid36
 
 from .localpdb import fetchPDB
 
@@ -385,6 +385,38 @@ def _getResolution(lines):
             except:
                 return None
 
+def _getSCALE(lines):
+    ctof = np.identity(4)
+    if len(lines['SCALE1']) == 0: return {}
+    ctof[0] = lines['SCALE1'][0][1].split()[1:5]
+    ctof[1] = lines['SCALE2'][0][1].split()[1:5]
+    ctof[2] = lines['SCALE3'][0][1].split()[1:5]
+    ftoc = np.linalg.inv(ctof)
+    return {'ctof':ctof, 'ftoc':ftoc}
+
+def _getSpaceGroup(lines):
+    rowct = 0
+    mat = []
+    xform = []
+    sg = None
+    for i, line in lines['REMARK 290']:
+        if 'SYMMETRY OPERATORS FOR SPACE GROUP:' in line:
+            try:
+                sg = line.split('GROUP:')[1].strip()
+            except:
+                pass
+        if line[13:18] == 'SMTRY':
+            w = line.split()
+            mat.append([float(x) for x in w[4:]])
+            rowct += 1
+            if rowct==3:
+                mat.append( (0,0,0,1) )
+                matnp = np.array(mat)
+                #if np.sum(matnp-np.identity(4))!=0.0:
+                xform.append(np.array(mat))
+                rowct = 0
+                mat = []
+    return {'spaceGroup':sg, 'symMats': xform}
 
 def _getRelatedEntries(lines):
 
@@ -876,6 +908,87 @@ def _getNumModels(lines):
         except:
             pass
 
+def _getCRYST1(lines):
+    line = lines['CRYST1']
+    if line:
+       i, line = line[0]
+       try:
+           return {'cellLength': (float(line[6:15]),
+                                  float(line[15:24]),
+                                  float(line[24:33])),
+                   'cellAngles': (float(line[33:40]),
+                                  float(line[40:47]),
+                                  float(line[47:54])),
+                   'spaceGroup': line[55:66].strip(),
+                   'Z value' : int(line[66:70])
+                   }
+       except:
+           pass
+
+def _missingResidues(lines):
+    """
+    Parse REMARK 465, Missing residues records
+    REMARK 465   M RES C SSSEQI
+    REMARK 465     GLU B   448
+    header['missing_residues'] = [(chid, resname, resnum, icode, modelNum)]
+    """
+    mr = []
+    header = True
+    for i, line in lines['REMARK 465']:
+        #skip header records
+        if line.startswith("REMARK 465   M RES C SSSEQI"):
+            header=False
+            continue
+        if header: continue
+        modelNumStr = line[10:14].strip()
+        if modelNumStr: modelNum = int(modelNumStr)
+        else: modelNum = None
+        w = line[15:].split()
+        icode = ''
+        if w[2][-1].isalpha():
+            icode = w[2][-1]
+            resnum = int(w[2][:-1])
+        else:
+            resnum = int(w[2])
+        mr.append((w[1], w[0], resnum, icode, modelNumStr))
+    return mr
+    
+def _missingAtoms(lines):
+    """
+    Parse REMARK 470,  Missing Atom records
+    REMARK 470   M RES CSSEQI  ATOMS
+    REMARK 470     ARG A 412    CG   CD   NE   CZ   NH1  NH2  
+    header['missing_atoms'] = [(chid, resname, resnum, icode, modelNum, [atom names])]
+    """
+    ma = []
+    res_repr_to_ma_index = {} # {residue_string_repr: index of this residue in ma list}
+    header = True
+    for i, line in lines['REMARK 470']:
+        #skip header records
+        if line.startswith("REMARK 470   M RES CSSEQI  ATOMS"):
+            header=False
+            continue
+        if header:
+            continue
+        modelNumStr = line[10:14].strip()
+        if modelNumStr:
+            modelNum = int(modelNumStr)
+        else:
+            modelNum = None
+        resname = line[15:18]
+        chid = line[19]
+        resnum = int(line[20:24])
+        icode = line[24]
+        if icode == ' ':
+            icode = ''
+        key = '%s:%s%d%s'%(chid,resname,resnum,icode)
+        if key in res_repr_to_ma_index: # missing atoms record for a residue can span multiple lines 1vzq.pdb
+            ma[res_repr_to_ma_index[key]][-1].extend(line[25:].split())
+        else:
+            res_repr_to_ma_index[key] = len(ma)
+            ma.append((chid, resname, resnum, icode, line[25:].split()))
+    return ma
+    
 # Make sure that lambda functions defined below won't raise exceptions
 _PDB_HEADER_MAP = {
     'helix': _getHelix,
@@ -912,6 +1025,10 @@ _PDB_HEADER_MAP = {
     'n_models': _getNumModels,
     'space_group': _getSpaceGroup,
     'related_entries': _getRelatedEntries,
+    'CRYST1': _getCRYST1,
+    'SCALE': _getSCALE,
+    'missing_residues': _missingResidues,
+    'missing_atoms': _missingAtoms,
 }
 
 mapHelix = {
@@ -1111,10 +1228,13 @@ def buildBiomolecules(header, atoms, biomol=None):
             translation[2] = line2[3]
             t = Transformation(rotation, translation)
 
-            newag = atoms.select('chain ' + ' '.join(mt[times*4+0])).copy()
+            newag = atoms.select('chain ' + ' or chain '.join(mt[times*4+0]))
             if newag is None:
                 continue
-            newag.all.setSegnames(segnm.pop(0))
+            newag = newag.copy()
+            segnames = newag.all.getSegnames()
+            newag.all.setSegnames(np.array([segname + decToHybrid36(times+1, resnum=True) 
+                                            for segname in segnames]))
             for acsi in range(newag.numCoordsets()):
                 newag.setACSIndex(acsi)
                 newag = t.apply(newag)

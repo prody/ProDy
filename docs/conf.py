@@ -107,8 +107,8 @@ extlinks = {
     'issue': ('https://github.com/prody/ProDy/issues/%s', 'issue '),
     'pdb': ('http://www.pdb.org/pdb/explore/explore.do?structureId=%s', ''),
     'wiki': ('http://en.wikipedia.org/wiki/%s', ''),
-    'pfam': ('http://pfam.xfam.org/family/%s', ''),
-    'pfamprotein': ('http://pfam.xfam.org/protein/%s', ''),
+    'pfam': ('http://pfam-legacy.xfam.org/family/%s', ''),
+    'pfamprotein': ('http://pfam-legacy.xfam.org/protein/%s', ''),
     'uniprot': ('http://www.uniprot.org/uniprot/%s', ''),
     'pdbhet': ('http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=%s', ''),
 }
@@ -158,13 +158,13 @@ intersphinx_mapping = {
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
     'matplotlib': ('http://matplotlib.sourceforge.net/', None),
-    'prodywebsite': ('http://prody.csb.pitt.edu/', None),
+    'prodywebsite': ('http://www.bahargroup.org/prody/', None),
 }
 
 rst_epilog = u"""
 
-.. _ProDy: http://prody.csb.pitt.edu
-.. _Tutorials: http://prody.csb.pitt.edu/tutorials
+.. _ProDy: http://www.bahargroup.org/prody
+.. _Tutorials: http://www.bahargroup.org/prody/tutorials
 .. _NMWiz: http://csb.pitt.edu/NMWiz
 .. _VMD: http://www.ks.uiuc.edu/Research/vmd
 .. _PDB: http://www.pdb.org

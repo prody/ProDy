@@ -44,10 +44,10 @@ creating a copy of the repository in your account.  You will see
 a link for this on ProDy_ source code page.  You will have write access to
 this fork and later will use it share your changes with others.
 
-The next step is cloning the fork from your online account to your local
+The next step is cloning the fork from your online account (e.g. jamesmkrieger) to your local
 system.  If you are not using the GitHub software, you can do it as follows::
 
-  $ git clone https://github.com/prody/ProDy.git
+  $ git clone https://github.com/jamesmkrieger/ProDy.git
 
 This will create :file:`ProDy` folder with a copy of the project files in it::
 
@@ -140,10 +140,10 @@ repository as a remote to your local copy.  You can do this running the
 following command from the ProDy project folder::
 
   $ cd prody
-  $ git remote add prodymaster git@github.com:abakan/ProDy.git
+  $ git remote add prodymaster git@github.com:prody/ProDy.git
 
 
-You may use any name other than `prodymaster`, but `origin`, which points to
+You may use any name other than `prodymaster`, except for `origin`, which points to
 the ProDy fork in your account.
 
 After setting up this remote, calling :program:`git pull` command will

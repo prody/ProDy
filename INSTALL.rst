@@ -6,7 +6,7 @@ Installation
 Required Software
 -----------------
 
-* `Python`_ 2.7, 3.5 or later. We recommend using `Anaconda`_, which provides the conda package and environment manager as well as many useful packages. 
+* `Python`_ 2.7, 3.6 or later. We recommend using `Anaconda`_, which provides the conda package and environment manager as well as many useful packages. 
 
 .. _Anaconda: https://www.anaconda.com/products/individual
 

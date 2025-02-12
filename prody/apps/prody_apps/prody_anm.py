@@ -13,11 +13,14 @@ HELPTEXT = {}
 for key, txt, val in [
     ('model', 'index of model that will be used in the calculations', 1),
     ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
-    ('cutoff', 'cutoff distance (A)', 15.),
-    ('gamma', 'spring constant', 1.),
+    ('cutoff', 'cutoff distance (A)', '15.'),
+    ('gamma', 'spring constant', '1.'),
+    ('sparse', 'use sparse matrices', False),
+    ('kdtree', 'use kdtree for Hessian', False),    
     ('zeros', 'calculate zero modes', False),
+    ('turbo', 'use memory-intensive turbo option for modes', False),
 
-    ('outbeta', 'write beta-factors calculated from GNM modes', False),
+    ('outbeta', 'write beta-factors calculated from ANM modes', False),
     ('hessian', 'write Hessian matrix', False),
     ('kirchhoff', 'write Kirchhoff matrix', False),
     ('figcmap', 'save contact map (Kirchhoff matrix) figure', False),
@@ -40,10 +43,10 @@ def prody_anm(pdb, **kwargs):
     """
 
     for key in DEFAULTS:
-        if not key in kwargs:
+        if key not in kwargs:
             kwargs[key] = DEFAULTS[key]
 
-    from os.path import isdir, join
+    from os.path import isdir, join, exists
     outdir = kwargs.get('outdir')
     if not isdir(outdir):
         raise IOError('{0} is not a valid path'.format(repr(outdir)))
@@ -54,13 +57,17 @@ def prody_anm(pdb, **kwargs):
 
     selstr = kwargs.get('select')
     prefix = kwargs.get('prefix')
-    cutoff = kwargs.get('cutoff')
-    gamma = kwargs.get('gamma')
+    sparse = kwargs.get('sparse')
+    kdtree = kwargs.get('kdtree')
     nmodes = kwargs.get('nmodes')
-    selstr = kwargs.get('select')
     model = kwargs.get('model')
     altloc = kwargs.get('altloc')
     zeros = kwargs.get('zeros')
+    turbo = kwargs.get('turbo')
+    membrane = kwargs.get('membrane')
+
+    if membrane and not exists(pdb):
+        pdb = prody.fetchPDBfromOPM(pdb)
 
     pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
     if prefix == '_anm':
@@ -74,13 +81,49 @@ def prody_anm(pdb, **kwargs):
     LOGGER.info('{0} atoms will be used for ANM calculations.'
                 .format(len(select)))
 
-    anm = prody.ANM(pdb.getTitle())
-    anm.buildHessian(select, cutoff, gamma)
-    anm.calcModes(nmodes, zeros=zeros)
+    if membrane:
+        anm = prody.exANM(pdb.getTitle())
+    else:
+        anm = prody.ANM(pdb.getTitle())
+    try:
+        gamma = float(kwargs.get('gamma'))
+        LOGGER.info("Using gamma {0}".format(gamma))
+    except ValueError:
+        try:
+            gamma = eval('prody.' + kwargs.get('gamma'))
+            gamma = gamma(select)
+            LOGGER.info("Using gamma {0}".format(gamma))
+        except NameError:
+            raise NameError("Please provide gamma as a float or ProDy Gamma class")
+        except TypeError:
+            raise TypeError("Please provide gamma as a float or ProDy Gamma class")
+        
+    try:
+        cutoff = float(kwargs.get('cutoff'))
+        LOGGER.info("Using cutoff {0}".format(cutoff))
+    except ValueError:
+        try:
+            import math
+            cutoff = eval(kwargs.get('cutoff'))
+            LOGGER.info("Using cutoff {0}".format(cutoff))
+        except NameError:
+            raise NameError("Please provide cutoff as a float or equation using math")
+        except TypeError:
+            raise TypeError("Please provide cutoff as a float or equation using math")
+
+    nproc = kwargs.get('nproc')
+    anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)
+    anm.calcModes(nmodes, zeros=zeros, turbo=turbo, nproc=nproc)
+    
     LOGGER.info('Writing numerical output.')
 
     if kwargs.get('outnpz'):
-        prody.saveModel(anm, join(outdir, prefix))
+        prody.saveModel(anm, join(outdir, prefix), 
+                        matrices=kwargs.get('npzmatrices'))
+
+    if kwargs.get('outscipion'):
+        prody.writeScipionModes(outdir, anm)
+
     prody.writeNMD(join(outdir, prefix + '.nmd'), anm, select)
 
     extend = kwargs.get('extend')
@@ -169,14 +212,14 @@ def prody_anm(pdb, **kwargs):
 
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                prody.showCrossCorr(anm)
+                prody.showCrossCorr(anm, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cc.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')
 
             if figall or cm:
                 plt.figure(figsize=(width, height))
-                prody.showContactMap(anm)
+                prody.showContactMap(anm, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cm.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')
@@ -215,7 +258,7 @@ for key in _:
 def addCommand(commands):
 
     subparser = commands.add_parser('anm',
-        help='perform anisotropic network model calculations')
+        help='perform anisotropic network model normal mode analysis calculations')
 
     subparser.add_argument('--quiet', help="suppress info messages to stderr",
         action=Quiet, nargs=0)
@@ -241,13 +284,25 @@ graphical output files:
 
     group = addNMAParameters(subparser)
 
-    group.add_argument('-c', '--cutoff', dest='cutoff', type=float,
+    group.add_argument('-c', '--cutoff', dest='cutoff', type=str,
         default=DEFAULTS['cutoff'], metavar='FLOAT',
         help=HELPTEXT['cutoff'] + ' (default: %(default)s)')
 
-    group.add_argument('-g', '--gamma', dest='gamma', type=float,
-        default=DEFAULTS['gamma'], metavar='FLOAT',
+    group.add_argument('-g', '--gamma', dest='gamma', type=str,
+        default=DEFAULTS['gamma'], metavar='STR',
         help=HELPTEXT['gamma'] + ' (default: %(default)s)')
+
+    group.add_argument('-C', '--sparse-hessian', dest='sparse', action='store_true',
+        default=DEFAULTS['sparse'],
+        help=HELPTEXT['sparse'] + ' (default: %(default)s)')
+
+    group.add_argument('-G', '--use-kdtree', dest='kdtree', action='store_true',
+        default=DEFAULTS['kdtree'],
+        help=HELPTEXT['kdtree'] + ' (default: %(default)s)')
+
+    group.add_argument('-y', '--turbo', dest='turbo', action='store_true',
+        default=DEFAULTS['turbo'],
+        help=HELPTEXT['turbo'] + ' (default: %(default)s)')
 
     group.add_argument('-m', '--model', dest='model', type=int,
         metavar='INT', default=DEFAULTS['model'], help=HELPTEXT['model'])
