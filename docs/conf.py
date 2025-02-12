@@ -158,13 +158,13 @@ intersphinx_mapping = {
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
     'matplotlib': ('http://matplotlib.sourceforge.net/', None),
-    'prodywebsite': ('http://prody.csb.pitt.edu/', None),
+    'prodywebsite': ('http://www.bahargroup.org/prody/', None),
 }
 
 rst_epilog = u"""
 
-.. _ProDy: http://prody.csb.pitt.edu
-.. _Tutorials: http://prody.csb.pitt.edu/tutorials
+.. _ProDy: http://www.bahargroup.org/prody
+.. _Tutorials: http://www.bahargroup.org/prody/tutorials
 .. _NMWiz: http://csb.pitt.edu/NMWiz
 .. _VMD: http://www.ks.uiuc.edu/Research/vmd
 .. _PDB: http://www.pdb.org

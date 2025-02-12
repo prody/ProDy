@@ -21,9 +21,11 @@ Development Team
 `James Krieger`_ was helping develop *ProDy* from 2017 and became the main 
 overseer and developer in mid 2020.
 
-`Hongchun Li`_ is currently maintaining and developing ANM and GNM servers, 
+`Hongchun Li`_ has helped maintain and develop ANM and GNM servers, 
 and made significant contributions to :mod:`.database` and :mod:`.dynamics` 
 including *SignDy* and Adaptive ANM.
+
+`JiYoung Lee`_ is the main developer of :mod:`.Pharmmaker`, for constructing pharmacophore models using the outputs from :mod:`.DruGUI`.
 
 `Yan Zhang`_ contributed significantly to the development of 
 the *cryo-EM* module, :mod:`.protein.emdmap`.
@@ -32,9 +34,9 @@ the *cryo-EM* module, :mod:`.protein.emdmap`.
 :mod:`.domain_decomposition`, :mod:`.dynamics.essa`, and
 :mod:`.dynamics.clustenm`. 
 
-`Karolina Mikulska-Ruminska`_ contributed significantly to the development of 
+`Karolina Mikulska-Ruminska`_ is one of the main developers since 2022, with the addition of the new modules 
 :mod:`.protein.interactions` (*InSty*), :mod:`.protein.waterbridges`
-(*WatFinder*), and :mod:`.dynamics.mechstiff` (*MechStiff*).
+(*WatFinder*), in addition to being the developer of :mod:`.dynamics.mechstiff` (*MechStiff*).
 
 `Anthony Bogetti`_ is overseeing the overall development of *ProDy* since 
 2024.
@@ -49,6 +51,12 @@ Blocks and Membrane ENM.
 
 `Lidio Meireles`_ provided insightful comments on the design of *ProDy*,
 and contributed to the development of :ref:`prody-apps`.
+
+`Mustafa Tekpinar`_ contributed to the development of MechStiff.
+
+`Luca Ponzoni`_ contributed to the development of SignDy.
+
+`David Koes`_ contributed to the development of drug discovery tools.
 
 Contributors
 ------------
@@ -67,7 +75,6 @@ contributions and feedback from the following individuals:
 insights.
 
 
-
 .. _Ahmet Bakan: https://scholar.google.com/citations?user=-QAYVgMAAAAJ&hl=en
 .. _Cihan Kaya: https://www.linkedin.com/in/cihan-kaya/
 .. _Bahar Lab: http://www.bahargroup.org/Faculty/bahar/
@@ -75,9 +82,9 @@ insights.
 .. _Anindita Dutta: http://www.linkedin.com/pub/anindita-dutta/5a/568/a90
 .. _Wenzhi Mao: http://www.linkedin.com/pub/wenzhi-mao/2a/29a/29
 .. _Lidio Meireles: http://www.linkedin.com/in/lidio
-.. _Ying Liu: http://www.linkedin.com/pub/ying-liu/15/48b/5a9
+.. _Ying Liu: https://www.linkedin.com/in/yingliu03/
 .. _Kian Ho: https://github.com/kianho
-.. _Gökçen Eraslan: http://blog.yeredusuncedernegi.com/
+.. _Gökçen Eraslan: https://github.com/gokceneraslan
 .. _Tim Lezon: https://scholar.google.pl/citations?user=1MwNI3EAAAAJ&hl=pl&oi=ao
 .. _Chakra Chennubhotla: http://www.csb.pitt.edu/Faculty/Chakra/
 .. _She (John) Zhang: https://www.linkedin.com/in/she-zhang-49164399/
@@ -88,3 +95,7 @@ insights.
 .. _Karolina Mikulska-Ruminska: https://scholar.google.pl/citations?user=IpyPHRwAAAAJ&hl=pl
 .. _Anthony Bogetti: https://scholar.google.pl/citations?hl=pl&user=9qQClIcAAAAJ
 .. _Frane Doljanin: https://github.com/fdoljanin
+.. _JiYoung Lee: https://scholar.google.com/citations?user=odKQmZcAAAAJ&hl=en
+.. _David Koes: https://bits.csb.pitt.edu/
+.. _Luca Ponzoni: https://scholar.google.it/citations?user=8vfPOYUAAAAJ&hl=en
+.. _Mustafa Tekpinar: https://scholar.google.com/citations?user=qeVv6o8AAAAJ&hl=en   

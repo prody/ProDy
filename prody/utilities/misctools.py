@@ -22,7 +22,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
            'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'checkIdentifiers', 'split', 'mad',
-           'importDec']
+           'importDec', 'impLoadModule']
 
 DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
@@ -422,8 +422,12 @@ def pystr(a):
     return b
 
 def getDataPath(filename):
+    if PY3K:
+        import importlib
+        path = importlib.util.find_spec('prody.utilities.datafiles').submodule_search_locations[0]
+        return '%s/%s' %(path, filename)
     import pkg_resources
-    return pkg_resources.resource_filename('prody.utilities', 'datafiles/%s'%filename)
+    return pkg_resources.resource_filename('prody.utilities', 'datafiles/%s'%filename)      
 
 def openData(filename, mode='r'):
     return open(getDataPath(filename), mode)
@@ -788,17 +792,37 @@ def mad(x):
 
 
 def importDec():
-    """Returns one of :mod:`scipy.linalg` or :mod:`numpy.linalg`."""
+    """Returns an imported module equivalent to numpy testing decorators."""
 
     try:
         import numpy.testing.decorators as dec
-    except ImportError:
+    except ModuleNotFoundError:
         try:
             from numpy.testing import dec
         except ImportError:
             try:
                 import numpy.testing._private.decorators as dec
-            except ImportError:
+            except ModuleNotFoundError:
                 from pytest import mark as dec    
 
     return dec
+
+
+def impLoadModule(name, cmd, path):
+    """Returns an  an imported module equivalent to imp."""
+
+    if not name.endswith('.'):
+        name += '.'
+
+    try:
+        import imp
+        mod = imp.load_module(name + cmd,
+                              *imp.find_module(cmd, [path]))
+    except ImportError:
+        import importlib
+        loader = importlib.machinery.SourceFileLoader(name + cmd,
+                                                      path + cmd + '.py')
+        mod = importlib.util.types.ModuleType(loader.name)
+        loader.exec_module(mod)
+
+    return mod
