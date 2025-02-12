@@ -1,25 +1,25 @@
 import os
-import sys
-import platform
-from os import sep as dirsep
 from os.path import isfile, join
+import platform
 
 from setuptools import setup
 from setuptools import Extension
+
+import shutil
+import sys
 
 if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
     sys.exit()
 
-if sys.version_info[:2] == (2, 7):
+if sys.version_info[:2] == (2, 7) or sys.version_info[:2] <= (3, 5):
     INSTALL_REQUIRES=['numpy>=1.10', 'biopython<=1.76', 'pyparsing', 'scipy']
 else:
-    INSTALL_REQUIRES=['numpy>=1.10', 'biopython', 'pyparsing', 'scipy']
+    INSTALL_REQUIRES=['numpy>=1.10,<2', 'biopython', 'pyparsing<=3.1.1', 'scipy', 'setuptools']
 
-if sys.version_info[0] == 3:
-    if sys.version_info[1] < 5:
-        sys.stderr.write('Python 3.4 and older is not supported\n')
-        sys.exit()
+if sys.version_info[0] == 3 and sys.version_info[1] < 6:
+    sys.stderr.write('Python 3.5 and older is not supported\n')
+    sys.exit()
 
 if os.name == 'java':
     sys.stderr.write('JavaOS is not supported\n')
@@ -85,7 +85,9 @@ PACKAGE_DATA = {
                     'datafiles/*.coo',
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
-                    'datafiles/msa*',]
+                    'datafiles/msa*',
+                    'datafiles/mmcif*cif',],
+    'prody.proteins': ['tabulated_energies.txt'],
 }
 
 PACKAGE_DIR = {}
@@ -94,6 +96,16 @@ for pkg in PACKAGES:
     
 from glob import glob
 tntDir = join('prody', 'utilities', 'tnt')
+hpbSoDir = join('prody', 'proteins', 'hpbmodule',
+                'hpb_Python{0}.{1}'.format(sys.version_info[0],
+                                           sys.version_info[1]))
+proteinsDir = join('prody', 'proteins')
+
+if not os.path.exists(join(proteinsDir, 'hpb.so')):
+    try:
+        shutil.copy(hpbSoDir + "/hpb.so", proteinsDir)
+    except FileNotFoundError:
+        pass
 
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
@@ -124,7 +136,6 @@ if platform.system() == 'Darwin':
     os.environ['CXX'] = 'clang++'
     #extra_compile_args.append('-stdlib=libc++')
 
-
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
@@ -132,8 +143,7 @@ CONTRIBUTED = [
               include_dirs=[numpy.get_include()]),
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
-              include_dirs=[tntDir], language='c++',
-              )
+              include_dirs=[tntDir], language='c++'),
 ]
 
 for ext in CONTRIBUTED:
@@ -152,8 +162,8 @@ SCRIPTS = ['prody=prody.apps:prody_main', 'evol=prody.apps:evol_main']
 setup(
     name='ProDy',
     version=__version__,
-    author='James Krieger, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan, and others',
-    author_email='kriegerj@pitt.edu',
+    author='James Krieger, Karolina Mikulska-Ruminska, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan, and others',
+    author_email='jamesmkrieger@gmail.com',
     description='A Python Package for Protein Dynamics Analysis',
     long_description=long_description,
     url='http://www.csb.pitt.edu/ProDy',

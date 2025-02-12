@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for analyzing normal modes obtained 
+"""This module defines functions for signature dynamics (SignDy), analyzing normal modes obtained 
 for conformations in an ensemble."""
 
 import time
@@ -429,7 +429,7 @@ class ModeEnsemble(object):
 
         :arg turbo: if **True** then the computation will be performed in parallel. 
                 The number of threads is set to be the same as the number of 
-                CPUs. Assigning a number to specify the number of threads to be 
+                CPUs. Assigning a number will specify the number of threads to be 
                 used. Default is **False**
         :type turbo: bool, int
         """
@@ -546,20 +546,20 @@ class ModeEnsemble(object):
         reweightingstatus.extend(reweighted)
         self._reweighted = reweightingstatus
 
-        if self._labels is not None or label is not None:
-            if label is None:
-                labels = ['']*len(modesets)
-            elif np.isscalar(label):
-                labels = [label]
-            else:
-                labels = label
-            if len(labels) != len(modesets):
-                raise ValueError('labels should have the same length as modesets')
+        if label is None:
+            labels = ['']*len(modesets)
+        elif np.isscalar(label):
+            labels = [label]
+        else:
+            labels = label
+            
+        if len(labels) != len(modesets):
+            raise ValueError('labels should have the same length as modesets')
 
-            if self._labels is None:
-                self._labels = ['']*len(self._modesets)
+        if self._labels is None:
+            self._labels = ['']*len(self._modesets)
 
-            self._labels.extend(labels)
+        self._labels.extend(labels)
 
         for i in range(len(modesets)):
             modeset = modesets[i]
@@ -1015,7 +1015,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
             enms = ModeEnsemble()
             enms.addModeSet(ensemble)
         except TypeError:
-            raise TypeError('ensemble must be an Ensemble or a ModeEnsemble instance,'
+            raise TypeError('ensemble must be an Ensemble or a ModeEnsemble instance, '
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
@@ -1125,7 +1125,7 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
 
     :arg atoms: an object with method :meth:`getResnums` for use 
                 on the x-axis.
-    :type atoms: :class:`Atomic` 
+    :type atoms: :class:`.Atomic` 
     """
 
     from matplotlib.pyplot import figure, plot, fill_between, \
@@ -1151,7 +1151,7 @@ def showSignature1D(signature, linespec='-', **kwargs):
 
     :arg atoms: an object with method :func:`getResnums` for use 
                 on the x-axis.
-    :type atoms: :class:`Atomic` 
+    :type atoms: :class:`.Atomic` 
 
     :arg alpha: the transparency of the band(s).
     :type alpha: float
@@ -1223,7 +1223,7 @@ def showSignatureMode(mode_ensemble, **kwargs):
 
     :arg atoms: atoms for showing residues along the x-axis
                 Default option is to use mode_ensemble.getAtoms()
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
     :arg scale: scaling factor. Default is 1.0
     :type scale: float    
@@ -1250,7 +1250,7 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
 
     :arg atoms: atoms for showing residues along the x-axis
                 Default option is to use mode_ensemble.getAtoms()
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
     :arg scale: scaling factor. Default is 1.0
     :type scale: float  
@@ -1473,6 +1473,8 @@ def calcSignatureModes(mode_ensemble):
         ret = GNM('mean of ' + mode_ensemble.getTitle())
     elif isinstance(mode_ensemble[0].getModel(), ANM):
         ret = ANM('mean of ' + mode_ensemble.getTitle())
+    else:
+        ret = NMA('mean of ' + mode_ensemble.getTitle())
 
     ret.setEigens(eigvecs, eigvals)
     return ret
@@ -1490,10 +1492,11 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
     :arg std: Whether to show the standard deviation matrix
               when **diag** is **False** (and whole matrix is shown).
               Default is **False**, meaning the mean matrix is shown.
+    type: std: bool
     """
-    diag = kwargs.get('diag', False)
-    std = kwargs.get('std', False)
-    from matplotlib.pyplot import xlabel, ylabel
+    diag = kwargs.pop('diag', False)
+    std = kwargs.pop('std', False)
+    from matplotlib.pyplot import xlabel, ylabel, Normalize
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1511,8 +1514,8 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
         meanV = overlap_triu.mean(axis=1)
         stdV = overlap_triu.std(axis=1)
 
-        show = showSignatureAtomicLines(meanV, stdV)
-        xlabel('Mode index')
+        show = showSignatureAtomicLines(meanV, stdV, **kwargs)
+        xlabel('Mode index (ref)')
         ylabel('Overlap')
     else:
         r, c = np.triu_indices(overlaps.shape[2], k=1)
@@ -1520,10 +1523,14 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
 
         if std:
             stdV = overlap_triu.std(axis=-1)
-            show = showMatrix(stdV)
+            show = showMatrix(stdV, **kwargs)
         else:
             meanV = overlap_triu.mean(axis=-1)
-            show = showMatrix(meanV)
+            norm = kwargs.pop('norm', Normalize(0, 1))
+            show = showMatrix(meanV, norm=norm, **kwargs)
+
+        xlabel('Mode index (ref)')
+        ylabel('Mode index (ref)')
     
     return show
 
@@ -1568,7 +1575,7 @@ def showSignatureCrossCorr(mode_ensemble, std=False, **kwargs):
 
     :arg atoms: an object with method :func:`getResnums` for use 
                 on the x-axis.
-    :type atoms: :class:`Atomic` 
+    :type atoms: :class:`.Atomic` 
     """
 
     import matplotlib.pyplot as plt
@@ -1641,7 +1648,7 @@ def showSignatureDistribution(signature, **kwargs):
     bins = kwargs.pop('bins', 'auto')
     if bins == 'auto':
         _, bins = np.histogram(W.flatten(), bins='auto')
-    elif np.isscalar(bins) and isinstance(bins, (int, np.integer)):
+    elif np.isscalar(bins) and isinstance(bins, int):
         step = (W.max() - W.min())/bins
         bins = np.arange(W.min(), W.max(), step)
 

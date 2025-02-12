@@ -1,0 +1,10 @@
+REMARK Selection 'resname HIS and...234 and name CA'
+MODEL        1
+ATOM      1  CA AHIS B 234      14.092 -10.803  78.631  0.50 76.86           C  
+ANISOU    1  CA AHIS B 234    13327   8826   7048    444   3365   1618       C  
+ENDMDL                                                                          
+MODEL        2
+ATOM      1  CA  HIS B 234      13.993 -10.729  78.621  0.50 76.86           C  
+ANISOU    1  CA  HIS B 234    13306   8825   7058    438   3380   1608       C  
+ENDMDL                                                                          
+END                                                                             

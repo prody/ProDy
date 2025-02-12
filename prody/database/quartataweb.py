@@ -81,7 +81,7 @@ class QuartataWebBrowser(object):
     :type browser_type: str
 
     :arg job_id: job ID for accessing previous jobs
-        Default is ``None``
+        Default is **None**
     :type job_id: int        
 
     :arg tsv: a filename for a file that contains the results 
@@ -366,7 +366,7 @@ class QuartataWebBrowser(object):
         """Set job_id and view results
         
         :arg job_id: job ID for accessing previous jobs
-            Default is ``None``
+            Default is **None**
         :type job_id: int
         """
         self.job_id = job_id

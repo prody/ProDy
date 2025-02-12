@@ -257,15 +257,14 @@ class Ensemble(object):
                 self._indices = None
 
             else: # atoms is a subset
-                if not self._atoms:
-                    try:
-                        ag = atoms.getAtomGroup()
-                    except AttributeError:
-                        ag = atoms
-                    if ag.numAtoms() != n_atoms:
-                        raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
-                                        .format(n_atoms, ag.numAtoms()))
-                    self._atoms = ag
+                try:
+                    ag = atoms.getAtomGroup()
+                except AttributeError:
+                    ag = atoms
+                if ag.numAtoms() != n_atoms:
+                    raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
+                                    .format(n_atoms, ag.numAtoms()))
+                self._atoms = ag
                 self._indices, _ = sliceAtoms(self._atoms, atoms)
                 
         else: # if assigning atoms to a new ensemble
@@ -653,7 +652,8 @@ class Ensemble(object):
                     (tar_com - dot(mob_com, rotation)), movs[i])
             if not quiet:
                 LOGGER.update(i + 1, label='_prody_ensemble')
-        LOGGER.finish()
+        if not quiet:
+            LOGGER.finish()
 
     def iterpose(self, rmsd=0.0001, quiet=False):
         """Iteratively superpose the ensemble until convergence.  Initially,
