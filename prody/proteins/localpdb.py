@@ -212,11 +212,14 @@ def fetchPDB(*pdb, **kwargs):
     if len(pdb) == 1 and isinstance(pdb[0], list):
         pdb = pdb[0]
 
-    identifiers = checkIdentifiers(*pdb)
-
     folder = kwargs.get('folder', '.')
     compressed = kwargs.get('compressed')
     format_ = kwargs.get('format', 'pdb')
+
+    if format_ != 'emd':
+        identifiers = checkIdentifiers(*pdb)
+    else:
+        identifiers = pdb
 
     # check *folder* specified by the user, usually pwd ('.')
     filedict = findPDBFiles(folder, compressed=compressed, 
@@ -485,8 +488,8 @@ def findPDBFiles(path, case=None, **kwargs):
     for fn in iterPDBFilenames(path, sort=True, reverse=True, **kwargs):
         fn = normpath(fn)
         pdb = splitext(split(fn)[1])[0]
-        ending = splitext(splitext(split(fn)[1])[0])[1]
-        if ending == 'gz':
+        ending = splitext(split(fn)[1])[1]
+        if ending == '.gz':
             pdb = splitext(pdb)[0]
         if len(pdb) == 7 and pdb.startswith('pdb'):
             pdb = pdb[3:]
