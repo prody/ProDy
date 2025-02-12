@@ -1026,10 +1026,10 @@ def getAtomicTable(matrix, atoms_i=None, atoms_j=None,
     if atoms_j is None:
         atoms_j = atoms_i
 
-    if matrix.shape[0] != atoms_i.numAtoms():
+    if atoms_i is not None and matrix.shape[0] != atoms_i.numAtoms():
         raise ValueError('number of rows should be number of atoms_i')
 
-    if matrix.shape[1] != atoms_j.numAtoms():
+    if atoms_j is not None and matrix.shape[1] != atoms_j.numAtoms():
         raise ValueError('number of cols should be number of atoms_j')
 
     if not isinstance(fmt, str):
@@ -1052,33 +1052,49 @@ def getAtomicTable(matrix, atoms_i=None, atoms_j=None,
         else:
             length = nums[1] + 2
 
-    table = ''
-    table += ' '*length
+    table = ' '*length
 
-    resnum_length = max(len(str(max(atoms_i.getResnums()))),
-                        len(str(max(atoms_j.getResnums()))))
-    chid_length = max(max([len(chid) for chid in atoms_i.getChids()]),
-                      max([len(chid) for chid in atoms_j.getChids()]))
+    if atoms_i is None and atoms_j is None:
+        resnum_length = len(str(max(matrix.shape)))
+        chid_length = 0
+
+    elif atoms_i is None:
+        resnum_length = len(str(max(atoms_j.getResnums())))
+        chid_length = max([len(chid) for chid in atoms_j.getChids()])
+
+    elif atoms_j is None:
+        resnum_length = len(str(max(atoms_i.getResnums())))
+        chid_length = max([len(chid) for chid in atoms_i.getChids()])
+
+    else:        
+        resnum_length = max(len(str(max(atoms_i.getResnums()))),
+                            len(str(max(atoms_j.getResnums()))))
+        chid_length = max(max([len(chid) for chid in atoms_i.getChids()]),
+                        max([len(chid) for chid in atoms_j.getChids()]))
     
     for j in range(matrix.shape[1]):
         table += sep
         if length >= resnum_length + chid_length:
-            chid = atoms_j[j].getChid()
+            if atoms_j is None:
+                chid = ''
+            else:
+                chid = atoms_j[j].getChid()
             table += ' '*(chid_length - len(chid)) + chid
         if length >= resnum_length + chid_length + 1:
             table += ' '
         
-        if length >= resnum_length + chid_length + 2:
-            table += AAMAP.get(atoms_j[j].getResname(), 'X')
+        if atoms_j is not None:
+            if length >= resnum_length + chid_length + 2:
+                table += atoms_j[j].getResname()
 
-        table += '%{0}d'.format(resnum_length) % atoms_j[j].getResnum()
+            table += '%{0}d'.format(resnum_length) % atoms_j[j].getResnum()
     table += '\n'
 
     for i, row in enumerate(matrix):
         if atoms_i is not None:
             table += '\t{} {}'.format(atoms_i[i].getChid(),
                                       atoms_i[i].getResname())
-            table += fmt % atoms_i[i].getResnum()
+            table += '%{0}d'.format(resnum_length) % atoms_i[i].getResnum()
         for element in row:
             table += fmt % element
         table += '\n'
@@ -1086,7 +1102,8 @@ def getAtomicTable(matrix, atoms_i=None, atoms_j=None,
     return table
 
 
-def printAtomicMatrix(matrix, atoms=None, step=10):
+def printAtomicMatrix(matrix, atoms=None, step=10, 
+                      fmt='%8d', sep='\t'):
     """Prints a new table for a matrix with
     atom labels along the top and at the 
     beginning of each line.
@@ -1104,11 +1121,18 @@ def printAtomicMatrix(matrix, atoms=None, step=10):
         start = step * i
         stop = step * (i+1)
         submatrix = matrix[:,start:stop,]
-        atoms_i = atoms
-        atoms_j = atoms[start:stop]
-        print(getAtomicTable(submatrix, atoms_i, atoms_j))
+        if atoms is not None:
+            atoms_i = atoms
+            atoms_j = atoms[start:stop]
+        else:
+            atoms_i = atoms
+            atoms_j = atoms
+        print(getAtomicTable(submatrix, atoms_i, atoms_j,
+                             fmt, sep))
 
     return
+
+
 def calcRMSDclusters(rmsd_matrix, c, labels=None):
     """
     Divide **rmsd_matrix** into clusters using the gromos method 
