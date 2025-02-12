@@ -1606,12 +1606,15 @@ def calcDisulfideBonds(atoms, **kwargs):
     
     from prody.measure import calcDihedral
     
-    try:
-        atoms_SG = atoms.select('protein and resname CYS and name SG')
+    atoms_SG = atoms.select('protein and resname CYS and name SG')
+    DisulfideBonds_list = []
+
+    if atoms_SG is None:
+        LOGGER.info('Lack of cysteines in the structure.')
+    else:
         atoms_SG_res = list(set(zip(atoms_SG.getResnums(), atoms_SG.getChids())))
     
         LOGGER.info('Calculating disulfide bonds.')
-        DisulfideBonds_list = []
         for i in atoms_SG_res:
             CYS_pairs = atoms.select('(same residue as protein within '+str(distA)+' of ('+'resid '+str(i[0])+' and chain '+i[1]+' and name SG)) and (resname CYS and name SG)')
             if CYS_pairs.numAtoms() > 1:
@@ -1631,15 +1634,12 @@ def calcDisulfideBonds(atoms, **kwargs):
                             ' and chain '+str(sele2_new.getChids()[0]))
                         diheAng = calcDihedral(sele1_CB, sele1_new, sele2_new, sele2_CB)
                         DisulfideBonds_list.append([sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]),
-                                                                minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
-                                                                sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]),
-                                                                minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                                round(minDistancePair[-1],4), round(float(diheAng),4)])
-    except:
-        atoms_SG = atoms.select('protein and resname CYS')
-        if atoms_SG is None:
-            LOGGER.info('Lack of cysteines in the structure.')
-            DisulfideBonds_list = []
+                                                    minDistancePair[2]+'_'+str(minDistancePair[0]),
+                                                    sele1_new.getChids()[0],
+                                                    sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]),
+                                                    minDistancePair[3]+'_'+str(minDistancePair[1]),
+                                                    sele2_new.getChids()[0],
+                                                    round(minDistancePair[-1],4), round(float(diheAng),4)])
 
     DisulfideBonds_list_final = removeDuplicates(DisulfideBonds_list)
 
