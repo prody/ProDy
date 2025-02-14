@@ -478,8 +478,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
         serials[acount] = line.split()[fields['id']]
         elements[acount] = line.split()[fields['type_symbol']]
-        bfactors[acount] = line.split()[fields['B_iso_or_equiv']]
-        occupancies[acount] = line.split()[fields['occupancy']]
+        if 'B_iso_or_equiv' in fields.keys():
+            bfactors[acount] = line.split()[fields['B_iso_or_equiv']]
+        if 'occupancy' in fields.keys():
+            occupancies[acount] = line.split()[fields['occupancy']]
 
         acount += 1
 

@@ -30,7 +30,7 @@ jobs:
         source activate test
         conda config --add channels conda-forge
         conda install --yes numpy scipy nose requests
-        conda install --yes pdbfixer mdtraj
+        conda install --yes pdbfixer mdtraj openmm
         pip install mmtf-python scikit-learn
         pip install .
         python setup.py build_ext --inplace --force
