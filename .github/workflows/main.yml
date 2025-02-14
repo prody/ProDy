@@ -30,8 +30,15 @@ jobs:
         source activate test
         conda config --add channels conda-forge
         conda install --yes numpy scipy nose requests
-        conda install --yes pdbfixer mdtraj
+        conda install --yes pdbfixer mdtraj openmm
+        conda install --yes fortran-compiler cxx-compiler
         pip install mmtf-python scikit-learn
+        cd prody/proteins/hpbmodule/
+        gfortran -O3 -fPIC -c reg_tet.f
+        variable=$(python -c 'from distutils.sysconfig import get_python_inc; print(get_python_inc())')
+        c++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/$variable
+        c++ -shared -Wl,-soname,hpb.so -o hpb.so hpbmodule.o reg_tet.o -lgfortran
+        cp hpb.so ../
         pip install .
         python setup.py build_ext --inplace --force
     - name: Test with pytest
