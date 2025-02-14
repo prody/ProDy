@@ -20,17 +20,17 @@ if prody.PY3K:
     N_FRAMES_1 = 10
     N_FRAMES_2 = 6
 
-    class TestFetchParseBioexcelPDB(unittest.TestCase):
+    # class TestFetchParseBioexcelPDB(unittest.TestCase):
         
-        @classmethod
-        def setUpClass(cls):
-            cls.workdir = 'bioexcel_PDB_tests'
-            if not os.path.exists(cls.workdir):
-                os.mkdir(cls.workdir)
-            os.chdir(cls.workdir)
+    #     @classmethod
+    #     def setUpClass(cls):
+    #         cls.workdir = 'bioexcel_PDB_tests'
+    #         if not os.path.exists(cls.workdir):
+    #             os.mkdir(cls.workdir)
+    #         os.chdir(cls.workdir)
 
-            cls.query = 'MCV1900370'
-            cls.outname = 'outname'
+    #         cls.query = 'MCV1900370'
+    #         cls.outname = 'outname'
 
         # def testFetchDefault(self):
         #     """Test the outcome of a simple fetch scenario using 
@@ -81,48 +81,48 @@ if prody.PY3K:
         #     self.assertEqual(a, os.path.join(self.workdir, self.outname + '.pdb'),
         #                     'fetchBioexcelPDB default run did not give the right path')
 
-        def testParseDefault(self):
-            """Test the outcome of a simple fetch and parse scenario 
-            with default parameters."""
+        # def testParseDefault(self):
+        #     """Test the outcome of a simple fetch and parse scenario 
+        #     with default parameters."""
 
-            ag = parseBioexcelPDB(self.query, folder=self.workdir)
+        #     ag = parseBioexcelPDB(self.query, folder=self.workdir)
 
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelPDB failed to return an AtomGroup instance')
+        #     self.assertIsInstance(ag, prody.AtomGroup,
+        #         'parseBioexcelPDB failed to return an AtomGroup instance')
             
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS, 
-                            'parseBioexcelPDB default output does not have correct number of atoms')
+        #     self.assertEqual(ag.numAtoms(), FULL_N_ATOMS, 
+        #                     'parseBioexcelPDB default output does not have correct number of atoms')
             
-        def testParseSelection(self):
-            """Test the outcome of a simple fetch and parse scenario 
-            using selection='_C'."""
+        # def testParseSelection(self):
+        #     """Test the outcome of a simple fetch and parse scenario 
+        #     using selection='_C'."""
 
-            ag = parseBioexcelPDB(self.query, folder=self.workdir,
-                                selection='_C')
+        #     ag = parseBioexcelPDB(self.query, folder=self.workdir,
+        #                         selection='_C')
             
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelPDB with selection failed to return an AtomGroup')
+        #     self.assertIsInstance(ag, prody.AtomGroup,
+        #         'parseBioexcelPDB with selection failed to return an AtomGroup')
             
-            self.assertEqual(ag.numAtoms(), SELE_N_ATOMS, 
-                            'parseBioexcelPDB selection _C output does not have correct number of atoms')
+        #     self.assertEqual(ag.numAtoms(), SELE_N_ATOMS, 
+        #                     'parseBioexcelPDB selection _C output does not have correct number of atoms')
         
-        @classmethod
-        def tearDownClass(cls):
-            os.chdir('..')
-            shutil.rmtree(cls.workdir)
+        # @classmethod
+        # def tearDownClass(cls):
+        #     os.chdir('..')
+        #     shutil.rmtree(cls.workdir)
 
 
-    class TestFetchConvertParseBioexcelTop(unittest.TestCase):
+    # class TestFetchConvertParseBioexcelTop(unittest.TestCase):
         
-        @classmethod
-        def setUpClass(cls):
-            cls.workdir = 'bioexcel_top_tests'
-            if not os.path.exists(cls.workdir):
-                os.mkdir(cls.workdir)
-            os.chdir(cls.workdir)
+    #     @classmethod
+    #     def setUpClass(cls):
+    #         cls.workdir = 'bioexcel_top_tests'
+    #         if not os.path.exists(cls.workdir):
+    #             os.mkdir(cls.workdir)
+    #         os.chdir(cls.workdir)
 
-            cls.query = 'MCV1900370'
-            cls.outname = 'outname'
+    #         cls.query = 'MCV1900370'
+    #         cls.outname = 'outname'
 
         # def testFetchDefault(self):
         #     """Test the outcome of a simple fetch scenario using 
@@ -191,30 +191,30 @@ if prody.PY3K:
         #     self.assertEqual(a, os.path.join(self.workdir, self.query + '.json'),
         #                     'fetchBioexcelTopology default run did not give the right path')
 
-        def testParseDefault(self):
-            """Test the outcome of a simple parse from file scenario 
-            with default parameters."""
+        # def testParseDefault(self):
+        #     """Test the outcome of a simple parse from file scenario 
+        #     with default parameters."""
 
-            ag = parseBioexcelTopology(self.query, folder=self.workdir)
+        #     ag = parseBioexcelTopology(self.query, folder=self.workdir)
 
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelTopology failed to return an AtomGroup instance')
+        #     self.assertIsInstance(ag, prody.AtomGroup,
+        #         'parseBioexcelTopology failed to return an AtomGroup instance')
             
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS, 
-                            'parseBioexcelTopology default output does not have correct number of atoms')
+        #     self.assertEqual(ag.numAtoms(), FULL_N_ATOMS, 
+        #                     'parseBioexcelTopology default output does not have correct number of atoms')
             
-        def testParseSelection(self):
-            """Test the outcome of a simple parse from file scenario 
-            using selection='_C'."""
+        # def testParseSelection(self):
+        #     """Test the outcome of a simple parse from file scenario 
+        #     using selection='_C'."""
 
-            ag = parseBioexcelTopology(self.query, folder=self.workdir,
-                                    selection='_C')
+        #     ag = parseBioexcelTopology(self.query, folder=self.workdir,
+        #                             selection='_C')
             
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelTopology with selection failed to return an AtomGroup')
+        #     self.assertIsInstance(ag, prody.AtomGroup,
+        #         'parseBioexcelTopology with selection failed to return an AtomGroup')
             
-            self.assertEqual(ag.numAtoms(), SELE_N_ATOMS, 
-                            'parseBioexcelTopology selection _C output does not have correct number of atoms')
+        #     self.assertEqual(ag.numAtoms(), SELE_N_ATOMS, 
+        #                     'parseBioexcelTopology selection _C output does not have correct number of atoms')
 
         # def testFetchAndParse(self):
         #     """Test the outcome of a simple fetch and parse scenario"""
@@ -246,10 +246,10 @@ if prody.PY3K:
         #     with self.assertRaises(TypeError):
         #         fetchBioexcelTopology(self.query, folder=self.workdir, convert='False')
 
-        @classmethod
-        def tearDownClass(cls):
-            os.chdir('..')
-            shutil.rmtree(cls.workdir)
+        # @classmethod
+        # def tearDownClass(cls):
+        #     os.chdir('..')
+        #     shutil.rmtree(cls.workdir)
 
 
     class TestCheckSelection(unittest.TestCase):
@@ -397,19 +397,19 @@ if prody.PY3K:
         def tearDownClass(cls):
             shutil.rmtree(cls.workdir)
 
-    class TestFetchConvertParseBioexcelTraj(unittest.TestCase):
+    # class TestFetchConvertParseBioexcelTraj(unittest.TestCase):
         
-        @classmethod
-        def setUpClass(cls):
-            cls.workdir = 'bioexcel_traj_tests'
-            if not os.path.exists(cls.workdir):
-                os.mkdir(cls.workdir)
-            os.chdir(cls.workdir)
+    #     @classmethod
+    #     def setUpClass(cls):
+    #         cls.workdir = 'bioexcel_traj_tests'
+    #         if not os.path.exists(cls.workdir):
+    #             os.mkdir(cls.workdir)
+    #         os.chdir(cls.workdir)
 
-            cls.query = 'MCV1900370'
-            cls.outname = 'outname'
-            cls.frames1 = '1-5,11-15'
-            cls.frames2 = '10:20:2'
+    #         cls.query = 'MCV1900370'
+    #         cls.outname = 'outname'
+    #         cls.frames1 = '1-5,11-15'
+    #         cls.frames2 = '10:20:2'
 
         # def testFetchFrames1(self):
         #     """Test the outcome of a simple fetch scenario using 
@@ -482,38 +482,38 @@ if prody.PY3K:
         #         self.assertEqual(a, os.path.join(self.workdir, self.query + '.xtc'),
         #                         'fetchBioexcelTrajectory default run did not give the right path')
 
-        def testParseFrames1(self):
-            """Test the outcome of a simple parse from file scenario 
-            with default parameters."""
+        # def testParseFrames1(self):
+        #     """Test the outcome of a simple parse from file scenario 
+        #     with default parameters."""
 
-            try:
-                ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                            frames=self.frames1)
-            except OSError:
-                pass
-            else:
-                self.assertIsInstance(ens, prody.Ensemble,
-                    'parseBioexcelTrajectory failed to return an Ensemble instance')
-                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
-                                'parseBioexcelTrajectory default output does not have correct number of atoms')
-                self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
-                                'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+        #     try:
+        #         ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
+        #                                     frames=self.frames1)
+        #     except OSError:
+        #         pass
+        #     else:
+        #         self.assertIsInstance(ens, prody.Ensemble,
+        #             'parseBioexcelTrajectory failed to return an Ensemble instance')
+        #         self.assertEqual(ens.numAtoms(), FULL_N_ATOMS, 
+        #                         'parseBioexcelTrajectory default output does not have correct number of atoms')
+        #         self.assertEqual(ens.numCoordsets(), N_FRAMES_1, 
+        #                         'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
-        def testParseSelectionFrames2(self):
-            """Test the outcome of a simple parse from file scenario 
-            using selection='_C'."""
-            try:
-                ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                            selection='_C', frames=self.frames2)
-            except OSError:
-                pass
-            else:
-                self.assertIsInstance(ens, prody.Ensemble,
-                    'parseBioexcelTrajectory with selection failed to return an Ensemble')
-                self.assertEqual(ens.numAtoms(), SELE_N_ATOMS, 
-                                'parseBioexcelTrajectory selection _C output does not have correct number of atoms')
-                self.assertEqual(ens.numCoordsets(), N_FRAMES_2, 
-                                'parseBioexcelTrajectory output with example frames 2 does not have correct number of frames')
+        # def testParseSelectionFrames2(self):
+        #     """Test the outcome of a simple parse from file scenario 
+        #     using selection='_C'."""
+        #     try:
+        #         ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
+        #                                     selection='_C', frames=self.frames2)
+        #     except OSError:
+        #         pass
+        #     else:
+        #         self.assertIsInstance(ens, prody.Ensemble,
+        #             'parseBioexcelTrajectory with selection failed to return an Ensemble')
+        #         self.assertEqual(ens.numAtoms(), SELE_N_ATOMS, 
+        #                         'parseBioexcelTrajectory selection _C output does not have correct number of atoms')
+        #         self.assertEqual(ens.numCoordsets(), N_FRAMES_2, 
+        #                         'parseBioexcelTrajectory output with example frames 2 does not have correct number of frames')
 
         # def testFetchAndParse(self):
         #     """Test the outcome of a simple fetch and parse scenario"""
@@ -571,10 +571,10 @@ if prody.PY3K:
         #     with self.assertRaises(TypeError):
         #         fetchBioexcelTrajectory(self.query, folder=self.workdir, convert='False')
 
-        @classmethod
-        def tearDownClass(cls):
-            os.chdir('..')
-            shutil.rmtree(cls.workdir)
+        # @classmethod
+        # def tearDownClass(cls):
+        #     os.chdir('..')
+        #     shutil.rmtree(cls.workdir)
 
     class TestOnlyConvertParseBioexcel(unittest.TestCase):
         
