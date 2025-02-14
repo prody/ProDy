@@ -39,6 +39,7 @@ jobs:
         c++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/$variable
         c++ -shared -Wl,-soname,hpb.so -o hpb.so hpbmodule.o reg_tet.o -lgfortran
         cp hpb.so ../
+        cd -
         pip install .
         python setup.py build_ext --inplace --force
     - name: Test with pytest
