@@ -9,7 +9,7 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   # This workflow contains a single job called "build"
   build:
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, macos-latest]
     strategy:
       fail-fast: false
       matrix:
