@@ -80,15 +80,18 @@ PACKAGES = ['prody',
             'prody.tests.utilities',]
 PACKAGE_DATA = {
     'prody.utilities': ['datafiles/*.dat'],
-    'prody.tests': ['datafiles/pdb*.pdb',
+    'prody.tests': ['datafiles/*.pdb',
                     'datafiles/*.dat',
                     'datafiles/*.coo',
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
                     'datafiles/msa*',
                     'datafiles/mmcif*cif',
+                    'datafiles/*.npy',
+                    'datafiles/*.mmtf',
                     'datafiles/*json'],
-    'prody.proteins': ['tabulated_energies.txt'],
+    'prody.proteins': ['tabulated_energies.txt',
+                       'hpb.so'],
 }
 
 PACKAGE_DIR = {}
