@@ -88,7 +88,8 @@ PACKAGE_DATA = {
                     'datafiles/msa*',
                     'datafiles/mmcif*cif',
                     'datafiles/*.npy',
-                    'datafiles/*.mmtf'],
+                    'datafiles/*.mmtf',
+                    'datafiles/*json'],
     'prody.proteins': ['tabulated_energies.txt',
                        'hpb.so'],
 }
