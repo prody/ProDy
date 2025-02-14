@@ -4545,7 +4545,14 @@ class Interactions(object):
         O Keskin, I Bahar and colleagues from [OK98]_ and have RT units.
 
         'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
-        and Gary Wu in the InSty paper (under preparation) and have units of kcal/mol. """
+        and Gary Wu in the [MR25]_ and have units of kcal/mol. 
+        
+        .. [MR25] Mikulska-Ruminska K, Krieger JM, Cao X, Banerjee A, Wu G, 
+        Bogetti AT, Zhang F, Simmerling C, Coutsias EA, Bahar I
+        InSty: a new module in ProDy for evaluating the interactions 
+        and stability of proteins
+        *Bioinformatics* **2025** 169009
+        """
         
         import numpy as np
         import matplotlib
@@ -4898,7 +4905,7 @@ class Interactions(object):
         O Keskin, I Bahar and colleagues from [OK98]_ and have RT units.
 
         'CS' is from MD simulations of amino acid pairs from Carlos Simmerling
-        and Gary Wu for the InSty paper (under preparation) and have units kcal/mol.
+        and Gary Wu for [MR25]_ and have units kcal/mol.
         """
 
         import numpy as np
