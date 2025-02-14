@@ -86,7 +86,8 @@ PACKAGE_DATA = {
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
                     'datafiles/msa*',
-                    'datafiles/mmcif*cif',],
+                    'datafiles/mmcif*cif',
+                    'datafiles/*json'],
     'prody.proteins': ['tabulated_energies.txt'],
 }
 
