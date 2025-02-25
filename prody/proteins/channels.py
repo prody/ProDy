@@ -30,7 +30,8 @@ from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
-           'selectChannelBySelection', 'getChannelResidueNames']
+           'selectChannelBySelection', 'getChannelResidueNames',
+           'calcOverlappingSurfaces']
 
 
 
@@ -945,6 +946,106 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     LOGGER.info('Selected files: ')
     LOGGER.info(' '.join(copied_files_list))
     LOGGER.info('If newly created files are empty please check whether the parameter names are: PDB_id+_Parameters_All_channels.txt')
+
+
+def calcOverlappingSurfaces(**kwargs):
+    """Calculate overlapping parts of the predicted channels, tunnels, and pores denote as 'FIL' atoms.
+
+    :arg resolution: Surface sampling resolution.
+        default is 0.5
+    :type resolution: float
+
+    :arg output_file_name: The name of the PDB file with overlapping surfaces.
+    :type output_file_name: str
+
+    :arg pdb_files: File with residues forming the channel created by getChannelResidues()
+        default is False (then all the files from the current directory will be analyzed)
+        when providing a list, only the PDBs from list will be analyzed
+        when providing str, it will be treated as a folder path  
+    :type pdb_files: bool, list or str
+    """
+    
+    import os
+
+    resolution = kwargs.pop('resolution', 0.5)
+     
+    pdb_files = kwargs.pop('pdb_files', False)
+    if pdb_files == False or pdb_files is None:
+        # take all PDBs from the current dir
+        pdb_files = [file for file in os.listdir('.') if file.endswith('.pdb')]
+    elif isinstance(pdb_files, str):
+        # folder path
+        pdb_files = [file for file in os.listdir(pdb_files) if file.endswith('.pdb')]
+    elif isinstance(pdb_files, list):
+        # list of PDBs
+        pdb_files = [file for file in pdb_files if file.endswith('.pdb')]
+    else:
+        raise ValueError('Please provide list with PDB files, folder path, or nothing to analyze PDBs in the current folder')
+
+    output_file_name = kwargs.pop('output_file_name','overlap_regions.pdb')
+    if os.path.exists(output_file_name):
+        os.rename(output_file_name, output_file_name+'-old')
+
+    def loadPDBdata(filepath):
+        """Parse a PDB file and return a list of atom dictionaries for lines containing 'FIL'."""
+        atoms_set = []
+        FILatoms = parsePDB(filepath).select('resname FIL')
+        
+        if FILatoms == None:
+            pass
+        else:
+            for nr_i, i in enumerate(FILatoms):
+                FILatoms_coords = FILatoms.getCoords()[nr_i]
+                FILBetas_value = FILatoms.getBetas()[nr_i]
+                atoms_set.append({
+                    'x': float(FILatoms_coords[0]),
+                    'y': float(FILatoms_coords[1]),
+                    'z': float(FILatoms_coords[2]),
+                    'radius': float(FILBetas_value)
+                })
+        return atoms_set
+
+    def create_surface(atoms, resolution=resolution):
+        """Create a 3D grid representing the surface occupied by the atoms."""
+        surface = {}
+        Zr = 0
+        for atom in atoms:
+            x, y, z, radius = atom['x'], atom['y'], atom['z'], atom['radius']
+            for i in np.arange(x - radius, x + radius, resolution):
+                for j in np.arange(y - radius, y + radius, resolution):
+                    for k in np.arange(z - radius, z + radius, resolution):
+                        if (i - x) ** 2 + (j - y) ** 2 + (k - z) ** 2 <= radius ** 2:
+                            key = (round(i, Zr), round(j, Zr), round(k, Zr))
+                            surface[key] = surface.get(key, 0) + 1
+        return surface
+
+    def merge_surfaces(surfaces):
+        """Merge multiple surfaces and calculate overlap counts."""
+        merged_surface = {}
+        for surface in surfaces:
+            for key in surface:
+                merged_surface[key] = merged_surface.get(key, 0) + 1
+        return merged_surface
+
+    def write_merge_surf_pdb(merged_surface, filename):
+        """Write the merged surface into a PDB file."""
+        with open(filename, 'w') as file:
+            atom_id = 1
+            for (x, y, z), count in merged_surface.items():
+                file.write("ATOM  {:5d}  H   FIL T   1    {:8.3f}{:8.3f}{:8.3f}{:6.2f}  1.00\n".format(atom_id, x, y, z, count))
+                atom_id += 1
+
+    surfaces = []
+    for pdb_file in pdb_files:
+        LOGGER.info('Processing file: {0}'.format(pdb_file))
+        print('Processing file: {0}'.format(pdb_file))
+        atoms = loadPDBdata(pdb_file)
+        if atoms:
+            surface = create_surface(atoms, resolution=resolution)
+            surfaces.append(surface)
+
+    merged_surface = merge_surfaces(surfaces)
+    write_merge_surf_pdb(merged_surface, output_file_name)
 
     
 class Channel:
