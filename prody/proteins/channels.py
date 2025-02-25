@@ -739,7 +739,7 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
         radii = radius_spline(t)
 
         for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f  1.00  %6.2f\n" % (i, x, y, z, radius))
+            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
     
     if protein is not None:
         protein_stream = io.StringIO()
@@ -1350,7 +1350,7 @@ class ChannelCalculator:
     
                         pdb_lines = []
                         for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f  1.00  %6.2f\n" % (i, x, y, z, radius))
+                            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
     
                         for i in range(1, samples):
                             pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
@@ -1371,7 +1371,7 @@ class ChannelCalculator:
     
                         pdb_lines = []
                         for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f  1.00  %6.2f\n" % (i, x, y, z, radius))
+                            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
     
                         for i in range(1, samples):
                             pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
