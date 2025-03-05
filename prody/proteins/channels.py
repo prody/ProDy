@@ -950,6 +950,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
 
 def calcOverlappingSurfaces(**kwargs):
     """Calculate overlapping parts of the predicted channels, tunnels, and pores denote as 'FIL' atoms.
+    Results are normalized within [0,1].
 
     :arg resolution: Surface sampling resolution.
         default is 0.5
@@ -1027,25 +1028,27 @@ def calcOverlappingSurfaces(**kwargs):
                 merged_surface[key] = merged_surface.get(key, 0) + 1
         return merged_surface
 
-    def write_merge_surf_pdb(merged_surface, filename):
+    def write_merge_surf_pdb(merged_surface, filename, nr_pdbs):
         """Write the merged surface into a PDB file."""
         with open(filename, 'w') as file:
             atom_id = 1
             for (x, y, z), count in merged_surface.items():
-                file.write("ATOM  {:5d}  H   FIL T   1    {:8.3f}{:8.3f}{:8.3f}{:6.2f}  1.00\n".format(atom_id, x, y, z, count))
+                norm_count = count/nr_pdbs
+                file.write("ATOM  {:5d}  H   FIL T   1    {:8.3f}{:8.3f}{:8.3f}{:6.2f}  1.00\n".format(atom_id, x, y, z, norm_count))
                 atom_id += 1
 
     surfaces = []
-    for pdb_file in pdb_files:
+    for nr_pdbs,pdb_file in enumerate(pdb_files):
         LOGGER.info('Processing file: {0}'.format(pdb_file))
         print('Processing file: {0}'.format(pdb_file))
         atoms = loadPDBdata(pdb_file)
         if atoms:
             surface = create_surface(atoms, resolution=resolution)
             surfaces.append(surface)
-
+    
+    nr_pdbs = nr_pdbs+1
     merged_surface = merge_surfaces(surfaces)
-    write_merge_surf_pdb(merged_surface, output_file_name)
+    write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
 
     
 class Channel:
