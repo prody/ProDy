@@ -46,8 +46,10 @@ git clone https://github.com/prody/ProDy.git
 
 Then change directory into the ProDy directory tree and install it by running the following commands.
 
-cd ProDy 
+cd ProDy
+
 python setup.py build_ext --inplace --force
+
 pip install -Ue .
 
 More instructions can be found at http://bahargroup.org/prody/downloads/ and http://bahargroup.org/prody/manual/devel/develop.html
