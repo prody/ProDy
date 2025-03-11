@@ -10,6 +10,7 @@ from prody.proteins.interactions import calcHydrogenBondsTrajectory, calcSaltBri
 from prody.proteins.interactions import calcRepulsiveIonicBondingTrajectory, calcPiStackingTrajectory
 from prody.proteins.interactions import calcPiCationTrajectory, calcHydrophobicTrajectory
 from prody.proteins.interactions import calcDisulfideBondsTrajectory, calcProteinInteractions
+from prody.proteins.interactions import InteractionsTrajectory, Interactions
 
 import sys
 
@@ -49,10 +50,26 @@ class TestInteractions(unittest.TestCase):
 
             try:
                 assert_equal(self.data_all, self.ALL_INTERACTIONS2,
-                             'failed to get correct interactions without hpb.so from calculation')
+                             'failed to get correct interactions without hpb.so from parallel calculation')
             except AssertionError:
                 assert_equal(self.data_all, self.ALL_INTERACTIONS,
-                             'failed to get correct interactions with hpb.so from calculation')
+                             'failed to get correct interactions with hpb.so from parallel calculation')
+
+    def testAllInteractionsCalcSerial(self):
+        """Test for calculating all types of interactions without parallelisation."""
+
+        if prody.PY3K:
+            self.INTERACTIONS_ALL = InteractionsTrajectory()
+            self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS,
+                                                                                             stop_frame=3,
+                                                                                             max_proc=1))
+
+            try:
+                assert_equal(self.data_all, self.ALL_INTERACTIONS2[:, :4],
+                             'failed to get correct interactions without hpb.so from serial calculation')
+            except AssertionError:
+                assert_equal(self.data_all, self.ALL_INTERACTIONS[:, :4],
+                             'failed to get correct interactions with hpb.so from serial calculation')
 
     def testAllInteractionsSave(self):
         """Test for saving and loading all types of interactions."""
