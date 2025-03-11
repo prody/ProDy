@@ -160,5 +160,4 @@ local directory.
 C++ code of hpb.so was developed by Xin Cao and Fortran code by Xin Cao, 
 Michelle H. Hummel, Bihua Yu, and Evangelos A. Coutsias (License in 
 prody/proteins/hpbmodule folder). Details of the method can be found 
-in the Supplementary Material of InSty manuscript 
-(soon will be submitted for publication). 
+in the Supplementary Material of InSty manuscript (https://doi.org/10.1016/j.jmb.2025.169009). 
