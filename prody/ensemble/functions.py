@@ -66,8 +66,8 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
-        if not hasattr(atoms, '_bondOrder'):
-            atoms._bondOrder = None
+        if not hasattr(atoms, '_bondOrders'):
+            atoms._bondOrders = None
 
         if not hasattr(atoms, '_bondIndex'):
             atoms._bondIndex = None
@@ -193,8 +193,8 @@ def loadEnsemble(filename, **kwargs):
         else:
             ag = atoms._ag
 
-        if not hasattr(ag, '_bondOrder'):
-            ag._bondOrder = None
+        if not hasattr(ag, '_bondOrders'):
+            ag._bondOrders = None
 
         if not hasattr(ag, '_bondIndex'):
             ag._bondIndex = None
