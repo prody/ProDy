@@ -313,7 +313,7 @@ class ClustENM(Ensemble):
 
         try:
             from openmm.app import StateDataReporter
-            from openmm.unit import kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
+            from openmm.unit import kelvin, angstrom, nanometer, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
 
@@ -323,7 +323,7 @@ class ClustENM(Ensemble):
         # simulation.context.setPositions(coords * angstrom)
 
         try:
-            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole, maxIterations=self._maxIterations)
+            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole/nanometer, maxIterations=self._maxIterations)
             if self._sim:
                 # heating-up the system incrementally
                 sdr = StateDataReporter(stdout, 1, step=True, temperature=True)
@@ -392,7 +392,7 @@ class ClustENM(Ensemble):
         m_conv = 0
         n_steps = 0
         try:
-            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole,
+            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole/nanometer,
                                       maxIterations=self._maxIterations)
 
             # update parameters
@@ -419,7 +419,7 @@ class ClustENM(Ensemble):
             LOGGER.debug('RMSD: %4.2f -> %4.2f' % (dist0, dist))
 
             simulation.context.setParameter('tmdk', 0.0)
-            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole,
+            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole/nanometer,
                                       maxIterations=self._maxIterations)
 
             pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
@@ -1007,7 +1007,7 @@ class ClustENM(Ensemble):
             Experimental feature: Forcefields already implemented in OpenMM can be used. 
         :type force_field: tuple of strings
         
-        :arg tolerance: Energy tolerance to which the system should be minimized, default is 10.0 kJ/mole.
+        :arg tolerance: Energy tolerance to which the system should be minimized, default is 10.0 kJ/mole*nm.
         :type tolerance: float
         
         :arg maxIterations: Maximum number of iterations to perform during energy minimization.
@@ -1281,7 +1281,7 @@ class ClustENM(Ensemble):
                 if self._ionicStrength != 0.0:
                     f.write('ionicStrength = %4.2f molar\n' % self._ionicStrength)
             f.write('force_field = (%s, %s)\n' % self._force_field)
-            f.write('tolerance = %4.2f kJ/mole\n' % self._tolerance)
+            f.write('tolerance = %4.2f kJ/mole*nm\n' % self._tolerance)
             if self._maxIterations != 0:
                 f.write('maxIteration = %d\n' % self._maxIterations)
             if self._sim:
