@@ -317,10 +317,12 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             fields[line.split('.')[1].strip()] = fieldCounter
             foundAtomFields = True
 
-        elif foundAtomFields and line.strip() not in ['#', '']:
+        elif foundAtomFields and (line.startswith("HETATM") or line.startswith("ATOM")):
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
+            if i + 1 < len(lines) and not lines[i + 1].startswith(("ATOM", "HETATM", "#", "_")):
+                line = line.strip() + " " + lines[i + 1].strip() + "\n"
             models.append(line.split()[fields['pdbx_PDB_model_num']])
             if len(models) == 1 or (models[asize] != models[asize-1]):
                 nModels += 1
