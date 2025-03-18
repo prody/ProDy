@@ -1455,6 +1455,29 @@ class ChannelCalculator:
     def save_channels_to_pdb(self, cavities, filename, separate=False, num_samples=5):
         filename = str(filename)
         
+        # All channels will be provided always when PDB/PQR will be created
+        with open(filename, 'w') as pdb_file:
+            atom_index = 1
+            for cavity in cavities:
+                for channel in cavity.channels:
+                    centerline_spline, radius_spline = channel.get_splines()
+                    samples = len(channel.tetrahedra) * num_samples
+                    t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
+                    centers = centerline_spline(t)
+                    radii = radius_spline(t)
+
+                    pdb_lines = []
+                    for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
+                        pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
+
+                    for i in range(1, samples):
+                        pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
+                        
+                    pdb_file.writelines(pdb_lines)
+                    pdb_file.write("\n")
+                    atom_index += samples
+        
+        # When separate is set to True also separate PDB/PQR files will be created
         if separate:
             channel_index = 0
             for cavity in cavities:
@@ -1479,27 +1502,6 @@ class ChannelCalculator:
                         pdb_file.writelines(pdb_lines)
                         
                     channel_index += 1
-        else:
-            with open(filename, 'w') as pdb_file:
-                atom_index = 1
-                for cavity in cavities:
-                    for channel in cavity.channels:
-                        centerline_spline, radius_spline = channel.get_splines()
-                        samples = len(channel.tetrahedra) * num_samples
-                        t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
-                        centers = centerline_spline(t)
-                        radii = radius_spline(t)
-    
-                        pdb_lines = []
-                        for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
-    
-                        for i in range(1, samples):
-                            pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
-                            
-                        pdb_file.writelines(pdb_lines)
-                        pdb_file.write("\n")
-                        atom_index += samples
 
 
     def calculate_channel_length(self, centerline_spline):
