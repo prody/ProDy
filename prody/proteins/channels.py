@@ -783,7 +783,11 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         Use one word which will be added to '_Residues_All_channels.txt' sufix.
         If further analysis will be performed with selectChannelBySelection() function, the preferable 
         residues_file_name is PDB+chain for example: '1bbhA'.
-    :type residues_file_name: str  '''
+    :type residues_file_name: str  
+    
+    :arg one_letter_aa: Whether to apply 1-latter code to residue name
+        by defult is False
+    :type one_letter_aa: bool  '''
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -798,6 +802,10 @@ def getChannelResidueNames(atoms, channels, **kwargs):
     distA = kwargs.pop('distA', 4)
     residues_file_name = kwargs.pop('residues_file_name', None) 
     
+    one_letter_aa = kwargs.pop('one_letter_aa', False)
+    if one_letter_aa == True:
+        from prody.atomic.atomic import AAMAP    
+    
     if isinstance(channels, list):
         # Multiple channels
         selected_residues_ch = []
@@ -808,6 +816,10 @@ def getChannelResidueNames(atoms, channels, **kwargs):
     
             if residues is not None:
                 resnames = residues.select('name CA').getResnames()
+                if one_letter_aa == True:
+                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP") else AAMAP[aa] for aa in resnames]
+                    resnames = resnames_1letter
+                                    
                 resnums = residues.select('name CA').getResnums()
                 residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
                 residues_list = ", ".join(residues_info)
@@ -824,6 +836,10 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         
         if residues is not None:
             resnames = residues.select('name CA').getResnames()
+            if one_letter_aa == True:
+                resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP") else AAMAP[aa] for aa in resnames]
+                resnames = resnames_1letter
+
             resnums = residues.select('name CA').getResnums()
             residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
             residues_list = ", ".join(residues_info)
