@@ -630,7 +630,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 serials[acount] = int(serial_str)
             except ValueError:
                 try:
-                    isnumeric = np.alltrue([x.isdigit() for x in serial_str])
+                    isnumeric = np.all([x.isdigit() for x in serial_str])
                     if not isnumeric and serial_str == serial_str.upper():
                         serials[acount] = hybrid36ToDec(serial_str)
                     else:
@@ -673,7 +673,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if not dec:
                     resnum = resnum_str
                     try:
-                        isnumeric = np.alltrue([x.isdigit() or x==' ' for x in resnum_str])
+                        isnumeric = np.all([x.isdigit() or x==' ' for x in resnum_str])
                         if not isnumeric and resnum_str == resnum_str.upper():
                             resnum = hybrid36ToDec(resnum_str, resnum=True)
                         else:
