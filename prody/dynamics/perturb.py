@@ -4,7 +4,7 @@ from PCA and normal modes."""
 
 
 import numpy as np
-from numpy.lib.arraysetops import isin
+from numpy import isin
 
 from prody import LOGGER
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtomicData
