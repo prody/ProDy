@@ -34,6 +34,26 @@ Further details are described in the ProDy papers:
   | *ProDy* 2.0: Increased Scale and Scope after 10 Years of Protein Dynamics Modelling with Python.
   | *Bioinformatics* **2021** 37(20):3657-3659.
 
+INSTALLING PRODY
+________
+ProDy is under active development, so we recommend installing it from source from GitHub to ensure everything works properly. 
+
+We recommend downloading and installing the Anaconda package manager to handle dependencies in controlled environments. 
+
+Then you should download the ProDy code either as a zipped folder to extract or using git as directed at the big green button says code. For example, if you have git installed then you can do the following.
+
+git clone https://github.com/prody/ProDy.git
+
+Then change directory into the ProDy directory tree and install it by running the following commands.
+
+cd ProDy
+
+python setup.py build_ext --inplace --force
+
+pip install -Ue .
+
+More instructions can be found at http://bahargroup.org/prody/downloads/ and http://bahargroup.org/prody/manual/devel/develop.html
+
 MODULES
 --------
 
@@ -140,5 +160,4 @@ local directory.
 C++ code of hpb.so was developed by Xin Cao and Fortran code by Xin Cao, 
 Michelle H. Hummel, Bihua Yu, and Evangelos A. Coutsias (License in 
 prody/proteins/hpbmodule folder). Details of the method can be found 
-in the Supplementary Material of InSty manuscript 
-(soon will be submitted for publication). 
+in the Supplementary Material of InSty manuscript (https://doi.org/10.1016/j.jmb.2025.169009). 
