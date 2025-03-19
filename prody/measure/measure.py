@@ -733,7 +733,7 @@ def calcADPAxes(atoms, **kwargs):
         # Make sure the direction that correlates with the previous atom
         # is selected
         vals = vals * sign((vecs * axes[(i-1)*3:(i)*3, :]).sum(0))
-        axes[i*3:i*3, :] = vals * vecs
+        axes[i*3:i*3+3, :] = vals * vecs
     # Resort the columns before returning array
     axes = axes[:, [2, 1, 0]]
     torf = None
@@ -828,10 +828,13 @@ def calcInertiaTensor(coords):
     return dot(coords.transpose(), coords)
 
 
-def calcPrincAxes(coords, turbo=True):
+def calcPrincAxes(coords, turbo=True, return_vals=False):
     """Calculate principal axes from coords"""
     M = calcInertiaTensor(coords)
-    _, vectors, _ = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
+    eigvals, vectors, _ = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
+
+    if return_vals:
+        return eigvals, vectors.transpose()
     return vectors.transpose()
 
 
