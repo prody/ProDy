@@ -1391,7 +1391,7 @@ def filterStructuresWithoutWater(structures, min_water=0, filenames=None):
     if not isinstance(structures, list):
         raise TypeError('structures should be a list')
     
-    if not np.alltrue([isinstance(struct, Atomic) for struct in structures]):
+    if not np.all([isinstance(struct, Atomic) for struct in structures]):
         raise ValueError('elements of structures should be Atomic objects')
     
     if not isinstance(min_water, int):
@@ -1405,10 +1405,10 @@ def filterStructuresWithoutWater(structures, min_water=0, filenames=None):
     if len(filenames) not in [0, len(structures)]:
         raise TypeError('filenames should have the same length as structures')
     
-    if not np.alltrue([isinstance(filename, str) for filename in filenames]):
+    if not np.all([isinstance(filename, str) for filename in filenames]):
         raise ValueError('elements of filenames should be strings')
     
-    if not np.alltrue([os.path.exists(filename) for filename in filenames]):
+    if not np.all([os.path.exists(filename) for filename in filenames]):
         raise ValueError('at least one of the filenames does not exist')
     
     have_filenames = len(filenames)>0
