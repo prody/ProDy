@@ -4,7 +4,7 @@ import re
 from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil, abs
 from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack
 from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril, median
-from numpy import alltrue
+from numpy import all
 from collections import Counter
 import numbers
 
@@ -731,7 +731,7 @@ def hybrid36ToDec(x, resnum=False):
     if not isinstance(x, str):
         raise TypeError('x should be a string')
     
-    isnumeric = alltrue([y.isdigit() for y in x])
+    isnumeric = all([y.isdigit() for y in x])
     if isnumeric:
         return int(x)
 
