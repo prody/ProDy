@@ -25,9 +25,11 @@ jobs:
         # use-only-tar-bz2: true  # IMPORTANT: This needs to be set for caching to work properly!
         auto-update-conda: true
         auto-activate-base: false
-        python-version: ${{ matrix.python-version }}
         activate-environment: test
-    - run: |
+    - name: Install dependencies and test
+      run: |
+        conda create --name test python=${{ matrix.python-version }} --yes
+        conda activate test
         conda install --yes numpy scipy nose requests
         conda install --yes pdbfixer mdtraj openmm
         conda install --yes gfortran cxx-compiler
