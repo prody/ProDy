@@ -14,4 +14,3 @@ dependencies:
   - gfortran
   - cxx-compiler
   - pytest
-  - libgfortran
