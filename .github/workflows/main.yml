@@ -26,7 +26,7 @@ jobs:
         auto-update-conda: true
         auto-activate-base: true
         python-version: ${{ matrix.python-version }}
-        activate-environment: test
+        # activate-environment: test
     - name: Install dependencies
       run: |
         conda install --yes python=${{ matrix.python-version }}
