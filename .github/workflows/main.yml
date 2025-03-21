@@ -31,6 +31,7 @@ jobs:
         conda config --add channels conda-forge
         conda install --yes numpy scipy nose requests
         conda install --yes pdbfixer mdtraj openmm
+        conda install -c bioconda clustalw
         pip install mmtf-python scikit-learn
         pip install .
         python setup.py build_ext --inplace --force
