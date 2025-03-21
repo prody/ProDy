@@ -7,14 +7,13 @@ on: [push, pull_request, workflow_dispatch]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    runs-on: ${{ matrix.os }}
+  # This workflow contains two jobs called "build_linux" and "build_macos" after all
+  build_linux:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-        os: [ubuntu-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v3
@@ -31,11 +30,7 @@ jobs:
     - name: Install dependencies and test
       run: |
         conda init bash
-        if [ -f ~/.bashrc ]; then
-          source ~/.bashrc
-        else
-          source ~/.bash_profile
-        fi
+        source ~/.bashrc
         conda activate test
         pip install mmtf-python scikit-learn
         cd prody/proteins/hpbmodule/
@@ -43,6 +38,42 @@ jobs:
         variable=$(python -c 'from distutils.sysconfig import get_python_inc; print(get_python_inc())')
         c++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/$variable
         c++ -shared -Wl,-soname,hpb.so -o hpb.so hpbmodule.o reg_tet.o -lgfortran
+        cp hpb.so ../
+        cd -
+        pip install .
+        python setup.py build_ext --inplace --force
+        pytest
+
+  build_macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: conda-incubator/setup-miniconda@v3
+      with:
+        miniconda-version: "latest"
+        channels: conda-forge, defaults
+        # use-only-tar-bz2: true  # IMPORTANT: This needs to be set for caching to work properly!
+        auto-update-conda: true
+        auto-activate-base: yes
+        activate-environment: test
+        environment-file: envs/github.yaml
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies and test
+      run: |
+        conda init bash
+        source ~/.bash_profile
+        conda activate test
+        pip install mmtf-python scikit-learn
+        cd prody/proteins/hpbmodule/
+        gfortran -O3 -fPIC -c reg_tet.f
+        variable=$(python -c 'from distutils.sysconfig import get_python_inc; print(get_python_inc())')
+        c++ -O3 -g -fPIC -c hpbmodule.cpp -o hpbmodule.o -I/$variable
+        c++ -shared -Wl,-install_name,hpb.so -o hpb.so hpbmodule.o reg_tet.o -lgfortran
         cp hpb.so ../
         cd -
         pip install .
