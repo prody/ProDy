@@ -63,18 +63,12 @@ jobs:
         activate-environment: test
         environment-file: envs/github.yaml
         python-version: ${{ matrix.python-version }}
-    - name: Find gfortran library
-      shell: bash -l {0}
-      run: |
-        GFORTRAN_LIB=$(find /Users/runner/miniconda3/envs/test -name libgfortran.dylib)
-        echo "GFORTRAN_LIB=$GFORTRAN_LIB" >> $GITHUB_ENV
     - name: Install dependencies and test
       shell: bash -l {0}
       run: |
         conda init bash
         source ~/.bash_profile
         conda activate test
-        export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${GFORTRAN_LIB%/*}"
         pip install mmtf-python scikit-learn
         cd prody/proteins/hpbmodule/
         gfortran -O3 -fPIC -c reg_tet.f
