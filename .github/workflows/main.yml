@@ -30,7 +30,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies and test
       run: |
-        source activate base
+        conda init bash
+        source ~/.bashrc
         conda activate test || true
         pip install mmtf-python scikit-learn
         cd prody/proteins/hpbmodule/
