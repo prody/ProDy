@@ -8,6 +8,7 @@ import os
 
 from numpy import dtype, zeros, empty, ones, where, ceil, dot
 from numpy import indices, tril_indices, array, isscalar, unique
+from numpy.linalg import inv
 
 from prody import LOGGER
 from prody.utilities import which, MATCH_SCORE, MISMATCH_SCORE
@@ -596,7 +597,7 @@ def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
                                               pseudocount_weight=pseudo_weight,
                                               refine=refine, q=q+1)
 
-    c = c.I
+    c = inv(c)
 
     di = zeros((length, length), float)
     # get final DI
