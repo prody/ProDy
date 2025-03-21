@@ -277,6 +277,7 @@ def parsePDBStream(stream, **kwargs):
 
     long_resname = kwargs.get('long_resname')
     long_chid = kwargs.get('long_chid')
+    strip_icodes = kwargs.get('strip_icodes', True)
 
     if model is not None:
         if isinstance(model, Integral):
@@ -330,7 +331,7 @@ def parsePDBStream(stream, **kwargs):
             hd, split = getHeaderDict(lines)
         bonds = [] if get_bonds else None
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds, 
-                       long_resname=long_resname, long_chid=long_chid)
+                       long_resname=long_resname, long_chid=long_chid, strip_icodes=strip_icodes)
         if bonds:
             try:
                 ag.setBonds(bonds)
@@ -391,6 +392,7 @@ def parsePQR(filename, **kwargs):
     subset = kwargs.get('subset')
     long_resname = kwargs.get('long_resname')
     long_chid = kwargs.get('long_chid')
+    strip_icodes = kwargs.get('strip_icodes', True)
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
     if title is None:
@@ -429,7 +431,8 @@ def parsePQR(filename, **kwargs):
     LOGGER.timeit()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain,
                         subset=subset, altloc_torf=False, format='pqr', 
-                        long_resname=long_resname, long_chid=long_chid)
+                        long_resname=long_resname, long_chid=long_chid,
+                        strip_icodes=strip_icodes)
     if ag.numAtoms() > 0:
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -442,7 +445,7 @@ parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                    altloc_torf, format='PDB', bonds=None, 
-                   long_resname=False, long_chid=False):
+                   long_resname=False, long_chid=False, strip_icodes=True):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -869,7 +872,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setFlags('pdbter', termini)
                 atomgroup.setFlags('selpdbter', termini)
                 atomgroup.setAltlocs(altlocs)
-                atomgroup.setIcodes(np.char.strip(icodes))
+                if strip_icodes:
+                    icodes = np.char.strip(icodes)
+                atomgroup.setIcodes(icodes)
                 atomgroup.setSerials(serials)
                 if isPDB:
                     bfactors.resize(acount, refcheck=False)
@@ -980,7 +985,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setFlags('pdbter', termini)
         atomgroup.setFlags('selpdbter', termini)
         atomgroup.setAltlocs(altlocs)
-        atomgroup.setIcodes(np.char.strip(icodes))
+        if strip_icodes:
+            icodes = np.char.strip(icodes)
+        atomgroup.setIcodes(icodes)
         atomgroup.setSerials(serials)
         if isPDB:
             if anisou is not None:
