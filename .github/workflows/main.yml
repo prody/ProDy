@@ -31,8 +31,8 @@ jobs:
     - name: Install dependencies and test
       run: |
         conda init bash
-        source ~/.bashrc
-        conda activate test || true
+        source ~/.bashrc || source ~/.bash_profile
+        conda activate test
         pip install mmtf-python scikit-learn
         cd prody/proteins/hpbmodule/
         gfortran -O3 -fPIC -c reg_tet.f
