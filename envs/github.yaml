@@ -1,0 +1,16 @@
+name: test
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - numpy
+  - scipy
+  - nose
+  - requests
+  - pdbfixer
+  - mdtraj
+  - openmm
+  - gfortran
+  - cxx-compiler
+  - pytest

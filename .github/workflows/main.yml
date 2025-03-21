@@ -26,13 +26,11 @@ jobs:
         auto-update-conda: true
         auto-activate-base: false
         activate-environment: test
+        environment-file: envs/github.yaml
+        python: ${{ matrix.python-version }}
     - name: Install dependencies and test
       run: |
-        conda create --name test python=${{ matrix.python-version }} --yes
         conda activate test || true
-        conda install --yes numpy scipy nose requests
-        conda install --yes pdbfixer mdtraj openmm
-        conda install --yes gfortran cxx-compiler
         pip install mmtf-python scikit-learn
         cd prody/proteins/hpbmodule/
         gfortran -O3 -fPIC -c reg_tet.f
@@ -43,5 +41,4 @@ jobs:
         cd -
         pip install .
         python setup.py build_ext --inplace --force
-        conda install --yes pytest
         pytest
