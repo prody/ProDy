@@ -45,6 +45,6 @@ jobs:
         python setup.py build_ext --inplace --force
     - name: Test with pytest
       run: |
-        source activate test
+        conda activate test
         conda install --yes pytest
         pytest
