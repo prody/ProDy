@@ -24,12 +24,13 @@ jobs:
         channels: conda-forge, defaults
         # use-only-tar-bz2: true  # IMPORTANT: This needs to be set for caching to work properly!
         auto-update-conda: true
-        auto-activate-base: false
+        auto-activate-base: yes
         activate-environment: test
         environment-file: envs/github.yaml
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies and test
       run: |
+        source activate base
         conda activate test || true
         pip install mmtf-python scikit-learn
         cd prody/proteins/hpbmodule/
