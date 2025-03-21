@@ -11,8 +11,8 @@ from .logger import LOGGER
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
-           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters',
-           'calcKmedoidClusters']
+           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters', 
+           'printAtomicMatrix', 'calcKmedoidClusters']
 
 class LinkageError(Exception):
     pass
@@ -679,7 +679,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     interactive = kwargs.pop('interactive', True)
 
     import matplotlib
-    if float(matplotlib.__version__[:-2]) >= 3.6:
+    if float(matplotlib.__version__.split('.')[0]) >= 3 or float(matplotlib.__version__.split('.')[1]) >= 6:
         LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
         interactive = False
 
@@ -996,6 +996,141 @@ def findSubgroups(tree, c, method='naive', **kwargs):
             subgroups[t-1].append(names[i])
 
     return subgroups
+
+
+def getAtomicTable(matrix, atoms_i=None, atoms_j=None, 
+                   fmt='%5d', sep='\t'):
+    """Generates a new table for a matrix with atom labels along 
+    the top and at the beginning of each line for :func:`.printAtomicTable`.
+
+    :arg matrix: any square 2D data with a size matching atoms
+    :type matrix: tuple, list, :class:`~numpy.ndarray`
+
+    :arg atoms_i: any :class:`.Atomic` object to label the rows
+    :type atoms_i: :class:`.Atomic`
+
+    :arg atoms_j: any :class:`.Atomic` object to label the columns
+        uses atoms_i by default
+    :type atoms_j: :class:`.Atomic`
+
+    :arg fmt: format string for formatting numbers
+    :type fmt: str
+    """
+    if not isListLike(matrix):
+        raise TypeError('matrix should be list-like')
+
+    matrix = np.array(matrix)
+    if matrix.ndim != 2:
+        raise ValueError('matrix should be 2-dimensional')
+
+    if atoms_j is None:
+        atoms_j = atoms_i
+
+    if atoms_i is not None and matrix.shape[0] != atoms_i.numAtoms():
+        raise ValueError('number of rows should be number of atoms_i')
+
+    if atoms_j is not None and matrix.shape[1] != atoms_j.numAtoms():
+        raise ValueError('number of cols should be number of atoms_j')
+
+    if not isinstance(fmt, str):
+        raise TypeError('fmt should be a string')
+
+    chars = [list(item) for item in fmt.split('.')]
+    nums = []
+    for item in chars:
+        num_str = ''
+        for char in item:
+            if char.isnumeric():
+                num_str += char
+        nums.append(int(num_str))
+
+    if len(nums) == 1:
+        length = nums[0]
+    else:
+        if nums[0] >= nums[1] + 2:
+            length = nums[0]
+        else:
+            length = nums[1] + 2
+
+    table = ' '*length
+
+    if atoms_i is None and atoms_j is None:
+        resnum_length = len(str(max(matrix.shape)))
+        chid_length = 0
+
+    elif atoms_i is None:
+        resnum_length = len(str(max(atoms_j.getResnums())))
+        chid_length = max([len(chid) for chid in atoms_j.getChids()])
+
+    elif atoms_j is None:
+        resnum_length = len(str(max(atoms_i.getResnums())))
+        chid_length = max([len(chid) for chid in atoms_i.getChids()])
+
+    else:        
+        resnum_length = max(len(str(max(atoms_i.getResnums()))),
+                            len(str(max(atoms_j.getResnums()))))
+        chid_length = max(max([len(chid) for chid in atoms_i.getChids()]),
+                        max([len(chid) for chid in atoms_j.getChids()]))
+    
+    for j in range(matrix.shape[1]):
+        table += sep
+        if length >= resnum_length + chid_length:
+            if atoms_j is None:
+                chid = ''
+            else:
+                chid = atoms_j[j].getChid()
+            table += ' '*(chid_length - len(chid)) + chid
+        if length >= resnum_length + chid_length + 1:
+            table += ' '
+        
+        if atoms_j is not None:
+            if length >= resnum_length + chid_length + 2:
+                table += atoms_j[j].getResname()
+
+            table += '%{0}d'.format(resnum_length) % atoms_j[j].getResnum()
+    table += '\n'
+
+    for i, row in enumerate(matrix):
+        if atoms_i is not None:
+            table += '\t{} {}'.format(atoms_i[i].getChid(),
+                                      atoms_i[i].getResname())
+            table += '%{0}d'.format(resnum_length) % atoms_i[i].getResnum()
+        for element in row:
+            table += fmt % element
+        table += '\n'
+
+    return table
+
+
+def printAtomicMatrix(matrix, atoms=None, step=10, 
+                      fmt='%8d', sep='\t'):
+    """Prints a new table for a matrix with
+    atom labels along the top and at the 
+    beginning of each line.
+
+    :arg matrix: any square 2D data with a size matching atoms
+    :type matrix: tuple, list, :class:`~numpy.ndarray`
+
+    :arg atoms: any :class:`.Atomic` object to label the data
+    :type atoms: :class:`.Atomic`
+    """
+    attempts = len(matrix)//step
+    if len(matrix) > step * attempts:
+        attempts += 1
+    for i in range(attempts):
+        start = step * i
+        stop = step * (i+1)
+        submatrix = matrix[:,start:stop,]
+        if atoms is not None:
+            atoms_i = atoms
+            atoms_j = atoms[start:stop]
+        else:
+            atoms_i = atoms
+            atoms_j = atoms
+        print(getAtomicTable(submatrix, atoms_i, atoms_j,
+                             fmt, sep))
+
+    return
 
 
 def calcRMSDclusters(rmsd_matrix, c, labels=None):
