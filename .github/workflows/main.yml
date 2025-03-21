@@ -57,14 +57,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: s-weigand/setup-conda@v1
     - name: Set up Python ${{ matrix.python-version }}
       uses: MatteoH2O1999/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Add conda to system path
-      run: |
-        echo $CONDA/bin >> $GITHUB_PATH
+      uses: s-weigand/setup-conda@v1
     - name: Install dependencies
       run: |
         conda create --yes -n test python=${{ matrix.python-version }}
