@@ -43,8 +43,5 @@ jobs:
         cd -
         pip install .
         python setup.py build_ext --inplace --force
-    - name: Test with pytest
-      run: |
-        conda activate test
         conda install --yes pytest
         pytest
