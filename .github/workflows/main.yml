@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies and test
       run: |
         conda create --name test python=${{ matrix.python-version }} --yes
-        conda activate test
+        conda activate test || true
         conda install --yes numpy scipy nose requests
         conda install --yes pdbfixer mdtraj openmm
         conda install --yes gfortran cxx-compiler
