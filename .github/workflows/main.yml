@@ -28,7 +28,7 @@ jobs:
     - name: Install dependencies
       run: |
         conda create --yes -n test python=${{ matrix.python-version }}
-        source activate test
+        conda activate test
         conda config --add channels conda-forge
         conda install --yes numpy scipy nose requests
         conda install --yes pdbfixer mdtraj openmm
