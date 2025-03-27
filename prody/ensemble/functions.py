@@ -66,11 +66,17 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
+
+        if isinstance(atoms, AtomGroup):
+            ag = atoms
+        else:
+            ag = atoms._ag
+
         if not hasattr(atoms, '_bondOrders'):
-            atoms._bondOrders = None
+            ag._bondOrders = None
 
         if not hasattr(atoms, '_bondIndex'):
-            atoms._bondIndex = None
+            ag._bondIndex = None
 
         attr_dict['_atoms'] = np.array([atoms, None], 
                                         dtype=object)
