@@ -299,6 +299,12 @@ class ClustENM(Ensemble):
             properties = {'Precision': 'single'}
         elif self._platform in ['CUDA', 'OpenCL']:
             properties = {'Precision': 'single'}
+        elif self._platform == 'CPU':
+            if self._threads == 0:
+                cpus = cpu_count()
+            else:
+                cpus = self._threads
+            properties = {'Threads': str(cpus)}
 
         simulation = Simulation(modeller.topology, system, integrator,
                                 platform, properties)
@@ -636,7 +642,12 @@ class ClustENM(Ensemble):
 
         if self._targeted:
             if self._parallel:
-                with Pool(cpu_count()) as p:
+                if isinstance(self._parallel, int):
+                    repeats = self._parallel
+                elif isinstance(self._parallel, bool):
+                    repeats = cpu_count()
+
+                with Pool(repeats) as p:
                     pot_conf = p.map(self._multi_targeted_sim,
                                      [(conf, coords) for coords in coordsets])
             else:
@@ -740,7 +751,12 @@ class ClustENM(Ensemble):
         sample_method = self._sample_v1 if self._v1 else self._sample
 
         if self._parallel:
-            with Pool(cpu_count()) as p:
+            if isinstance(self._parallel, int):
+                repeats = self._parallel
+            elif isinstance(self._parallel, bool):
+                repeats = cpu_count()
+
+            with Pool(repeats) as p:
                 tmp = p.map(sample_method, [conf for conf in confs])
         else:
             tmp = [sample_method(conf) for conf in confs]
@@ -1116,10 +1132,17 @@ class ClustENM(Ensemble):
         :arg platform: Architecture on which the OpenMM part runs, default is None.
             It can be chosen as 'CUDA', 'OpenCL' or 'CPU'.
             For efficiency, 'CUDA' or 'OpenCL' is recommended.
+            'CPU' is needed for setting threads per simulation.
         :type platform: str
 
         :arg parallel: If it is True (default is False), conformer generation will be parallelized.
+            This can also be set to a number for how many CPUs are used in parallel conformer generation.
+            Setting 0 or True means run as many as there are CPUs on the machine.
         :type parallel: bool
+
+        :arg threads: Number of threads to use for an individual simulation using the thread setting from OpenMM
+            Default of 0 uses all CPUs on the machine.
+        :type threads: int
 
         :arg fitmap: Cryo-EM map for fitting using a protocol similar to MDeNM-EMFit
             Default *None*
@@ -1152,7 +1175,19 @@ class ClustENM(Ensemble):
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
         self._n_gens = n_gens
         self._platform = kwargs.pop('platform', None)
+
         self._parallel = kwargs.pop('parallel', False)
+        if not isinstance(self._parallel, (int, bool)):
+            raise TypeError('parallel should be an int or bool')
+
+        if self._parallel == 1:
+            # this is equivalent to not actually being parallel
+            self._parallel = False
+        elif self._parallel == 0:
+            # this is a deliberate choice and is documented
+            self._parallel = True
+
+        self._threads = kwargs.pop('threads', 0)
         self._targeted = kwargs.pop('targeted', False)
         self._excited = kwargs.pop('excited', False)
         self._tmdk = kwargs.pop('tmdk', 15.)
