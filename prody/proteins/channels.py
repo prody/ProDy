@@ -643,10 +643,30 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     return channels_all, surfaces_all
 
 
+def parseParameters(channels, **kwargs):
+    """Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels. """
+    
+    lengths = []
+    bottlenecks = []
+    volumes = []
+    param_file_name = kwargs.pop('param_file_name', None)
+    
+    for nr_ch, channel in enumerate(channels):
+        lengths.append(channel.length)
+        bottlenecks.append(channel.bottleneck)
+        volumes.append(channel.volume)
+        
+        if param_file_name is not None:
+            with open(param_file_name+'_Parameters_All_channels.txt', "a") as f_par:
+                f_par.write(("{0}_channel{1}: {2} {3} {4}\n".format(param_file_name, nr_ch, channel.length, channel.bottleneck, channel.volume)))
+            
+    return lengths, bottlenecks, volumes
+
+
 def getChannelParameters(channels, **kwargs):
     """Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels.
 
-    This function iterates through a list of channel objects, extracting the length, bottleneck, 
+    This functaaion iterates through a list of channel objects, extracting the length, bottleneck, 
     and volume of each channel. These values are collected into separate lists, which are returned 
     as a tuple for further use.
 
@@ -667,21 +687,18 @@ def getChannelParameters(channels, **kwargs):
     Example usage:
     lengths, bottlenecks, volumes = getChannelParameters(channels) """
     
-    lengths = []
-    bottlenecks = []
-    volumes = []
-    param_file_name = kwargs.pop('param_file_name', None)
-    
-    for nr_ch, channel in enumerate(channels):
-        lengths.append(channel.length)
-        bottlenecks.append(channel.bottleneck)
-        volumes.append(channel.volume)
-        
-        if param_file_name is not None:
-            with open(param_file_name+'_Parameters_All_channels.txt', "a") as f_par:
-                f_par.write(("{0}_channel{1}: {2} {3} {4}\n".format(param_file_name, nr_ch, channel.length, channel.bottleneck, channel.volume)))
-            
-    return lengths, bottlenecks, volumes
+    multi_model_param = []
+    param_file_name = kwargs.get('param_file_name', None)
+
+    try:
+        return parseParameters(channels, **kwargs)
+
+    except:
+        for nr_i,i in enumerate(channels):
+            safe_param_file_name = param_file_name if param_file_name is not None else ""
+            results = parseParameters(channels[nr_i], param_file_name=safe_param_file_name + str(nr_i))
+            multi_model_param.append(results) 
+        return multi_model_param
 
 
 def getChannelAtoms(channels, protein=None, num_samples=5):
