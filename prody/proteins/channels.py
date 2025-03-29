@@ -521,7 +521,7 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
         output_path = Path(output_path)
         
         if output_path.is_dir():
-            output_path = output_path / "output.pdb"
+            output_path = output_path / "output.pqr"
         
         elif not (output_path.suffix == ".pdb" or output_path.suffix == ".pqr"):
             output_path = output_path.with_suffix(".pqr")
@@ -599,7 +599,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     
     if output_path:
         output_path = Path(output_path)
-        if output_path.suffix == ".pdb":
+        if output_path.suffix == ".pqr":
             output_path = output_path.with_suffix('')
 
     if trajectory is not None:
@@ -619,7 +619,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
             LOGGER.info('Frame: {0}'.format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             if output_path:
-                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pdb".format(j0), separate, **kwargs)
+                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), separate, **kwargs)
             else:
                 channels, surfaces = calcChannels(atoms_copy, **kwargs)
             channels_all.append(channels)
@@ -632,7 +632,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
                 LOGGER.info('Model: {0}'.format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
                 if output_path:
-                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pdb".format(i+start_frame), separate, **kwargs)
+                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, **kwargs)
                 else:
                     channels, surfaces = calcChannels(atoms, **kwargs)
                 channels_all.append(channels)
@@ -924,7 +924,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     
     if pdb_files == False:
         # take all PDBs from the current dir
-        pdb_files = [file for file in os.listdir('.') if file.endswith('.pdb')]
+        pdb_files = [file for file in os.listdir('.') if file.endswith('.pqr')]
 
     residue_sele = atoms.select(residue_sele)
     if not os.path.exists(folder_name):
@@ -1007,17 +1007,17 @@ def calcOverlappingSurfaces(**kwargs):
     pdb_files = kwargs.pop('pdb_files', False)
     if pdb_files == False or pdb_files is None:
         # take all PDBs from the current dir
-        pdb_files = [file for file in os.listdir('.') if file.endswith('.pdb')]
+        pdb_files = [file for file in os.listdir('.') if file.endswith('.pqr')]
     elif isinstance(pdb_files, str):
         # folder path
-        pdb_files = [file for file in os.listdir(pdb_files) if file.endswith('.pdb')]
+        pdb_files = [file for file in os.listdir(pdb_files) if file.endswith('.pqr')]
     elif isinstance(pdb_files, list):
         # list of PDBs
-        pdb_files = [file for file in pdb_files if file.endswith('.pdb')]
+        pdb_files = [file for file in pdb_files if file.endswith('.pqr')]
     else:
         raise ValueError('Please provide list with PDB files, folder path, or nothing to analyze PDBs in the current folder')
 
-    output_file_name = kwargs.pop('output_file_name','overlap_regions.pdb')
+    output_file_name = kwargs.pop('output_file_name','overlap_regions.pqr')
     if os.path.exists(output_file_name):
         os.rename(output_file_name, output_file_name+'-old')
 
@@ -1499,7 +1499,7 @@ class ChannelCalculator:
             channel_index = 0
             for cavity in cavities:
                 for channel in cavity.channels:
-                    channel_filename = filename.replace('.pdb', '_channel{0}.pdb'.format(channel_index))
+                    channel_filename = filename.replace('.pqr', '_channel{0}.pqr'.format(channel_index))
                     
                     with open(channel_filename, 'w') as pdb_file:
                         atom_index = 1
