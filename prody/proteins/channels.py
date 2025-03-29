@@ -524,7 +524,7 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
             output_path = output_path / "output.pdb"
         
         elif not (output_path.suffix == ".pdb" or output_path.suffix == ".pqr"):
-            output_path = output_path.with_suffix(".pdb")
+            output_path = output_path.with_suffix(".pqr")
     
         if not separate:
             LOGGER.info("Saving results to " + str(output_path) + ".")
