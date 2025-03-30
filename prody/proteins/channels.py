@@ -1086,7 +1086,6 @@ def calcOverlappingSurfaces(**kwargs):
     surfaces = []
     for nr_pdbs,pdb_file in enumerate(pdb_files):
         LOGGER.info("Processing file: {0}".format(pdb_file))
-        print("Processing file: {0}".format(pdb_file))
         atoms = loadPDBdata(pdb_file)
         if atoms:
             surface = create_surface(atoms, resolution=resolution)
