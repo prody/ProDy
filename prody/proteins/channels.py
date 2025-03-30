@@ -616,7 +616,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
 
         atoms_copy = atoms.copy()
         for j0, frame0 in enumerate(traj, start=start_frame):
-            LOGGER.info('Frame: {0}'.format(j0))
+            LOGGER.info("Frame: {0}".format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             if output_path:
                 channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), separate, **kwargs)
@@ -629,7 +629,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     else:
         if atoms.numCoordsets() > 1:
             for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
+                LOGGER.info("Model: {0}".format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
                 if output_path:
                     channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, **kwargs)
@@ -638,7 +638,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
                 channels_all.append(channels)
                 surfaces_all.append(surfaces)
         else:
-            LOGGER.info('Include trajectory or use multi-model PDB file.')
+            LOGGER.info("Include trajectory or use multi-model PDB file.")
 
     return channels_all, surfaces_all
 
@@ -691,13 +691,25 @@ def getChannelParameters(channels, **kwargs):
     param_file_name = kwargs.get('param_file_name', None)
 
     try:
-        return parseParameters(channels, **kwargs)
+        results_L_B_V = parseParameters(channels, **kwargs)
+        lengths, bottlenecks, volumes = results_L_B_V
+        LOGGER.info("Channel {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Length [Å]', 'Bottleneck [Å]'))
+        for i in range(len(lengths)):
+            LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
+        return results_L_B_V
 
     except:
         for nr_i,i in enumerate(channels):
             safe_param_file_name = param_file_name if param_file_name is not None else ""
             results = parseParameters(channels[nr_i], param_file_name=safe_param_file_name + str(nr_i))
             multi_model_param.append(results) 
+            
+        LOGGER.info("Channel {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Length [Å]', 'Bottleneck [Å]'))
+        for frame_nr, frame in enumerate(multi_model_param):
+            lengths, bottlenecks, volumes = frame
+            LOGGER.info("Frame {0}".format(frame_nr))
+            for i in range(len(lengths)):
+                LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
         return multi_model_param
 
 
@@ -937,7 +949,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         
             if sele_FIL is not None:
                 shutil.copy(i, folder_name)
-                LOGGER.info('Filtered files are now in: {0}'.format(folder_name))
+                LOGGER.info("Filtered files are now in: {0}".format(folder_name))
                 copied_files_list.append(i)
             else:
                 pass 
@@ -954,7 +966,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
                     if line.startswith(PDB_id+'_'+channel_name+':'):
                         selected_residues.append(line)
             except:
-                LOGGER.info('File {0} was not analyzed due to the lack of file or multiple channel file.'.format(file))
+                LOGGER.info("File {0} was not analyzed due to the lack of file or multiple channel file.".format(file))
                 pass
 
         with open('Selected_channel_residues.txt', 'w') as f_out:
@@ -971,15 +983,15 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
                     if line.startswith(PDB_id+'_'+channel_name+':'):
                         selected_param.append(line)
             except:
-                LOGGER.info('File {0} was not analyzed due to the lack of file or multiple channel file.'.format(file))
+                LOGGER.info("File {0} was not analyzed due to the lack of file or multiple channel file.".format(file))
                 pass
 
         with open('Selected_channel_parameters.txt', 'w') as f_out:
             f_out.writelines(selected_param)
 
-    LOGGER.info('Selected files: ')
+    LOGGER.info("Selected files: ")
     LOGGER.info(' '.join(copied_files_list))
-    LOGGER.info('If newly created files are empty please check whether the parameter names are: PDB_id+_Parameters_All_channels.txt')
+    LOGGER.info("If newly created files are empty please check whether the parameter names are: PDB_id+_Parameters_All_channels.txt")
 
 
 def calcOverlappingSurfaces(**kwargs):
@@ -1073,8 +1085,8 @@ def calcOverlappingSurfaces(**kwargs):
 
     surfaces = []
     for nr_pdbs,pdb_file in enumerate(pdb_files):
-        LOGGER.info('Processing file: {0}'.format(pdb_file))
-        print('Processing file: {0}'.format(pdb_file))
+        LOGGER.info("Processing file: {0}".format(pdb_file))
+        print("Processing file: {0}".format(pdb_file))
         atoms = loadPDBdata(pdb_file)
         if atoms:
             surface = create_surface(atoms, resolution=resolution)
