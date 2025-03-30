@@ -31,7 +31,7 @@ from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
            'selectChannelBySelection', 'getChannelResidueNames',
-           'calcOverlappingSurfaces']
+           'calcChannelSurfaceOverlaps']
 
 
 
@@ -994,7 +994,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     LOGGER.info("If newly created files are empty please check whether the parameter names are: PDB_id+_Parameters_All_channels.txt")
 
 
-def calcOverlappingSurfaces(**kwargs):
+def calcChannelSurfaceOverlaps(**kwargs):
     """Calculate overlapping parts of the predicted channels, tunnels, and pores denote as 'FIL' atoms.
     Results are normalized within [0,1].
 
