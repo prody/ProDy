@@ -887,10 +887,10 @@ def getChannelResidueNames(atoms, channels, **kwargs):
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
     """Select PDB files with channels that are having FIL residues within certain distance (distA) from 
     selected residue (temporarly one residue).
-    If not all files should be included use pdb_files to provide the new list. 
+    If not all files should be included use pqr_files to provide the new list. 
     For example:
-    pdb_files = [file for file in os.listdir('.') if file.startswith('7lafA_') and file.endswith('.pdb')]
-    pdb_files = [file for file in os.listdir('.') if '5kbd' in file and file.endswith('.pdb')]
+    pqr_files = [file for file in os.listdir('.') if file.startswith('7lafA_') and file.endswith('.pqr')]
+    pqr_files = [file for file in os.listdir('.') if '5kbd' in file and file.endswith('.pqr')]
 
     :arg atoms: an Atomic object from which residues are selected 
     :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
@@ -927,22 +927,22 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     import os, shutil
     import numpy as np
     
-    pdb_files = kwargs.pop('pdb_files', False)
+    pqr_files = kwargs.pop('pqr_files', False)
     distA = kwargs.pop('distA', 5)
     folder_name = kwargs.pop('folder_name', 'selected_files')
     residues_file = kwargs.pop('residues_file', False)
     param_file = kwargs.pop('param_file', False)
     copied_files_list = []
     
-    if pdb_files == False:
+    if pqr_files == False:
         # take all PDBs from the current dir
-        pdb_files = [file for file in os.listdir('.') if file.endswith('.pqr')]
+        pqr_files = [file for file in os.listdir('.') if file.endswith('.pqr')]
 
     residue_sele = atoms.select(residue_sele)
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
-    for i in pdb_files:
+    for i in pqr_files:
         channel = parsePDB(i)
         if 'FIL' in np.unique(channel.getResnames()):
             sele_FIL = channel.select('same residue as exwithin '+str(distA)+' of center', center=residue_sele.getCoords())
@@ -1005,36 +1005,36 @@ def calcOverlappingSurfaces(**kwargs):
     :arg output_file_name: The name of the PDB file with overlapping surfaces.
     :type output_file_name: str
 
-    :arg pdb_files: File with residues forming the channel created by getChannelResidues()
+    :arg pqr_files: File with residues forming the channel created by getChannelResidues()
         default is False (then all the files from the current directory will be analyzed)
         when providing a list, only the PDBs from list will be analyzed
         when providing str, it will be treated as a folder path  
-    :type pdb_files: bool, list or str
+    :type pqr_files: bool, list or str
     """
     
     import os
 
     resolution = kwargs.pop('resolution', 0.5)
      
-    pdb_files = kwargs.pop('pdb_files', False)
-    if pdb_files == False or pdb_files is None:
-        # take all PDBs from the current dir
-        pdb_files = [file for file in os.listdir('.') if file.endswith('.pqr')]
-    elif isinstance(pdb_files, str):
+    pqr_files = kwargs.pop('pqr_files', False)
+    if pqr_files == False or pqr_files is None:
+        # take all PQRs from the current dir
+        pqr_files = [file for file in os.listdir('.') if file.endswith('.pqr')]
+    elif isinstance(pqr_files, str):
         # folder path
-        pdb_files = [file for file in os.listdir(pdb_files) if file.endswith('.pqr')]
-    elif isinstance(pdb_files, list):
-        # list of PDBs
-        pdb_files = [file for file in pdb_files if file.endswith('.pqr')]
+        pqr_files = [file for file in os.listdir(pqr_files) if file.endswith('.pqr')]
+    elif isinstance(pqr_files, list):
+        # list of PQRs
+        pqr_files = [file for file in pqr_files if file.endswith('.pqr')]
     else:
-        raise ValueError('Please provide list with PDB files, folder path, or nothing to analyze PDBs in the current folder')
+        raise ValueError('Please provide list with PQR files, folder path, or nothing to analyze PQRs in the current folder')
 
-    output_file_name = kwargs.pop('output_file_name','overlap_regions.pqr')
+    output_file_name = kwargs.pop('output_file_name','overlap_regions.pdb')
     if os.path.exists(output_file_name):
         os.rename(output_file_name, output_file_name+'-old')
 
     def loadPDBdata(filepath):
-        """Parse a PDB file and return a list of atom dictionaries for lines containing 'FIL'."""
+        """Parse a PQR file and return a list of atom dictionaries for lines containing 'FIL'."""
         atoms_set = []
         FILatoms = parsePDB(filepath).select('resname FIL')
         
@@ -1084,9 +1084,9 @@ def calcOverlappingSurfaces(**kwargs):
                 atom_id += 1
 
     surfaces = []
-    for nr_pdbs,pdb_file in enumerate(pdb_files):
-        LOGGER.info("Processing file: {0}".format(pdb_file))
-        atoms = loadPDBdata(pdb_file)
+    for nr_pdbs,pqr_file in enumerate(pqr_files):
+        LOGGER.info("Processing file: {0}".format(pqr_file))
+        atoms = loadPDBdata(pqr_file)
         if atoms:
             surface = create_surface(atoms, resolution=resolution)
             surfaces.append(surface)
@@ -1484,7 +1484,7 @@ class ChannelCalculator:
         filename = str(filename)
         
         # All channels will be provided always when PDB/PQR will be created
-        with open(filename, 'w') as pdb_file:
+        with open(filename, 'w') as pqr_file:
             atom_index = 1
             for cavity in cavities:
                 for channel in cavity.channels:
@@ -1501,8 +1501,8 @@ class ChannelCalculator:
                     for i in range(1, samples):
                         pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
                         
-                    pdb_file.writelines(pdb_lines)
-                    pdb_file.write("\n")
+                    pqr_file.writelines(pdb_lines)
+                    pqr_file.write("\n")
                     atom_index += samples
         
         # When separate is set to True also separate PDB/PQR files will be created
@@ -1512,7 +1512,7 @@ class ChannelCalculator:
                 for channel in cavity.channels:
                     channel_filename = filename.replace('.pqr', '_channel{0}.pqr'.format(channel_index))
                     
-                    with open(channel_filename, 'w') as pdb_file:
+                    with open(channel_filename, 'w') as pqr_file:
                         atom_index = 1
                         centerline_spline, radius_spline = channel.get_splines()
                         samples = len(channel.tetrahedra) * num_samples
@@ -1527,7 +1527,7 @@ class ChannelCalculator:
                         for i in range(1, samples):
                             pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
                             
-                        pdb_file.writelines(pdb_lines)
+                        pqr_file.writelines(pdb_lines)
                         
                     channel_index += 1
 
