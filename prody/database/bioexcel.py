@@ -11,7 +11,6 @@ from prody import LOGGER, PY3K
 from prody.utilities import makePath
 
 from prody.atomic.atomgroup import AtomGroup
-from prody.atomic.functions import extendAtomicData
 from prody.proteins.pdbfile import parsePDB
 from prody.trajectory.psffile import parsePSF, writePSF
 from prody.trajectory.dcdfile import parseDCD
@@ -20,7 +19,8 @@ __all__ = ['fetchBioexcelPDB', 'parseBioexcelPDB', 'convertXtcToDcd',
            'fetchBioexcelTrajectory', 'parseBioexcelTrajectory',
            'fetchBioexcelTopology', 'parseBioexcelTopology']
 
-prefix = 'https://bioexcel-cv19.bsc.es/api/rest/v1/projects/'
+cv19_prefix = 'https://bioexcel-cv19.bsc.es/api/rest/v1/projects/'
+mddb_prefix = 'https://irb.mddbr.eu/api/rest/v1/projects/'
 dot_json_str = '.json'
 
 def fetchBioexcelPDB(acc, **kwargs):
@@ -54,11 +54,17 @@ def fetchBioexcelPDB(acc, **kwargs):
     if not filepath.endswith('.pdb'):
         filepath += '.pdb'
 
+    db = kwargs.get('db', 'mddb')
+    if db == 'cv19':
+        prefix = cv19_prefix
+    else:
+        prefix = mddb_prefix
+
     url = prefix + acc + "/structure"
     if selection is not None:
         url += '?selection=' + selection.replace(" ","%20")
     
-    filepath = requestFromUrl(url, timeout, filepath, source='pdb')
+    filepath = requestFromUrl(url, timeout, filepath, source='pdb', **kwargs)
 
     return filepath
 
@@ -103,6 +109,12 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     if not filepath.endswith('.xtc'):
         filepath += '.xtc'
 
+    db = kwargs.get('db', 'mddb')
+    if db == 'cv19':
+        prefix = cv19_prefix
+    else:
+        prefix = mddb_prefix
+
     url = prefix + acc + "/trajectory?format=xtc"
 
     if frames is not None:
@@ -111,7 +123,7 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     if selection is not None:
         url += '&selection=' + selection.replace(" ","%20")
 
-    filepath = requestFromUrl(url, timeout, filepath, source='xtc')
+    filepath = requestFromUrl(url, timeout, filepath, source='xtc', **kwargs)
 
     if convert:
         filepath = convertXtcToDcd(filepath, **kwargs)
@@ -143,15 +155,21 @@ def fetchBioexcelTopology(acc, **kwargs):
         filepath = acc
     else:
         acc, convert, _, filepath, timeout, _ = checkInputs(acc, **kwargs)
-        if not filepath.endswith('.json') and not filepath.endswith('.psf'):
-            filepath += '.json'
+        if not filepath.endswith(dot_json_str) and not filepath.endswith('.psf'):
+            filepath += dot_json_str
 
     if filepath.endswith('.psf'):
         convert = False
 
+    db = kwargs.get('db', 'mddb')
+    if db == 'cv19':
+        prefix = cv19_prefix
+    else:
+        prefix = mddb_prefix
+
     if not isfile(filepath):
         url = prefix + acc + "/topology"
-        filepath = requestFromUrl(url, timeout, filepath, source='json')
+        filepath = requestFromUrl(url, timeout, filepath, source='json', **kwargs)
 
     if convert:
         ag = parseBioexcelTopology(filepath, **kwargs)
@@ -290,12 +308,18 @@ def convertXtcToDcd(filepath, **kwargs):
 
     return filepath
 
-def requestFromUrl(url, timeout, filepath, source=None):
+def requestFromUrl(url, timeout, filepath, source=None, **kwargs):
     """Helper function to make a request from a url and return the response"""
     import requests
     import json
     import mdtraj
     import tempfile
+
+    db = kwargs.get('db', 'mddb')
+    if db == 'cv19':
+        prefix = cv19_prefix
+    else:
+        prefix = mddb_prefix
 
     acc = url.split(prefix)[1].split('/')[0]
 
