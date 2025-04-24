@@ -581,7 +581,7 @@ if prody.PY3K:
         
         @classmethod
         def setUpClass(cls):
-            cls.query = 'A01Z9'
+            cls.query = 'MCV1900370'
             cls.psfPath = pathDatafile(cls.query + '.psf')
             cls.xtcPath = pathDatafile(cls.query + '.xtc')
             cls.dcdPath = pathDatafile(cls.query + '.dcd')
