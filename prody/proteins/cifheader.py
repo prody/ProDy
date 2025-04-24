@@ -1283,7 +1283,8 @@ def _getUnobservedSeq(lines):
         if key in unobs_seqs.keys():
             unobs_seq = unobs_seqs[key]
             # initialise alignment (quite possibly incorrect)
-            aln = list(alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
+            aln = list(alignBioPairwise(unobs_seq.upper(), seq.upper(),
+                                        MATCH_SCORE=1000,
                                         MISMATCH_SCORE=-1000,
                                         ALIGNMENT_METHOD='global',
                                         GAP_PENALTY=-2,
@@ -1299,12 +1300,12 @@ def _getUnobservedSeq(lines):
                     i = 0
 
                 if chid == key:
-                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
+                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']].upper()
                     good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
 
                     row1_list = list(aln[0])
 
-                    arr_unobs_seq = np.array(list(unobs_seq))
+                    arr_unobs_seq = np.array(list(unobs_seq.upper()))
                     unobs_rep = np.nonzero(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
                     actual_pos = np.nonzero(np.array(row1_list) == one_letter)[0][unobs_rep]
 
