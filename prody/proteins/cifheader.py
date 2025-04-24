@@ -1301,14 +1301,19 @@ def _getUnobservedSeq(lines):
                     row1_list = list(aln[0])
 
                     arr_unobs_seq = np.array(list(unobs_seq))
-                    unobs_rep = np.where(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
-                    actual_pos = np.where(np.array(row1_list) == one_letter)[0][unobs_rep]
+                    unobs_rep = np.nonzero(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
+                    actual_pos = np.nonzero(np.array(row1_list) == one_letter)[0][unobs_rep]
 
                     if actual_pos != good_pos:
                         row1_list[good_pos] = one_letter
                         row1_list[actual_pos] = '-'
 
                     aln[0] = ''.join(row1_list)
+
+                    for j in reversed(range(len(aln[0]))):
+                        if aln[0][j] == '-' and aln[1][j] == '-':
+                            aln[0] = aln[0][:j] + aln[0][j+1:]
+                            aln[1] = aln[1][:j] + aln[1][j+1:]
 
                 i += 1
 
