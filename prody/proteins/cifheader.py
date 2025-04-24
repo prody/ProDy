@@ -943,6 +943,8 @@ def _getPolymers(lines):
 
         match = False
         for dbref in poly.dbrefs:
+            if dbref.first is None or dbref.last is None:
+                continue
             if not dbref.first[0] <= resnum <= dbref.last[0]:
                 continue
             match = True
@@ -1244,6 +1246,8 @@ def _getUnobservedSeq(lines):
 
     key_unobs = '_pdbx_unobs_or_zero_occ_residues'
 
+    unobs = []
+    polymers = []
     try:
         unobs = parseSTARSection(lines, key_unobs, report=False)
         polymers = _getPolymers(lines)
@@ -1279,7 +1283,8 @@ def _getUnobservedSeq(lines):
         if key in unobs_seqs.keys():
             unobs_seq = unobs_seqs[key]
             # initialise alignment (quite possibly incorrect)
-            aln = list(alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
+            aln = list(alignBioPairwise(unobs_seq.upper(), seq.upper(),
+                                        MATCH_SCORE=1000,
                                         MISMATCH_SCORE=-1000,
                                         ALIGNMENT_METHOD='global',
                                         GAP_PENALTY=-2,
@@ -1295,20 +1300,25 @@ def _getUnobservedSeq(lines):
                     i = 0
 
                 if chid == key:
-                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
+                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']].upper()
                     good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
 
                     row1_list = list(aln[0])
 
-                    arr_unobs_seq = np.array(list(unobs_seq))
-                    unobs_rep = np.where(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
-                    actual_pos = np.where(np.array(row1_list) == one_letter)[0][unobs_rep]
+                    arr_unobs_seq = np.array(list(unobs_seq.upper()))
+                    unobs_rep = np.nonzero(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
+                    actual_pos = np.nonzero(np.array(row1_list) == one_letter)[0][unobs_rep]
 
                     if actual_pos != good_pos:
                         row1_list[good_pos] = one_letter
                         row1_list[actual_pos] = '-'
 
                     aln[0] = ''.join(row1_list)
+
+                    for j in reversed(range(len(aln[0]))):
+                        if aln[0][j] == '-' and aln[1][j] == '-':
+                            aln[0] = aln[0][:j] + aln[0][j+1:]
+                            aln[1] = aln[1][:j] + aln[1][j+1:]
 
                 i += 1
 
