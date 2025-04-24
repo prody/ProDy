@@ -15,8 +15,8 @@ if prody.PY3K:
     from prody import LOGGER
     LOGGER.verbosity = 'none'
 
-    FULL_N_ATOMS = 52350
-    SELE_N_ATOMS = 16860
+    FULL_N_ATOMS = 12152
+    SELE_N_ATOMS = 3908
     N_FRAMES_1 = 10
     N_FRAMES_2 = 6
 
