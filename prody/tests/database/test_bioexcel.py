@@ -17,6 +17,7 @@ if prody.PY3K:
 
     FULL_N_ATOMS = 12152
     SELE_N_ATOMS = 3908
+    FULL_N_ATOMS_CV = 52350
     N_FRAMES_1 = 10
     N_FRAMES_2 = 6
 
@@ -155,7 +156,7 @@ if prody.PY3K:
             using selection='_C'."""
 
             a = fetchBioexcelTopology(self.query, folder=self.workdir,
-                                    selection='_C')
+                                      selection='_C')
             
             ag = prody.parsePSF(a)
             self.assertIsInstance(ag, prody.AtomGroup,
@@ -594,7 +595,7 @@ if prody.PY3K:
             ag = parseBioexcelTopology(self.psfPath)
             self.assertIsInstance(ag, prody.AtomGroup,
                 'parseBioexcelTopology failed to return an AtomGroup from data files')
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
+            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS_CV,
                             'parseBioexcelTopology data files output does not have correct number of atoms')
 
         def testParseBioexcelTopJsonGlycan(self):
@@ -617,7 +618,7 @@ if prody.PY3K:
             ens = parseBioexcelTrajectory(self.xtcPath, top=self.psfPath)
             self.assertIsInstance(ens, prody.Ensemble,
                 'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
-            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
+            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS_CV,
                             'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of atoms')
             self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
                             'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of frames')
@@ -626,7 +627,7 @@ if prody.PY3K:
             ens = parseBioexcelTrajectory(self.dcdPath, top=self.psfPath)
             self.assertIsInstance(ens, prody.Ensemble,
                 'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
-            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
+            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS_CV,
                             'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of atoms')
             self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
                             'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of frames')
