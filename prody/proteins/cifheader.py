@@ -943,6 +943,8 @@ def _getPolymers(lines):
 
         match = False
         for dbref in poly.dbrefs:
+            if dbref.first is None or dbref.last is None:
+                continue
             if not dbref.first[0] <= resnum <= dbref.last[0]:
                 continue
             match = True
@@ -1244,6 +1246,8 @@ def _getUnobservedSeq(lines):
 
     key_unobs = '_pdbx_unobs_or_zero_occ_residues'
 
+    unobs = []
+    polymers = []
     try:
         unobs = parseSTARSection(lines, key_unobs, report=False)
         polymers = _getPolymers(lines)
