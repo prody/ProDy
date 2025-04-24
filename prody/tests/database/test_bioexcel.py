@@ -488,7 +488,7 @@ if prody.PY3K:
 
             try:
                 ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                            frames=self.frames1)
+                                              frames=self.frames1)
             except OSError:
                 pass
             else:
@@ -504,7 +504,7 @@ if prody.PY3K:
             using selection='_C'."""
             try:
                 ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                            selection='_C', frames=self.frames2)
+                                              selection='_C', frames=self.frames2)
             except OSError:
                 pass
             else:
