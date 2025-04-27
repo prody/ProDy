@@ -192,7 +192,7 @@ def _getBiomoltrans(lines):
         biomt = biomolecule[currentBiomolecule]
 
         oper_expression = item1["_pdbx_struct_assembly_gen.oper_expression"]
-        if oper_expression[0].isnumeric() and oper_expression.find(',') != -1:
+        if oper_expression[0].isnumeric():
             operators = oper_expression.split(',')
         elif (oper_expression.startswith('(')
               and oper_expression.find('-') != -1
