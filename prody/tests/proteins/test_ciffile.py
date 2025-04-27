@@ -11,8 +11,7 @@ dec = importDec()
 
 from prody import *
 from prody import LOGGER
-from prody.utilities import which
-from prody.tests import TEMPDIR, unittest
+from prody.tests import unittest
 from prody.tests.datafiles import *
 
 LOGGER.verbosity = 'none'
@@ -71,11 +70,11 @@ class TestParseMMCIF(unittest.TestCase):
         self.assertEqual(parseMMCIF(path, model=2).numCoordsets(), 1,
             'parseMMCIF failed to parse the 2nd coordinate set')
 
-        self.assertEqual(parseMMCIF(path, model=1).numAtoms(), 
+        self.assertEqual(parseMMCIF(path, model=1).numAtoms(),
                         self.multi['atoms'],
                         'parseMMCIF failed to parse the 1st coordinate set')
 
-        self.assertEqual(parseMMCIF(path, model=2).numAtoms(), 
+        self.assertEqual(parseMMCIF(path, model=2).numAtoms(),
                         self.multi['atoms'],
                         'parseMMCIF failed to parse the 2nd coordinate set')
             
@@ -102,7 +101,7 @@ class TestParseMMCIF(unittest.TestCase):
         self.assertRaises(TypeError, parseMMCIF, path, chain=['A'])
         self.assertRaises(ValueError, parseMMCIF, path, chain='')
         self.assertIsNone(parseMMCIF(path, chain='$'))
-        self.assertEqual(parseMMCIF(path, chain='A').numAtoms(), 
+        self.assertEqual(parseMMCIF(path, chain='A').numAtoms(),
                         self.multi['chainA_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'when chain is specified')
@@ -114,7 +113,7 @@ class TestParseMMCIF(unittest.TestCase):
         self.assertRaises(TypeError, parseMMCIF, path, segment=['SX0'])
         self.assertRaises(ValueError, parseMMCIF, path, segment='')
         self.assertIsNone(parseMMCIF(path, segment='$'))
-        self.assertEqual(parseMMCIF(path, segment='SX0').numAtoms(), 
+        self.assertEqual(parseMMCIF(path, segment='SX0').numAtoms(),
                         self.no_pdb['segment_SX0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'when segment SX0 is specified')
@@ -123,32 +122,32 @@ class TestParseMMCIF(unittest.TestCase):
         """Test outcome of valid and invalid *segment* arguments."""
 
         path = pathDatafile(self.biomols['file'])
-        self.assertEqual(parseMMCIF(path, chain='A').numAtoms(), 
+        self.assertEqual(parseMMCIF(path, chain='A').numAtoms(),
                         self.biomols['chainA_atoms_alone'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'when chain A is specified with unite_chain default (False)')
-        self.assertEqual(parseMMCIF(path, chain='A', unite_chains=True).numAtoms(), 
+        self.assertEqual(parseMMCIF(path, chain='A', unite_chains=True).numAtoms(),
                         self.biomols['chainA_atoms_united'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'when chain A is specified with unite_chain True')
-        self.assertEqual(parseMMCIF(path, chain='A', header=True)[0].numAtoms(), 
+        self.assertEqual(parseMMCIF(path, chain='A', header=True)[0].numAtoms(),
                         self.biomols['chainA_atoms_alone'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'when chain A is specified with unite_chain default (False) '
                         'with header True')
-        self.assertEqual(parseMMCIF(path, chain='A', header=True, unite_chains=True)[0].numAtoms(), 
+        self.assertEqual(parseMMCIF(path, chain='A', header=True, unite_chains=True)[0].numAtoms(),
                         self.biomols['chainA_atoms_united'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'when chain A is specified with unite_chain True '
                         'with header True')
-        
+
     def testUniteChainsAndBiomolArguments(self):
         """Test outcome of valid and invalid *segment* arguments."""
 
         path = pathDatafile(self.biomols['file'])
 
         bm_united = parseMMCIF(path, biomol=True, unite_chains=True)
-        self.assertEqual(bm_united[0].numAtoms(), 
+        self.assertEqual(bm_united[0].numAtoms(),
                         self.biomols['bm0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'with biomol True and unite_chain True')
@@ -156,19 +155,19 @@ class TestParseMMCIF(unittest.TestCase):
                         self.biomols['bm_chains_united'],
                         'parseMMCIF failed to parse correct numbers of chains '
                         'with biomol True and unite_chain True')
-        
+
         bm_non_united = parseMMCIF(path, biomol=True)
-        self.assertEqual(bm_non_united[0].numAtoms(), 
+        self.assertEqual(bm_non_united[0].numAtoms(),
                         self.biomols['bm0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
-                        'when chain A is specified with unite_chain default (False)')
+                        'with biomol True unite_chain default (False)')
         self.assertEqual([b.numChains() for b in bm_non_united], 
                         self.biomols['bm_chains_alone'],
                         'parseMMCIF failed to parse correct numbers of chains '
                         'with biomol True and unite_chain default (False)')
-        
+
         bm_header = parseMMCIF(path, biomol=True, header=True, unite_chains=True)[0]
-        self.assertEqual(bm_header[0].numAtoms(), 
+        self.assertEqual(bm_header[0].numAtoms(),
                         self.biomols['bm0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'with biomol True and unite_chain True')
@@ -203,10 +202,10 @@ class TestParseMMCIF(unittest.TestCase):
 
         path = pathDatafile(self.multi['file'])
         self.assertRaises(TypeError, parseMMCIF, path, subset=['A'])
-        self.assertEqual(parseMMCIF(path, subset='ca').numAtoms(), 
+        self.assertEqual(parseMMCIF(path, subset='ca').numAtoms(),
                         self.multi['ca_atoms'],
                         'failed to parse correct number of "ca" atoms')
-        self.assertEqual(parseMMCIF(path, subset='bb').numAtoms(),  
+        self.assertEqual(parseMMCIF(path, subset='bb').numAtoms(),
                         self.multi['bb_atoms'],
                         'failed to parse correct number of "bb" atoms')
 
