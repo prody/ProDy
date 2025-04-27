@@ -24,6 +24,7 @@ class TestParseMMCIF(unittest.TestCase):
         self.multi = DATA_FILES['multi_model_cif']
         self.no_pdb = DATA_FILES['long_chid_cif']
         self.biomols = DATA_FILES['biomols_cif']
+        self.big_biomols = DATA_FILES['big_biomols_cif']
 
         self.altlocs = DATA_FILES['cif_6flr']
         self.his_selstr = 'resname HIS and chain B and resnum 234 and name CA'
@@ -175,6 +176,27 @@ class TestParseMMCIF(unittest.TestCase):
                         self.biomols['bm_chains_united'],
                         'parseMMCIF failed to parse correct numbers of chains '
                         'with biomol True and unite_chain True')
+
+    def testBiomolOperationRange(self):
+        """Test outcome of valid and invalid *segment* arguments."""
+
+        path = pathDatafile(self.big_biomols['file'])
+
+        non_bm = parseMMCIF(path, biomol=False)
+        self.assertEqual(non_bm.numAtoms(),
+                         self.biomols['atoms'],
+                         'parseMMCIF failed to parse correct number of atoms '
+                         'for 7cth with biomol False')
+        self.assertEqual(non_bm.numChains(),
+                         self.biomols['num_chains'],
+                        'parseMMCIF failed to parse correct numbers of chains '
+                        'for 7cth with biomol False')
+
+        bm_header = parseMMCIF(path, biomol=True, header=True)[0]
+        self.assertEqual(bm_header[0].numChains(),
+                         self.biomols['bm0_chains'],
+                         'parseMMCIF failed to parse correct number of chains '
+                         'for 7cth with biomol True')
 
     def testSubsetArgument(self):
         """Test outcome of valid and invalid *subset* arguments."""
