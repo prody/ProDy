@@ -17,8 +17,8 @@ if sys.version_info[:2] == (2, 7) or sys.version_info[:2] <= (3, 5):
 else:
     INSTALL_REQUIRES=['numpy>=1.10', 'biopython', 'pyparsing<=3.1.1', 'scipy', 'setuptools']
 
-if sys.version_info[0] == 3 and sys.version_info[1] < 6:
-    sys.stderr.write('Python 3.5 and older is not supported\n')
+if sys.version_info[0] == 3 and sys.version_info[1] < 10:
+    sys.stderr.write('Python 3.9 and older is not supported\n')
     sys.exit()
 
 if os.name == 'java':
