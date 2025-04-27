@@ -130,7 +130,7 @@ class RTB(ANMBase):
 
         return self._project
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, **kwargs):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Hessian matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
@@ -147,5 +147,5 @@ class RTB(ANMBase):
         """
         if n_modes is None:
             n_modes = self._dof
-        super(RTB, self).calcModes(n_modes, zeros, turbo)
+        super(RTB, self).calcModes(n_modes, zeros, turbo, **kwargs)
         self._array = np.dot(self._project, self._array)
