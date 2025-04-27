@@ -183,17 +183,21 @@ class TestParseMMCIF(unittest.TestCase):
 
         non_bm = parseMMCIF(path, biomol=False)
         self.assertEqual(non_bm.numAtoms(),
-                         self.biomols['atoms'],
+                         self.big_biomols['atoms'],
                          'parseMMCIF failed to parse correct number of atoms '
                          'for 7cth with biomol False')
         self.assertEqual(non_bm.numChains(),
-                         self.biomols['num_chains'],
+                         self.big_biomols['num_chains'],
                         'parseMMCIF failed to parse correct numbers of chains '
                         'for 7cth with biomol False')
 
         bm_header = parseMMCIF(path, biomol=True, header=True)[0]
+        self.assertEqual(bm_header[0].numAtoms(),
+                         self.big_biomols['bm0_atoms'],
+                         'parseMMCIF failed to parse correct number of atoms '
+                         'for 7cth with biomol True')
         self.assertEqual(bm_header[0].numChains(),
-                         self.biomols['bm0_chains'],
+                         self.big_biomols['bm0_chains'],
                          'parseMMCIF failed to parse correct number of chains '
                          'for 7cth with biomol True')
 

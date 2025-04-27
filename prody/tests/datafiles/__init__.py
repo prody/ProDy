@@ -252,8 +252,9 @@ DATA_FILES = {
         'pdb': '7cth',
         'file': 'mmcif_7cth.cif',
         'atoms': 16647,
-        'bm0_chains': 840,
+        'bm0_atoms': 16647 * 60,
         'num_chains': 14,
+        'bm0_chains': 840,
     },
     'long_chid_cif': {
         'pdb': '6zu5',
