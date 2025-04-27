@@ -15,7 +15,7 @@ if sys.version_info[:2] < (2, 7):
 if sys.version_info[:2] == (2, 7) or sys.version_info[:2] <= (3, 5):
     INSTALL_REQUIRES=['numpy>=1.10', 'biopython<=1.76', 'pyparsing', 'scipy']
 else:
-    INSTALL_REQUIRES=['numpy>=1.10,<2', 'biopython', 'pyparsing<=3.1.1', 'scipy', 'setuptools']
+    INSTALL_REQUIRES=['numpy>=1.10', 'biopython', 'pyparsing<=3.1.1', 'scipy', 'setuptools']
 
 if sys.version_info[0] == 3 and sys.version_info[1] < 6:
     sys.stderr.write('Python 3.5 and older is not supported\n')
