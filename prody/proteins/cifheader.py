@@ -191,7 +191,15 @@ def _getBiomoltrans(lines):
 
         biomt = biomolecule[currentBiomolecule]
 
-        operators = item1["_pdbx_struct_assembly_gen.oper_expression"].split(',')
+        oper_expression = item1["_pdbx_struct_assembly_gen.oper_expression"]
+        if oper_expression[0].isnumeric() and oper_expression.find(',') != -1:
+            operators = oper_expression.split(',')
+        elif (oper_expression.startswith('(')
+              and oper_expression.find('-') != -1
+              and oper_expression.endswith(')')):
+            firstOperator = int(oper_expression.split('(')[1].split('-')[0])-1
+            lastOperator = int(oper_expression.split('-')[1].split(')')[0])
+            operators = range(firstOperator, lastOperator)
         for oper in operators:
             biomt.append(applyToChains)
 
