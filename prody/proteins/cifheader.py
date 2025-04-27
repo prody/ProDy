@@ -200,6 +200,8 @@ def _getBiomoltrans(lines):
             firstOperator = int(oper_expression.split('(')[1].split('-')[0])-1
             lastOperator = int(oper_expression.split('-')[1].split(')')[0])
             operators = range(firstOperator, lastOperator)
+        else:
+            operators = []
         for oper in operators:
             biomt.append(applyToChains)
 
