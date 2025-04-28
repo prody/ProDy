@@ -1291,51 +1291,20 @@ def _getUnobservedSeq(lines):
     alns = OrderedDict()
     for _, (key, seq) in enumerate(full_seqs.items()):
         if key in unobs_seqs.keys():
-            unobs_seq = unobs_seqs[key]
-            # initialise alignment (quite possibly incorrect)
-            aln = list(alignBioPairwise(unobs_seq.upper(), seq.upper(),
-                                        MATCH_SCORE=1000,
-                                        MISMATCH_SCORE=-1000,
-                                        ALIGNMENT_METHOD='global',
-                                        GAP_PENALTY=-2,
-                                        GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2])
-            
+            # initialise alignment with all gaps for unobs
+            row1 = '-'*len(seq)
+            row1_list = list(row1)
+            aln = [row1, seq]
+
             # fix it
-            prev_chid = unobs[0]['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
-            i = 0
             for item in unobs:
                 chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
-                if chid != prev_chid:
-                    prev_chid = chid
-                    i = 0
-
                 if chid == key:
                     one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']].upper()
                     good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
-
                     row1_list = list(aln[0])
-                    row2_list = list(aln[1])
-
-                    arr_unobs_seq = np.array(list(unobs_seq.upper()))
-                    unobs_rep = np.nonzero(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
-
-                    try:
-                        actual_pos = np.nonzero(np.array(row1_list) == one_letter)[0][unobs_rep]
-                    except IndexError:
-                        actual_pos = np.nonzero(np.array(row2_list) == one_letter)[0][unobs_rep]
-
-                    if actual_pos != good_pos:
-                        row1_list[good_pos] = one_letter
-                        row1_list[actual_pos] = '-'
-
+                    row1_list[good_pos] = one_letter
                     aln[0] = ''.join(row1_list)
-
-                    for j in reversed(range(len(aln[0]))):
-                        if aln[0][j] == '-' and aln[1][j] == '-':
-                            aln[0] = aln[0][:j] + aln[0][j+1:]
-                            aln[1] = aln[1][:j] + aln[1][j+1:]
-
-                i += 1
 
             alns[key] = aln
 
