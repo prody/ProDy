@@ -1314,10 +1314,15 @@ def _getUnobservedSeq(lines):
                     good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
 
                     row1_list = list(aln[0])
+                    row2_list = list(aln[1])
 
                     arr_unobs_seq = np.array(list(unobs_seq.upper()))
                     unobs_rep = np.nonzero(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
-                    actual_pos = np.nonzero(np.array(row1_list) == one_letter)[0][unobs_rep]
+
+                    try:
+                        actual_pos = np.nonzero(np.array(row1_list) == one_letter)[0][unobs_rep]
+                    except IndexError:
+                        actual_pos = np.nonzero(np.array(row2_list) == one_letter)[0][unobs_rep]
 
                     if actual_pos != good_pos:
                         row1_list[good_pos] = one_letter
