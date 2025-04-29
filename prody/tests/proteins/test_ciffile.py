@@ -11,7 +11,6 @@ dec = importDec()
 
 from prody import *
 from prody import LOGGER
-from prody.utilities import which
 from prody.tests import TEMPDIR, unittest
 from prody.tests.datafiles import *
 
@@ -290,3 +289,25 @@ class TestParseMMCIF(unittest.TestCase):
             'parsePDB failed to parse correct number of atoms for multi-model with altloc "all"')
         self.assertEqual(ag.numCoordsets(), self.multi['models'],
             'parsePDB failed to parse correct number of coordsets ({0}) with altloc "all"'.format(self.multi['models']))
+
+
+class TestWriteMMCIF(unittest.TestCase):
+
+    def setUp(self):
+        """Set MMCIF file data and parse the MMCIF file."""
+        self.multi = DATA_FILES['multi_model_cif']
+        self.tmp = os.path.join(TEMPDIR, 'test.cif')
+
+    def testWriteMultiModel(self):
+        struct = parseDatafile(self.multi['file'])
+        writeMMCIF(self.tmp, struct)
+        ag = prody.parseMMCIF(self.tmp)
+        self.assertEqual(ag.numAtoms(), self.multi['atoms'],
+            'parsePDB failed to parse, write and parse correct number of atoms for multi-model')
+        self.assertEqual(ag.numCoordsets(), self.multi['models'],
+            'parsePDB failed to parse, write and parse correct number of coordsets')
+
+    def tearDown(self):
+        """Remove test file."""
+        if os.path.isfile(self.tmp):
+            os.remove(self.tmp)

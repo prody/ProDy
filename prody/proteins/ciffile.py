@@ -18,6 +18,7 @@ from .localpdb import fetchPDB
 from .starfile import parseSTARSection
 from .cifheader import getCIFHeaderDict
 from .header import buildBiomolecules, assignSecstr
+from .mmcifio import MMCIFIO
 
 __all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF', 'writeMMCIF']
 
@@ -588,13 +589,6 @@ def writeMMCIF(filename, atoms, csets=None, autoext=True, **kwargs):
     :keyword header: header to write too
     :type header: dict
     """
-    try:
-        from Bio.PDB import MMCIFIO
-    except ImportError:
-        raise ImportError('Biopython MMCIFIO could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
-
     header = kwargs.get('header', None)
 
     if autoext and not filename.lower().endswith('.cif'):
