@@ -29,6 +29,8 @@ class TestParsePDB(unittest.TestCase):
         self.hex = DATA_FILES['hex']
         self.h36 = DATA_FILES['h36']
 
+        self.probes = DATA_FILES['probes']
+
         self.altlocs = DATA_FILES['6flr']
         self.his_selstr = 'resname HIS and chain B and resnum 234 and name CA'
 
@@ -247,18 +249,28 @@ class TestParsePDB(unittest.TestCase):
         assert_allclose(hisB234.getAnisous(), self.altlocs['anisousB'],
             err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc None')
 
-'''
-    def testBiomolArgument(self):
+    def testParseLongResnameFalse(self):
+        """Test the outcome of parsing with clipping long resnames."""
 
-        self.assertRaises(ValueError, parsePDB, self.one['path'],
-                          biomol=True)
+        ag = parseDatafile(self.probes['file'])
 
+        self.assertIsInstance(ag, prody.AtomGroup,
+            'parsePDB failed to return an AtomGroup instance')
 
-    def testSecondaryArgument(self):
+        self.assertEqual(ag.getResnames()[0],
+                         self.probes['short_resname'])
 
-        self.assertRaises(ValueError, parsePDB, self.one['path'],
-                          secondary=True)
-'''
+    def testParseLongResnameTrue(self):
+        """Test the outcome of parsing with clipping long resnames."""
+
+        ag = parseDatafile(self.probes['file'], long_resname=True)
+
+        self.assertIsInstance(ag, prody.AtomGroup,
+            'parsePDB failed to return an AtomGroup instance')
+
+        self.assertEqual(ag.getResnames()[0],
+                         self.probes['long_resname'])
+
 
 class TestWritePDB(unittest.TestCase):
 
@@ -276,6 +288,7 @@ class TestWritePDB(unittest.TestCase):
         self.ens.addCoordset(self.ag.getCoordsets())
 
         self.ubi = parsePDB(DATA_FILES['1ubi']['path'], secondary=True)
+        self.probes = parsePDB(DATA_FILES['probes']['path'], long_resname=True)
 
         self.hex = parsePDB(DATA_FILES['hex']['path'])
         self.h36 = parsePDB(DATA_FILES['h36']['path'])
@@ -364,6 +377,15 @@ class TestWritePDB(unittest.TestCase):
     @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
     def testWritingSecstrs(self):
+        """Test if output from writing secstrs is as expected."""
+
+        out = writePDB(self.tmp, self.ubi)
+        ubi_new = parsePDB(out, secondary=True)
+        self.assertListEqual(list(self.ubi.getSecstrs()), list(ubi_new.getSecstrs()))
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingLongResnums(self):
         """Test if output from writing secstrs is as expected."""
 
         out = writePDB(self.tmp, self.ubi)
@@ -479,10 +501,44 @@ class TestWritePDB(unittest.TestCase):
     def testWritingAtomMap(self):
         """Test if output from writing a sorted AtomMap works and is as expected."""
 
-        sorted_sel = sortAtoms(self.sort_sel_ag, 'chain')
+        sorted_sel = prody.sortAtoms(self.sort_sel_ag, 'chain')
         out = writePDB(self.tmp, sorted_sel)
         new = parsePDB(out)
         self.assertListEqual(list(new.getChids()), self.sort_sel['sorted_order'])
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingParsingLongResnames(self):
+        """Test if parsing output is the same as parsing original file."""
+
+        out = writePDB(self.tmp, self.probes, long_resname=True)
+        self.assertEqual(self.tmp, out,
+            'writePDB failed to return correct output filename')
+        self.assertTrue(os.path.isfile(out),
+            'writePDB failed to write output')
+
+        probes = parsePDB(out)
+        self.assertEqual(self.probes.numAtoms(), probes.numAtoms(),
+            'writePDB failed to write correct number of atoms')
+        self.assertEqual(self.probes.getResnames()[0], probes.getResnames()[0],
+            'writePDB failed to write long resnames')
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingParsingLongResnamesFalse(self):
+        """Test if parsing output is the same as parsing original file."""
+
+        out = writePDB(self.tmp, self.probes)
+        self.assertEqual(self.tmp, out,
+            'writePDB failed to return correct output filename')
+        self.assertTrue(os.path.isfile(out),
+            'writePDB failed to write output')
+
+        probes = parsePDB(out)
+        self.assertEqual(self.probes.numAtoms(), probes.numAtoms(),
+            'writePDB failed to write correct number of atoms')
+        self.assertEqual(self.probes.getResnames()[0], probes.getResnames()[0][:3],
+            'writePDB failed to write short resnames')
 
     @dec.slow
     def tearDown(self):
