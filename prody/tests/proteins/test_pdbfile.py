@@ -3,16 +3,16 @@
 import os
 
 import numpy as np
-from numpy.testing import *
+from numpy.testing import assert_equal, assert_allclose
 
 from prody.utilities import importDec
 dec = importDec()
 
-from prody import *
+import prody
 from prody import LOGGER
-from prody.utilities import which
+from prody.proteins import parsePDB, writePDB, PDBParseError
 from prody.tests import TEMPDIR, unittest
-from prody.tests.datafiles import *
+from prody.tests.datafiles import parseDatafile, pathDatafile, DATA_FILES
 
 LOGGER.verbosity = 'none'
 
@@ -65,7 +65,7 @@ class TestParsePDB(unittest.TestCase):
         path = pathDatafile(self.pdb['file'])
         self.assertRaises(TypeError, parsePDB, path, model='0')
         self.assertRaises(ValueError, parsePDB, path, model=-1)
-        self.assertRaises(proteins.PDBParseError, parsePDB, path,
+        self.assertRaises(PDBParseError, parsePDB, path,
                           model=self.pdb['models']+1)
         self.assertIsNone(parsePDB(path, model=0),
             'parsePDB failed to parse no coordinate sets')
@@ -282,7 +282,7 @@ class TestWritePDB(unittest.TestCase):
         self.ag = parsePDB(self.pdb['path'])
         self.tmp = os.path.join(TEMPDIR, 'test.pdb')
 
-        self.ens = PDBEnsemble()
+        self.ens = prody.PDBEnsemble()
         self.ens.setAtoms(self.ag)
         self.ens.setCoords(self.ag.getCoords())
         self.ens.addCoordset(self.ag.getCoordsets())
@@ -320,7 +320,7 @@ class TestWritePDB(unittest.TestCase):
         self.assertEqual(self.ag.numAtoms(), out.numAtoms(),
             'writePDB failed to write correct number of atoms')
         self.assertEqual(self.ag.numCoordsets(), out.numCoordsets(),
-            'writePDB failed to write correct number of atoms')
+            'writePDB failed to write correct number of coordsets')
 
     @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
