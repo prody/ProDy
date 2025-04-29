@@ -517,10 +517,10 @@ class TestWritePDB(unittest.TestCase):
         self.assertTrue(os.path.isfile(out),
             'writePDB failed to write output')
 
-        probes = parsePDB(out)
+        probes = parsePDB(out, long_resname=True)
         self.assertEqual(self.probes.numAtoms(), probes.numAtoms(),
             'writePDB failed to write correct number of atoms')
-        self.assertEqual(self.probes.getResnames()[0], probes.getResnames()[0],
+        self.assertEqual(str(self.probes.getResnames()[0]), str(probes.getResnames()[0]),
             'writePDB failed to write long resnames')
 
     @dec.slow
@@ -534,10 +534,10 @@ class TestWritePDB(unittest.TestCase):
         self.assertTrue(os.path.isfile(out),
             'writePDB failed to write output')
 
-        probes = parsePDB(out)
+        probes = parsePDB(out, long_resname=True)
         self.assertEqual(self.probes.numAtoms(), probes.numAtoms(),
             'writePDB failed to write correct number of atoms')
-        self.assertEqual(self.probes.getResnames()[0], probes.getResnames()[0][:3],
+        self.assertEqual(probes.getResnames()[0], self.probes.getResnames()[0][:3],
             'writePDB failed to write short resnames')
 
     @dec.slow
