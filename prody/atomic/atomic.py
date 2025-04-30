@@ -292,9 +292,7 @@ class Atomic(object):
         :arg csets: coordinate set indices, default is all coordinate sets
         """ 
         try:
-            from Bio.PDB.Structure import Structure
             from Bio.PDB.StructureBuilder import StructureBuilder
-            from Bio.PDB.PDBParser import PDBParser
             from Bio.PDB.PDBExceptions import PDBConstructionException
         except ImportError:
             raise ImportError('Bio StructureBuilder could not be imported. '
