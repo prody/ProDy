@@ -318,7 +318,7 @@ class Atomic(object):
         
         for i in csets:
             self.setACSIndex(i)
-            structure_builder.init_model(i)
+            structure_builder.init_model(i, i+1)
 
             current_segid = None
             current_chain_id = None
