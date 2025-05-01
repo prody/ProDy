@@ -194,8 +194,8 @@ class TestParsePfamPDBs(unittest.TestCase):
         self.assertIsInstance(b[0], Selection,
             'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.assertEqual(b[0].getResnums()[0], 262,
-            'parsePfamPDBs failed to return a first Selection with first resnum 262')
+        self.assertEqual(b[0].getResnums()[0], 264,
+            'parsePfamPDBs failed to return a first Selection with first resnum 264')
 
     def testMultiDomainStart1(self):
         """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1,
@@ -210,8 +210,8 @@ class TestParsePfamPDBs(unittest.TestCase):
         self.assertIsInstance(b[0], Selection,
             'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.assertEqual(b[0].getResnums()[0], 262,
-            'parsePfamPDBs failed to return a first Selection with first resnum 262')
+        self.assertEqual(b[0].getResnums()[0], 264,
+            'parsePfamPDBs failed to return a first Selection with first resnum 264')
         
     def testMultiDomainStart2(self):
         """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1,
