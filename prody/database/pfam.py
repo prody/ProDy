@@ -86,6 +86,8 @@ def searchPfam(query, **kwargs):
         else:
             url = prefix + "all/protein/uniprot/" + accession
 
+    elif seq.startswith('PF'):
+        url = prefix + "pfam/" + seq
     else:
         url = prefix + "all/protein/uniprot/" + seq
 
@@ -127,6 +129,12 @@ def searchPfam(query, **kwargs):
         raise ValueError('failed to parse results XML, check URL: ' + url)
 
     matches = dict()
+
+    if seq.startswith('PF'):
+        metadata = root['metadata']
+        matches.setdefault(str(seq), dict(metadata.items()))
+        return matches
+
     for entry in root["results"]:
         try:
             metadata = entry["metadata"]
