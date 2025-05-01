@@ -270,6 +270,10 @@ def parsePfamPDBs(query, data=None, **kwargs):
     :keyword end: Residue number for defining the end of the domain.
         The PFAM domain that ends closest to this will be selected. 
     :type end: int
+
+    :keyword num_pdbs: Number of pdb chains to parse before stopping
+        Default behaviour is to pass all of them
+    :type num_pdbs: int
     """
 
     if data is None: data = []
@@ -278,6 +282,7 @@ def parsePfamPDBs(query, data=None, **kwargs):
     
     start = kwargs.pop('start', 1)
     end = kwargs.pop('end', None)
+    num_pdbs = kwargs.pop('num_pdbs', None)
 
     if len(query) > 4 and query.startswith('PF'):
         pfam_acc = query
@@ -335,8 +340,12 @@ def parsePfamPDBs(query, data=None, **kwargs):
             for j, entry in enumerate(line.strip().split('\t')):
                 data_dicts[-1][fields[j]] = entry.strip(';')
 
-    pdb_ids = [data_dict['PDB_ID'] for data_dict in data_dicts]
-    chains = [data_dict['chain'] for data_dict in data_dicts]
+    pdb_ids = [data_dict['PDB'] for data_dict in data_dicts][:num_pdbs]
+    if len(pdb_ids) == 1:
+        pdb_ids = pdb_ids[0]
+    chains = [data_dict['CHAIN'] for data_dict in data_dicts][:num_pdbs]
+    if len(chains) == 1:
+        chains = chains[0]
 
     header = kwargs.pop('header', False)
     model = kwargs.get('model', None)
