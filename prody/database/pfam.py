@@ -160,7 +160,7 @@ def searchPfam(query, **kwargs):
             continue
 
         for accession in pfamAccessions:
-            match = matches.setdefault(accession, dict(metadata.items()))
+            match = matches.setdefault(str(accession), dict(metadata.items()))
             
             other_data = entry["proteins"]
             locations = match.setdefault("locations", [])
