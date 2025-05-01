@@ -228,7 +228,23 @@ class TestParsePfamPDBs(unittest.TestCase):
         
         self.assertEqual(b[0].getResnums()[0], 418,
             'parsePfamPDBs failed to return a first Selection with first resnum 418')
+
+    def testPfamIdNumPdbs(self):
+        """Test the outcome of parsing PDBs for a tiny family
+        of ABC class ATPase N-terminal domains (5 members)
+        with the Pfam ID and default parameters."""
+
+        b = parsePfamPDBs(self.queries[0], num_pdbs=2)
+
+        self.assertIsInstance(b, list,
+            'parsePfamPDBs failed to return a list instance')
+
+        self.assertIsInstance(b[0], Selection,
+            'parsePfamPDBs failed to return a list of Selection instances')
         
+        self.assertEqual(len(b), 2,
+            'parsePfamPDBs failed to return a list of length 2 with num_pdbs=2')
+
     @classmethod
     def tearDownClass(cls):
         os.chdir('..')
