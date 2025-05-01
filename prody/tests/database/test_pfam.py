@@ -226,8 +226,8 @@ class TestParsePfamPDBs(unittest.TestCase):
         self.assertIsInstance(b[0], Selection,
             'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.assertEqual(b[0].getResnums()[0], 418,
-            'parsePfamPDBs failed to return a first Selection with first resnum 418')
+        self.assertEqual(b[0].getResnums()[0], 217,
+            'parsePfamPDBs failed to return a first Selection with first resnum 217')
 
     def testPfamIdNumPdbs(self):
         """Test the outcome of parsing PDBs for a tiny family

@@ -300,23 +300,22 @@ def parsePfamPDBs(query, data=None, **kwargs):
                 for i, key in enumerate(pfam_matches):
                     start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
                 start_diff = np.array(start_diff)
-                pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+                pfam_acc = keys[np.nonzero(abs(start_diff) == min(abs(start_diff)))[0][0]]
             except KeyError:
                 start_diff = []
                 for i, key in enumerate(pfam_matches):
                     start_diff.append(int(pfam_matches[key]['locations']['ali_start']) - start)
                 start_diff = np.array(start_diff)
-                pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+                pfam_acc = keys[np.nonzero(abs(start_diff) == min(abs(start_diff)))[0][0]]
 
         if isinstance(end, Integral):
             end_diff = []
             for i, key in enumerate(pfam_matches):
                 end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
             end_diff = np.array(end_diff)
-            pfam_acc = keys[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
+            pfam_acc = keys[np.nonzero(abs(end_diff) == min(abs(end_diff)))[0][0]]
 
     from ftplib import FTP
-    from .uniprot import queryUniprot
 
     data_stream = BytesIO()
     ftp_host = 'ftp.ebi.ac.uk'
@@ -349,7 +348,8 @@ def parsePfamPDBs(query, data=None, **kwargs):
 
     header = kwargs.pop('header', False)
     model = kwargs.get('model', None)
-    results = parsePDB(pdb_ids, chain=chains, header=True, **kwargs)
+    results = parsePDB(pdb_ids, chain=chains, header=True,
+                       unite_chains=True, **kwargs)
 
     ags, headers = results
     ags, headers = list(ags), list(headers)
@@ -367,86 +367,16 @@ def parsePfamPDBs(query, data=None, **kwargs):
         return [result for result in results if result is not None]
 
     LOGGER.progress('Extracting Pfam domains...', len(ags))
-    comma_splitter = re.compile(r'\s*,\s*').split
-    no_info = []
     for i, ag in enumerate(ags):
         if ag is None:
             continue
 
         LOGGER.update(i)
         data_dict = data_dicts[i]
-        pfamRange = [data_dict['UNP_START'], data_dict['UNP_END']]
-        uniprotAcc = data_dict['UNIPROT_ACCESSION']
-        try:
-            uniData = queryUniprot(uniprotAcc)
-        except:
-            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PDB']))
-            continue
-
-        resrange = None
-        found = False
-        for key, value in uniData.items():
-            if not key.startswith('dbReference'):
-                continue
-            try:
-                pdbid = value['PDB']
-            except:
-                continue
-            if pdbid.lower() != data_dict['PDB'].lower():
-                continue
-            pdbchains = value['chains']
-
-            # example chain strings: "A=27-139, B=140-150" or "A/B=27-150"
-            pdbchains = comma_splitter(pdbchains)
-            for chain in pdbchains:
-                chids, resrange = chain.split('=')
-                chids = [chid.strip() for chid in chids.split('/')]
-                if data_dict['CHAIN'] in chids:
-                    resrange = resrange.split('-')
-                    found = True
-                    break
-            if found:
-                break
-
-        if found:
-            header = headers[i]
-            chain_accessions = [dbref.accession 
-                                for dbref in header[data_dict['CHAIN']].dbrefs]
-            try:
-                if len(chain_accessions) > 0:
-                    right_part = np.nonzero(np.array(chain_accessions) ==
-                                            data_dict['UNIPROT_ACCESSION'])[0][0]
-                else:
-                    raise ValueError('There is no accession for a chain in the Header')
-            except:
-                LOGGER.warn('Could not map domains in {0}'
-                            .format(data_dict['PDB'] + data_dict['CHAIN']))
-                no_info.append(i)
-                continue
-
-            right_dbref = header[data_dict['CHAIN']].dbrefs[right_part]
-            chain = ag.select('chain {0}'.format(data_dict['CHAIN']))
-            if chain is None:
-                continue
-            chainStart = chain.getResnums()[0]
-            missing = chainStart - right_dbref.first[0]
-            partStart = ag.getResindices()[np.nonzero(ag.getResnums() ==
-                                                      right_dbref.first[0] + missing)][0]
-            pfStart, pfEnd = int(pfamRange[0]), int(pfamRange[1])
-            uniStart = int(resrange[0])
-
-            resiStart = pfStart - uniStart + partStart - missing
-            resiEnd = pfEnd - uniStart + partStart - missing
-            ags[i] = ag.select('resindex {0} to {1}'.format(
-                            resiStart, resiEnd)) 
-        else:
-            no_info.append(i)
+        ags[i] = ag.select('resnum {0} to {1}'.format(
+                            int(data_dict['PDB_START']),
+                            int(data_dict['PDB_END'])))
     LOGGER.finish()
-
-    for i in reversed(no_info):
-        ags.pop(i)
-        if header:
-            headers.pop(i)
 
     if isinstance(data, list):
         data.extend(data_dicts)
