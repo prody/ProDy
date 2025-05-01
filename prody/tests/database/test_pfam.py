@@ -62,6 +62,15 @@ class TestSearchPfam(unittest.TestCase):
                          ['PF00822', 'PF13903'],
                          'searchPfam failed to return the right domain family IDs for TARP')
         
+    def testWrongInput(self):
+        """Test the outcome of a search scenario where a Pfam ID is
+        provided as input."""
+
+        a = searchPfam(self.queries[-1])
+
+        self.assertIsNone(a,
+            'searchPfam failed to return a dict instance')
+
     @classmethod
     def tearDownClass(cls):
         os.chdir('..')
