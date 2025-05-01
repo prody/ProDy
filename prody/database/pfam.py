@@ -115,7 +115,7 @@ def searchPfam(query, **kwargs):
     else:
         xml = xml.encode()
 
-    if xml.find('There was a system error on your last request.') > 0:
+    if xml.find('There was a system error on your last request.') > 0 or xml.find("Error") > 0:
         LOGGER.warn('No Pfam matches found for: ' + seq)
         return None
     elif xml.find('No valid UniProt accession or ID') > 0:
