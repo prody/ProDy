@@ -416,6 +416,12 @@ DATA_FILES = {
         'file': '1ubi_anmd_mode1_ens.pdb',
         'n_atoms': 683,
         'models': 5
+    },
+    'probes': {
+        'file': 'probes_in.pdb',
+        'n_atoms': 4,
+        'long_resname': 'ACET',
+        'short_resname': 'ACE'
     }
 }
 
