@@ -79,8 +79,8 @@ def alignBioPairwise(a_sequence, b_sequence,
         aligner.mode = ALIGNMENT_METHOD
         aligner.match_score = MATCH_SCORE
         aligner.mismatch_score = MISMATCH_SCORE
-        aligner.internal_open_gap_score = GAP_PENALTY
-        aligner.internal_extend_gap_score = GAP_EXT_PENALTY
+        aligner.open_internal_gap_score = GAP_PENALTY
+        aligner.extend_internal_gap_score = GAP_EXT_PENALTY
         alns = aligner.align(a_sequence, b_sequence)
 
         results = []
