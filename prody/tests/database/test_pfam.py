@@ -22,7 +22,8 @@ class TestSearchPfam(unittest.TestCase):
             os.mkdir(cls.workdir)
         os.chdir(cls.workdir)
 
-        cls.queries = ['P19491', '6qkcB', '6qkcI', 'PF00047', 'hello']
+        cls.queries = ['P19491', '6qkcB', '6qkcI', 'PF00047',
+                       'hellow', 'hello']
 
     def testUniprotAccMulti(self):
         """Test the outcome of a simple search scenario using a Uniprot Accession
@@ -71,14 +72,21 @@ class TestSearchPfam(unittest.TestCase):
         self.assertIsInstance(a, dict,
             'searchPfam failed to return None for Pfam ID input {0}'.format(self.queries[3]))
 
-    def testWrongInput(self):
-        """Test the outcome of a search scenario where a Pfam ID is
+    def testWrongInput1(self):
+        """Test the outcome of a search scenario where a 6-char text is
         provided as input."""
 
         a = searchPfam(self.queries[4])
 
         self.assertIsNone(a,
             'searchPfam failed to return None for bad input {0}'.format(self.queries[4]))
+
+    def testWrongInput2(self):
+        """Test the outcome of a search scenario where a 5-char text is
+        provided as input."""
+
+        self.assertRaises(ValueError, searchPfam(self.queries[5]),
+            'searchPfam failed to raise ValueError for bad input {0}'.format(self.queries[5]))
 
     @classmethod
     def tearDownClass(cls):
