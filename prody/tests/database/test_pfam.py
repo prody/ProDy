@@ -76,17 +76,15 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a search scenario where a 6-char text is
         provided as input."""
 
-        a = searchPfam(self.queries[4])
-
-        self.assertIsNone(a,
-            'searchPfam failed to return None for bad input {0}'.format(self.queries[4]))
+        with self.assertRaises(OSError):
+            searchPfam(self.queries[4])
 
     def testWrongInput2(self):
         """Test the outcome of a search scenario where a 5-char text is
         provided as input."""
 
-        self.assertRaises(ValueError, searchPfam(self.queries[5]),
-            'searchPfam failed to raise ValueError for bad input {0}'.format(self.queries[5]))
+        with self.assertRaises(ValueError):
+            searchPfam(self.queries[5])
 
     @classmethod
     def tearDownClass(cls):
