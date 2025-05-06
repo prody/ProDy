@@ -315,7 +315,8 @@ Fetch PDB 1aar, run RTB calculations using default parameters for chain A
 carbon alpha atoms with residue numbers less than 70, and save all of the
 graphical output files:
 
-  $ prody rtb 1aar -s "calpha and chain A and resnum < 70" -A""",
+  $ prody rtb 1aar -s "calpha and chain A and resnum < 70" -A
+""",
   test_examples=[0, 1])
 
     group = addNMAParameters(subparser)
