@@ -122,7 +122,6 @@ def prody_rtb(pdb, **kwargs):
         except TypeError:
             raise TypeError("Please provide cutoff as a float or equation using math")
 
-    
     if blockInputType == BLOCKS_FROM_RES:
         LOGGER.info('Assigning blocks using number of residues...')
         blocks, amap = prody.assignBlocks(select, res_per_block=res_per_block,
