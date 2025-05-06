@@ -8,6 +8,7 @@ from prody import LOGGER
 from prody.utilities import checkCoords
 
 from .anm import ANMBase
+from .gnm import GNMBase
 
 __all__ = ['RTB']
 
@@ -23,7 +24,7 @@ class Increment(object):
         return self._i
 
 
-class RTB(ANMBase):
+class RTB(ANMBase, GNMBase):
 
     """Class for Rotations and Translations of Blocks (RTB) method ([FT00]_).
 
