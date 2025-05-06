@@ -122,17 +122,27 @@ def prody_rtb(pdb, **kwargs):
         except TypeError:
             raise TypeError("Please provide cutoff as a float or equation using math")
 
-    LOGGER.info('Assigning blocks...')
+    
     if blockInputType == BLOCKS_FROM_RES:
+        LOGGER.info('Assigning blocks using number of residues...')
         blocks, amap = prody.assignBlocks(select, res_per_block=res_per_block,
                                           shortest_block=shortest_block,
                                           longest_block=longest_block,
                                           min_dist_cutoff=min_dist_cutoff)
     else:
-        blocks, amap = prody.assignBlocks(select, secstr=True,
-                                          shortest_block=shortest_block,
-                                          longest_block=longest_block,
-                                          min_dist_cutoff=min_dist_cutoff)
+        try:
+            LOGGER.info('Trying assigning blocks using secondary structures...')
+            blocks, amap = prody.assignBlocks(select, secstr=True,
+                                              shortest_block=shortest_block,
+                                              longest_block=longest_block,
+                                              min_dist_cutoff=min_dist_cutoff)
+        except OSError:
+            LOGGER.warn('No secondary structures available.')
+            LOGGER.info('Assigning blocks using number of residues...')
+            blocks, amap = prody.assignBlocks(select, res_per_block=res_per_block,
+                                              shortest_block=shortest_block,
+                                              longest_block=longest_block,
+                                              min_dist_cutoff=min_dist_cutoff)
     LOGGER.info('Assigning blocks done.')
 
     nproc = kwargs.get('nproc')
