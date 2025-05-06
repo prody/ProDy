@@ -31,11 +31,11 @@ for key, txt, val in [
     ('figmode', 'save mode shape figures for specified modes, '
                 'e.g. "1-3 5" for modes 1, 2, 3 and 5', ''),
     ('blockInputType', 'type of input for blocks (1 or 2), '
-                'where 1 is number of residues and 2 is secstr elements', '2'),
-    ('res_per_block', 'Number of residues per block', '10'),
-    ('shortest_block', 'Number of residues in shortest block', '4'),
-    ('longest_block', 'Number of residues in longest block (-1 means whole protein)', '-1'),
-    ('min_dist_cutoff', 'Minimum distance cutoff for including in same block', '20')]:
+                       'where 1 is number of residues and 2 is secstr elements', 2),
+    ('res_per_block', 'Number of residues per block', 10),
+    ('shortest_block', 'Number of residues in shortest block', 4),
+    ('longest_block', 'Number of residues in longest block (-1 means whole protein)', 20),
+    ('min_dist_cutoff', 'Minimum distance cutoff for including in same block', 20)]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
