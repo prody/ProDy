@@ -7,7 +7,7 @@ import os.path
 
 from prody import LOGGER
 from prody.atomic import flags, AAMAP
-from prody.utilities import openFile, alignBioPairwise, GAP_PENALTY, GAP_EXT_PENALTY
+from prody.utilities import openFile
 
 from .localpdb import fetchPDB
 from .header import (Chemical, Polymer, DBRef, _PDB_DBREF,
@@ -1297,10 +1297,13 @@ def _getUnobservedSeq(lines):
             aln = [row1, seq]
 
             # fix it
-            for item in unobs:
+            for j, item in enumerate(unobs):
                 chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
                 if chid == key:
-                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']].upper()
+                    if len(item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']) == 1:
+                        one_letter = item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']
+                    else:
+                        one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']].upper()
                     good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
                     row1_list = list(aln[0])
                     row1_list[good_pos] = one_letter
