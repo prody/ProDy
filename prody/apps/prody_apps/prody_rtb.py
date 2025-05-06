@@ -35,7 +35,7 @@ for key, txt, val in [
     ('res_per_block', 'Number of residues per block', 10),
     ('shortest_block', 'Number of residues in shortest block', 4),
     ('longest_block', 'Number of residues in longest block (-1 means whole protein)', 20),
-    ('min_dist_cutoff', 'Minimum distance cutoff for including in same block', 20)]:
+    ('min_dist_cutoff', 'Minimum distance cutoff for including in same block', 20.0)]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
@@ -368,8 +368,8 @@ graphical output files:
         type=int, metavar='INT', default=DEFAULTS['longest_block'], 
         help=HELPTEXT['longest_block'] + ' (default: %(default)s)')
 
-    group.add_argument('-V', '--min-block-dist-cutoff', dest='min_dist_cutoff', 
-        type=int, metavar='INT', default=DEFAULTS['min_dist_cutoff'], 
+    group.add_argument('-V', '--min-block-dist-cutoff', dest='min_dist_cutoff',
+        type=float, metavar='FLOAT', default=DEFAULTS['min_dist_cutoff'],
         help=HELPTEXT['min_dist_cutoff'] + ' (default: %(default)s)')
 
     group = addNMAOutput(subparser)
