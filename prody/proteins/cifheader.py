@@ -7,7 +7,7 @@ import os.path
 
 from prody import LOGGER
 from prody.atomic import flags, AAMAP
-from prody.utilities import openFile, alignBioPairwise, GAP_PENALTY, GAP_EXT_PENALTY
+from prody.utilities import openFile
 
 from .localpdb import fetchPDB
 from .header import (Chemical, Polymer, DBRef, _PDB_DBREF,
@@ -191,7 +191,17 @@ def _getBiomoltrans(lines):
 
         biomt = biomolecule[currentBiomolecule]
 
-        operators = item1["_pdbx_struct_assembly_gen.oper_expression"].split(',')
+        oper_expression = item1["_pdbx_struct_assembly_gen.oper_expression"]
+        if oper_expression[0].isnumeric():
+            operators = oper_expression.split(',')
+        elif (oper_expression.startswith('(')
+              and oper_expression.find('-') != -1
+              and oper_expression.endswith(')')):
+            firstOperator = int(oper_expression.split('(')[1].split('-')[0])-1
+            lastOperator = int(oper_expression.split('-')[1].split(')')[0])
+            operators = range(firstOperator, lastOperator)
+        else:
+            operators = []
         for oper in operators:
             biomt.append(applyToChains)
 
@@ -253,7 +263,7 @@ def _getSpaceGroup(lines):
 
 def _getHelix(lines):
 
-    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     helix = {} 
     
     i = 0
@@ -371,7 +381,7 @@ def _getHelixRange(lines):
 
 def _getSheet(lines):
 
-    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     sheet = {}
 
     # mmCIF files have this data divided between 4 blocks
@@ -1281,46 +1291,23 @@ def _getUnobservedSeq(lines):
     alns = OrderedDict()
     for _, (key, seq) in enumerate(full_seqs.items()):
         if key in unobs_seqs.keys():
-            unobs_seq = unobs_seqs[key]
-            # initialise alignment (quite possibly incorrect)
-            aln = list(alignBioPairwise(unobs_seq.upper(), seq.upper(),
-                                        MATCH_SCORE=1000,
-                                        MISMATCH_SCORE=-1000,
-                                        ALIGNMENT_METHOD='global',
-                                        GAP_PENALTY=-2,
-                                        GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2])
-            
+            # initialise alignment with all gaps for unobs
+            row1 = '-'*len(seq)
+            row1_list = list(row1)
+            aln = [row1, seq]
+
             # fix it
-            prev_chid = unobs[0]['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
-            i = 0
-            for item in unobs:
+            for j, item in enumerate(unobs):
                 chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
-                if chid != prev_chid:
-                    prev_chid = chid
-                    i = 0
-
                 if chid == key:
-                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']].upper()
+                    if len(item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']) == 1:
+                        one_letter = item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']
+                    else:
+                        one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']].upper()
                     good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
-
                     row1_list = list(aln[0])
-
-                    arr_unobs_seq = np.array(list(unobs_seq.upper()))
-                    unobs_rep = np.nonzero(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
-                    actual_pos = np.nonzero(np.array(row1_list) == one_letter)[0][unobs_rep]
-
-                    if actual_pos != good_pos:
-                        row1_list[good_pos] = one_letter
-                        row1_list[actual_pos] = '-'
-
+                    row1_list[good_pos] = one_letter
                     aln[0] = ''.join(row1_list)
-
-                    for j in reversed(range(len(aln[0]))):
-                        if aln[0][j] == '-' and aln[1][j] == '-':
-                            aln[0] = aln[0][:j] + aln[0][j+1:]
-                            aln[1] = aln[1][:j] + aln[1][j+1:]
-
-                i += 1
 
             alns[key] = aln
 
