@@ -263,7 +263,7 @@ def _getSpaceGroup(lines):
 
 def _getHelix(lines):
 
-    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     helix = {} 
     
     i = 0
@@ -381,7 +381,7 @@ def _getHelixRange(lines):
 
 def _getSheet(lines):
 
-    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     sheet = {}
 
     # mmCIF files have this data divided between 4 blocks
