@@ -14,8 +14,9 @@ __all__ = ['wwPDBServer', 'fetchPDBviaFTP', 'fetchPDBviaHTTP', 'WWPDB_FTP_SERVER
 
 
 _WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/')
-_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/rcsb/')
+_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/pdb/')
 _WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', '/pub/')
+_WWPDB_WW = ('wwPDB (worldwide)', 'ftp://ftp.wwpdb.org', '/pub/')
 
 WWPDB_FTP_SERVERS = {
     'rcsb'   : _WWPDB_RCSB,
@@ -28,6 +29,9 @@ WWPDB_FTP_SERVERS = {
     'pdbj'   : _WWPDB_PDBj,
     'japan'  : _WWPDB_PDBj,
     'jp'     : _WWPDB_PDBj,
+    'ww'     : _WWPDB_WW,
+    'wwpdb'  : _WWPDB_WW,
+    'worldwide': _WWPDB_WW
 }
 
 # _URL_US = lambda pdb: ('https://files.rcsb.org/pub/pdb/data/structures/all/pdb/pdb%s.ent.gz' %
@@ -37,6 +41,8 @@ _URL_US = lambda pdb: ('https://files.rcsb.org/download/%s.pdb.gz' %
 _URL_EU = lambda pdb: ('http://www.ebi.ac.uk/pdbe-srv/view/files/%s.ent.gz' %
                        pdb.lower())
 _URL_JP = lambda pdb: ('http://www.pdbj.org/pdb_all/pdb%s.ent.gz' %
+                       pdb.lower())
+_URL_WW = lambda pdb: ('http://files.wwpdb.org/pub/pdb/data/structures/divided/pdb/ak/%s.pdb.gz' %
                        pdb.lower())
 WWPDB_HTTP_URL = {
     'rcsb'   : _URL_US,
@@ -49,6 +55,9 @@ WWPDB_HTTP_URL = {
     'pdbj'   : _URL_JP,
     'japan'  : _URL_JP,
     'jp'     : _URL_JP,
+    'wwpdb'  : _URL_WW,
+    'ww'     : _URL_WW,
+    'worldwide': _URL_WW
 }
 
 def wwPDBServer(*key):
@@ -63,6 +72,8 @@ def wwPDBServer(*key):
     | PDBe (Europe)             | PDBe, Europe, Euro, EU      |
     +---------------------------+-----------------------------+
     | PDBj (Japan)              | PDBj, Japan, Jp             |
+    +---------------------------+-----------------------------+
+    | wwPDB (worldwide)         | wwPDB, worldwide, ww        |
     +---------------------------+-----------------------------+
 
     .. _wwPDB: http://www.wwpdb.org/"""
@@ -256,6 +267,7 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
 
     format = kwargs.get('format', 'pdb')
     noatom = bool(kwargs.pop('noatom', False))
+    long_format = None
     if format == 'pdb':
         extension = '.pdb'
     elif format == 'xml':
@@ -265,10 +277,14 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
             extension = '.xml'
     elif format == 'cif':
         extension = '.cif'
+        long_format = 'mmCIF'
     elif format == 'emd' or format == 'map':
         extension = '.map'
     else:
         raise ValueError(repr(format) + ' is not valid format')
+
+    if long_format is None:
+        long_format = extension[1:]
 
     local_folder = pathPDBFolder()
     if local_folder:
@@ -312,6 +328,9 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
             url = getURL(pdb)
             if kwargs.get('format', 'pdb') != 'pdb':
                 url = url.replace('.pdb', extension)
+
+                if url.find('divided/pdb') != -1:
+                    url = url.replace('divided/pdb', 'divided/' + long_format)
             handle = openURL(url)
         except Exception as err:
             LOGGER.warn('{0} download failed ({1}).'.format(pdb, str(err)))
