@@ -48,6 +48,10 @@ def fetchBioexcelPDB(acc, **kwargs):
         or ``'backbone and _C'`` for both
     type selection: str
 
+    :arg db: database to use, options are ``'mddb'`` and ``'cv19'``
+        default is ``'mddb'``
+    :type db: str
+
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
     acc, _, selection, filepath, timeout, _ = checkInputs(acc, **kwargs)
@@ -99,6 +103,10 @@ def fetchBioexcelTrajectory(acc, **kwargs):
         or ``'backbone and _C'`` for both
     type selection: str
 
+    :arg db: database to use, options are ``'mddb'`` and ``'cv19'``
+        default is ``'mddb'``
+    :type db: str
+
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
 
     :arg convert: convert to dcd if mdtraj is installed
@@ -148,6 +156,10 @@ def fetchBioexcelTopology(acc, **kwargs):
 
     :arg outname: out filename, default is input ``'acc.pdb'``
     :type outname: str
+
+    :arg db: database to use, options are ``'mddb'`` and ``'cv19'``
+        default is ``'mddb'``
+    :type db: str
 
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
