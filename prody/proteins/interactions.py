@@ -1496,42 +1496,41 @@ def calcHydrophobic(atoms, **kwargs):
         if sele2 != None:
             sele2_nr = list(set(zip(sele2.getResnums(), sele2.getChids())))
 
-            if sele1_name[0] in aromatic:
-                # avoid double counting pi stacking and don't include same residue interactions
-                sele2_filter = sele2.select('all and not (resname TYR PHE TRP or resid '+str(i[0])+' and chain '+i[1]+')')
+            for (resnum, chid) in sele2_nr:
+                sele2_filter = sele2.select('resnum {0} and chid {1}'.format(resnum, chid))
+
+                if sele1_name[0] in aromatic:
+                    # avoid double counting pi stacking and don't include same residue interactions
+                    sele2_filter = sele2_filter.select('all and not (resname TYR PHE TRP or resid '+str(i[0])+' and chain '+i[1]+')')
+                elif sele1_name[0] not in aromatic and i in sele2_nr:
+                    # don't include same residue interactions but don't worry about double counting pi stacking
+                    sele2_filter = sele2_filter.select(sele2.select('all and not (resid '+str(i[0])+' and chain '+i[1]+')'))
+
                 if sele2_filter != None:
                     listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
-                
-            elif sele1_name[0] not in aromatic and i in sele2_nr:
-                # don't include same residue interactions but don't worry about double counting pi stacking
-                sele2_filter = sele2.select(sele2.select('all and not (resid '+str(i[0])+' and chain '+i[1]+')'))
-                if sele2_filter != None:
-                    listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
-            else:
-                listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2))
-                                                           
-            if listOfAtomToCompare != []:
-                listOfAtomToCompare = sorted(listOfAtomToCompare, key=lambda x : x[-1])
-                minDistancePair = listOfAtomToCompare[0]
-                if minDistancePair[-1] < distA:
-                    sele1_new = atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
-                    sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
-                    residue1 = sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]) 
-                    residue2 = sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0])
-                    try:
-                        Hydrophobic_calculations.append([residue1, 
-                                                    minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
-                                                    residue2, 
-                                                    minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                    round(minDistancePair[-1],4),
-                                                    round(get_permutation_from_dic(hpb_overlaping_results,(residue1+sele1_new.getChids()[0],
-                                                    residue2+sele2_new.getChids()[0])),4)])
-                    except:
-                        Hydrophobic_calculations.append([residue1, 
-                                                    minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
-                                                    residue2, 
-                                                    minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                    round(minDistancePair[-1],4)])                         
+
+                if listOfAtomToCompare != []:
+                    listOfAtomToCompare = sorted(listOfAtomToCompare, key=lambda x : x[-1])
+                    minDistancePair = listOfAtomToCompare[0]
+                    if minDistancePair[-1] < distA:
+                        sele1_new = atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
+                        sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
+                        residue1 = sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0])
+                        residue2 = sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0])
+                        try:
+                            Hydrophobic_calculations.append([residue1,
+                                                            minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
+                                                            residue2,
+                                                            minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
+                                                            round(minDistancePair[-1],4),
+                                                            round(get_permutation_from_dic(hpb_overlaping_results,(residue1+sele1_new.getChids()[0],
+                                                            residue2+sele2_new.getChids()[0])),4)])
+                        except:
+                            Hydrophobic_calculations.append([residue1,
+                                                            minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
+                                                            residue2,
+                                                            minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
+                                                            round(minDistancePair[-1],4)])
     
     selection = kwargs.get('selection', None)
     selection2 = kwargs.get('selection2', None) 
