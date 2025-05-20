@@ -21,6 +21,7 @@ __all__ = ['fetchBioexcelPDB', 'parseBioexcelPDB', 'convertXtcToDcd',
 
 cv19_prefix = 'https://bioexcel-cv19.bsc.es/api/rest/v1/projects/'
 mddb_prefix = 'https://irb.mddbr.eu/api/rest/v1/projects/'
+mddb_dev_prefix = 'https://irb-dev.mddbr.eu/api/rest/v1/projects/'
 dot_json_str = '.json'
 
 def fetchBioexcelPDB(acc, **kwargs):
@@ -48,8 +49,8 @@ def fetchBioexcelPDB(acc, **kwargs):
         or ``'backbone and _C'`` for both
     type selection: str
 
-    :arg db: database to use, options are ``'mddb'`` and ``'cv19'``
-        default is ``'mddb'``
+    :arg db: database to use, options are ``'mddb'``, ``'mddb-dev'`` and ``'cv19'``
+        default is ``'mddb-dev'``
     :type db: str
 
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
@@ -58,9 +59,11 @@ def fetchBioexcelPDB(acc, **kwargs):
     if not filepath.endswith('.pdb'):
         filepath += '.pdb'
 
-    db = kwargs.get('db', 'mddb')
+    db = kwargs.get('db', 'mddb-dev')
     if db == 'cv19':
         prefix = cv19_prefix
+    elif db == 'mddb-dev':
+        prefix = mddb_dev_prefix
     else:
         prefix = mddb_prefix
 
@@ -103,8 +106,8 @@ def fetchBioexcelTrajectory(acc, **kwargs):
         or ``'backbone and _C'`` for both
     type selection: str
 
-    :arg db: database to use, options are ``'mddb'`` and ``'cv19'``
-        default is ``'mddb'``
+    :arg db: database to use, options are ``'mddb'``, ``'mddb-dev'`` and ``'cv19'``
+        default is ``'mddb-dev'``
     :type db: str
 
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
@@ -117,9 +120,11 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     if not filepath.endswith('.xtc'):
         filepath += '.xtc'
 
-    db = kwargs.get('db', 'mddb')
+    db = kwargs.get('db', 'mddb-dev')
     if db == 'cv19':
         prefix = cv19_prefix
+    elif db == 'mddb-dev':
+        prefix = mddb_dev_prefix
     else:
         prefix = mddb_prefix
 
@@ -157,8 +162,8 @@ def fetchBioexcelTopology(acc, **kwargs):
     :arg outname: out filename, default is input ``'acc.pdb'``
     :type outname: str
 
-    :arg db: database to use, options are ``'mddb'`` and ``'cv19'``
-        default is ``'mddb'``
+    :arg db: database to use, options are ``'mddb'``, ``'mddb-dev'`` and ``'cv19'``
+        default is ``'mddb-dev'``
     :type db: str
 
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
@@ -173,9 +178,11 @@ def fetchBioexcelTopology(acc, **kwargs):
     if filepath.endswith('.psf'):
         convert = False
 
-    db = kwargs.get('db', 'mddb')
+    db = kwargs.get('db', 'mddb-dev')
     if db == 'cv19':
         prefix = cv19_prefix
+    elif db == 'mddb-dev':
+        prefix = mddb_dev_prefix
     else:
         prefix = mddb_prefix
 
@@ -327,9 +334,11 @@ def requestFromUrl(url, timeout, filepath, source=None, **kwargs):
     import mdtraj
     import tempfile
 
-    db = kwargs.get('db', 'mddb')
+    db = kwargs.get('db', 'mddb-dev')
     if db == 'cv19':
         prefix = cv19_prefix
+    elif db == 'mddb-dev':
+        prefix = mddb_dev_prefix
     else:
         prefix = mddb_prefix
 
