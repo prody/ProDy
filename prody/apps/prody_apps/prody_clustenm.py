@@ -7,6 +7,8 @@ from ..apptools import *
 from .nmaoptions import *
 from . import nmaoptions
 
+from numpy import array
+
 __all__ = ['prody_clustenm']
 
 DEFAULTS = {}
@@ -164,7 +166,7 @@ def prody_clustenm(pdb, **kwargs):
     ens.writePDB(outname, single=single)
 
     if fitmap is not None:
-        prody.writeArray(outname, ens._cc)
+        prody.writeArray(outname, array(ens._cc))
 
     prody.saveEnsemble(ens, outname)
 
