@@ -155,13 +155,16 @@ def prody_clustenm(pdb, **kwargs):
             t_steps_g=eval(t_steps_g),
             outlier=outlier, mzscore=mzscore,
             sparse=sparse, kdtree=kdtree, turbo=turbo,
-            parallel=parallel, fitmap=fitmap, 
+            parallel=parallel, fitmap=fitmap,
             fit_resolution=fit_resolution,
             nproc=nproc, **kwargs)
 
     single = not kwargs.pop('multiple')
     outname = join(outdir, prefix)
     ens.writePDB(outname, single=single)
+
+    if fitmap is not None:
+        prody.writeArray(outname, ens._cc)
 
     prody.saveEnsemble(ens, outname)
 
