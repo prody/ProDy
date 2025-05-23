@@ -56,6 +56,7 @@ for key, txt, val in [
 DEFAULTS.update(nmaoptions.DEFAULTS)
 HELPTEXT.update(nmaoptions.HELPTEXT)
 
+DEFAULTS['select'] = 'all'
 DEFAULTS['prefix'] = '_clustenm'
 
 
@@ -117,7 +118,7 @@ def prody_clustenm(pdb, **kwargs):
         LOGGER.warn('Selection {0} did not match any atoms.'
                     .format(repr(selstr)))
         return
-    LOGGER.info('{0} atoms will be used for ANM calculations.'
+    LOGGER.info('{0} atoms will be used for ClustENM calculations.'
                 .format(len(select)))
     
     try:
