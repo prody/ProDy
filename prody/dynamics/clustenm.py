@@ -593,21 +593,24 @@ class ClustENM(Ensemble):
                                         rmsd=self._rmsd[self._cycle])
                     coordsets = ens_ex.getCoordsets()
 
-                    new_coords, ccList = self._filter(coordsets)
+                    new_coords, new_ccList = self._filter(coordsets)
                     kept_coordsets.extend(new_coords)
+                    ccList.extend(new_ccList)
                     n_confs = n_confs - len(kept_coordsets)
 
             if self._replace_filtered:
-                while n_confs > 0: 
+                LOGGER.info('Replacing filtered conformers in generation %d ...' % self._cycle)
+                while n_confs > 0:
                     anm_ex = self._extendModel(anm_cg, cg, tmp)
                     ens_ex = sampleModes(anm_ex, atoms=tmp,
                                         n_confs=n_confs,
                                         rmsd=self._rmsd[self._cycle])
                     coordsets = ens_ex.getCoordsets()
 
-                    new_coords, ccList = self._filter(coordsets)
+                    new_coords, new_ccList = self._filter(coordsets)
                     kept_coordsets.extend(new_coords)
-                    n_confs = n_confs - len(kept_coordsets)
+                    ccList.extend(new_ccList)
+                    n_confs = self._n_confs - len(kept_coordsets)
 
             coordsets = np.array(kept_coordsets)
 
@@ -732,13 +735,12 @@ class ClustENM(Ensemble):
         tmp = [tmp]
 
         confs_ex = np.concatenate(tmp)
-        self._cc.extend(ccList)
 
         confs_cg = confs_ex[:, self._idx_cg]
         
         if self._fitmap is not None:
             self._cc_prev = max(self._cc)
-            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(confs_cg)))
+            LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(confs_ex)))
 
         if len(confs_cg) > 1:
             LOGGER.info('Clustering in generation %d ...' % self._cycle)
@@ -747,9 +749,15 @@ class ClustENM(Ensemble):
             LOGGER.report('Centroids were generated in %.2fs.',
                         label='_clustenm_gen')
             confs_centers = confs_ex[centers]
+            ccList = list(np.array(ccList)[centers])
         else:
             confs_centers, wei = confs_ex, [len(confs_ex)]
 
+        if self._fitmap is not None:
+            self._cc_prev = max(self._cc)
+            LOGGER.info('Best CC is %f from %d conformers after clustering' % (self._cc_prev, len(confs_centers)))
+
+        self._cc.extend(ccList)
         return confs_centers, wei
 
     def _outliers(self, arg):
