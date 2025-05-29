@@ -88,17 +88,16 @@ def parseMMCIF(pdb, **kwargs):
     if get_bonds:
         LOGGER.warn('Parsing struct_conn information from mmCIF is currently unsupported and no bond information is added to the results')
     if not os.path.isfile(pdb):
-        if len(pdb) == 5 and pdb.isalnum():
+        if (len(pdb) == 5 and pdb.isalnum()) or eval(long_id_check_str % 13):
             if chain is None:
-                chain = pdb[-1]
-                pdb = pdb[:4]
+                pdb, chain = _getPDBid(pdb)
             else:
                 raise ValueError('Please provide chain as a keyword argument '
                                  'or part of the PDB ID, not both')
         else:
             chain = chain
 
-        if len(pdb) == 4 and pdb.isalnum():
+        if (len(pdb) == 4 and pdb.isalnum()) or eval(long_id_check_str % 12):
             if title is None:
                 title = pdb
                 kwargs['title'] = title

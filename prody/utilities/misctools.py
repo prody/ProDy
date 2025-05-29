@@ -659,7 +659,9 @@ def checkIdentifiers(*pdb, **kwargs):
             LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
             append(None)
         else:
-            if format != 'emd' and not (len(pid) == 4 and pid.isalnum()):
+            if format != 'emd' and not ((len(pid) == 4 and pid.isalnum()) 
+                                        or (len(pid) == 12 and pid.startswith('pdb_') 
+                                            and pid[3] == '_')):
                 LOGGER.warn('{0} is not a valid identifier.'
                             .format(repr(pid)))
                 append(None)
