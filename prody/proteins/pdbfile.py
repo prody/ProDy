@@ -29,6 +29,8 @@ __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
 MAX_N_ATOM = 99999 
 MAX_N_RES = 9999
 
+long_id_check_str = "len(pdb) == %d and pdb.startswith('pdb_') and pdb[3] == '_'"
+
 class PDBParseError(Exception):
     pass
 
@@ -185,17 +187,17 @@ def parsePDB(*pdb, **kwargs):
 
 def _getPDBid(pdb):
     l = len(pdb)
-    if l == 4:
+    if l == 4 or eval(long_id_check_str % 12):
         pdbid, chain = pdb, ''
-    elif l == 5:
-        pdbid = pdb[:4]; chain = pdb[-1]
+    elif l == 5 or eval(long_id_check_str % 13):
+        pdbid = pdb[:-1]; chain = pdb[-1]
     elif ':' in pdb:
         i = pdb.find(':')
         pdbid = pdb[:i]; chain = pdb[i+1:]
     else:
         raise IOError('{0} is not a valid filename or a valid PDB '
                       'identifier.'.format(pdb))
-    if not pdbid.isalnum():
+    if not (pdbid.isalnum() or eval(long_id_check_str % 12)):
         raise IOError('{0} is not a valid filename or a valid PDB '
                       'identifier.'.format(pdb))
     if chain != '' and not chain.isalnum():
