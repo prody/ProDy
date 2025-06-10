@@ -1047,7 +1047,36 @@ def writeSTARStream(stream, starDict, **kwargs):
                     stream.write('\t')
                 for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                     currentField = starDict[dataBlockKey][loopNumber]['fields'][fieldNumber]
-                    stream.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + '\t')
+                    data = starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField]
+                    if len(data.split()) > 1:
+                        data = "'" + data + "'"
+                    if prog == 'XMIPP':
+                        sep = '\t'
+                    else:
+                        sep = ' '
+                    if currentField in ['_entity_poly_seq.num',
+                                        '_pdbx_poly_seq_scheme.seq_id',
+                                        '_pdbx_poly_seq_scheme.ndb_seq_num',
+                                        '_pdbx_poly_seq_scheme.pdb_seq_num']:
+                        stream.write('%-4s' % data)
+                    elif currentField in ['_pdbx_poly_seq_scheme.auth_seq_num',
+                                          '_pdbx_poly_seq_scheme.pdb_mon_id',
+                                          '_pdbx_poly_seq_scheme.auth_mon_id',
+                                          '_pdbx_poly_seq_scheme.mon_id']:
+                        stream.write('%-3s' % data)
+                    elif currentField == '_chem_comp.name':
+                        stream.write('%-15s' % data)
+                    elif currentField == '_chem_comp.formula':
+                        stream.write('%-16s' % data)
+                    elif currentField == '_chem_comp.type':
+                        stream.write('%-19s' % data)
+                    elif currentField == '_entity_src_gen.host_org_common_name':
+                        stream.write('\n')
+                        stream.write(data)
+                    else:
+                        stream.write(data)
+                    stream.write(sep)
+
                 stream.write('\n')
 
 
