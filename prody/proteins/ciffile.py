@@ -603,12 +603,13 @@ def writeMMCIF(filename, atoms, csets=None, autoext=True, **kwargs):
     structure = atoms.toBioPythonStructure(csets=csets)
 
     filehandle = open(filename, 'w')
-    writeSTARStream(filehandle, header['starDict1'])
+    writeSTARStream(filehandle, header['starDict1'], prog='mmcif')
     io=MMCIFIO()
     io.set_structure(structure)
     io.save(filehandle, preserve_atom_numbering=True)
-    writeSTARStream(filehandle, header['starDict2'],
-                    writeDataBlockTitle=False)
+    if header['starDict2'][0].numEntries() > 0:
+        writeSTARStream(filehandle, header['starDict2'],
+                        writeDataBlockTitle=False, prog='mmcif')
     filehandle.close()
 
     return filename
