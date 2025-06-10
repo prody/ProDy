@@ -995,17 +995,48 @@ def writeSTARStream(stream, starDict, **kwargs):
     :type starDict: dict
 
     kwargs can be given including the program style to follow (*prog*)
+
+    :arg writeDataBlockTitle: whether to write hashes for empty lines
+        Default is **False**
+    :arg writeDataBlockTitle: bool
+
+    :arg writeHashes: whether to write hashes for empty lines
+        Default is **False** unless *prog* is **'mmcif'**
+    :arg writeHashes: bool
     """
     prog=kwargs.get('prog', 'XMIPP')
     writeDataBlockTitle = kwargs.get('writeDataBlockTitle', True)
+    writeHashes = kwargs.get('writeHashes', False)
+    if prog.lower() == 'mmcif':
+        writeHashes = True
 
     for dataBlock in starDict:
         dataBlockKey = dataBlock.getTitle()
         if writeDataBlockTitle:
             stream.write('\ndata_' + dataBlockKey + '\n')
 
+        if writeHashes:
+            stream.write('#')
+
+        old_prefix = ''
+        for key, value in starDict[dataBlockKey]['data'].items():
+            prefix = key.split('.')[0]
+            if prefix != old_prefix:
+                old_prefix = prefix
+                stream.write('\n')
+                if writeHashes:
+                    stream.write('#')
+            if value.startswith(';'):
+                if 'one_letter_code' in key:
+                    value = '\n'.join(value.split())
+                stream.write('\n%-45s\n%s\n;' % (key, value[:-2]))
+            else:
+                stream.write('\n%-45s%s' % (key, value))
+
         for loop in starDict[dataBlockKey].loops:
             loopNumber = int(loop.getTitle().split()[-1])
+            if writeHashes:
+                stream.write('#')
             stream.write('\nloop_\n')
             for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                 if prog == 'XMIPP':
