@@ -15,7 +15,7 @@ from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
-from .starfile import parseSTARSection
+from .starfile import parseSTARSection, writeSTARStream
 from .cifheader import getCIFHeaderDict
 from .header import buildBiomolecules, assignSecstr
 
@@ -601,7 +601,14 @@ def writeMMCIF(filename, atoms, csets=None, autoext=True, **kwargs):
         filename += '.cif'
 
     structure = atoms.toBioPythonStructure(header=header, csets=csets)
+
+    filehandle = open(filename, 'w')
+    writeSTARStream(filehandle, header['starDict1'])
     io=MMCIFIO()
     io.set_structure(structure)
-    io.save(filename)
+    io.save(filehandle)
+    writeSTARStream(filehandle, header['starDict2'],
+                    writeDataBlockTitle=False)
+    filehandle.close()
+
     return filename
