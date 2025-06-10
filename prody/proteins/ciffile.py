@@ -600,13 +600,13 @@ def writeMMCIF(filename, atoms, csets=None, autoext=True, **kwargs):
     if autoext and not filename.lower().endswith('.cif'):
         filename += '.cif'
 
-    structure = atoms.toBioPythonStructure(header=header, csets=csets)
+    structure = atoms.toBioPythonStructure(csets=csets)
 
     filehandle = open(filename, 'w')
     writeSTARStream(filehandle, header['starDict1'])
     io=MMCIFIO()
     io.set_structure(structure)
-    io.save(filehandle)
+    io.save(filehandle, preserve_atom_numbering=True)
     writeSTARStream(filehandle, header['starDict2'],
                     writeDataBlockTitle=False)
     filehandle.close()
