@@ -1019,19 +1019,35 @@ def writeSTARStream(stream, starDict, **kwargs):
             stream.write('#')
 
         old_prefix = ''
-        for key, value in starDict[dataBlockKey]['data'].items():
+        prefix_keys = OrderedDict([])
+        prefixes = []
+        non_loop_data = starDict[dataBlockKey]['data']
+        for key, value in non_loop_data.items():
             prefix = key.split('.')[0]
             if prefix != old_prefix:
+                prefixes.append(prefix)
                 old_prefix = prefix
-                stream.write('\n')
-                if writeHashes:
-                    stream.write('#')
-            if value.startswith(';'):
-                if 'one_letter_code' in key:
-                    value = '\n'.join(value.split())
-                stream.write('\n%-45s\n%s\n;' % (key, value[:-2]))
-            else:
-                stream.write('\n%-45s%s' % (key, value))
+                prefix_keys[prefix] = []
+            prefix_keys[prefix].append(key)
+
+        for prefix, keys in prefix_keys.items():
+            max_len = max([len(key) for key in keys])
+            if max_len < 31:
+                max_len = 31
+
+            stream.write('\n')
+            if writeHashes:
+                stream.write('#')
+
+            for key in keys:
+                value = non_loop_data[key]
+                if value.startswith(';'):
+                    if 'one_letter_code' in key:
+                        value = '\n'.join(value.split())
+                    stream.write('\n%-45s\n%s\n;' % (key, value[:-2]))
+                else:
+                    stream.write('\n%-45s %s'.replace(
+                        '45', str(max_len)) % (key, value))
 
         for loop in starDict[dataBlockKey].loops:
             loopNumber = int(loop.getTitle().split()[-1])
