@@ -1073,7 +1073,7 @@ def parseSTARSection(lines, key, report=True):
 
         i += 1
 
-    if i < len(lines):
+    if i < len(lines) or start > 0:
         star_dict, _ = parseSTARLines(lines[:2] + lines[start-1: stop], shlex=True)
         loop_dict = list(star_dict.values())[0]
 
