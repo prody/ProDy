@@ -1869,7 +1869,7 @@ def calcProteinInteractions(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
 
-    LOGGER.info('Calculating interations.') 
+    LOGGER.info('Calculating interactions.')
     HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in counting
     SBs_calculations = calcSaltBridges(atoms.protein, **kwargs)                 #2
     SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3
@@ -4153,7 +4153,7 @@ class Interactions(object):
                 raise TypeError('coords must be an object '
                                 'with `getCoords` method')
 
-        LOGGER.info('Calculating interations.') 
+        LOGGER.info('Calculating interactions.')
         HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in scoring
         SBs_calculations = calcSaltBridges(atoms.protein, **kwargs)                 #2
         SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3
