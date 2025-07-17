@@ -163,6 +163,7 @@ from .selection import *
 
 from . import flags
 from . import atomic
+atomic.NAMAP = flags.NAMAP
 from . import select
 from . import atommap
 from . import pointer
