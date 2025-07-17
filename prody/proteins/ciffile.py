@@ -95,8 +95,6 @@ def parseMMCIF(pdb, **kwargs):
             else:
                 raise ValueError('Please provide chain as a keyword argument '
                                  'or part of the PDB ID, not both')
-        else:
-            chain = chain
 
         if len(pdb) == 4 and pdb.isalnum():
             if title is None:
