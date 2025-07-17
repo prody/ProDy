@@ -773,9 +773,9 @@ def _getPolymers(lines):
     items1 = parseSTARSection(lines, '_entity_poly', report=False)
 
     for item in items1:
-        chains = item['_entity_poly.pdbx_strand_id'].replace(';','').replace(' ', '')
-        entity = item['_entity_poly.entity_id']
-        
+        chains = item.get('_entity_poly.pdbx_strand_id', '').replace(';','').replace(' ', '')
+        entity = item.get('_entity_poly.entity_id', '')
+
         for ch in chains.split(","):
             entities[entity].append(ch)
             poly = polymers.get(ch, Polymer(ch))
@@ -1106,8 +1106,8 @@ def _getChemicals(lines):
             synonym = synonym[1:-1]
         chem_synonyms[resname] += synonym
         
-        chem_formulas[resname] += data["_chem_comp.formula"]
-
+        if "_chem_comp.formula" in data.keys():
+            chem_formulas[resname] += data["_chem_comp.formula"]
 
     for key, name in chem_names.items():  # PY3K: OK
         name = cleanString(name)
