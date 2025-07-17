@@ -6,7 +6,7 @@ format files.
 
 __author__ = 'Ahmet Bakan, Anindita Dutta'
 
-from numpy import arange, fromstring, array
+from numpy import arange, fromstring, frombuffer, array
 
 from prody.utilities import openFile, intorfloat, startswith, addext
 
@@ -131,7 +131,11 @@ def parseHeatmap(heatmap, **kwargs):
             numbers.append(items[:nnums])
         else:
             items = [arr]
-        heatmap.append(fromstring(items[-1], float, sep=';'))
+
+        try:
+            heatmap.append(fromstring(items[-1], float, sep=';'))
+        except:
+            heatmap.append(frombuffer(items[-1], float, sep=';'))
 
     heatmap = array(heatmap)
     if nnums:
