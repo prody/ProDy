@@ -1112,10 +1112,10 @@ class ClustENM(Ensemble):
         if not isinstance(self._parallel, (int, bool)):
             raise TypeError('parallel should be an int or bool')
 
-        if self._parallel == 1:
+        if not isinstance(self._parallel, bool) and self._parallel == 1:
             # this is equivalent to not actually being parallel
             self._parallel = False
-        elif self._parallel == 0:
+        elif not isinstance(self._parallel, bool) and self._parallel == 0:
             # this is a deliberate choice and is documented
             self._parallel = True
 
