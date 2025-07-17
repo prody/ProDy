@@ -262,6 +262,12 @@ DATA_FILES = {
         'atoms': 165175,
         'segment_SX0_atoms': 1089,
     },
+    'chimerax_cif': {
+        'pdb': '1ake',
+        'file': 'mmcif_1ake_chimerax.cif',
+        'biomols': 2,
+        'bm0_atoms': 1954
+    },
     '6zu5_sel': {
         'pdb': '6zu5',
         'file': '6zu5_sel_SE0_SF0_10-20.pdb',
@@ -424,6 +430,12 @@ DATA_FILES = {
         'file': '1ubi_anmd_mode1_ens.pdb',
         'n_atoms': 683,
         'models': 5
+    },
+    'probes': {
+        'file': 'probes_in.pdb',
+        'n_atoms': 4,
+        'long_resname': 'ACET',
+        'short_resname': 'ACE'
     }
 }
 

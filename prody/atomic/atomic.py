@@ -43,7 +43,7 @@ for aaa, a in AAMAP.items():
     _[a] = aaa
 AAMAP.update(_)
 
-# add modified AAs
+# add modified AAs and bases to AAMAP
 MODAAMAP = {}
 for mod, aa in MODMAP.items():
     if aa in AAMAP:
