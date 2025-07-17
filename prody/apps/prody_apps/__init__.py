@@ -27,7 +27,7 @@ except ModuleNotFoundError:
 
 PRODY_APPS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol',
                   'catdcd', 'contacts', 'fetch', 'select', 'energy', 
-                  'clustenm']
+                  'clustenm', 'rtb']
 
 __all__ = ['prody_main']
 

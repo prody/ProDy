@@ -248,6 +248,14 @@ DATA_FILES = {
         'models': 1,
         'unobs_B_start': 'G-------------------------------NQNTTEK-'
     },
+    'big_biomols_cif': {
+        'pdb': '7cth',
+        'file': 'mmcif_7cth.cif',
+        'atoms': 16647,
+        'bm0_atoms': 16647 * 60,
+        'num_chains': 14,
+        'bm0_chains': 840,
+    },
     'long_chid_cif': {
         'pdb': '6zu5',
         'file': 'mmcif_6zu5.cif',
@@ -422,6 +430,12 @@ DATA_FILES = {
         'file': '1ubi_anmd_mode1_ens.pdb',
         'n_atoms': 683,
         'models': 5
+    },
+    'probes': {
+        'file': 'probes_in.pdb',
+        'n_atoms': 4,
+        'long_resname': 'ACET',
+        'short_resname': 'ACE'
     }
 }
 

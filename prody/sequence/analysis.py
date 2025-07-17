@@ -6,8 +6,9 @@ __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 from numbers import Integral
 import os
 
-from numpy import dtype, zeros, empty, ones, where, ceil, shape, eye
-from numpy import indices, tril_indices, array, ndarray, isscalar, unique
+from numpy import dtype, zeros, empty, ones, where, ceil, dot
+from numpy import indices, tril_indices, array, isscalar, unique
+from numpy.linalg import inv
 
 from prody import LOGGER
 from prody.utilities import which, MATCH_SCORE, MISMATCH_SCORE
@@ -580,7 +581,6 @@ def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
 
     msa = getMSA(msa)
     from .msatools import msadipretest, msadirectinfo1, msadirectinfo2
-    from numpy import matrix
 
     LOGGER.timeit('_di')
     if msa.shape[0]<250:
@@ -589,15 +589,15 @@ def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
     refine = 1 if refine else 0
     # msadipretest get some parameter from msa to set matrix size
     length, q = msadipretest(msa, refine=refine)
-    c = matrix.dot(matrix(zeros((length*q, 1), float)),
-                   matrix(zeros((1, length*q), float)))
+    c = dot(array(zeros((length*q, 1), float)),
+            array(zeros((1, length*q), float)))
     prob = zeros((length, q+1), float)
     # msadirectinfo1 return c to be inversed and prob to be used
     meff, n, length, c, prob = msadirectinfo1(msa, c, prob, theta=1.-seqid,
                                               pseudocount_weight=pseudo_weight,
                                               refine=refine, q=q+1)
 
-    c = c.I
+    c = inv(c)
 
     di = zeros((length, length), float)
     # get final DI

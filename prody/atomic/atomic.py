@@ -29,7 +29,8 @@ AAMAP = {
     'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
     'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W',
     'TYR': 'Y', 'VAL': 'V',
-    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J', '': '-'
+    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J', '': '-',
+    'UNK': 'X'
 }
 
 # add bases
@@ -42,7 +43,7 @@ for aaa, a in AAMAP.items():
     _[a] = aaa
 AAMAP.update(_)
 
-# add modified AAs
+# add modified AAs and bases to AAMAP
 MODAAMAP = {}
 for mod, aa in MODMAP.items():
     if aa in AAMAP:

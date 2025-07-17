@@ -953,7 +953,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
 
     try:
         min_dist_cutoff = float(kwargs.get('min_dist_cutoff', 20))
-    except:
+    except ValueError:
         raise TypeError("min_dist_cutoff should be a number")
 
     blocks = []
