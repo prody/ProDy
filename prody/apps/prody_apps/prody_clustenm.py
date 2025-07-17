@@ -6,6 +6,7 @@ combining clustering, ENM NMA and MD."""
 from ..apptools import *
 from .nmaoptions import *
 from . import nmaoptions
+from numpy import array
 
 from numpy import array
 
@@ -167,7 +168,7 @@ def prody_clustenm(pdb, **kwargs):
     ens.writePDB(outname, single=single)
 
     if fitmap is not None:
-        prody.writeArray(outname, array(ens._cc))
+        prody.writeArray(outname + '_cc.txt', array(ens._cc))
 
     prody.saveEnsemble(ens, outname)
 
