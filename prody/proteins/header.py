@@ -1233,15 +1233,28 @@ def buildBiomolecules(header, atoms, biomol=None):
         for times in range(int((len(mt)) / 4)):
             rotation = np.zeros((3, 3))
             translation = np.zeros(3)
-            line0 = np.fromstring(mt[times*4+1], sep=' ')
+
+            try:
+                line0 = np.fromstring(mt[times*4+1], sep=' ')
+            except:
+                line0 = np.frombuffer(mt[times*4+1], sep=' ')
             rotation[0, :] = line0[:3]
             translation[0] = line0[3]
-            line1 = np.fromstring(mt[times*4+2], sep=' ')
+
+            try:
+                line1 = np.fromstring(mt[times*4+2], sep=' ')
+            except:
+                line1 = np.frombuffer(mt[times*4+2], sep=' ')
             rotation[1, :] = line1[:3]
             translation[1] = line1[3]
-            line2 = np.fromstring(mt[times*4+3], sep=' ')
+
+            try:
+                line2 = np.fromstring(mt[times*4+3], sep=' ')
+            except:
+                line2 = np.frombuffer(mt[times*4+3], sep=' ')
             rotation[2, :] = line2[:3]
             translation[2] = line2[3]
+            
             t = Transformation(rotation, translation)
 
             newag = atoms.select('chain ' + ' or chain '.join(mt[times*4+0]))

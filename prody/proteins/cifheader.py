@@ -202,7 +202,17 @@ def _getBiomoltrans(lines):
 
         biomt = biomolecule[currentBiomolecule]
 
-        operators = item1["_pdbx_struct_assembly_gen.oper_expression"].split(',')
+        oper_expression = item1["_pdbx_struct_assembly_gen.oper_expression"]
+        if oper_expression[0].isnumeric():
+            operators = oper_expression.split(',')
+        elif (oper_expression.startswith('(')
+              and oper_expression.find('-') != -1
+              and oper_expression.endswith(')')):
+            firstOperator = int(oper_expression.split('(')[1].split('-')[0])-1
+            lastOperator = int(oper_expression.split('-')[1].split(')')[0])
+            operators = range(firstOperator, lastOperator)
+        else:
+            operators = []
         for oper in operators:
             biomt.append(applyToChains)
 
@@ -264,7 +274,7 @@ def _getSpaceGroup(lines):
 
 def _getHelix(lines):
 
-    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     helix = {} 
     
     i = 0
@@ -382,7 +392,7 @@ def _getHelixRange(lines):
 
 def _getSheet(lines):
 
-    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     sheet = {}
 
     # mmCIF files have this data divided between 4 blocks
@@ -787,9 +797,9 @@ def _getPolymers(lines, **kwargs):
     items1 = parseSTARSection(lines, '_entity_poly', report=False)
 
     for item in items1:
-        chains = item['_entity_poly.pdbx_strand_id'].replace(';','').replace(' ', '')
-        entity = item['_entity_poly.entity_id']
-        
+        chains = item.get('_entity_poly.pdbx_strand_id', '').replace(';','').replace(' ', '')
+        entity = item.get('_entity_poly.entity_id', '')
+
         for ch in chains.split(","):
             entities[entity].append(ch)
             poly = polymers.get(ch, Polymer(ch))
@@ -977,6 +987,8 @@ def _getPolymers(lines, **kwargs):
 
         match = False
         for dbref in poly.dbrefs:
+            if dbref.first is None or dbref.last is None:
+                continue
             if not dbref.first[0] <= resnum <= dbref.last[0]:
                 continue
             match = True
@@ -1138,8 +1150,8 @@ def _getChemicals(lines):
             synonym = synonym[1:-1]
         chem_synonyms[resname] += synonym
         
-        chem_formulas[resname] += data["_chem_comp.formula"]
-
+        if "_chem_comp.formula" in data.keys():
+            chem_formulas[resname] += data["_chem_comp.formula"]
 
     for key, name in chem_names.items():  # PY3K: OK
         name = cleanString(name)
@@ -1282,6 +1294,8 @@ def _getUnobservedSeq(lines, **kwargs):
 
     key_unobs = '_pdbx_unobs_or_zero_occ_residues'
 
+    unobs = []
+    polymers = []
     try:
         unobs = parseSTARSection(lines, key_unobs, report=False)
         polymers = _getPolymers(lines, **kwargs)
@@ -1315,40 +1329,23 @@ def _getUnobservedSeq(lines, **kwargs):
     alns = OrderedDict()
     for _, (key, seq) in enumerate(full_seqs.items()):
         if key in unobs_seqs.keys():
-            unobs_seq = unobs_seqs[key]
-            # initialise alignment (quite possibly incorrect)
-            aln = list(alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
-                                        MISMATCH_SCORE=-1000,
-                                        ALIGNMENT_METHOD='global',
-                                        GAP_PENALTY=-2,
-                                        GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2])
-            
+            # initialise alignment with all gaps for unobs
+            row1 = '-'*len(seq)
+            row1_list = list(row1)
+            aln = [row1, seq]
+
             # fix it
-            prev_chid = unobs[0]['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
-            i = 0
-            for item in unobs:
+            for j, item in enumerate(unobs):
                 chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
-                if chid != prev_chid:
-                    prev_chid = chid
-                    i = 0
-
                 if chid == key:
-                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
+                    if len(item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']) == 1:
+                        one_letter = item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']
+                    else:
+                        one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']].upper()
                     good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
-
                     row1_list = list(aln[0])
-
-                    arr_unobs_seq = np.array(list(unobs_seq))
-                    unobs_rep = np.where(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
-                    actual_pos = np.where(np.array(row1_list) == one_letter)[0][unobs_rep]
-
-                    if actual_pos != good_pos:
-                        row1_list[good_pos] = one_letter
-                        row1_list[actual_pos] = '-'
-
+                    row1_list[good_pos] = one_letter
                     aln[0] = ''.join(row1_list)
-
-                i += 1
 
             alns[key] = aln
 

@@ -40,10 +40,11 @@ from collections import defaultdict
 from numpy import array, ones, zeros
 
 from prody import SETTINGS, LOGGER
+from prody.utilities import openData
 from prody.utilities import joinLinks, joinTerms, wrapText
 
 __all__ = ['flagDefinition', 'listNonstdAAProps', 'getNonstdProperties',
-           'addNonstdAminoacid', 'delNonstdAminoacid']
+           'addNonstdAminoacid', 'delNonstdAminoacid', 'NAMAP']
 
 
 TIMESTAMP_KEY = 'flags_timestamp'
@@ -720,6 +721,25 @@ DEFINITIONS = None
 AMINOACIDS = None
 BACKBONE = None
 
+MODMAP = {}
+with openData('mod_res_map.dat') as f:
+    for line in f:
+        try:
+            mod, aa = line.strip().split(' ')
+            MODMAP[mod] = aa
+        except:
+            continue
+
+NAMAP = {'ADE': 'a', 'THY': 't', 'CYT': 'c',
+         'GUA': 'g', 'URA': 'u'}
+
+# add modified bases to NAMAP
+MODNAMAP = {}
+for mod, aa in MODMAP.items():
+    if aa in NAMAP:
+        MODNAMAP[mod] = NAMAP[aa]
+NAMAP.update(MODNAMAP)
+
 
 def updateDefinitions():
     """Update definitions and set some global variables.  This function must be
@@ -735,6 +755,8 @@ def updateDefinitions():
         aset = set(user.get(key, DEFAULTS[key]))
         nucleic.update(aset)
         DEFINITIONS[key] = aset
+    for key in NAMAP:
+        nucleic.update(set(NAMAP.keys()))
     DEFINITIONS['nucleic'] = nucleic
 
     # heteros

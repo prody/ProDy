@@ -38,7 +38,8 @@ AAMAP = {
     'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
     'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W',
     'TYR': 'Y', 'VAL': 'V',
-    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J', '': '-'
+    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J', '': '-',
+    'UNK': 'X'
 }
 
 # add bases
@@ -51,7 +52,7 @@ for aaa, a in AAMAP.items():
     _[a] = aaa
 AAMAP.update(_)
 
-# add modified AAs
+# add modified AAs and bases to AAMAP
 MODAAMAP = {}
 for mod, aa in MODMAP.items():
     if aa in AAMAP:
@@ -309,9 +310,7 @@ class Atomic(object):
         :arg csets: coordinate set indices, default is all coordinate sets
         """ 
         try:
-            from Bio.PDB.Structure import Structure
             from Bio.PDB.StructureBuilder import StructureBuilder
-            from Bio.PDB.PDBParser import PDBParser
             from Bio.PDB.PDBExceptions import PDBConstructionException
         except ImportError:
             raise ImportError('Bio StructureBuilder could not be imported. '
@@ -335,7 +334,7 @@ class Atomic(object):
         
         for i in csets:
             self.setACSIndex(i)
-            structure_builder.init_model(i)
+            structure_builder.init_model(i, i+1)
 
             current_segid = None
             current_chain_id = None

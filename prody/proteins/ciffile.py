@@ -95,8 +95,6 @@ def parseMMCIF(pdb, **kwargs):
             else:
                 raise ValueError('Please provide chain as a keyword argument '
                                  'or part of the PDB ID, not both')
-        else:
-            chain = chain
 
         if len(pdb) == 4 and pdb.isalnum():
             if title is None:
@@ -278,6 +276,7 @@ def parseMMCIFStream(stream, **kwargs):
 
 
 parseMMCIFStream.__doc__ += _parseMMCIFdoc
+parseMMCIF.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
@@ -528,11 +527,11 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     siguij = None
     data = parseSTARSection(lines, "_atom_site_anisotrop", report=report)
     if len(data) > 0:
-        anisou = np.zeros((acount, 6),
+        anisou = np.zeros((asize, 6),
                            dtype=float)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
-            siguij = np.zeros((acount, 6),
+            siguij = np.zeros((asize, 6),
                               dtype=ATOMIC_FIELDS['siguij'].dtype)
 
         for entry in data:
