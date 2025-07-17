@@ -315,12 +315,15 @@ def convertXtcToDcd(filepath, **kwargs):
     else:
         acc = basename(splitext(filepath)[0])
 
+    if not isfile(acc):
+        acc = fetchBioexcelTopology(acc, **kwargs)
+
     try:
         import mdtraj
     except ImportError:
         raise ImportError('Please install mdtraj to convert to dcd.')
     else:
-        top = mdtraj.load_psf(fetchBioexcelTopology(acc, **kwargs))
+        top = mdtraj.load_topology(acc)
         traj = mdtraj.load_xtc(filepath, top=top)
         filepath = filepath.replace('xtc', 'dcd')
         traj.save_dcd(filepath)
