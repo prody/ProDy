@@ -8,6 +8,8 @@ from .nmaoptions import *
 from . import nmaoptions
 from numpy import array
 
+from numpy import array
+
 __all__ = ['prody_clustenm']
 
 DEFAULTS = {}
@@ -55,6 +57,7 @@ for key, txt, val in [
 DEFAULTS.update(nmaoptions.DEFAULTS)
 HELPTEXT.update(nmaoptions.HELPTEXT)
 
+DEFAULTS['select'] = 'all'
 DEFAULTS['prefix'] = '_clustenm'
 
 
@@ -116,7 +119,7 @@ def prody_clustenm(pdb, **kwargs):
         LOGGER.warn('Selection {0} did not match any atoms.'
                     .format(repr(selstr)))
         return
-    LOGGER.info('{0} atoms will be used for ANM calculations.'
+    LOGGER.info('{0} atoms will be used for ClustENM calculations.'
                 .format(len(select)))
     
     try:
@@ -156,7 +159,7 @@ def prody_clustenm(pdb, **kwargs):
             t_steps_g=eval(t_steps_g),
             outlier=outlier, mzscore=mzscore,
             sparse=sparse, kdtree=kdtree, turbo=turbo,
-            parallel=parallel, fitmap=fitmap, 
+            parallel=parallel, fitmap=fitmap,
             fit_resolution=fit_resolution,
             nproc=nproc, **kwargs)
 
