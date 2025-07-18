@@ -394,7 +394,7 @@ class TrajBase(object):
 
         LOGGER.progress('Wrapping trajectory ...', len(coordsets))
         for i, coordset in enumerate(coordsets):
-            wrapped.addCoordset(wrapAtoms(coordset), unitcell=unitcell, center=center)
+            wrapped.addCoordset(wrapAtoms(coordset, unitcell=unitcell), center=center)
             LOGGER.update(i)
         
         LOGGER.finish()
