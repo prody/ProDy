@@ -6,9 +6,8 @@ __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 import sys
 import warnings
 
-if sys.version_info[0] == 2:
-    sys.stderr.write('Python 2 is not supported\n')
-    sys.exit()
+if sys.version_info[:2] < (2, 7):
+    sys.stderr.write('Python 2.6 and older is not supported\n')
 
 if sys.version_info[0] == 3:
     if sys.version_info[1] < 10:

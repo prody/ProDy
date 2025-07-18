@@ -1,43 +1,37 @@
-# This is a basic workflow to help you get started with Actions
+name: Conda Package CI
 
-name: CI
-
-# Controls when the action will run.
 on: [push, pull_request, workflow_dispatch]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    runs-on: ubuntu-latest
+    name: Build on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: MatteoH2O1999/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Add conda to system path
-      run: |
-        echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install dependencies
-      run: |
-        conda create --yes -n test python=${{ matrix.python-version }}
-        source activate test
-        conda config --add channels conda-forge
-        conda install --yes numpy scipy nose requests
-        conda install --yes pdbfixer mdtraj openmm
-        conda install -c bioconda clustalw
-        pip install mmtf-python scikit-learn
-        pip install .
-        python setup.py build_ext --inplace --force
-    - name: Test with pytest
-      run: |
-        source activate test
-        conda install --yes pytest
-        pytest
-        
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: build-env
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          channels: conda-forge
+
+      - name: Install conda-build and dependencies
+        shell: bash -l {0}
+        run: |
+          conda install -y conda-build boa pip setuptools wheel compilers numpy scipy pyparsing requests biopython
+
+      - name: Build package
+        shell: bash -l {0}
+        run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+          conda build .
