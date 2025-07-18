@@ -131,6 +131,8 @@ class HydrogenBond:
 
     @staticmethod
     def checkIsHBond(donor, acceptor, constraints):
+        if donor.type == ResType.ION or acceptor.type == ResType.ION:
+            return False
         if donor.type != ResType.WATER and donor.atom.getName()[0] not in constraints.donors:
             return False
         if acceptor.type != ResType.WATER and acceptor.atom.getName()[0] not in constraints.acceptors:
