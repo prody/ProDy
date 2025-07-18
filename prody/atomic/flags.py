@@ -157,12 +157,12 @@ DEFAULTS = {
     'pyrimidine': set(['CYT', 'C', 'THY', 'T', 'URA', 'U']),
 
     'water': set(['HOH', 'DOD', 'WAT', 'TIP3', 'H2O', 'OH2', 'TIP', 'TIP2',
-                  'TIP4']),
+                  'TIP4', 'SPC', 'SOL', 'T3P']),
 
     'ion': set(['AL', 'BA', 'CA', 'CD', 'CL', 'CO', 'CS', 'CU', 'CU1', 'CUA',
                 'HG', 'IN', 'IOD', 'K', 'MG', 'MN', 'MN3', 'NA', 'PB', 'PT', 'RB',
                 'TB', 'TL', 'WO4', 'YB', 'ZN']),
-    'ion_other': set(['CAL', 'CES', 'CLA', 'POT', 'SOD', 'ZN2']),
+    'ion_other': set(['CAL', 'CES', 'CLA', 'POT', 'SOD', 'ZN2', 'CU2', 'CU2P']),
 
 
     'lipid': set(['GPE', 'LPP', 'OLA', 'SDS', 'STE']),
@@ -512,7 +512,7 @@ Heteros
 
    water
       indices `HOH`_ and `DOD`_ recognized by *PDB* and also WAT, TIP3, H2O,
-      OH2, TIP, TIP2, and TIP4 recognized by molecular dynamics (MD) force
+      OH2, TIP, TIP2, TIP4 and SPC recognized by molecular dynamics (MD) force
       fields.
 
       .. _HOH: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HOH
@@ -520,7 +520,8 @@ Heteros
       .. _DOD: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=DOD
 
       Previously used water types HH0, OHH, and SOL conflict with other
-      compounds in the *PDB*, so are removed from the definition of this flag.
+      compounds in the *PDB*, so are removed from the definition of this flag
+      except SOL (restored) as compound SOL (L-sorbose) is only used 3 times.
 
 
    ion
@@ -561,10 +562,15 @@ Heteros
       POT      potassium           No     CHARMM    Yes
       SOD      sodium              No     CHARMM    Yes
       ZN2      zinc                No     CHARMM    No
+      CU2P     copper (ii)         No     CHARMM    No
+      CU2      copper (ii)         No     CHARMM    No
       =======  ==================  =====  ========  ==========
 
       Ion identifiers that are obsoleted by *PDB* (MO3, MO4, MO5, MO6, NAW,
-      OC7, and ZN1) are removed from this definition.
+      OC7, and ZN1) are removed from this definition. 
+
+      CU2 comes from CU2P if parsing PDB files without long_resname
+      or writing them again (always trims to 3-character resnames).
 
 
    lipid

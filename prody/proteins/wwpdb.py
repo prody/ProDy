@@ -255,6 +255,9 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
     compressed = bool(kwargs.pop('compressed', True))
 
     format = kwargs.get('format', 'pdb')
+    if (eval(long_id_check_str % 12) or eval(long_id_check_str % 13)):
+        format = 'cif'
+
     noatom = bool(kwargs.pop('noatom', False))
     if format == 'pdb':
         extension = '.pdb'
@@ -314,7 +317,8 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
                 url = url.replace('.pdb', extension)
             handle = openURL(url)
         except Exception as err:
-            LOGGER.warn('{0} download failed ({1}).'.format(pdb, str(err)))
+            if not (eval(long_id_check_str % 12) or eval(long_id_check_str % 13)):
+                LOGGER.warn('{0} download failed ({1}).'.format(pdb, str(err)))
             failure += 1
             filenames.append(None)
         else:
