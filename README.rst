@@ -35,10 +35,12 @@ Further details are described in the ProDy papers:
   | *Bioinformatics* **2021** 37(20):3657-3659.
 
 INSTALLING PRODY
-________
-ProDy is under active development, so we recommend installing it from source from GitHub to ensure everything works properly. 
+________________
+We recommend downloading and installing the Anaconda package manager to handle dependencies in controlled environments. ProDy can be installed with the following command.
 
-We recommend downloading and installing the Anaconda package manager to handle dependencies in controlled environments. 
+conda install -c conda-forge ProDy
+
+ProDy is under active development, install it from source from GitHub if you want the most recent fixes. 
 
 Then you should download the ProDy code either as a zipped folder to extract or using git as directed at the big green button says code. For example, if you have git installed then you can do the following.
 
