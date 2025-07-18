@@ -15,10 +15,10 @@ if sys.version_info[:2] < (2, 7):
 if sys.version_info[:2] == (2, 7) or sys.version_info[:2] <= (3, 5):
     INSTALL_REQUIRES=['numpy>=1.10', 'biopython<=1.76', 'pyparsing', 'scipy']
 else:
-    INSTALL_REQUIRES=['numpy>=1.10,<2', 'biopython', 'pyparsing<=3.1.1', 'scipy', 'setuptools']
+    INSTALL_REQUIRES=['numpy>=1.10', 'biopython', 'pyparsing<=3.1.1', 'scipy', 'setuptools']
 
-if sys.version_info[0] == 3 and sys.version_info[1] < 6:
-    sys.stderr.write('Python 3.5 and older is not supported\n')
+if sys.version_info[0] == 3 and sys.version_info[1] < 10:
+    sys.stderr.write('Python 3.9 and older is not supported\n')
     sys.exit()
 
 if os.name == 'java':
@@ -80,14 +80,18 @@ PACKAGES = ['prody',
             'prody.tests.utilities',]
 PACKAGE_DATA = {
     'prody.utilities': ['datafiles/*.dat'],
-    'prody.tests': ['datafiles/pdb*.pdb',
+    'prody.tests': ['datafiles/*.pdb',
                     'datafiles/*.dat',
                     'datafiles/*.coo',
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
                     'datafiles/msa*',
-                    'datafiles/mmcif*cif',],
-    'prody.proteins': ['tabulated_energies.txt'],
+                    'datafiles/mmcif*cif',
+                    'datafiles/*.npy',
+                    'datafiles/*.mmtf',
+                    'datafiles/*json'],
+    'prody.proteins': ['tabulated_energies.txt',
+                       'hpb.so'],
 }
 
 PACKAGE_DIR = {}

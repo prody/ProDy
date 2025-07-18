@@ -95,8 +95,6 @@ def parseMMCIF(pdb, **kwargs):
             else:
                 raise ValueError('Please provide chain as a keyword argument '
                                  'or part of the PDB ID, not both')
-        else:
-            chain = chain
 
         if len(pdb) == 4 and pdb.isalnum():
             if title is None:
@@ -278,6 +276,7 @@ def parseMMCIFStream(stream, **kwargs):
 
 
 parseMMCIFStream.__doc__ += _parseMMCIFdoc
+parseMMCIF.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
@@ -317,10 +316,12 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             fields[line.split('.')[1].strip()] = fieldCounter
             foundAtomFields = True
 
-        elif foundAtomFields and line.strip() not in ['#', '']:
+        elif foundAtomFields and (line.startswith("HETATM") or line.startswith("ATOM")):
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
+            if i + 1 < len(lines) and not lines[i + 1].startswith(("ATOM", "HETATM", "#", "_")):
+                line = line.strip() + " " + lines[i + 1].strip() + "\n"
             models.append(line.split()[fields['pdbx_PDB_model_num']])
             if len(models) == 1 or (models[asize] != models[asize-1]):
                 nModels += 1
@@ -478,8 +479,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
         serials[acount] = line.split()[fields['id']]
         elements[acount] = line.split()[fields['type_symbol']]
-        bfactors[acount] = line.split()[fields['B_iso_or_equiv']]
-        occupancies[acount] = line.split()[fields['occupancy']]
+        if 'B_iso_or_equiv' in fields.keys():
+            bfactors[acount] = line.split()[fields['B_iso_or_equiv']]
+        if 'occupancy' in fields.keys():
+            occupancies[acount] = line.split()[fields['occupancy']]
 
         acount += 1
 
@@ -524,11 +527,11 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     siguij = None
     data = parseSTARSection(lines, "_atom_site_anisotrop", report=report)
     if len(data) > 0:
-        anisou = np.zeros((acount, 6),
+        anisou = np.zeros((asize, 6),
                            dtype=float)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
-            siguij = np.zeros((acount, 6),
+            siguij = np.zeros((asize, 6),
                               dtype=ATOMIC_FIELDS['siguij'].dtype)
 
         for entry in data:

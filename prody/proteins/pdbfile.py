@@ -109,8 +109,16 @@ def parsePDB(*pdb, **kwargs):
         This value is ignored when result is not a list (header=True or model=0).
     :type extend_biomol: bool 
 
-    Please note that resnames are only taken as 3 characters and chids can be 2.
-    Hence, TIP3S is split into resname TIP and chid 3S.
+    Please note that resnames are only taken as 3 characters and chids can be 2
+    by default. Hence, TIP3S is split into resname TIP and chid 3S.
+
+    This behaviour can be changed with the following two arguments:
+
+    :arg long_resname: whether to parse longer resnames instead of cutting at 3 chars
+    :type long_resname: bool
+
+    :arg long_chid: whether to parse longer chain ids instead of cutting at 2 chars
+    :type long_chid: bool
     """
     extend_biomol = kwargs.pop('extend_biomol', False)
 
@@ -118,10 +126,9 @@ def parsePDB(*pdb, **kwargs):
     if n_pdb == 0:
         raise ValueError('Please provide a PDB ID or filename')
 
-    if n_pdb == 1:
-        if isListLike(pdb[0]) or isinstance(pdb[0], dict):
-            pdb = pdb[0]
-            n_pdb = len(pdb)
+    if n_pdb == 1 and isListLike(pdb[0]) or isinstance(pdb[0], dict):
+        pdb = pdb[0]
+        n_pdb = len(pdb)
 
     if n_pdb == 1:
         return _parsePDB(pdb[0], **kwargs)
@@ -277,6 +284,7 @@ def parsePDBStream(stream, **kwargs):
 
     long_resname = kwargs.get('long_resname')
     long_chid = kwargs.get('long_chid')
+    strip_icodes = kwargs.get('strip_icodes', True)
 
     if model is not None:
         if isinstance(model, Integral):
@@ -330,7 +338,7 @@ def parsePDBStream(stream, **kwargs):
             hd, split = getHeaderDict(lines)
         bonds = [] if get_bonds else None
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds, 
-                       long_resname=long_resname, long_chid=long_chid)
+                       long_resname=long_resname, long_chid=long_chid, strip_icodes=strip_icodes)
         if bonds:
             try:
                 ag.setBonds(bonds)
@@ -391,6 +399,7 @@ def parsePQR(filename, **kwargs):
     subset = kwargs.get('subset')
     long_resname = kwargs.get('long_resname')
     long_chid = kwargs.get('long_chid')
+    strip_icodes = kwargs.get('strip_icodes', True)
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
     if title is None:
@@ -429,7 +438,8 @@ def parsePQR(filename, **kwargs):
     LOGGER.timeit()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain,
                         subset=subset, altloc_torf=False, format='pqr', 
-                        long_resname=long_resname, long_chid=long_chid)
+                        long_resname=long_resname, long_chid=long_chid,
+                        strip_icodes=strip_icodes)
     if ag.numAtoms() > 0:
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -442,7 +452,7 @@ parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                    altloc_torf, format='PDB', bonds=None, 
-                   long_resname=False, long_chid=False):
+                   long_resname=False, long_chid=False, strip_icodes=True):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -630,7 +640,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 serials[acount] = int(serial_str)
             except ValueError:
                 try:
-                    isnumeric = np.alltrue([x.isdigit() for x in serial_str])
+                    isnumeric = np.all([x.isdigit() for x in serial_str])
                     if not isnumeric and serial_str == serial_str.upper():
                         serials[acount] = hybrid36ToDec(serial_str)
                     else:
@@ -673,7 +683,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if not dec:
                     resnum = resnum_str
                     try:
-                        isnumeric = np.alltrue([x.isdigit() or x==' ' for x in resnum_str])
+                        isnumeric = np.all([x.isdigit() or x==' ' for x in resnum_str])
                         if not isnumeric and resnum_str == resnum_str.upper():
                             resnum = hybrid36ToDec(resnum_str, resnum=True)
                         else:
@@ -869,7 +879,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setFlags('pdbter', termini)
                 atomgroup.setFlags('selpdbter', termini)
                 atomgroup.setAltlocs(altlocs)
-                atomgroup.setIcodes(np.char.strip(icodes))
+                if strip_icodes:
+                    icodes = np.char.strip(icodes)
+                atomgroup.setIcodes(icodes)
                 atomgroup.setSerials(serials)
                 if isPDB:
                     bfactors.resize(acount, refcheck=False)
@@ -980,7 +992,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setFlags('pdbter', termini)
         atomgroup.setFlags('selpdbter', termini)
         atomgroup.setAltlocs(altlocs)
-        atomgroup.setIcodes(np.char.strip(icodes))
+        if strip_icodes:
+            icodes = np.char.strip(icodes)
+        atomgroup.setIcodes(icodes)
         atomgroup.setSerials(serials)
         if isPDB:
             if anisou is not None:
@@ -1254,6 +1268,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     renumber = kwargs.get('renumber', True)
     full_ter = kwargs.get('full_ter', True)
     write_remarks = kwargs.get('write_remarks', True)
+    long_resname = kwargs.get('long_resname', False)
 
     remark = str(atoms)
     try:
@@ -1516,11 +1531,16 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 resnum = resnums[i]
 
             resname = resnames[i]
-            if len(resnames[i]) > 3:
-                resname = resname[:3]
+            resname_len = 3
+            if long_resname:
+                resname_len = 4
+                pdbline = pdbline.replace('%-3s%2s', '%-4s%1s')
+
+            if len(resnames[i]) > resname_len:
+                resname = resname[:resname_len]
                 if not warned_long_resname:
-                    LOGGER.warn('Resname {0} too long, cutting resname to 3 characters as {1}'.format(
-                        resnames[i], resname
+                    LOGGER.warn('Resname {0} too long, cutting resname to {1} characters as {2}'.format(
+                        resnames[i], resname_len, resname
                     ))
                     warned_long_resname = True
 
@@ -1652,7 +1672,11 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
         NB: ChimeraX seems to prefer hybrid36 and may have problems with hexadecimal.
     :type hybrid36: bool
 
-    Please note that resnames longer than 3 characters will be trimmed.
+    Please note that resnames longer than 3 characters will be trimmed by default.
+    This behaviour can be changed with the following argument:
+
+    :arg long_resname: whether to write 4-character resnames instead of cutting at 3 chars
+    :type long_resname: bool
     """
 
     if not (filename.lower().endswith('.pdb') or filename.lower().endswith('.pdb.gz') or
