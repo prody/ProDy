@@ -235,7 +235,7 @@ def cleanString(string, nows=False):
         return ' '.join(string.strip().split())
 
 
-def parsePDBHeader(pdb, *keys):
+def parsePDBHeader(pdb, *keys, **kwargs):
     """Returns header data dictionary for *pdb*.  This function is equivalent to
     ``parsePDB(pdb, header=True, model=0, meta=False)``, likewise *pdb* may be
     an identifier or a filename.
@@ -297,14 +297,17 @@ def parsePDBHeader(pdb, *keys):
             raise IOError('{0} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
     pdb = openFile(pdb, 'rt')
-    header, _ = getHeaderDict(pdb, *keys)
+    header, _ = getHeaderDict(pdb, *keys, **kwargs)
     pdb.close()
     return header
 
 
-def getHeaderDict(stream, *keys):
+def getHeaderDict(stream, *keys, **kwargs):
     """Returns header data in a dictionary.  *stream* may be a list of PDB lines
-    or a stream."""
+    or a stream.
+    
+    Polymers have sequences that usually use one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**."""
 
     lines = defaultdict(list)
     loc = 0
@@ -325,7 +328,10 @@ def getHeaderDict(stream, *keys):
         keys = list(keys)
         for k, key in enumerate(keys):
             if key in _PDB_HEADER_MAP:
-                value = _PDB_HEADER_MAP[key](lines)
+                if key == 'polymers':
+                    value = _PDB_HEADER_MAP[key](lines, **kwargs)
+                else:
+                    value = _PDB_HEADER_MAP[key](lines)
                 keys[k] = value
             else:
                 raise KeyError('{0} is not a valid header data identifier'
@@ -587,8 +593,11 @@ def _getReference(lines):
     return ref
 
 
-def _getPolymers(lines):
-    """Returns list of polymers (macromolecules)."""
+def _getPolymers(lines, **kwargs):
+    """Returns list of polymers (macromolecules).
+    
+    Polymers have sequences that usually use one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**."""
 
     pdbid = lines['pdbid']
     polymers = dict()
@@ -596,7 +605,14 @@ def _getPolymers(lines):
         ch = line[11]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        poly.sequence += ''.join(getSequence(line[19:].split()))
+
+        longSeq = kwargs.get('longSeq', False)
+        if longSeq:
+            if poly.sequence != '':
+                poly.sequence += ' '
+            poly.sequence += getSequence(line[19:].split(), **kwargs)
+        else:
+            poly.sequence += ''.join(getSequence(line[19:].split(), **kwargs))
 
     for i, line in lines['DBREF ']:
         i += 1
@@ -1217,15 +1233,28 @@ def buildBiomolecules(header, atoms, biomol=None):
         for times in range(int((len(mt)) / 4)):
             rotation = np.zeros((3, 3))
             translation = np.zeros(3)
-            line0 = np.fromstring(mt[times*4+1], sep=' ')
+
+            try:
+                line0 = np.fromstring(mt[times*4+1], sep=' ')
+            except:
+                line0 = np.frombuffer(mt[times*4+1], sep=' ')
             rotation[0, :] = line0[:3]
             translation[0] = line0[3]
-            line1 = np.fromstring(mt[times*4+2], sep=' ')
+
+            try:
+                line1 = np.fromstring(mt[times*4+2], sep=' ')
+            except:
+                line1 = np.frombuffer(mt[times*4+2], sep=' ')
             rotation[1, :] = line1[:3]
             translation[1] = line1[3]
-            line2 = np.fromstring(mt[times*4+3], sep=' ')
+
+            try:
+                line2 = np.fromstring(mt[times*4+3], sep=' ')
+            except:
+                line2 = np.frombuffer(mt[times*4+3], sep=' ')
             rotation[2, :] = line2[:3]
             translation[2] = line2[3]
+            
             t = Transformation(rotation, translation)
 
             newag = atoms.select('chain ' + ' or chain '.join(mt[times*4+0]))

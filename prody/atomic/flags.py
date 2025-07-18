@@ -40,10 +40,11 @@ from collections import defaultdict
 from numpy import array, ones, zeros
 
 from prody import SETTINGS, LOGGER
+from prody.utilities import openData
 from prody.utilities import joinLinks, joinTerms, wrapText
 
 __all__ = ['flagDefinition', 'listNonstdAAProps', 'getNonstdProperties',
-           'addNonstdAminoacid', 'delNonstdAminoacid']
+           'addNonstdAminoacid', 'delNonstdAminoacid', 'NAMAP']
 
 
 TIMESTAMP_KEY = 'flags_timestamp'
@@ -67,6 +68,8 @@ STANDARDAA = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS',
 NONSTANDARD = {
     'ASX': set(['acyclic', 'surface', 'polar', 'medium']),
     'GLX': set(['acyclic', 'surface', 'large', 'polar']),
+    'ASH': set(['acyclic', 'acidic', 'surface', 'polar', 'medium']),
+    'GLH': set(['acyclic', 'acidic', 'surface', 'large', 'polar']),
     'CSO': set(['acyclic', 'neutral', 'surface', 'medium', 'polar']),
     'CYX': set(['acyclic', 'neutral', 'buried', 'medium', 'polar']),
     'HIP': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
@@ -75,6 +78,12 @@ NONSTANDARD = {
     'HSD': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
     'HSE': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
     'HSP': set(['cyclic', 'acidic', 'surface', 'large', 'polar']),
+    'HISD': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
+    'HISE': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
+    'HISP': set(['cyclic', 'acidic', 'surface', 'large', 'polar']),
+    'LYN': set(['acyclic', 'neutral', 'surface', 'large', 'polar']),
+    'TYM': set(['cyclic', 'aromatic', 'surface', 'basic', 'large', 'polar']),
+    'ARN': set(['acyclic', 'neutral', 'surface', 'large', 'polar']),
     'MSE': set(['acyclic', 'neutral', 'buried', 'large']),
     'CME': set(['acyclic', 'neutral', 'buried', 'large']),
     'SEC': set(['acyclic', 'neutral', 'buried', 'polar', 'medium']),
@@ -718,6 +727,25 @@ DEFINITIONS = None
 AMINOACIDS = None
 BACKBONE = None
 
+MODMAP = {}
+with openData('mod_res_map.dat') as f:
+    for line in f:
+        try:
+            mod, aa = line.strip().split(' ')
+            MODMAP[mod] = aa
+        except:
+            continue
+
+NAMAP = {'ADE': 'a', 'THY': 't', 'CYT': 'c',
+         'GUA': 'g', 'URA': 'u'}
+
+# add modified bases to NAMAP
+MODNAMAP = {}
+for mod, aa in MODMAP.items():
+    if aa in NAMAP:
+        MODNAMAP[mod] = NAMAP[aa]
+NAMAP.update(MODNAMAP)
+
 
 def updateDefinitions():
     """Update definitions and set some global variables.  This function must be
@@ -733,6 +761,8 @@ def updateDefinitions():
         aset = set(user.get(key, DEFAULTS[key]))
         nucleic.update(aset)
         DEFINITIONS[key] = aset
+    for key in NAMAP:
+        nucleic.update(set(NAMAP.keys()))
     DEFINITIONS['nucleic'] = nucleic
 
     # heteros
