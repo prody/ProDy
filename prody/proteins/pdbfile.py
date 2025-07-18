@@ -197,7 +197,7 @@ def _getPDBid(pdb):
     else:
         raise IOError('{0} is not a valid filename or a valid PDB '
                       'identifier.'.format(pdb))
-    if not (pdbid.isalnum() or eval(long_id_check_str % 12)):
+    if not (pdbid.isalnum() or len(pdbid) == 12 and pdbid.startswith('pdb_') and pdbid[3] == '_'):
         raise IOError('{0} is not a valid filename or a valid PDB '
                       'identifier.'.format(pdb))
     if chain != '' and not chain.isalnum():
