@@ -215,7 +215,8 @@ def _parsePDB(pdb, **kwargs):
         filename = fetchPDB(pdb, **kwargs)
         if filename is None:
             try:
-                LOGGER.warn("Trying to parse mmCIF file instead")
+                if not (eval(long_id_check_str % 12) or eval(long_id_check_str % 13)):
+                    LOGGER.warn("Trying to parse mmCIF file instead")
                 chain = kwargs.pop('chain', chain)
                 return parseMMCIF(pdb+chain, **kwargs)
             except OSError:
