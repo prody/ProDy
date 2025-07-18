@@ -255,6 +255,9 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
     compressed = bool(kwargs.pop('compressed', True))
 
     format = kwargs.get('format', 'pdb')
+    if (eval(long_id_check_str % 12) or eval(long_id_check_str % 13)):
+        format = 'cif'
+
     noatom = bool(kwargs.pop('noatom', False))
     if format == 'pdb':
         extension = '.pdb'
