@@ -1,10 +1,9 @@
-name: Conda Package CI
-
+name: CI
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    # run once for each OS / Python combo
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -13,25 +12,29 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: MatteoH2O1999/setup-python@v2
         with:
-          activate-environment: build-env
-          auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          channels: conda-forge
 
-      - name: Install conda-build and dependencies
-        shell: bash -l {0}
-        run: |
-          conda install -y conda-build boa pip setuptools wheel compilers numpy scipy pyparsing requests biopython
+      - name: Add conda to PATH
+        run: echo $CONDA/bin >> $GITHUB_PATH
 
-      - name: Build package
-        shell: bash -l {0}
+      - name: Install dependencies & build
         run: |
+          conda create -n test python=${{ matrix.python-version }} --yes
+          source activate test
           conda config --add channels conda-forge
-          conda config --set channel_priority strict
-          conda build .
+          conda install --yes numpy scipy nose requests pdbfixer mdtraj openmm
+          conda install -c bioconda --yes clustalw
+          pip install mmtf-python scikit-learn
+          pip install .
+          python setup.py build_ext --inplace --force
+
+      - name: Test with pytest
+        run: |
+          source activate test
+          conda install --yes pytest
+          pytest
