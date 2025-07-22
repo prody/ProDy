@@ -27,7 +27,7 @@ jobs:
           conda create -n test python=${{ matrix.python-version }} --yes
           source activate test
           conda config --add channels conda-forge
-          conda install --yes numpy scipy nose requests pdbfixer mdtraj openmm
+          conda install --yes "numpy<2.0" "pyparsing<=3.1.1" scipy nose requests pdbfixer mdtraj openmm
           conda install -c bioconda --yes clustalw
           pip install mmtf-python scikit-learn
           pip install .
