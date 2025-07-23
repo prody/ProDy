@@ -1,9 +1,11 @@
 name: CI
-on: [push, pull_request, workflow_dispatch]
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
 
 jobs:
   build:
-    # run once for each OS / Python combo
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -12,21 +14,21 @@ jobs:
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: MatteoH2O1999/setup-python@v2
+      - name: Set up Miniforge
+        uses: conda-incubator/setup-miniconda@v2
         with:
+          miniforge-version: "latest"
           python-version: ${{ matrix.python-version }}
-
-      - name: Add conda to PATH
-        run: echo $CONDA/bin >> $GITHUB_PATH
+          activate-environment: test
+          auto-update-conda: true
+          channels: conda-forge
 
       - name: Install dependencies & build
         run: |
-          conda create -n test python=${{ matrix.python-version }} --yes
-          source activate test
-          conda config --add channels conda-forge
+          # test env is already activated
           conda install --yes "numpy<2.0" "pyparsing<=3.1.1" scipy nose requests pdbfixer mdtraj openmm
           conda install -c bioconda --yes clustalw
           pip install mmtf-python scikit-learn
@@ -35,6 +37,5 @@ jobs:
 
       - name: Test with pytest
         run: |
-          source activate test
           conda install --yes pytest
           pytest
