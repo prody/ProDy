@@ -27,15 +27,30 @@ jobs:
           channels: conda-forge
 
       - name: Install dependencies & build
+        shell: bash -l {0}
         run: |
-          # test env is already activated
-          conda install --yes "numpy<2.0" "pyparsing<=3.1.1" scipy nose requests pdbfixer mdtraj openmm
+          conda activate test
+
+          conda install --yes \
+            "numpy<2.0" \
+            "pyparsing<=3.1.1" \
+            scipy \
+            nose \
+            pytest \
+            requests \
+            pdbfixer \
+            mdtraj \
+            openmm
+
           conda install -c bioconda --yes clustalw
+
           pip install mmtf-python scikit-learn
+
           pip install .
           python setup.py build_ext --inplace --force
 
       - name: Test with pytest
+        shell: bash -l {0}
         run: |
-          conda install --yes pytest
+          conda activate test
           pytest
