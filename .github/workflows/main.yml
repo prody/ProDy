@@ -31,6 +31,8 @@ jobs:
         run: |
           conda activate test
 
+          conda install --yes compilers
+          
           conda install --yes \
             "numpy<2.0" \
             "pyparsing<=3.1.1" \
