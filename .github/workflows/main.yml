@@ -31,7 +31,7 @@ jobs:
         run: |
           conda activate test
           
-          conda install --yes compilers
+          conda install --yes -c conda-forge compilers gfortran
 
           conda install --yes \
             "numpy<2.0" \
@@ -55,4 +55,4 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate test
-          pytest --maxfail=1 --disable-warnings -q -k "not testImportHpb"
+          pytest
