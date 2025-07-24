@@ -26,13 +26,11 @@ jobs:
           auto-update-conda: true
           channels: conda-forge
 
-      - name: Install dependencies & build
+      - name: Install dependencies
         shell: bash -l {0}
         run: |
           conda activate test
-          
           conda install --yes -c conda-forge compilers gfortran
-
           conda install --yes \
             "numpy<2.0" \
             "pyparsing<=3.1.1" \
@@ -43,16 +41,45 @@ jobs:
             pdbfixer \
             mdtraj \
             openmm
-
           conda install -c bioconda --yes clustalw
-
           pip install mmtf-python scikit-learn
 
-          pip install .
-          python setup.py build_ext --inplace --force
-
-      - name: Test with pytest (skip the HPB import check)
+      - name: Build & compile HPB (Linux)
+        if: runner.os == 'Linux'
         shell: bash -l {0}
         run: |
           conda activate test
-          pytest
+          pip install -e .
+          python setup.py build_ext --inplace --force
+
+      - name: Build & compile HPB (macOS)
+        if: runner.os == 'macOS'
+        shell: bash -l {0}
+        run: |
+          conda activate test
+
+          export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
+          export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
+
+          pushd prody/proteins/hpbmodule
+
+          gfortran -O3 -fPIC -c reg_tet.f
+
+          PYINC=$(python -c "from distutils.sysconfig import get_python_inc; print(get_python_inc())")
+
+          g++ -O3 -g -fPIC -I"${PYINC}" -c hpbmodule.cpp -o hpbmodule.o
+          g++ -dynamiclib \
+              -undefined dynamic_lookup \
+              -o hpb.so hpbmodule.o reg_tet.o \
+              -lgfortran
+
+          cp hpb.so ../
+          popd
+
+          pip install -e .
+
+      - name: Run tests
+        shell: bash -l {0}
+        run: |
+          conda activate test
+          pytest 
