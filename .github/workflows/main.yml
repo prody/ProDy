@@ -66,6 +66,7 @@ jobs:
           conda activate test
           export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
           export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
+          export FFLAGS="-D__NO_FLOAT16 $FFLAGS"
 
           pushd prody/proteins/hpbmodule
 
