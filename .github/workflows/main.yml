@@ -57,7 +57,7 @@ jobs:
         run: |
           brew update
           brew install gcc
-          brew install
+
 
       - name: Build & compile HPB (macOS)
         if: runner.os == 'macOS'
