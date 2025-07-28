@@ -2,8 +2,10 @@ import os
 from os.path import isfile, join
 import platform
 
-from setuptools import setup
-from setuptools import Extension
+from numpy.distutils.core import setup, Extension
+
+# from setuptools import setup
+# from setuptools import Extension
 
 import shutil
 import sys
