@@ -47,10 +47,10 @@ jobs:
       - name: Set macOS architecture flags
         if: runner.os == 'macOS'
         run: |
-          echo "ARCHFLAGS='-arch x86_64'" >> $GITHUB_ENV
-          echo "CFLAGS='-arch x86_64'" >> $GITHUB_ENV
-          echo "FFLAGS='-arch x86_64'" >> $GITHUB_ENV
-          echo "LDFLAGS='-arch x86_64'" >> $GITHUB_ENV
+          echo "ARCHFLAGS=-arch x86_64" >> $GITHUB_ENV
+          echo "CFLAGS=-arch x86_64" >> $GITHUB_ENV
+          echo "FFLAGS=-arch x86_64" >> $GITHUB_ENV
+          echo "LDFLAGS=-arch x86_64" >> $GITHUB_ENV
 
       - name: Build & compile HPB (Linux)
         if: runner.os == 'Linux'
