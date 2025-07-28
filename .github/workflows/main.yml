@@ -30,7 +30,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate test
-          
+
           conda install --yes compilers
 
           conda install --yes \
@@ -50,6 +50,13 @@ jobs:
 
           pip install -e .
           # python setup.py build_ext --inplace --force
+          
+      - name: Check Fortran compiler
+        shell: bash -l {0}
+        run: |
+          conda activate test
+          which gfortran
+          gfortran --version
 
       - name: Test with pytest (skip the HPB import check)
         shell: bash -l {0}
