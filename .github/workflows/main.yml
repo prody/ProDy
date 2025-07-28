@@ -45,29 +45,31 @@ jobs:
           conda install -c bioconda --yes clustalw
           pip install mmtf-python scikit-learn
 
-      - name: Print macOS architecture and compilers
-        if: runner.os == 'macOS'
-        shell: bash -l {0}
-        run: |
-          echo "macOS version:"
-          sw_vers
-          echo "Architecture:"
-          uname -m
-          echo "CPU Info:"
-          sysctl -n machdep.cpu.brand_string
-          echo "Compiler paths:"
-          which gcc
-          which g++
-          which gfortran
-          gcc --version
-          gfortran --version
-
       - name: Build & compile HPB (Linux)
         if: runner.os == 'Linux'
         shell: bash -l {0}
         run: |
           set -euxo pipefail
           conda activate test
+          export CC="$CONDA_PREFIX/bin/gcc"
+          export CXX="$CONDA_PREFIX/bin/g++"
+          export FC="$CONDA_PREFIX/bin/gfortran"
+
+          pushd prody/proteins/hpbmodule
+
+          gfortran -O3 -fPIC -c reg_tet.f
+          PYINC=$(python -c 'from distutils.sysconfig import get_python_inc; print(get_python_inc())')
+          PYLIBDIR=$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
+
+          export LIBRARY_PATH="$CONDA_PREFIX/lib:$PYLIBDIR:$LIBRARY_PATH"
+
+          g++ -O3 -g -fPIC -I"$PYINC" -c hpbmodule.cpp -o hpbmodule.o
+          g++ -shared -o hpb.so hpbmodule.o reg_tet.o \
+              -L"$PYLIBDIR" -L"$CONDA_PREFIX/lib" -lgfortran
+
+          cp hpb.so ../
+          popd
+
           pip install -e .
           python setup.py build_ext --inplace --force
 
@@ -77,7 +79,6 @@ jobs:
         run: |
           set -euxo pipefail
           conda activate test
-
           export CC="$CONDA_PREFIX/bin/gcc"
           export CXX="$CONDA_PREFIX/bin/g++"
           export FC="$CONDA_PREFIX/bin/gfortran"
@@ -85,7 +86,6 @@ jobs:
           pushd prody/proteins/hpbmodule
 
           gfortran -O3 -fPIC -c reg_tet.f
-
           PYINC=$(python -c 'from distutils.sysconfig import get_python_inc; print(get_python_inc())')
           PYLIBDIR=$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
 
@@ -105,6 +105,5 @@ jobs:
       - name: Run tests
         shell: bash -l {0}
         run: |
-          set -euxo pipefail
           conda activate test
           pytest -v
