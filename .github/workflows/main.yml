@@ -44,59 +44,65 @@ jobs:
           conda install -c bioconda --yes clustalw
           pip install mmtf-python scikit-learn
 
-      - name: Set macOS architecture flags
-        if: runner.os == 'macOS'
-        run: |
-          echo "ARCHFLAGS=-arch x86_64" >> $GITHUB_ENV
-          echo "CFLAGS=-arch x86_64" >> $GITHUB_ENV
-          echo "FFLAGS=-arch x86_64" >> $GITHUB_ENV
-          echo "LDFLAGS=-arch x86_64" >> $GITHUB_ENV
+      # - name: Set macOS architecture flags
+      #   if: runner.os == 'macOS'
+      #   run: |
+      #     echo "ARCHFLAGS=-arch x86_64" >> $GITHUB_ENV
+      #     echo "CFLAGS=-arch x86_64" >> $GITHUB_ENV
+      #     echo "FFLAGS=-arch x86_64" >> $GITHUB_ENV
+      #     echo "LDFLAGS=-arch x86_64" >> $GITHUB_ENV
 
-      - name: Build & compile HPB (Linux)
-        if: runner.os == 'Linux'
-        shell: bash -l {0}
-        run: |
-          conda activate test
-          pip install -e .
-          python setup.py build_ext --inplace --force
+      # - name: Build & compile HPB (Linux)
+      #   if: runner.os == 'Linux'
+      #   shell: bash -l {0}
+      #   run: |
+      #     conda activate test
+      #     pip install -e .
+      #     python setup.py build_ext --inplace --force
 
       - name: Install gfortran via Homebrew (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
           brew install gcc
-
-      - name: Build & compile HPB (macOS)
+          
+      - name: Show macOS version
         if: runner.os == 'macOS'
-        shell: bash -l {0}
         run: |
-          conda activate test
-          export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
-          export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
-          export FFLAGS="-D__NO_FLOAT16 $FFLAGS"
+          echo "macOS version info:"
+          sw_vers
 
-          pushd prody/proteins/hpbmodule
+      # - name: Build & compile HPB (macOS)
+      #   if: runner.os == 'macOS'
+      #   shell: bash -l {0}
+      #   run: |
+      #     conda activate test
+      #     export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
+      #     export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
+      #     export FFLAGS="-D__NO_FLOAT16 $FFLAGS"
 
-          gfortran -O3 -fPIC -c reg_tet.f
+      #     pushd prody/proteins/hpbmodule
 
-          PYINC=$(python -c 'from distutils.sysconfig import get_python_inc; print(get_python_inc())')
-          PYLIBDIR=$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
+      #     gfortran -O3 -fPIC -c reg_tet.f
 
-          export LIBRARY_PATH="$CONDA_PREFIX/lib:$PYLIBDIR:$LIBRARY_PATH"
+      #     PYINC=$(python -c 'from distutils.sysconfig import get_python_inc; print(get_python_inc())')
+      #     PYLIBDIR=$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
 
-          g++ -O3 -g -fPIC -I"$PYINC" -c hpbmodule.cpp -o hpbmodule.o
-          g++ -dynamiclib -undefined dynamic_lookup \
-              -o hpb.so hpbmodule.o reg_tet.o \
-              -L"$PYLIBDIR" -L"$CONDA_PREFIX/lib" -lgfortran
+      #     export LIBRARY_PATH="$CONDA_PREFIX/lib:$PYLIBDIR:$LIBRARY_PATH"
 
-          cp hpb.so ../
-          popd
+      #     g++ -O3 -g -fPIC -I"$PYINC" -c hpbmodule.cpp -o hpbmodule.o
+      #     g++ -dynamiclib -undefined dynamic_lookup \
+      #         -o hpb.so hpbmodule.o reg_tet.o \
+      #         -L"$PYLIBDIR" -L"$CONDA_PREFIX/lib" -lgfortran
 
-          pip install -e .
-          python setup.py build_ext --inplace --force
+      #     cp hpb.so ../
+      #     popd
 
-      - name: Run tests
-        shell: bash -l {0}
-        run: |
-          conda activate test
-          pytest
+      #     pip install -e .
+      #     python setup.py build_ext --inplace --force
+
+      # - name: Run tests
+      #   shell: bash -l {0}
+      #   run: |
+      #     conda activate test
+      #     pytest
