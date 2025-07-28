@@ -44,6 +44,14 @@ jobs:
           conda install -c bioconda --yes clustalw
           pip install mmtf-python scikit-learn
 
+      - name: Set macOS architecture flags
+        if: runner.os == 'macOS'
+        run: |
+          echo "ARCHFLAGS='-arch x86_64'" >> $GITHUB_ENV
+          echo "CFLAGS='-arch x86_64'" >> $GITHUB_ENV
+          echo "FFLAGS='-arch x86_64'" >> $GITHUB_ENV
+          echo "LDFLAGS='-arch x86_64'" >> $GITHUB_ENV
+
       - name: Build & compile HPB (Linux)
         if: runner.os == 'Linux'
         shell: bash -l {0}
@@ -57,7 +65,6 @@ jobs:
         run: |
           brew update
           brew install gcc
-
 
       - name: Build & compile HPB (macOS)
         if: runner.os == 'macOS'
@@ -84,7 +91,7 @@ jobs:
 
           cp hpb.so ../
           popd
-          
+
           pip install -e .
           python setup.py build_ext --inplace --force
 
