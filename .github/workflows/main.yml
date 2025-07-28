@@ -51,9 +51,6 @@ jobs:
         run: |
           set -euxo pipefail
           conda activate test
-          export CC="$CONDA_PREFIX/bin/gcc"
-          export CXX="$CONDA_PREFIX/bin/g++"
-          export FC="$CONDA_PREFIX/bin/gfortran"
 
           pushd prody/proteins/hpbmodule
 
@@ -79,9 +76,6 @@ jobs:
         run: |
           set -euxo pipefail
           conda activate test
-          export CC="$CONDA_PREFIX/bin/gcc"
-          export CXX="$CONDA_PREFIX/bin/g++"
-          export FC="$CONDA_PREFIX/bin/gfortran"
 
           pushd prody/proteins/hpbmodule
 
