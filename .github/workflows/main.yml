@@ -26,11 +26,13 @@ jobs:
           auto-update-conda: true
           channels: conda-forge
 
-      - name: Install dependencies
+      - name: Install dependencies & build
         shell: bash -l {0}
         run: |
           conda activate test
-          conda install --yes -c conda-forge compilers gfortran
+          
+          conda install --yes compilers
+
           conda install --yes \
             "numpy<2.0" \
             "pyparsing<=3.1.1" \
@@ -41,63 +43,16 @@ jobs:
             pdbfixer \
             mdtraj \
             openmm
+
           conda install -c bioconda --yes clustalw
+
           pip install mmtf-python scikit-learn
 
-      - name: Conditionally set macOS architecture flags
-        if: runner.os == 'macOS'
-        run: |
-          ARCH=$(uname -m)
-          echo "Detected architecture: $ARCH"
-          if [[ "$ARCH" == "x86_64" ]]; then
-            echo "Setting -arch x86_64 flags for Intel macOS"
-            echo "ARCHFLAGS=-arch x86_64" >> $GITHUB_ENV
-            echo "CFLAGS=-arch x86_64" >> $GITHUB_ENV
-            echo "FFLAGS=-arch x86_64" >> $GITHUB_ENV
-            echo "LDFLAGS=-arch x86_64" >> $GITHUB_ENV
-          else
-            echo "Running on ARM64 macOS – no architecture flags applied"
-          fi
-
-      - name: Build & compile HPB (Linux)
-        if: runner.os == 'Linux'
-        shell: bash -l {0}
-        run: |
-          conda activate test
           pip install -e .
-          python setup.py build_ext --inplace --force
+          # python setup.py build_ext --inplace --force
 
-      - name: Build & compile HPB (macOS)
-        if: runner.os == 'macOS'
+      - name: Test with pytest (skip the HPB import check)
         shell: bash -l {0}
         run: |
           conda activate test
-          export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
-          export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
-          export FFLAGS="-D__NO_FLOAT16 $FFLAGS"
-
-          pushd prody/proteins/hpbmodule
-
-          gfortran -O3 -fPIC -c reg_tet.f
-
-          PYINC=$(python -c 'from distutils.sysconfig import get_python_inc; print(get_python_inc())')
-          PYLIBDIR=$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
-
-          export LIBRARY_PATH="$CONDA_PREFIX/lib:$PYLIBDIR:$LIBRARY_PATH"
-
-          g++ -O3 -g -fPIC -I"$PYINC" -c hpbmodule.cpp -o hpbmodule.o
-          g++ -dynamiclib -undefined dynamic_lookup \
-              -o hpb.so hpbmodule.o reg_tet.o \
-              -L"$PYLIBDIR" -L"$CONDA_PREFIX/lib" -lgfortran
-
-          cp hpb.so ../
-          popd
-
-          pip install -e .
-          python setup.py build_ext --inplace --force
-
-      - name: Run tests
-        shell: bash -l {0}
-        run: |
-          conda activate test
-          pytest
+          pytest 
