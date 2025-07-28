@@ -71,6 +71,18 @@ jobs:
         run: |
           echo "macOS version info:"
           sw_vers
+          
+      - name: Print compiler paths
+        if: runner.os == 'macOS'
+        shell: bash -l {0}
+        run: |
+          conda activate test
+          echo "gcc -> $(which gcc)"
+          echo "gfortran -> $(which gfortran)"
+          echo "clang -> $(which clang)"
+          echo "gfortran version:"
+          gfortran --version
+
 
       # - name: Build & compile HPB (macOS)
       #   if: runner.os == 'macOS'
