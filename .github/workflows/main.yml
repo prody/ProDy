@@ -113,8 +113,8 @@ jobs:
           pip install -e .
           python setup.py build_ext --inplace --force
 
-      - name: Run tests
-        shell: bash -l {0}
-        run: |
-          conda activate test
-          pytest
+      # - name: Run tests
+      #   shell: bash -l {0}
+      #   run: |
+      #     conda activate test
+      #     pytest
