@@ -17,17 +17,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Set up Miniforge
+      - name: Set up Miniconda (Changed from Miniforge to satisfy 'architecture' input)
         uses: conda-incubator/setup-miniconda@v2
         with:
-          miniforge-version: "latest"
+          miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
           activate-environment: test
           auto-update-conda: true
           channels: conda-forge
-
           architecture: ${{ runner.arch }}
-
 
       - name: Install deps
         shell: bash -l {0}
@@ -65,7 +63,7 @@ jobs:
           echo "CONDA_PREFIX: $CONDA_PREFIX"
           echo "LIBRARY_PATH: $LIBRARY_PATH"
           echo "CPATH: $CPATH"
-          echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH" # macOS specific
+          echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
 
           export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
           export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
@@ -76,11 +74,10 @@ jobs:
           ls -l
 
           echo "Attempting Fortran compilation..."
-      
           gfortran -O3 -fPIC -c reg_tet.f || { echo "Fortran compilation of reg_tet.f failed!"; exit 1; }
           echo "reg_tet.f compiled successfully to reg_tet.o."
-          ls -lh reg_tet.o 
-          file reg_tet.o 
+          ls -lh reg_tet.o
+          file reg_tet.o
 
           PYINC=$(python -c "import sysconfig; print(sysconfig.get_path('include'))")
           PYLIBDIR=$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
@@ -96,7 +93,7 @@ jobs:
           g++ -O3 -g -fPIC -I"${PYINC}" -c hpbmodule.cpp -o hpbmodule.o || { echo "C++ compilation of hpbmodule.cpp failed!"; exit 1; }
           echo "hpbmodule.cpp compiled successfully to hpbmodule.o."
           ls -lh hpbmodule.o
-          file hpbmodule.o 
+          file hpbmodule.o
 
           echo "Attempting HPB linking for macOS..."
           g++ -dynamiclib \
@@ -116,8 +113,8 @@ jobs:
           pip install -e .
           python setup.py build_ext --inplace --force
 
-      # - name: Run tests
-      #   shell: bash -l {0}
-      #   run: |
-      #     conda activate test
-      #     pytest
+      - name: Run tests
+        shell: bash -l {0}
+        run: |
+          conda activate test
+          pytest
