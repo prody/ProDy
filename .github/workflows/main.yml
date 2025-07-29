@@ -26,6 +26,9 @@ jobs:
           auto-update-conda: true
           channels: conda-forge
 
+          platform: ${{ contains(runner.os, 'macOS') && 'osx-arm64' || '' }}
+
+
       - name: Install deps
         shell: bash -l {0}
         run: |
@@ -44,14 +47,12 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate test
-
           pip install -e .
           python setup.py build_ext --inplace --force
-
           echo "Verifying hpb.so file properties on Linux:"
           ls -lh prody/proteins/hpb.so || { echo "hpb.so not found on Linux!"; exit 1; }
           file prody/proteins/hpb.so || { echo "file command failed for hpb.so on Linux!"; exit 1; }
-          ldd prody/proteins/hpb.so || { echo "ldd failed or found issues on Linux!"; exit 1; } # Now fails the step
+          ldd prody/proteins/hpb.so || { echo "ldd failed or found issues on Linux!"; exit 1; }
 
       - name: Build & compile HPB (macOS)
         if: runner.os == 'macOS'
@@ -75,9 +76,11 @@ jobs:
           ls -l
 
           echo "Attempting Fortran compilation..."
+      
           gfortran -O3 -fPIC -c reg_tet.f || { echo "Fortran compilation of reg_tet.f failed!"; exit 1; }
           echo "reg_tet.f compiled successfully to reg_tet.o."
-          ls -lh reg_tet.o # Verify object file creation
+          ls -lh reg_tet.o 
+          file reg_tet.o 
 
           PYINC=$(python -c "import sysconfig; print(sysconfig.get_path('include'))")
           PYLIBDIR=$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
@@ -92,7 +95,8 @@ jobs:
           echo "Attempting C++ compilation..."
           g++ -O3 -g -fPIC -I"${PYINC}" -c hpbmodule.cpp -o hpbmodule.o || { echo "C++ compilation of hpbmodule.cpp failed!"; exit 1; }
           echo "hpbmodule.cpp compiled successfully to hpbmodule.o."
-          ls -lh hpbmodule.o # Verify object file creation
+          ls -lh hpbmodule.o
+          file hpbmodule.o 
 
           echo "Attempting HPB linking for macOS..."
           g++ -dynamiclib \
@@ -101,10 +105,9 @@ jobs:
               -L"${PYLIBDIR}" -L"$CONDA_PREFIX/lib" -lgfortran || { echo "HPB shared library linking failed!"; exit 1; }
           echo "hpb.so linked successfully."
 
-
           echo "Verifying hpb.so file properties (macOS):"
           ls -lh hpb.so || { echo "hpb.so not found after linking!"; exit 1; }
-          file hpb.so || { echo "File type check failed for hpb.so!"; exit 1; } # This is key for 'not an object file'
+          file hpb.so || { echo "File type check failed for hpb.so!"; exit 1; }
           otool -L hpb.so || { echo "otool -L failed or found issues for hpb.so! This usually means it's not a valid Mach-O binary."; exit 1; }
 
           cp hpb.so ../
