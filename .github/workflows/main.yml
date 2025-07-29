@@ -17,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Set up Miniconda (Changed from Miniforge to satisfy 'architecture' input)
+      - name: Set up Miniconda 
         uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
