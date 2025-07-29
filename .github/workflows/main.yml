@@ -49,7 +49,10 @@ jobs:
           pip install mmtf-python scikit-learn
 
           pip install -e .
-          # python setup.py build_ext --inplace --force
+          python setup.py build_ext --inplace --force
+
+          ls prody/proteins/hpb.so || { echo "hpb.so not found!"; exit 1; }
+          echo "hpb.so found successfully!"
           
       - name: Check Fortran compiler
         shell: bash -l {0}
