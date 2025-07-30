@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "numpy>=1.10", "pyparsing<=3.1.1", "scipy"]
+requires = ["setuptools<69", "wheel", "numpy<2.0", "pyparsing<=3.1.1", "scipy"]
 
 requires-python = ">=3.10"
 
