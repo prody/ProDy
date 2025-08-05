@@ -1,0 +1,77 @@
+*>>>>>>>>>>  Parameter file for druggability calculations  <<<<<<<<<<<<<
+*>>>>>>>>>>>>>>>>>>>>>>>> 31 December, 2009 <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+*
+
+! references
+!
+!PROTEINS
+!
+!MacKerell, A.D., Jr,. Feig, M., Brooks, C.L., III, Extending the
+!treatment of backbone energetics in protein force fields: limitations
+!of gas-phase quantum mechanics in reproducing protein conformational
+!distributions in molecular dynamics simulations, Journal of
+!Computational Chemistry, 25: 1400-1415, 2004.
+!
+!MacKerell, Jr., A. D.; Bashford, D.; Bellott, M.; Dunbrack Jr., R.L.;
+!Evanseck, J.D.; Field, M.J.; Fischer, S.; Gao, J.; Guo, H.; Ha, S.;
+!Joseph-McCarthy, D.; Kuchnir, L.; Kuczera, K.; Lau, F.T.K.; Mattos,
+!C.; Michnick, S.; Ngo, T.; Nguyen, D.T.; Prodhom, B.; Reiher, III,
+!W.E.; Roux, B.; Schlenkrich, M.; Smith, J.C.; Stote, R.; Straub, J.;
+!Watanabe, M.; Wiorkiewicz-Kuczera, J.; Yin, D.; Karplus, M.  All-atom
+!empirical potential for molecular modeling and dynamics Studies of
+!proteins.  Journal of Physical Chemistry B, 1998, 102, 3586-3616.
+!
+!
+
+BONDS
+!
+!V(bond) = Kb(b - b0)**2
+!
+!Kb: kcal/mole/A**2
+!b0: A
+!
+!atom type Kb          b0
+!
+
+ANGLES
+!
+!V(angle) = Ktheta(Theta - Theta0)**2
+!
+!V(Urey-Bradley) = Kub(S - S0)**2
+!
+!Ktheta: kcal/mole/rad**2
+!Theta0: degrees
+!Kub: kcal/mole/A**2 (Urey-Bradley)
+!S0: A
+!
+!atom types     Ktheta    Theta0   Kub     S0
+!
+
+NH3  CT1  HA    45.000    107.50   35.00   2.10100 ! ALLOW   ALI POL
+                ! new stretch and bend; methylammonium (KK 03/10/92)
+                ! NH3  CT2  HA
+
+DIHEDRALS
+!
+!V(dihedral) = Kchi(1 + cos(n(chi) - delta))
+!
+!Kchi: kcal/mole
+!n: multiplicity
+!delta: degrees
+!
+!atom types             Kchi    n   delta
+!
+!Neutral N terminus
+
+IMPROPER
+!
+!V(improper) = Kpsi(psi - psi0)**2
+!
+!Kpsi: kcal/mole/rad**2
+!psi0: degrees
+!note that the second column of numbers (0) is ignored
+!
+!atom types           Kpsi                   psi0
+!
+
+END

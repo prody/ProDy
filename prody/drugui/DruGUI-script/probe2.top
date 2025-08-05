@@ -1,0 +1,246 @@
+*  --------------------------------------------------------------------------  *
+*          Topology file for probes used in druggability calculations          *
+*                              31 December, 2009                               *
+*  --------------------------------------------------------------------------  *
+*
+36  1
+
+!  --------------------------------------------------------------------------  !
+!           ATOM NAME     SERIAL NO. SLOTS                                     !
+!                         RESERVED FOR THE ATOMS                               !
+!           Hydrogens        1 --  39                                          !
+!           Carbons         40 --  99                                          !
+!           Nitrogens      100 -- 149                                          !
+!           Oxygens        150 -- 189                                          !
+!           Sulphurs       190 -- 209                                          !
+!           Halogens       210 -- 249                                          !
+!           Miscellaneous  250 -- ---                                          !
+!  --------------------------------------------------------------------------  !
+
+!hydrogens
+MASS     1 H      1.00800 H ! polar H
+MASS     2 HC     1.00800 H ! N-ter H
+MASS     3 HA     1.00800 H ! nonpolar H
+MASS	   4 HT	    1.00800 H ! TIPS3P WATER HYDROGEN
+MASS     7 HR1    1.00800 H ! his he1, (+) his HG,HD2
+MASS     9 HR3    1.00800 H ! neutral his HG, HD2
+MASS    25 CPH1  12.01100 C ! his CG and CD2 carbons
+MASS    26 CPH2  12.01100 C ! his CE1 carbon
+MASS    32 CC    12.01100 C ! carbonyl C, asn,asp,gln,glu,cter,ct2
+MASS    51 NR1   14.00700 N ! neutral his protonated ring nitrogen
+MASS    52 NR2   14.00700 N ! neutral his unprotonated ring nitrogen
+MASS    55 NH2   14.00700 N ! amide nitrogen
+MASS    56 NH3   14.00700 N ! ammonium nitrogen
+MASS    70 O     15.99900 O ! carbonyl oxygen
+MASS    72 OC    15.99900 O ! carboxylate oxygen
+MASS	  75 OT  	 15.99940 O ! TIPS3P WATER OXYGEN
+MASS    22 CT1   12.01100 C ! aliphatic sp3 C for CH
+MASS    24 CT3   12.01100 C ! aliphatic sp3 C for CH3
+MASS    73 OH1   15.99900 O ! hydroxyl oxygen
+MASS   190 CLA  35.450000 CL ! CHLORIDE Anion
+MASS   191 SOD  22.989770 NA ! Sodium Ion
+
+DEFA FIRS NONE LAST NONE
+AUTO ANGLES DIHE
+
+RESI TIP3    	  0.000 ! tip3p water model, generate using noangle nodihedral
+GROUP
+ATOM OH2  OT	 -0.834
+ATOM H1	  HT	  0.417
+ATOM H2	  HT	  0.417
+BOND OH2 H1 OH2 H2 !H1 H2  ! the last bond is needed for shake
+!ANGLE H1 OH2 H2           ! required
+ACCEPTOR OH2
+PATCHING FIRS NONE LAST NONE
+
+RESI CLA      -1.00 ! Chloride Ion
+GROUP
+ATOM CLA  CLA -1.00
+PATCHING FIRST NONE LAST NONE
+
+RESI SOD       1.00 ! Sodium Ion
+GROUP
+ATOM SOD  SOD  1.00
+PATCHING FIRST NONE LAST NONE
+
+RESI IPRO         0.000 ! ATOM TYPES FROM THR
+GROUP
+ATOM C2   CT1     0.181 !  H12  H13  H33 H32
+ATOM H21  HA      0.049 !     \ /      \ /
+GROUP                   ! H11--C1      C3--H31
+ATOM C1   CT3    -0.147 !        \    /
+ATOM H11  HA      0.049 !          C2
+ATOM H12  HA      0.049 !        /    \
+ATOM H13  HA      0.049 !      OH2    H21
+GROUP                   !       |
+ATOM C3   CT3    -0.147 !      HO2
+ATOM H31  HA      0.049
+ATOM H32  HA      0.049
+ATOM H33  HA      0.049
+GROUP
+ATOM OH2  OH1    -0.660
+ATOM HO2  H       0.430
+BOND C2  C1   C2  C3   C2  OH2
+BOND C1  H11  C1  H12  C1  H13
+BOND C2  H21
+BOND C3  H31  C3  H32  C3  H33
+BOND OH2 HO2
+DONOR HO2 OH2
+ACCEPTOR OH2
+IC C1   C2   C3   H31   0.0000  0.000  180.0000  0.000   0.0000
+IC C2   H31  *C3  H32   0.0000  0.000  120.0000  0.000   0.0000
+IC C2   H31  *C3  H33   0.0000  0.000 -120.0000  0.000   0.0000
+IC C3   C2   C1   H11   0.0000  0.000  180.0000  0.000   0.0000
+IC C2   H11  *C1  H12   0.0000  0.000  120.0000  0.000   0.0000
+IC C2   H11  *C1  H13   0.0000  0.000 -120.0000  0.000   0.0000
+IC C1   C3   *C2  OH2   0.0000  0.000  120.0000  0.000   0.0000
+IC C1   C3   *C2  H21   0.0000  0.000 -120.0000  0.000   0.0000
+IC C3   C2   OH2  HO2   0.0000  0.000  180.0000  0.000   0.0000
+
+RESI ACAM         0.000 ! ACETAMIDE, ATOM TYPES FROM GLN
+GROUP
+ATOM C2   CC      0.550 !     H11  O3    H41
+ATOM O3   O      -0.550 !      |   ||   /
+GROUP                   ! H12--C1--C2--N4
+ATOM C1   CT3    -0.147 !      |        \
+ATOM H11  HA      0.049 !     H13        H42
+ATOM H12  HA      0.049
+ATOM H13  HA      0.049
+GROUP
+ATOM N4   NH2    -0.620
+ATOM H41  H       0.320
+ATOM H42  H       0.300
+BOND C2  C1   C2  O3   C2  N4
+BOND C1  H11  C1  H12  C1  H13
+BOND N4  H41  N4  H42
+IMPR C2  N4  C1   O3    C2  C1  N4   O3
+IMPR N4  C2  H41  H42   N4  C2  H42  H41
+DONOR H41 N4
+DONOR H42 N4
+ACCEPTOR O3 C2
+IC  H11 C1  C2  N4     1.0832 113.80  180. 124.70 1.3523
+IC  O3  C2  N4  H41    1.2012 124.70    0. 118.63 0.9929 ! variable 1
+IC  O3  C2  N4  H42    1.2012 124.70  180. 120.92 0.9960 ! variable 3
+IC  H41 N4  C2  C1     1.0016 118.63  180. 115.65 1.5150 ! variable 2
+IC  O3  C2  C1  H11    1.2012 123.27    0. 113.80 1.0832
+IC  O3  C2  C1  H12    1.2012 123.27  120. 108.52 1.0836
+IC  O3  C2  C1  H13    1.2012 123.27  300. 108.52 1.0836
+
+RESI ACTT        -1.000 ! ACETATE, ATOM TYPES FROM GLU
+GROUP
+ATOM C2   CC      0.520 !     H11    O4
+ATOM O3   OC     -0.760 !      |    //
+ATOM O4   OC     -0.760 ! H12--C1--C2
+GROUP                   !      |    \
+ATOM C1   CT3    -0.147 !     H13    O3 (-)
+ATOM H11  HA      0.049
+ATOM H12  HA      0.049
+ATOM H13  HA      0.049
+BOND C2  C1   C2  O3   C2  O4
+BOND C1  H11  C1  H12  C1  H13
+IMPR C2  C1  O3  O4
+IC  O3  C2  C1  H11 0.00 0.00    0.0  0.00 0.00
+IC  C2  H11 *C1 H12 0.00 0.00  120.0  0.00 0.00
+IC  C2  H11 *C1 H13 0.00 0.00 -120.0  0.00 0.00
+IC  C1  O3  *C2 O4  0.00 0.00  180.0  0.00 0.00
+
+RESI IPAM         1.000 ! ISOPROPYLAMINE, ATOM TYPES FROM LYS
+GROUP
+ATOM C2   CT1     0.252 !  H12  H13  H33 H32
+ATOM H21  HA      0.049 !     \ /      \ /
+GROUP                   ! H11--C1      C3--H31
+ATOM C1   CT3    -0.147 !        \    /
+ATOM H11  HA      0.049 !          C2--H21
+ATOM H12  HA      0.049 !        /
+ATOM H13  HA      0.049 ! H41--N4--H43
+GROUP                   !       |
+ATOM C3   CT3    -0.147 !      H42
+ATOM H31  HA      0.049
+ATOM H32  HA      0.049
+ATOM H33  HA      0.049
+GROUP
+ATOM N4   NH3    -0.300
+ATOM H41  HC      0.333
+ATOM H42  HC      0.333
+ATOM H43  HC      0.333
+BOND C2  C1   C2  C3   C2  N4
+BOND C1  H11  C1  H12  C1  H13
+BOND C2  H21
+BOND C3  H31  C3  H32  C3  H33
+BOND N4  H41  N4  H42  N4  H43
+IC  C1  N4  *C2 C3   0.00 0.00  120.0 0.0  0.0
+IC  C1  N4  *C2 H21  0.00 0.00 -120.0 0.0  0.0
+IC  N4  C2  C1  H11  0.00 0.00  180.0 0.0  0.0
+IC  C2  H11 *C1 H12  0.00 0.00  120.0 0.0  0.0
+IC  C2  H11 *C1 H13  0.00 0.00 -120.0 0.0  0.0
+IC  C1  C2  N4  H21  0.00 0.00  180.0 0.0  0.0
+!IC  C2  H21 *N4 H22  0.00 0.00  120.0 0.0  0.0
+!IC  C2  H21 *N4 H23  0.00 0.00 -120.0 0.0  0.0
+IC  C1  C2  C3  H31  0.00 0.00  180.0 0.0  0.0
+IC  C2  H31 *C3 H32  0.00 0.00  120.0 0.0  0.0
+IC  C2  H31 *C3 H33  0.00 0.00 -120.0 0.0  0.0
+
+RESI IBTN         0.000 ! ISOBUTANE
+GROUP
+ATOM C2   CT1    -0.049 !  H12  H13  H33 H32
+ATOM H21  HA      0.049 !     \ /      \ /
+GROUP                   ! H11--C1      C3--H31
+ATOM C1   CT3    -0.147 !        \    /
+ATOM H11  HA      0.049 !          C2--H21
+ATOM H12  HA      0.049 !        /
+ATOM H13  HA      0.049 ! H41--C4--H43
+GROUP                   !       |
+ATOM C3   CT3    -0.147 !      H42
+ATOM H31  HA      0.049
+ATOM H32  HA      0.049
+ATOM H33  HA      0.049
+GROUP
+ATOM C4   CT3    -0.147
+ATOM H41  HA      0.049
+ATOM H42  HA      0.049
+ATOM H43  HA      0.049
+BOND C2  C1   C2  C3   C2  C4
+BOND C1  H11  C1  H12  C1  H13
+BOND C2  H21
+BOND C3  H31  C3  H32  C3  H33
+BOND C4  H41  C4  H42  C4  H43
+IC  C1  C4  *C2 C3   0.00 0.00  120.0 0.0  0.0
+IC  C1  C4  *C2 H21  0.00 0.00 -120.0 0.0  0.0
+IC  C4  C2  C1  H11  0.00 0.00  180.0 0.0  0.0
+IC  C2  H11 *C1 H12  0.00 0.00  120.0 0.0  0.0
+IC  C2  H11 *C1 H13  0.00 0.00 -120.0 0.0  0.0
+IC  C1  C2  C4  H21  0.00 0.00  180.0 0.0  0.0
+!IC  C2  H21 *C4 H22  0.00 0.00  120.0 0.0  0.0
+!IC  C2  H21 *C4 H23  0.00 0.00 -120.0 0.0  0.0
+IC  C1  C2  C3  H31  0.00 0.00  180.0 0.0  0.0
+IC  C2  H31 *C3 H32  0.00 0.00  120.0 0.0  0.0
+IC  C2  H31 *C3 H33  0.00 0.00 -120.0 0.0  0.0
+
+RESI IMID         0.00  ! neutral HIS, proton on ND1
+ATOM ND1  NR1    -0.36  !          HD1    HE1
+ATOM HD1  H       0.32  !           |     /
+ATOM CG   CPH1   -0.05  !          ND1--CE1
+ATOM HG1  HR3     0.09  !         /      ||
+ATOM CE1  CPH2    0.25  !  HG1--CG       ||
+ATOM HE1  HR1     0.13  !         \\     ||
+ATOM NE2  NR2    -0.70  !          CD2--NE2
+ATOM CD2  CPH1    0.22  !           |
+ATOM HD2  HR3     0.10  !          HD2
+BOND ND1 CG   CE1 ND1  NE2 CD2
+BOND ND1 HD1  CD2 HD2  CE1 HE1
+DOUBLE CG  CD2   CE1  NE2 HG1  CG
+IMPR ND1 CG CE1 HD1  CD2 CG  NE2 HD2  CE1 ND1 NE2 HE1
+IMPR ND1 CE1 CG HD1  CD2 NE2 CG  HD2  CE1 NE2 ND1 HE1
+DONOR HN N
+DONOR HD1 ND1
+ACCEPTOR NE2
+ACCEPTOR O C
+IC ND1  HG1  *CG  CD2   1.3783 124.1000 -171.2900 129.6000  1.3597
+IC HG1  CG   ND1  CE1   1.5041 124.1000 -173.2100 107.0300  1.3549
+IC HG1  CG   CD2  NE2   1.5041 129.6000  171.9900 110.0300  1.3817
+IC NE2  ND1  *CE1 HE1   1.3166 111.6300 -179.6300 123.8900  1.0932
+IC CE1  CG   *ND1 HD1   1.3549 107.0300 -174.6500 126.2600  1.0005
+IC NE2  CG   *CD2 HD2   1.3817 110.0300 -177.8500 129.6300  1.0834
+
+END
+
