@@ -114,6 +114,11 @@ from .dynamics import *
 __all__.extend(dynamics.__all__)
 __all__.append('dynamics')
 
+from . import drugui
+from .drugui import *
+__all__.extend(drugui.__all__)
+__all__.append('drugui')
+
 from . import ensemble
 from .ensemble import *
 __all__.extend(ensemble.__all__)
