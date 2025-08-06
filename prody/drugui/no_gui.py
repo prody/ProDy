@@ -187,7 +187,7 @@ def drugui_prepare(pdb, psf, **kwargs):
     sim_length = kwargs.pop('sim_length', 40)
     outdir_location = kwargs.pop('outdir_location', "")
     constrain = kwargs.pop("constrain", "heavy")
-    vmd = kwargs.pop("vmd","/Applications/VMD1.9.4a57-arm64-Rev12.app/Contents/vmd/vmd_MACOSXARM64")
+    vmd = kwargs.pop("vmd","")
     additional_parameters = kwargs.pop("additional_parameters", [])
     drugui_data(vmd)
 
@@ -212,8 +212,11 @@ def drugui_prepare(pdb, psf, **kwargs):
     if protein_pdb == "" or protein_psf == "":
         raise ValueError("ERROR", "Both PSF and PDB files must be specified.")
     
-    if prefix =="":
+    if prefix == "":
         raise ValueError("ERROR", "Prefix must not be left blank.")
+
+    if vmd == "":
+        raise ValueError("ERROR", "The location of your VMD executable is needed to setup druggability simulations.")
 
     par_files_list = [
     "probe.prm", "par_all36_cgenff.prm", "par_all27_prot_lipid_na.inp",

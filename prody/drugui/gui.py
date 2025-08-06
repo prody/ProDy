@@ -864,6 +864,9 @@ class DruGUI:
 
             if prefix == "":
                 messagebox.showerror("ERROR", "Prefix must not be left blank")
+
+            if vmd =="":
+                messagebox.showerror("ERROR", "The location of your VMD executable is needed to setup druggability simulations.")
                 
             drugui_title = self.root.wm_title()
             intermediate = os.path.join(Druggability_path, "intermediate")
