@@ -70,18 +70,34 @@ def alignBioPairwise(a_sequence, b_sequence,
     :arg max_alignments: maximum number of alignments to extract
     :type max_alignments: int
     """
-    import numpy as np
-
     try:
         from Bio.Align import PairwiseAligner
         
-        aligner = PairwiseAligner()
-        aligner.mode = ALIGNMENT_METHOD
-        aligner.match_score = MATCH_SCORE
-        aligner.mismatch_score = MISMATCH_SCORE
-        aligner.open_internal_gap_score = GAP_PENALTY
-        aligner.extend_internal_gap_score = GAP_EXT_PENALTY
-        alns = aligner.align(a_sequence, b_sequence)
+        try:
+            aligner = PairwiseAligner()
+            aligner.mode = ALIGNMENT_METHOD
+            aligner.match_score = MATCH_SCORE
+            aligner.mismatch_score = MISMATCH_SCORE
+            aligner.open_internal_gap_score = GAP_PENALTY
+            aligner.extend_internal_gap_score = GAP_EXT_PENALTY
+            alns = aligner.align(a_sequence, b_sequence)
+        except AttributeError:
+            try:
+                aligner = PairwiseAligner()
+                aligner.mode = ALIGNMENT_METHOD
+                aligner.match_score = MATCH_SCORE
+                aligner.mismatch_score = MISMATCH_SCORE
+                aligner.open_gap_score = GAP_PENALTY
+                aligner.extend_gap_score = GAP_EXT_PENALTY
+                alns = aligner.align(a_sequence, b_sequence)
+            except AttributeError:
+                aligner = PairwiseAligner()
+                aligner.mode = ALIGNMENT_METHOD
+                aligner.match_score = MATCH_SCORE
+                aligner.mismatch_score = MISMATCH_SCORE
+                aligner.open_internal_insertion_score = GAP_PENALTY
+                aligner.extend_internal_insertion_score = GAP_EXT_PENALTY
+                alns = aligner.align(a_sequence, b_sequence)
 
         results = []
 
