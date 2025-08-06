@@ -317,7 +317,7 @@ class DCDFile(TrajFile):
             n_atoms = self._n_atoms
             n_csets = self._n_csets
             data = self._file.read(self._itemsize * n_floats * n_csets)
-            data = frombuffer(data, self._dtype)
+            data = frombuffer(data, self._dtype).copy()
             if len(data) > n_floats * n_csets:
                 n_csets = len(data)/n_floats
                 data = data[:n_csets]
