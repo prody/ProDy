@@ -9,10 +9,9 @@ import subprocess
 import shutil
 import glob
 
-PACKAGE_PATH = 'ProDy/prody/drugui/DruGUI-script'
+PACKAGE_PATH = '/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script'
 
 import sys
-from code import interact
 import ast
 
 if PACKAGE_PATH:
@@ -24,8 +23,6 @@ except ImportError:
                       'to proceed with calculation'.format(__file__))
 
 from numpy import array, ceil, histogramdd, arange
-
-#from prody import plog, startLogfile, closeLogfile
 from prody.proteins.compare import matchAlign
 from prody.proteins.pdbfile import parsePDB, writePDB
 from prody.measure.measure import calcCenter
@@ -35,6 +32,8 @@ from prody.trajectory.psffile import parsePSF
 from prody.trajectory.trajectory import Trajectory
 
 from druggability.grid import OpenDX
+
+__all__ = ['runGUI']
 
 class DruGUI:
     def __init__(self):
@@ -104,7 +103,7 @@ class DruGUI:
         "ring6": "6-membered rings"
         }
         self.PROBEDATA = {}
-        os.chdir('ProDy/prody/drugui/DruGUI-script')
+        os.chdir('/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script')
         self.Druggability_path = os.getcwd()
 
         # Define the main dropdown menu options and view functions
@@ -226,7 +225,6 @@ class DruGUI:
         different_probe_var = tk.BooleanVar(value=False)
 
         def update_probe_type():
-            saved_probes = [] 
             if core_probe_var.get(): 
                 self.probe01_type
                 self.probe02_type
@@ -820,7 +818,6 @@ class DruGUI:
             boundary=self.boundary_padding.get()
             padding=self.solvent_padding.get()
             constrain = "heavy"
-            general = 1
             vmd = self.tk_vmd_executable.get()
             global write_conf
 
@@ -838,7 +835,7 @@ class DruGUI:
             if self.percent_total.get() == 0:
                 Probes = False
 
-            os.chdir('/Users/carlosventura/Desktop/druggability/openmm')
+            os.chdir('/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script')
 
             Druggability_path = os.getcwd()
 

@@ -7,12 +7,9 @@ import subprocess
 import shutil
 import glob
 
-from pathlib import Path
-
-PACKAGE_PATH = 'ProDy/prody/drugui/DruGUI-script'
+PACKAGE_PATH = '/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script'
 
 import sys
-from code import interact
 import ast
 
 if PACKAGE_PATH:
@@ -35,13 +32,13 @@ from prody.trajectory.trajectory import Trajectory
 
 from druggability.grid import OpenDX
 
-    
+__all__ = ['runNO_GUI']
 
 def drugui_data(vmd_executable):
     """Prepares the nessecary files needed for both preparing and analyzing druggability simulations"""
 
 
-    os.chdir('/Users/carlosventura/Desktop/druggability/openmm')
+    os.chdir('/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script')
     Druggability_path = os.getcwd()
     global PROBEDATA
     global PROBETYPES
@@ -190,7 +187,7 @@ def drugui_prepare(pdb, psf, **kwargs):
     additional_parameters = kwargs.pop("additional_parameters", [])
     drugui_data(vmd)
 
-    os.chdir('ProDy/prody/drugui/DruGUI-script')
+    os.chdir('/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script')
 
     Druggability_path = os.getcwd()
 
