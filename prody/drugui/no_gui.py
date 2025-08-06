@@ -25,7 +25,6 @@ except ImportError:
 
 from numpy import array, ceil, histogramdd, arange
 
-from prody import plog, startLogfile, closeLogfile
 from prody.proteins.compare import matchAlign
 from prody.proteins.pdbfile import parsePDB, writePDB
 from prody.measure.measure import calcCenter
@@ -1516,6 +1515,7 @@ def drugui_analysis(pdb, psf, dcds, **kwargs):
         for p in probes:
             DCDOUT[p] = DCDFile(prefix + '_' + p + '.dcd', 'w')
 
+        from prody import startLogfile
         startLogfile(prefix + '_grid.log')
 
         pdb, psf = pdb_psf_dcds[0][:2]
@@ -1528,6 +1528,7 @@ def drugui_analysis(pdb, psf, dcds, **kwargs):
         pcenter = calcCenter(palign)
 
         # make sure all probe names select some residues
+        from prody import plog
         probe_selstr = 'noh and resname'
         for p in probes:
             sel = pdb.select('noh and resname ' + p)
@@ -1629,6 +1630,7 @@ def drugui_analysis(pdb, psf, dcds, **kwargs):
             grid.write(fn + '.dx')
             probe_grids.append((p, fn + '.dx'))
 
+        from prody import closeLogfile
         closeLogfile(prefix + '_grid.log')
         return probe_grids
 
