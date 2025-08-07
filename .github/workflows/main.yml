@@ -33,7 +33,7 @@ jobs:
           conda activate test
           conda install --yes -c conda-forge compilers gfortran
           conda install --yes \
-            "numpy<2.0" \
+            "numpy" \
             "pyparsing<=3.1.1" \
             scipy  nose  pytest  requests \
             pdbfixer  mdtraj  openmm
