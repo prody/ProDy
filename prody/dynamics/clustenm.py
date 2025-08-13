@@ -739,7 +739,7 @@ class ClustENM(Ensemble):
         confs_cg = confs_ex[:, self._idx_cg]
         
         if self._fitmap is not None:
-            self._cc_prev = max(self._cc)
+            self._cc_prev = max(max(ccList), max(self._cc))
             LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(confs_ex)))
 
         if len(confs_cg) > 1:
@@ -753,11 +753,11 @@ class ClustENM(Ensemble):
             confs_centers, wei = confs_ex, [len(confs_ex)]
 
         if self._fitmap is not None:
-            self._cc_prev = max(self._cc)
-            LOGGER.info('Best CC is %f from %d conformers after clustering' % (self._cc_prev, len(confs_centers)))
             if len(confs_cg) > 1:
                 ccList = list(np.array(ccList)[centers])
             self._cc.extend(ccList)
+            self._cc_prev = max(self._cc)
+            LOGGER.info('Best CC is %f from %d conformers after clustering' % (self._cc_prev, len(confs_centers)))
         return confs_centers, wei
 
     def _outliers(self, arg):
