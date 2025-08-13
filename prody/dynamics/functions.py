@@ -599,6 +599,9 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         eigvals = modes.getEigvals()
         eigvecs /= np.array([((eigvecs[:, i]) ** 2).sum() ** 0.5
                              for i in range(eigvecs.shape[1])])
+
+        if isinstance(modes, ModeSet):
+            modes = NMA()
         modes.setEigens(eigvecs, eigvals)
 
     if modes.numModes() > 1:
