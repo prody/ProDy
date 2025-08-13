@@ -596,12 +596,12 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
 
     if norm:
         eigvecs = modes.getEigvecs()
-        eigvecs /= np.array([((evecs[:, i]) ** 2).sum() ** 0.5
-                             for i in range(evecs.shape[1])])
+        eigvals = modes.getEigvals()
+        eigvecs /= np.array([((eigvecs[:, i]) ** 2).sum() ** 0.5
+                             for i in range(eigvecs.shape[1])])
         modes.setEigens(eigvecs, eigvals)
 
     if modes.numModes() > 1:
-        order = modes.getIndices()
         collectivities = list(calcCollectivity(modes))
         eigvals = modes.getEigvals()
         enabled = [1 if eigval > ZERO and collectivities[i] > collectivityThreshold else -1
@@ -612,7 +612,6 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         mode = modes[0]
         eigvals = np.array([mode.getEigval()])
         collectivities = [calcCollectivity(mode)]
-        order = [mode.getIndex()]
         enabled = [1 if mode.getEigval() > ZERO and collectivities[0] > collectivityThreshold else -1]
         if scores is None:
             scores = [calcScipionScore(mode)[0]]
