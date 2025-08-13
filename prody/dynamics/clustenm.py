@@ -1185,7 +1185,9 @@ class ClustENM(Ensemble):
                 self._maxclust = (0,) + (maxclust,) * n_gens
 
             if len(self._maxclust) != self._n_gens + 1:
-                raise ValueError('size mismatch: %d generations were set; %d maxclusts were given' % (self._n_gens + 1, self._maxclust))
+                raise ValueError(
+                    'size mismatch: %d generations were set; %d maxclusts were given' % (
+                        self._n_gens + 1, len(self._maxclust)))
 
         if threshold is None:
             self._threshold = None
