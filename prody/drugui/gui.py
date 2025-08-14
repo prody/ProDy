@@ -8,20 +8,27 @@ import os
 import subprocess
 import shutil
 import glob
-
-PACKAGE_PATH = '/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script'
-
 import sys
 import ast
+from pathlib import Path
+import importlib
 
-if PACKAGE_PATH:
-    sys.path.append(PACKAGE_PATH)
+current_dir = Path(__file__).resolve().parent
+
+package_dir = current_dir / "DruGUI-script"
+
+if package_dir.is_dir() and str(package_dir) not in sys.path:
+    sys.path.insert(0, str(package_dir)) 
+
 try:
-    from druggability import *
-except ImportError:
-    raise ImportError('druggability package was not found. Edit {0:s} '
-                      'to proceed with calculation'.format(__file__))
+    druggability = importlib.import_module("druggability")
+except ImportError as e:
+    raise ImportError(
+        f"Could not import 'druggability' from {package_dir}. "
+        f"({e})"
+    )
 
+from prody import LOGGER, plog, closeLogfile, startLogfile
 from numpy import array, ceil, histogramdd, arange
 from prody.proteins.compare import matchAlign
 from prody.proteins.pdbfile import parsePDB, writePDB
@@ -2538,7 +2545,6 @@ class DruGUI:
                 for p in probes:
                     DCDOUT[p] = DCDFile(prefix + '_' + p + '.dcd', 'w')
 
-                from prody import startLogfile
                 startLogfile(prefix + '_grid.log')
 
                 pdb, psf = pdb_psf_dcds[0][:2]
@@ -2551,7 +2557,6 @@ class DruGUI:
                 pcenter = calcCenter(palign)
 
                 # make sure all probe names select some residues
-                from prody import plog
                 probe_selstr = 'noh and resname'
                 for p in probes:
                     sel = pdb.select('noh and resname ' + p)
@@ -2588,7 +2593,6 @@ class DruGUI:
                 pcontact = pdb.select('protein')
                 writePDB(prefix + '_protein_heavyatoms.pdb', pcontact)
 
-                from prody import LOGGER
                 LOGGER.progress('Evaluating frames:', len(dcd))
                 if savedcd:
                     dcdout = DCDFile(pdb.getTitle() + '_aligned_wrapped.dcd', 'w')
@@ -2653,7 +2657,6 @@ class DruGUI:
                     grid.write(fn + '.dx')
                     probe_grids.append((p, fn + '.dx'))
 
-                from prody import closeLogfile
                 closeLogfile(prefix + '_grid.log')
                 return probe_grids
 

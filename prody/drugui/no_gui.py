@@ -6,22 +6,27 @@ import os
 import subprocess
 import shutil
 import glob
-
-PACKAGE_PATH = '/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script'
-
 import sys
 import ast
+from pathlib import Path
+import importlib
 
-if PACKAGE_PATH:
-    sys.path.append(PACKAGE_PATH)
+current_dir = Path(__file__).resolve().parent
+
+package_dir = current_dir / "DruGUI-script"
+
+if package_dir.is_dir() and str(package_dir) not in sys.path:
+    sys.path.insert(0, str(package_dir)) 
+
 try:
-    from druggability import *
-except ImportError:
-    raise ImportError('druggability package was not found. Edit {0:s} '
-                      'to proceed with calculation'.format(__file__))
+    druggability = importlib.import_module("druggability")
+except ImportError as e:
+    raise ImportError(
+        f"Could not import 'druggability' from {package_dir}. "
+        f"({e})"
+    )
 
 from numpy import array, ceil, histogramdd, arange
-
 from prody.proteins.compare import matchAlign
 from prody.proteins.pdbfile import parsePDB, writePDB
 from prody.measure.measure import calcCenter
