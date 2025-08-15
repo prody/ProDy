@@ -14,7 +14,7 @@ from .localpdb import fetchPDB
 from .header import (Chemical, Polymer, DBRef, _PDB_DBREF,
                      cleanString)
 
-from .starfile import parseSTARSection
+from .starfile import parseSTARSection, parseSTARLines, StarDict
 
 __all__ = ['parseCIFHeader', 'getCIFHeaderDict']
 
@@ -178,6 +178,21 @@ def getCIFHeaderDict(stream, *keys, **kwargs):
         for poly in header.get('polymers', []):
             poly.pdbentry = pdbid
             header[poly.chid] = poly
+
+        filename = stream.name if hasattr(stream, 'name') else ''
+
+        parsingDict1, prog = parseSTARLines(lines, shlex=True,
+            stop_field='_atom_site.group_PDB')
+        header['starDict1'] = StarDict(
+            parsingDict1, prog, filename)
+
+        parsingDict2, prog = parseSTARLines(lines, shlex=True,
+            start_field='_atom_site.group_PDB')
+        starDict2 = StarDict(
+            parsingDict2, prog, filename)
+        starDict2[0].pop(0)
+        header['starDict2'] = starDict2
+
         return header
 
 
