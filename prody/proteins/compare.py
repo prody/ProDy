@@ -968,6 +968,7 @@ def mapChainOntoChain(mobile, target, **kwargs):
     coverage = kwargs.get('coverage', coverage) 
     pwalign = kwargs.get('pwalign', 'auto')
     pwalign = kwargs.get('mapping', pwalign)
+    label = kwargs.get('label', None)
     alignment = None
 
     if isinstance(pwalign, basestring):
@@ -1044,7 +1045,7 @@ def mapChainOntoChain(mobile, target, **kwargs):
                 result = getAlignedMapping(simple_target, simple_mobile)
             else:
                 if isinstance(alignment, dict):
-                    result = getDictMapping(simple_target, simple_mobile, alignment)
+                    result = getDictMapping(simple_target, simple_mobile, alignment, label)
                 else:
                     result = getAlignedMapping(simple_target, simple_mobile, alignment)
 
@@ -1284,17 +1285,21 @@ def getTrivialMapping(target, chain):
 
     return target_list, chain_list, n_match, n_mapped
 
-def getDictMapping(target, chain, map_dict):
+def getDictMapping(target, chain, map_dict, label=None):
     """Returns lists of matching residues (based on *map_dict*)."""
 
-    pdbid = chain._chain.getTitle()[:4].lower()
-    chid = chain._chain.getChid().upper()
-    key = pdbid + chid
-
-    mapping = map_dict.get(key)
-    if mapping is None:
-        LOGGER.warn('map_dict does not have the mapping for {0}'.format(key))
-        return None
+    try:
+        key = label
+        mapping = map_dict[key]
+    except KeyError:
+        try:
+            pdbid = chain._chain.getTitle()[:4].lower()
+            chid = chain._chain.getChid().upper()
+            key = pdbid + chid
+            mapping = map_dict[key]
+        except KeyError:
+            LOGGER.warn('map_dict does not have the mapping for {0}'.format(key))
+            return None
 
     tar_indices = mapping[0]
     chn_indices = mapping[1]
@@ -1312,13 +1317,13 @@ def getDictMapping(target, chain, map_dict):
             try:
                 n = index(tar_indices, i)
             except IndexError:
-                LOGGER.warn('\nthe number of residues in the map_dict ({0} residues) is inconsistent with {2} ({1} residues)'
+                LOGGER.warn('the number of residues in the map_dict ({0} residues) is inconsistent with {2} ({1} residues)'
                             .format(max(tar_indices)+1, len(chain_res_list), target.getTitle()))
                 return None
             try:
                 b = chain_res_list[chn_indices[n]]
             except IndexError:
-                LOGGER.warn('\nthe number of residues in the map_dict ({0} residues) is inconsistent with {2} ({1} residues)'
+                LOGGER.warn('the number of residues in the map_dict ({0} residues) is inconsistent with {2} ({1} residues)'
                             .format(max(chn_indices)+1, len(chain_res_list), chain.getTitle()))
                 return None
             bres = b.getResidue()
