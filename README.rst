@@ -1,8 +1,11 @@
 .. image:: https://img.shields.io/github/actions/workflow/status/prody/prody/main.yml
+   :target: https://github.com/prody/ProDy/actions/workflows/main.yml
 
 .. image:: https://anaconda.org/conda-forge/prody/badges/version.svg
+   :target: https://anaconda.org/conda-forge/prody
 
-.. image:: https://anaconda.org/conda-forge/prody/badges/downloads.svg
+.. image:: https://img.shields.io/pypi/v/ProDy.svg
+   :target: https://pypi.org/project/ProDy/
 
 SYNOPSIS
 ProDy is a free and open-source Python package for protein structure, dynamics,

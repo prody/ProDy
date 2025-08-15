@@ -51,7 +51,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "http://www.csb.pitt.edu/ProDy"
+Homepage = "http://www.bahargroup.org/prody"
+Documentation = "http://www.bahargroup.org/prody/tutorials.html"
+Source = "https://github.com/prody/ProDy"
+CondaForge = "https://conda.anaconda.org/conda-forge"
 
 [project.scripts]
 # Defines the console scripts and their entry points.
