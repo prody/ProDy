@@ -121,6 +121,9 @@ def parsePDB(*pdb, **kwargs):
 
     :arg long_chid: whether to parse longer chain ids instead of cutting at 2 chars
     :type long_chid: bool
+
+    :arg packmol: whether to renumber chains like packmol, default is False
+    :type packmol: bool
     """
     extend_biomol = kwargs.pop('extend_biomol', False)
 
