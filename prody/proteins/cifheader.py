@@ -207,16 +207,26 @@ def _getBiomoltrans(lines):
             operators = oper_expression.split(',')
         elif (oper_expression.startswith('(')
               and np.count_nonzero(np.array(list(oper_expression))=='(') == 1
-              and oper_expression.find('-') != -1
+              and oper_expression.find('-') != -1 and oper_expression.find(',') == -1
               and oper_expression.endswith(')')):
             firstOperator = int(oper_expression.split('(')[1].split('-')[0])-1
             lastOperator = int(oper_expression.split('-')[1].split(')')[0])
-            operators = range(firstOperator, lastOperator)
+            operators = list(range(firstOperator, lastOperator))
         elif (oper_expression.startswith('(')
               and np.count_nonzero(np.array(list(oper_expression))=='(') == 1
-              and oper_expression.find(',') != -1
+              and oper_expression.find(',') != -1 and oper_expression.find('-') == -1
               and oper_expression.endswith(')')):
             operators = oper_expression[1:-1].split(',')
+        elif (oper_expression.startswith('(')
+              and np.count_nonzero(np.array(list(oper_expression))=='(') == 1
+              and oper_expression.find(',') != -1 and oper_expression.find('-') != -1
+              and oper_expression.endswith(')')):
+            operator_groups = oper_expression[1:-1].split(',')
+            operators = []
+            for group in operator_groups:
+                firstOperator = int(group.split('(')[1].split('-')[0])-1
+                lastOperator = int(group.split('-')[1].split(')')[0])
+                operators.extend(list(range(firstOperator, lastOperator)))
         else:
             operators = []
         for oper in operators:
