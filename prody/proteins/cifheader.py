@@ -191,6 +191,7 @@ def _getBiomoltrans(lines):
     # _pdbx_struct_oper_list: everything else
     data1 = parseSTARSection(lines, '_pdbx_struct_assembly_gen', report=False)
     data2 = parseSTARSection(lines, '_pdbx_struct_oper_list', report=False)
+    data2 = {item['_pdbx_struct_oper_list.id']: item for item in data2}
 
     # extracting the data
     for _, item1 in enumerate(data1):
@@ -203,36 +204,37 @@ def _getBiomoltrans(lines):
         biomt = biomolecule[currentBiomolecule]
 
         oper_expression = item1["_pdbx_struct_assembly_gen.oper_expression"]
-        if oper_expression[0].isnumeric():
+        oper_expr_array = np.array(list(oper_expression))
+        if np.count_nonzero(oper_expr_array=='(') == 0:
             operators = oper_expression.split(',')
         elif (oper_expression.startswith('(')
-              and np.count_nonzero(np.array(list(oper_expression))=='(') == 1
+              and np.count_nonzero(oper_expr_array=='(') == 1
               and oper_expression.find('-') != -1 and oper_expression.find(',') == -1
               and oper_expression.endswith(')')):
-            firstOperator = int(oper_expression.split('(')[1].split('-')[0])-1
-            lastOperator = int(oper_expression.split('-')[1].split(')')[0])
-            operators = list(range(firstOperator, lastOperator))
+            firstOperator = int(oper_expression.split('(')[1].split('-')[0])
+            lastOperator = int(oper_expression.split('-')[1].split(')')[0])+1
+            operators = list([str(oper) for oper in range(firstOperator, lastOperator)])
         elif (oper_expression.startswith('(')
-              and np.count_nonzero(np.array(list(oper_expression))=='(') == 1
+              and np.count_nonzero(oper_expr_array=='(') == 1
               and oper_expression.find(',') != -1 and oper_expression.find('-') == -1
               and oper_expression.endswith(')')):
             operators = oper_expression[1:-1].split(',')
         elif (oper_expression.startswith('(')
-              and np.count_nonzero(np.array(list(oper_expression))=='(') == 1
+              and np.count_nonzero(oper_expr_array=='(') == 1
               and oper_expression.find(',') != -1 and oper_expression.find('-') != -1
               and oper_expression.endswith(')')):
             operator_groups = oper_expression[1:-1].split(',')
             operators = []
             for group in operator_groups:
-                firstOperator = int(group.split('(')[1].split('-')[0])-1
-                lastOperator = int(group.split('-')[1].split(')')[0])
-                operators.extend(list(range(firstOperator, lastOperator)))
+                firstOperator = int(group.split('(')[1].split('-')[0])
+                lastOperator = int(group.split('-')[1].split(')')[0])+1
+                operators.extend([str(oper) for oper in range(firstOperator, lastOperator)])
         else:
             operators = []
         for oper in operators:
             biomt.append(applyToChains)
 
-            item2 = data2[int(oper)-1]
+            item2 = data2[oper]
 
             for i in range(1,4):
                 biomt.append(" ".join([
