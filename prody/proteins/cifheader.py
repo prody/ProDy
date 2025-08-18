@@ -206,6 +206,7 @@ def _getBiomoltrans(lines):
         if oper_expression[0].isnumeric():
             operators = oper_expression.split(',')
         elif (oper_expression.startswith('(')
+              and np.count_nonzero(np.array(list(oper_expression))=='(') == 1
               and oper_expression.find('-') != -1
               and oper_expression.endswith(')')):
             firstOperator = int(oper_expression.split('(')[1].split('-')[0])-1
