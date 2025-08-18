@@ -8,7 +8,7 @@ import os.path
 from prody import LOGGER
 from prody.atomic import flags, AAMAP
 from prody.atomic.atomic import invAAMAP
-from prody.utilities import openFile, alignBioPairwise, GAP_EXT_PENALTY
+from prody.utilities import openFile
 
 from .localpdb import fetchPDB
 from .header import (Chemical, Polymer, DBRef, _PDB_DBREF,
@@ -193,7 +193,7 @@ def _getBiomoltrans(lines):
     data2 = parseSTARSection(lines, '_pdbx_struct_oper_list', report=False)
 
     # extracting the data
-    for n, item1 in enumerate(data1):
+    for _, item1 in enumerate(data1):
         currentBiomolecule = item1["_pdbx_struct_assembly_gen.assembly_id"]
         applyToChains = []
 
