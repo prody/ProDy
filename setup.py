@@ -81,6 +81,12 @@ for ext in CONTRIBUTED:
 # This call is now minimal. It only provides the extension modules to setuptools.
 # All other configuration is automatically picked up from pyproject.toml.
 if __name__ == "__main__":
+
+    with open('README.md', 'r', encoding='utf-8') as fh:
+        long_description = fh.read()
+
     setup(
         ext_modules=EXTENSIONS,
+        long_description=long_description,
+        long_description_content_type='text/markdown',
     )
