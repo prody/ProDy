@@ -182,69 +182,135 @@ def getCIFHeaderDict(stream, *keys, **kwargs):
 
 
 def _getBiomoltrans(lines):
+    from itertools import product
 
-    
+    data1 = parseSTARSection(lines, '_pdbx_struct_assembly_gen', report=False)
+    data2_list = parseSTARSection(lines, '_pdbx_struct_oper_list', report=False)
+
+    # op id -> (R, t)
+    op_table = {}
+    for row in data2_list:
+        op_id = row['_pdbx_struct_oper_list.id']
+        R = np.array([
+            [float(row["_pdbx_struct_oper_list.matrix[1][1]"]),
+             float(row["_pdbx_struct_oper_list.matrix[1][2]"]),
+             float(row["_pdbx_struct_oper_list.matrix[1][3]"])],
+            [float(row["_pdbx_struct_oper_list.matrix[2][1]"]),
+             float(row["_pdbx_struct_oper_list.matrix[2][2]"]),
+             float(row["_pdbx_struct_oper_list.matrix[2][3]"])],
+            [float(row["_pdbx_struct_oper_list.matrix[3][1]"]),
+             float(row["_pdbx_struct_oper_list.matrix[3][2]"]),
+             float(row["_pdbx_struct_oper_list.matrix[3][3]"])]
+        ], dtype=float)
+        t = np.array([
+            float(row["_pdbx_struct_oper_list.vector[1]"]),
+            float(row["_pdbx_struct_oper_list.vector[2]"]),
+            float(row["_pdbx_struct_oper_list.vector[3]"])
+        ], dtype=float)
+        op_table[op_id] = (R, t)
+
+    def _expand_token(tok):
+        s = tok.strip()
+        if not s:
+            return []
+        if '-' in s:
+            a, b = [x.strip() for x in s.split('-', 1)]
+            if a.isdigit() and b.isdigit():
+                return [str(i) for i in range(int(a), int(b) + 1)]
+        return [s]
+
+    def _parse_group_tokens(group_str):
+        """Expand a single group body into explicit op IDs, handling ranges inside lists."""
+        s = group_str.strip()
+        if ',' in s:
+            out = []
+            for tok in s.split(','):
+                out.extend(_expand_token(tok))
+            return out
+        # no commas -> maybe a single range or single id
+        return _expand_token(s)
+
+    def _split_top_level_groups(expr):
+        groups, depth, buf = [], 0, []
+        for ch in expr:
+            if ch == '(':
+                if depth == 0:
+                    buf = []
+                else:
+                    buf.append(ch)
+                depth += 1
+            elif ch == ')':
+                depth -= 1
+                if depth < 0:
+                    return []
+                if depth == 0:
+                    groups.append(''.join(buf))
+                else:
+                    buf.append(ch)
+            else:
+                if depth > 0:
+                    buf.append(ch)
+        return groups
+
+    def _expand_oper_expression(expr):
+        e = expr.replace(' ', '').strip()
+        if not e:
+            return []
+        # No parentheses? Handle lists and ranges here too.
+        if '(' not in e and ')' not in e:
+            if ',' in e:
+                flat = []
+                for tok in e.split(','):
+                    flat.extend(_expand_token(tok))
+                return [[op] for op in flat]
+            # single token or single range
+            return [[op] for op in _expand_token(e)]
+
+        groups = _split_top_level_groups(e)
+        if not groups:  # fallback
+            return [[op] for op in _parse_group_tokens(e.strip('()'))]
+
+        expanded_groups = [_parse_group_tokens(g) for g in groups]
+        if len(expanded_groups) == 1:
+            return [[op] for op in expanded_groups[0]]
+        return [list(seq) for seq in product(*expanded_groups)]
+
+    def _compose_sequence(seq):
+        R_tot = np.eye(3)
+        t_tot = np.zeros(3)
+        for op_id in seq:          # apply left-to-right
+            if op_id not in op_table:
+                return None
+            R_i, t_i = op_table[op_id]
+            R_tot = R_i @ R_tot
+            t_tot = R_i @ t_tot + t_i
+        return R_tot, t_tot
+
     biomolecule = defaultdict(list)
 
-    # 2 blocks are needed for this:
-    # _pdbx_struct_assembly_gen: what to apply to which chains
-    # _pdbx_struct_oper_list: everything else
-    data1 = parseSTARSection(lines, '_pdbx_struct_assembly_gen', report=False)
-    data2 = parseSTARSection(lines, '_pdbx_struct_oper_list', report=False)
-    data2 = {item['_pdbx_struct_oper_list.id']: item for item in data2}
+    for item1 in data1:
+        assembly_id = item1["_pdbx_struct_assembly_gen.assembly_id"]
+        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].replace(';', '').strip().split(',')
+        expr = item1["_pdbx_struct_assembly_gen.oper_expression"]
 
-    # extracting the data
-    for _, item1 in enumerate(data1):
-        currentBiomolecule = item1["_pdbx_struct_assembly_gen.assembly_id"]
-        applyToChains = []
+        sequences = _expand_oper_expression(expr)
+        if not sequences:
+            LOGGER.warn(f"Could not parse oper_expression: {expr}")
+            continue
 
-        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].replace(';','').strip().split(',')
-        applyToChains.extend(chains)
-
-        biomt = biomolecule[currentBiomolecule]
-
-        oper_expression = item1["_pdbx_struct_assembly_gen.oper_expression"]
-        oper_expr_array = np.array(list(oper_expression))
-        if np.count_nonzero(oper_expr_array=='(') == 0:
-            operators = oper_expression.split(',')
-        elif (oper_expression.startswith('(')
-              and np.count_nonzero(oper_expr_array=='(') == 1
-              and oper_expression.find('-') != -1 and oper_expression.find(',') == -1
-              and oper_expression.endswith(')')):
-            firstOperator = int(oper_expression.split('(')[1].split('-')[0])
-            lastOperator = int(oper_expression.split('-')[1].split(')')[0])+1
-            operators = list([str(oper) for oper in range(firstOperator, lastOperator)])
-        elif (oper_expression.startswith('(')
-              and np.count_nonzero(oper_expr_array=='(') == 1
-              and oper_expression.find(',') != -1 and oper_expression.find('-') == -1
-              and oper_expression.endswith(')')):
-            operators = oper_expression[1:-1].split(',')
-        elif (oper_expression.startswith('(')
-              and np.count_nonzero(oper_expr_array=='(') == 1
-              and oper_expression.find(',') != -1 and oper_expression.find('-') != -1
-              and oper_expression.endswith(')')):
-            operator_groups = oper_expression[1:-1].split(',')
-            operators = []
-            for group in operator_groups:
-                firstOperator = int(group.split('(')[1].split('-')[0])
-                lastOperator = int(group.split('-')[1].split(')')[0])+1
-                operators.extend([str(oper) for oper in range(firstOperator, lastOperator)])
-        else:
-            operators = []
-        for oper in operators:
-            biomt.append(applyToChains)
-
-            item2 = data2[oper]
-
-            for i in range(1,4):
-                biomt.append(" ".join([
-                    item2["_pdbx_struct_oper_list.matrix[{0}][1]".format(i)],
-                    item2["_pdbx_struct_oper_list.matrix[{0}][2]".format(i)],
-                    item2["_pdbx_struct_oper_list.matrix[{0}][3]".format(i)],
-                    item2["_pdbx_struct_oper_list.vector[{0}]".format(i)],
-                ]))
+        for seq in sequences:
+            composed = _compose_sequence(seq)
+            if composed is None:
+                LOGGER.warn(f"Unknown operator id in oper_expression {expr}: {'+'.join(seq)}")
+                continue
+            R, t = composed
+            biomt = biomolecule[assembly_id]
+            biomt.append(chains)
+            for i in range(3):
+                biomt.append(f"{R[i,0]:.6f} {R[i,1]:.6f} {R[i,2]:.6f} {t[i]:.6f}")
 
     return dict(biomolecule)
+
 
 
 def _getResolution(lines):
