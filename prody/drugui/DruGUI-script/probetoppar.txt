@@ -1,1 +1,0 @@
-PBDA {probe2.top probe.prm} CGenFF {top_all36_cgenff.rtf par_all36_cgenff.prm}
