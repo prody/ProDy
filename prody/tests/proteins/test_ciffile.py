@@ -334,3 +334,8 @@ class TestParseMMCIF(unittest.TestCase):
             'parsePDB failed to parse correct number of atoms for multi-model with altloc "all"')
         self.assertEqual(ag.numCoordsets(), self.multi['models'],
             'parsePDB failed to parse correct number of coordsets ({0}) with altloc "all"'.format(self.multi['models']))
+
+    def testLongSeqFix(self):
+        """Test the outcome of parsing 3o21 from id, which failed previously."""
+
+        _ = parseMMCIF('3o21')
