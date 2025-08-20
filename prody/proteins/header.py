@@ -235,7 +235,7 @@ def cleanString(string, nows=False):
         return ' '.join(string.strip().split())
 
 
-def parsePDBHeader(pdb, *keys):
+def parsePDBHeader(pdb, *keys, **kwargs):
     """Returns header data dictionary for *pdb*.  This function is equivalent to
     ``parsePDB(pdb, header=True, model=0, meta=False)``, likewise *pdb* may be
     an identifier or a filename.
@@ -297,14 +297,17 @@ def parsePDBHeader(pdb, *keys):
             raise IOError('{0} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
     pdb = openFile(pdb, 'rt')
-    header, _ = getHeaderDict(pdb, *keys)
+    header, _ = getHeaderDict(pdb, *keys, **kwargs)
     pdb.close()
     return header
 
 
-def getHeaderDict(stream, *keys):
+def getHeaderDict(stream, *keys, **kwargs):
     """Returns header data in a dictionary.  *stream* may be a list of PDB lines
-    or a stream."""
+    or a stream.
+    
+    Polymers have sequences that usually use one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**."""
 
     lines = defaultdict(list)
     loc = 0
@@ -325,7 +328,10 @@ def getHeaderDict(stream, *keys):
         keys = list(keys)
         for k, key in enumerate(keys):
             if key in _PDB_HEADER_MAP:
-                value = _PDB_HEADER_MAP[key](lines)
+                if key == 'polymers':
+                    value = _PDB_HEADER_MAP[key](lines, **kwargs)
+                else:
+                    value = _PDB_HEADER_MAP[key](lines)
                 keys[k] = value
             else:
                 raise KeyError('{0} is not a valid header data identifier'
@@ -385,6 +391,38 @@ def _getResolution(lines):
             except:
                 return None
 
+def _getSCALE(lines):
+    ctof = np.identity(4)
+    if len(lines['SCALE1']) == 0: return {}
+    ctof[0] = lines['SCALE1'][0][1].split()[1:5]
+    ctof[1] = lines['SCALE2'][0][1].split()[1:5]
+    ctof[2] = lines['SCALE3'][0][1].split()[1:5]
+    ftoc = np.linalg.inv(ctof)
+    return {'ctof':ctof, 'ftoc':ftoc}
+
+def _getSpaceGroup(lines):
+    rowct = 0
+    mat = []
+    xform = []
+    sg = None
+    for i, line in lines['REMARK 290']:
+        if 'SYMMETRY OPERATORS FOR SPACE GROUP:' in line:
+            try:
+                sg = line.split('GROUP:')[1].strip()
+            except:
+                pass
+        if line[13:18] == 'SMTRY':
+            w = line.split()
+            mat.append([float(x) for x in w[4:]])
+            rowct += 1
+            if rowct==3:
+                mat.append( (0,0,0,1) )
+                matnp = np.array(mat)
+                #if np.sum(matnp-np.identity(4))!=0.0:
+                xform.append(np.array(mat))
+                rowct = 0
+                mat = []
+    return {'spaceGroup':sg, 'symMats': xform}
 
 def _getRelatedEntries(lines):
 
@@ -555,8 +593,11 @@ def _getReference(lines):
     return ref
 
 
-def _getPolymers(lines):
-    """Returns list of polymers (macromolecules)."""
+def _getPolymers(lines, **kwargs):
+    """Returns list of polymers (macromolecules).
+    
+    Polymers have sequences that usually use one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**."""
 
     pdbid = lines['pdbid']
     polymers = dict()
@@ -564,7 +605,14 @@ def _getPolymers(lines):
         ch = line[11]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
-        poly.sequence += ''.join(getSequence(line[19:].split()))
+
+        longSeq = kwargs.get('longSeq', False)
+        if longSeq:
+            if poly.sequence != '':
+                poly.sequence += ' '
+            poly.sequence += getSequence(line[19:].split(), **kwargs)
+        else:
+            poly.sequence += ''.join(getSequence(line[19:].split(), **kwargs))
 
     for i, line in lines['DBREF ']:
         i += 1
@@ -876,6 +924,87 @@ def _getNumModels(lines):
         except:
             pass
 
+def _getCRYST1(lines):
+    line = lines['CRYST1']
+    if line:
+       i, line = line[0]
+       try:
+           return {'cellLength': (float(line[6:15]),
+                                  float(line[15:24]),
+                                  float(line[24:33])),
+                   'cellAngles': (float(line[33:40]),
+                                  float(line[40:47]),
+                                  float(line[47:54])),
+                   'spaceGroup': line[55:66].strip(),
+                   'Z value' : int(line[66:70])
+                   }
+       except:
+           pass
+
+def _missingResidues(lines):
+    """
+    Parse REMARK 465, Missing residues records
+    REMARK 465   M RES C SSSEQI
+    REMARK 465     GLU B   448
+    header['missing_residues'] = [(chid, resname, resnum, icode, modelNum)]
+    """
+    mr = []
+    header = True
+    for i, line in lines['REMARK 465']:
+        #skip header records
+        if line.startswith("REMARK 465   M RES C SSSEQI"):
+            header=False
+            continue
+        if header: continue
+        modelNumStr = line[10:14].strip()
+        if modelNumStr: modelNum = int(modelNumStr)
+        else: modelNum = None
+        w = line[15:].split()
+        icode = ''
+        if w[2][-1].isalpha():
+            icode = w[2][-1]
+            resnum = int(w[2][:-1])
+        else:
+            resnum = int(w[2])
+        mr.append((w[1], w[0], resnum, icode, modelNumStr))
+    return mr
+    
+def _missingAtoms(lines):
+    """
+    Parse REMARK 470,  Missing Atom records
+    REMARK 470   M RES CSSEQI  ATOMS
+    REMARK 470     ARG A 412    CG   CD   NE   CZ   NH1  NH2  
+    header['missing_atoms'] = [(chid, resname, resnum, icode, modelNum, [atom names])]
+    """
+    ma = []
+    res_repr_to_ma_index = {} # {residue_string_repr: index of this residue in ma list}
+    header = True
+    for i, line in lines['REMARK 470']:
+        #skip header records
+        if line.startswith("REMARK 470   M RES CSSEQI  ATOMS"):
+            header=False
+            continue
+        if header:
+            continue
+        modelNumStr = line[10:14].strip()
+        if modelNumStr:
+            modelNum = int(modelNumStr)
+        else:
+            modelNum = None
+        resname = line[15:18]
+        chid = line[19]
+        resnum = int(line[20:24])
+        icode = line[24]
+        if icode == ' ':
+            icode = ''
+        key = '%s:%s%d%s'%(chid,resname,resnum,icode)
+        if key in res_repr_to_ma_index: # missing atoms record for a residue can span multiple lines 1vzq.pdb
+            ma[res_repr_to_ma_index[key]][-1].extend(line[25:].split())
+        else:
+            res_repr_to_ma_index[key] = len(ma)
+            ma.append((chid, resname, resnum, icode, line[25:].split()))
+    return ma
+    
 # Make sure that lambda functions defined below won't raise exceptions
 _PDB_HEADER_MAP = {
     'helix': _getHelix,
@@ -912,6 +1041,10 @@ _PDB_HEADER_MAP = {
     'n_models': _getNumModels,
     'space_group': _getSpaceGroup,
     'related_entries': _getRelatedEntries,
+    'CRYST1': _getCRYST1,
+    'SCALE': _getSCALE,
+    'missing_residues': _missingResidues,
+    'missing_atoms': _missingAtoms,
 }
 
 mapHelix = {
@@ -1100,15 +1233,28 @@ def buildBiomolecules(header, atoms, biomol=None):
         for times in range(int((len(mt)) / 4)):
             rotation = np.zeros((3, 3))
             translation = np.zeros(3)
-            line0 = np.fromstring(mt[times*4+1], sep=' ')
+
+            try:
+                line0 = np.fromstring(mt[times*4+1], sep=' ')
+            except:
+                line0 = np.frombuffer(mt[times*4+1], sep=' ')
             rotation[0, :] = line0[:3]
             translation[0] = line0[3]
-            line1 = np.fromstring(mt[times*4+2], sep=' ')
+
+            try:
+                line1 = np.fromstring(mt[times*4+2], sep=' ')
+            except:
+                line1 = np.frombuffer(mt[times*4+2], sep=' ')
             rotation[1, :] = line1[:3]
             translation[1] = line1[3]
-            line2 = np.fromstring(mt[times*4+3], sep=' ')
+
+            try:
+                line2 = np.fromstring(mt[times*4+3], sep=' ')
+            except:
+                line2 = np.frombuffer(mt[times*4+3], sep=' ')
             rotation[2, :] = line2[:3]
             translation[2] = line2[3]
+            
             t = Transformation(rotation, translation)
 
             newag = atoms.select('chain ' + ' or chain '.join(mt[times*4+0]))

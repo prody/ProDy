@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: ProDy
-Version: 2.4.1
+Version: 2.6.1
 Summary: A Python Package for Protein Dynamics Analysis
 Home-page: http://www.csb.pitt.edu/ProDy
 Author: James Krieger, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan, and others
@@ -32,23 +32,23 @@ Description: .. image:: https://secure.travis-ci.org/prody/ProDy.png?branch=mast
         You can run ProDy on all major platforms.  For download and installation
         instructions see:
         
-        * http://prody.csb.pitt.edu/downloads
+        * http://www.bahargroup.org/prody/downloads
         
         
         DOCUMENTATION
         -------------
         
-        * Homepage: http://prody.csb.pitt.edu/
+        * Homepage: http://www.bahargroup.org/prody/
         
-        * Tutorials: http://prody.csb.pitt.edu/tutorials
+        * Tutorials: http://www.bahargroup.org/prody/tutorials
         
-        * Reference: http://prody.csb.pitt.edu/manual
+        * Reference: http://www.bahargroup.org/prody/manual
         
-        * Applications: http://prody.csb.pitt.edu/manual/apps
+        * Applications: http://www.bahargroup.org/prody/manual/apps
         
-        * NMWiz GUI: http://prody.csb.pitt.edu/nmwiz
+        * NMWiz GUI: http://www.bahargroup.org/prody/nmwiz
         
-        * Changes: http://prody.csb.pitt.edu/manual/release
+        * Changes: http://www.bahargroup.org/prody/manual/release
         
         
         SOURCE CODE
@@ -84,10 +84,8 @@ Classifier: Intended Audience :: Education
 Classifier: Intended Audience :: Science/Research
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: MacOS
-Classifier: Operating System :: Microsoft :: Windows
 Classifier: Operating System :: POSIX
 Classifier: Programming Language :: Python
-Classifier: Programming Language :: Python :: 2
 Classifier: Programming Language :: Python :: 3
 Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
 Classifier: Topic :: Scientific/Engineering :: Chemistry

@@ -512,7 +512,7 @@ def parseScipionModes(metadata_file, title=None, pdb=None, parseIndices=False):
 
 
 def writeScipionModes(output_path, modes, write_star=False, scores=None,
-                      only_sqlite=False, collectivityThreshold=0.):
+                      only_sqlite=False, collectivityThreshold=0., norm=True):
     """Writes *modes* to a set of files that can be recognised by Scipion.
     A directory called **"modes"** will be created if it doesn't already exist. 
     Filenames inside will start with **"vec"** and have the mode number as the extension.
@@ -538,6 +538,10 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     :arg collectivityThreshold: collectivity threshold below which modes are not enabled
         Default is 0.
     :type collectivityThreshold: float
+
+    :arg norm: whether to normalize mode vectors before calculating collectivities
+        Default is **True**
+    :type norm: bool
     """
     if not isinstance(output_path, str):
         raise TypeError('output_path should be a string, not {0}'
@@ -567,6 +571,10 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         raise TypeError('collectivityThreshold should be float, not {0}'
                         .format(type(collectivityThreshold)))
 
+    if not isinstance(norm, bool):
+        raise TypeError('norm should be boolean, not {0}'
+                        .format(type(norm)))    
+
     if modes.numModes() == 1 and not isinstance(modes, (NMA, ModeSet)):
         old_modes = modes
         modes = NMA(old_modes)
@@ -586,8 +594,17 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
             modefiles.append(writeArray(modes_dir + 'vec.{0}'.format(mode_num),
                                         mode.getArray(), '%12.4e', ''))
 
+    if norm:
+        eigvecs = modes.getEigvecs()
+        eigvals = modes.getEigvals()
+        eigvecs /= np.array([((eigvecs[:, i]) ** 2).sum() ** 0.5
+                             for i in range(eigvecs.shape[1])])
+
+        if isinstance(modes, ModeSet):
+            modes = NMA()
+        modes.setEigens(eigvecs, eigvals)
+
     if modes.numModes() > 1:
-        order = modes.getIndices()
         collectivities = list(calcCollectivity(modes))
         eigvals = modes.getEigvals()
         enabled = [1 if eigval > ZERO and collectivities[i] > collectivityThreshold else -1
@@ -598,7 +615,6 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         mode = modes[0]
         eigvals = np.array([mode.getEigval()])
         collectivities = [calcCollectivity(mode)]
-        order = [mode.getIndex()]
         enabled = [1 if mode.getEigval() > ZERO and collectivities[0] > collectivityThreshold else -1]
         if scores is None:
             scores = [calcScipionScore(mode)[0]]

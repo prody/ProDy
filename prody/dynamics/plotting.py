@@ -37,7 +37,7 @@ __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showTree', 'showTree_networkx',
            'showAtomicMatrix', 'pimshow', 'showAtomicLines', 'pplot', 
-           'showDomainBar']
+           'showDomainBar', 'showAtomicBars', 'showSelectionMatrix']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -110,7 +110,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
             show = child
             break
     if show is None:
-        show = cf.add_subplot(projection="3d")
+        show = cf.add_subplot(111,projection="3d")
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
         onto = list(onto)
@@ -271,6 +271,8 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
         weights = kwargs.pop('weights', None)
         weights = None
 
+    markersize = kwargs.pop('markersize', None)
+
     num = projection.shape[0]
 
     use_labels = kwargs.pop('use_labels', True)
@@ -283,8 +285,14 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
             labels = modes.getModel()._labels.tolist()
             LOGGER.info('using labels from LDA model')
 
-    if labels is not None and len(labels) != num:
-        raise ValueError('label should have the same length as ensemble')
+    one_label = False
+    if labels is not None:
+        if len(labels) == 1 or np.isscalar(labels):
+            one_label = True
+            kwargs['label'] = labels
+
+        elif len(labels) != num:
+            raise ValueError('label should have the same length as ensemble')
 
     c = kwargs.pop('c', 'b')
     colors = kwargs.pop('color', c)
@@ -297,14 +305,14 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
         if len(colors) != num:
             raise ValueError('length of color must be {0}'.format(num))
     elif isinstance(colors, dict):
-        if labels is None:
+        if labels is None or one_label:
             raise TypeError('color must be a string or a list unless labels are provided')
         colors_dict = colors
         colors = [colors_dict[label] for label in labels]
     else:
         raise TypeError('color must be a string or a list or a dict if labels are provided')
 
-    if labels is not None and len(colors_dict) == 0:
+    if labels is not None and not one_label and len(colors_dict) == 0:
         cycle_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         for i, label in enumerate(set(labels)):
             colors_dict[label] = cycle_colors[i % len(cycle_colors)]
@@ -318,6 +326,8 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
             show = plt.plot(range(len(projection)), projection.flatten(), *args, **kwargs)
             if use_weights:
                 kwargs['s'] = weights
+            elif markersize is not None:
+                kwargs['s'] = markersize
             if labels is not None and use_labels:
                 for label in set(labels):
                     kwargs['c'] = colors_dict[label]
@@ -421,7 +431,7 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
                 show = child
                 break
         if show is None:
-            show = cf.add_subplot(projection="3d")
+            show = cf.add_subplot(111,projection="3d")
         plot = show.plot
         text = show.text
 
@@ -444,6 +454,8 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
             kwargs['c'] = color
             if weights is not None and use_weights:
                 kwargs['s'] = weights
+            elif markersize is not None:
+                kwargs['s'] = markersize
             plot(*(list(projection[indices].T) + args), **kwargs)
         else:
             kwargs['color'] = color
@@ -1132,6 +1144,9 @@ def showOverlap(mode, modes, *args, **kwargs):
 
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
+
+    :arg abs: whether to take absolute values
+    :type abs: bool
     """
 
     import matplotlib.pyplot as plt
@@ -1149,9 +1164,16 @@ def showOverlap(mode, modes, *args, **kwargs):
                         .format(type(modes)))
 
     if mode.numModes() > 1:
-        overlap = abs(calcOverlap(mode, modes, diag=True))
+        overlap = calcOverlap(mode, modes, diag=True)
     else:
-        overlap = abs(calcOverlap(mode, modes, diag=False))
+        overlap = calcOverlap(mode, modes, diag=False)
+
+    take_abs = kwargs.pop('abs', True)
+    if not isinstance(take_abs, bool):
+        raise TypeError('abs should be a Boolean (True or False)')
+
+    if take_abs:
+        overlap = abs(overlap)
 
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
@@ -2063,6 +2085,268 @@ def showAtomicLines(*args, **kwargs):
         showFigure()
     return lines, polys, bars, texts
 
+def showAtomicBars(*args, **kwargs):
+    """
+    Show a bar chart with the option to use residue numbers and include chain/domain color 
+    bars using provided atoms.
+    
+    :arg atoms: a :class: `AtomGroup` instance for matching 
+        residue numbers and chain identifiers. 
+    :type atoms: :class: `AtomGroup`
+
+    :keyword chain: display a bar at the bottom to show chain separations. 
+        If set to **None**, it will be decided depends on whether *atoms* 
+        is provided. 
+        Default is **None**.
+    :type chain: bool
+
+    :keyword domain: the same with *chains* but show domain separations instead. 
+        *atoms* needs to have *domain* data associated to it.
+        Default is **None**.
+    :type domain: bool
+
+    :keyword gap: whether show the gaps in the *atoms* or not.
+        Default is **False**.
+    :type gap: bool
+
+    :keyword overlay: whether overlay the curves based on the chain separations 
+        in *atoms* or not.
+        Default is **False**.
+    :type overlay: bool
+
+    :keyword figure: if set to **None**, then a new figure will be created if *auto_show* 
+        is **True**, otherwise it will be plotted on the current figure. If set 
+        to a figure number or string or a :class:`~matplotlib.figure.Figure` instance, 
+        no matter what 'auto_show' value is, plots will be drawn on the *figure*.
+        Default is **None**.
+    :type figure: :class:`~matplotlib.figure.Figure`, int, str
+
+    :keyword final: if set to **False**, *chain* and *domain* will be set to **False** 
+                    no matter what their values are. This is used to stack plots onto one 
+                    another, and show only one domain/chain bar.
+    :type final: bool
+    """
+    
+    x = None
+    xy_args = []
+    #linespec = '-'
+    for arg in args:
+        if isinstance(arg, str):
+            LOGGER.warn('currently string arguments are not supported')
+            #linespec = arg
+        else:
+            xy_args.append(arg)
+
+    if len(xy_args) == 0:
+        raise ValueError('no data is given for plotting')
+    elif len(xy_args) == 1:
+        y = xy_args[0]
+    elif len(xy_args) >= 2: 
+        if len(xy_args) > 2:
+            LOGGER.warn("args contains more than x's and y's; only the first two arrays are used")
+        x = xy_args[0]
+        y = xy_args[1]
+
+    atoms = kwargs.pop('atoms', None)
+    #linespec = kwargs.pop('linespec', linespec)
+    show_chain = kwargs.pop('chains', None)
+    show_domain = kwargs.pop('domains', None)
+    show_chain = kwargs.pop('chain', show_chain)
+    show_domain = kwargs.pop('domain', show_domain)
+    final = kwargs.pop('final', True)
+    if not final:
+        show_domain = show_chain = False
+
+    chain_text_loc = kwargs.pop('chain_text_loc', 'above')
+    domain_text_loc = kwargs.pop('domain_text_loc', 'below')
+    zero_line = kwargs.pop('show_zero', False)
+    zero_line = kwargs.pop('zero', zero_line)
+    show_text = kwargs.pop('text', True)
+    show_text = kwargs.pop('show_text', show_text)
+    show_domain_text = kwargs.pop('domain_text', show_text)
+    show_chain_text = kwargs.pop('chain_text', show_text)
+    barwidth = kwargs.pop('barwidth', 5)
+    barwidth = kwargs.pop('bar_width', barwidth)
+
+    gap = kwargs.pop('gap', False)
+    overlay = kwargs.pop('overlay', False)
+    overlay = kwargs.pop('overlay_chains', overlay)
+
+    dy = kwargs.pop('dy', None)
+
+    from prody.utilities import showBars
+    from matplotlib.pyplot import figure, xlim, plot
+    from matplotlib.figure import Figure
+
+    fig = kwargs.pop('figure', None)
+
+    if isinstance(fig, Figure):
+        fig_num = fig.number
+    elif fig is None or isinstance(fig, (int, str)):
+        fig_num = fig
+    else:
+        raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
+                        'or a figure number.')
+                        
+    if SETTINGS['auto_show'] and final:
+        figure(fig_num)
+    elif fig_num is not None:
+        figure(fig_num)
+    
+    try:
+        y = np.asarray(y)
+    except:
+        raise TypeError('y should be an array-like instance.')
+
+    if x is not None:
+        _y = []
+        try:
+            x = np.asarray(x, dtype=int)
+        except:
+            raise TypeError('x should be an integer array.')
+
+        if x.min() < 0:
+            raise ValueError('x should be non-negative.')
+
+        if atoms is None:
+            I = np.arange(x.max() + 1)
+        else:
+            if x.max() + 1 > atoms.numAtoms():
+                raise ValueError('size mismatch between x ({0}) and atoms ({1})'
+                             .format(x.max(), atoms.numAtoms()))
+            I = np.arange(atoms.numAtoms())
+        
+        for i in I:
+            ix = np.where(x==i)[0]
+            if len(ix):
+                _y.append(y[ix[0]])
+            else:
+                _y.append(np.nan)
+        y = np.asarray(_y)
+        x = None # clear up x just in case
+
+    ticklabels = labels = datalabels = None
+    def func_ticklabels(val, pos):
+        #The two args are the value and tick position
+        i = int(round(val))
+        J = np.where(x==i)[0]
+        if len(J):
+            label = labels[J[0]]
+        else:
+            label = ''
+
+        return label
+
+    if atoms is not None:
+        if y.shape[0] != atoms.numAtoms():
+            raise ValueError('size mismatch between y ({0}) and atoms ({1})'
+                             .format(y.shape[0], atoms.numAtoms()))
+
+        if overlay:
+            if not gap:
+                gap = True
+            show_chain = False
+            #show_domain = False
+
+        hv = atoms.getHierView()
+        if hv.numChains() == 0:
+            raise ValueError('atoms should contain at least one chain.')
+        elif hv.numChains() == 1:
+            labels = atoms.getResnums()
+            if gap:
+                x = atoms.getResnums()
+                ticklabels = func_ticklabels
+                if overlay:
+                    x = [x]; _y = [y]; _dy = [dy]
+        else:
+            labels = []
+            if gap: 
+                x = []; last = 0
+            if overlay:
+                datalabels = [];  _y = []; _dy = []
+
+            for chain in hv.iterChains():
+                chid = chain.getChid()
+                resnums = chain.getResnums()
+                
+                labels.extend('%s:%d'%(chid, resnum) for resnum in resnums)
+                if gap:
+                    if overlay:
+                        datalabels.append(chid)
+                        x.append(resnums)
+                        _y.append(y[last:last+len(resnums)])
+                        if dy is not None:
+                            _dy.append(dy[last:last+len(resnums)])
+                        last = len(resnums)
+                    else:
+                        x.extend(resnums + last)
+                        last = resnums[-1]
+                    
+        if gap:
+            if overlay:
+                ticklabels = None
+                y = _y
+                if dy is not None:
+                    dy = _dy
+            else:
+                x -= x[0]
+                ticklabels = func_ticklabels
+        else:
+            ticklabels = labels     
+    else:
+        if gap:
+            LOGGER.warn('atoms need to be provided if gap=True')
+        if overlay:
+            LOGGER.warn('atoms need to be provided if overlay=True')
+        gap = False
+        overlay = False
+
+    if gap:
+        if overlay:
+            labels = kwargs.pop('label', datalabels)
+            Z = []
+            for z in zip(y, x):
+                Z.extend(z)
+                #Z.append(linespec)
+            lines = showBars(*Z, ticklabels=ticklabels, 
+                                     gap=True, label=labels, **kwargs)
+        else:
+            lines = showBars(xdata=x, ydata=y, ticklabels=ticklabels, 
+                                     gap=True, **kwargs)
+    else:
+        #lines = showBars(linespec, ydata=y, ticklabels=ticklabels, **kwargs)
+        lines = showBars(ydata=y, ticklabels=ticklabels, **kwargs)
+
+    if zero_line:
+        l = xlim()
+        plot(l, [0, 0], '--', color='gray')
+
+    bars = []
+    texts = []
+
+    show_chain, chain_pos, chids = _checkDomainBarParameter(show_chain, 0., atoms, 'chain')
+     
+    if show_chain:
+        b, t = showDomainBar(chids, x=x, loc=chain_pos, axis='x', 
+                             text_loc=chain_text_loc, text=show_chain_text,
+                             barwidth=barwidth)
+        bars.extend(b)
+        texts.extend(t)
+
+    show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., atoms, 'domain')
+    if show_domain:
+        if overlay:
+            x = x[0]
+        b, t = showDomainBar(domains, x=x, loc=domain_pos, axis='x', 
+                             text_loc=domain_text_loc,  text=show_domain_text,
+                             barwidth=barwidth)
+        bars.extend(b)
+        texts.extend(t)
+
+    if SETTINGS['auto_show']:
+        showFigure()
+    return lines, bars, texts
+
 pplot = showAtomicLines
 
 def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
@@ -2381,3 +2665,37 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
         showFigure()
 
     return mpl.gca()
+
+def showSelectionMatrix(matrix, atoms, selstr_x=None, selstr_y=None, **kwargs):
+    """
+    Show a matrix similarly to showAtomicMatrix but only for
+    selected atoms based on *selstr_x* and *selstr_y*
+
+    :arg selstr_x: a selection string used with sliceAtomicData with axis=0
+        to slice the matrix in the x axis and label it with corresponding atoms
+    :type selstr_x: str
+
+    :arg selstr_y: a selection string used with sliceAtomicData with axis=1
+        to slice the matrix in the y axis and label it with corresponding atoms
+    :type selstr_y: str
+
+    If either of these are left as *None*, then no slicing is performed in that direction.
+    """
+    atoms_x = atoms
+    atoms_y = atoms
+
+    if selstr_x is not None:
+        if not isinstance(selstr_x, str):
+            raise TypeError('selstr_x should be a str')
+
+        matrix = sliceAtomicData(matrix, atoms, selstr_x, axis=0)
+        _, atoms_x = sliceAtoms(atoms, selstr_x)
+
+    if selstr_y is not None:
+        if not isinstance(selstr_y, str):
+            raise TypeError('selstr_y should be a str')
+
+        matrix = sliceAtomicData(matrix, atoms, selstr_y, axis=1)
+        _, atoms_y = sliceAtoms(atoms, selstr_y)
+
+    return showAtomicMatrix(matrix, atoms=[atoms_x, atoms_y], **kwargs)

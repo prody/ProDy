@@ -15,15 +15,15 @@ from prody.tests.datafiles import *
 LOGGER.verbosity = 'none'
 
 
-class TestFTP(unittest.TestCase):
+class TestHTTP(unittest.TestCase):
 
     def setUp(self):
 
         self.pdb = ['1ubi', '1aar', 'arg', 1234]
         self.fns = []
         self.len = [683, 1218, None, None]
-        self.fetch = fetchPDBviaFTP
-        self.protocol = 'FTP'
+        self.fetch = fetchPDBviaHTTP
+        self.protocol = 'HTTP'
 
 
     @dec.slow
@@ -69,12 +69,3 @@ class TestFTP(unittest.TestCase):
                 pass
             except:
                 pass
-
-class TestHTTP(TestFTP):
-
-    def setUp(self):
-
-        TestFTP.setUp(self)
-        self.fetch = fetchPDBviaHTTP
-        self.protocol = 'HTTP'
-

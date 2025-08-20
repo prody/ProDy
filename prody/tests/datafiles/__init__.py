@@ -248,11 +248,25 @@ DATA_FILES = {
         'models': 1,
         'unobs_B_start': 'G-------------------------------NQNTTEK-'
     },
+    'big_biomols_cif': {
+        'pdb': '7cth',
+        'file': 'mmcif_7cth.cif',
+        'atoms': 16647,
+        'bm0_atoms': 16647 * 60,
+        'num_chains': 14,
+        'bm0_chains': 840,
+    },
     'long_chid_cif': {
         'pdb': '6zu5',
         'file': 'mmcif_6zu5.cif',
         'atoms': 165175,
         'segment_SX0_atoms': 1089,
+    },
+    'chimerax_cif': {
+        'pdb': '1ake',
+        'file': 'mmcif_1ake_chimerax.cif',
+        'biomols': 2,
+        'bm0_atoms': 1954
     },
     '6zu5_sel': {
         'pdb': '6zu5',
@@ -337,6 +351,12 @@ DATA_FILES = {
     },    
     '2k39_insty': {
         'file': '2k39_insty.pdb'
+    },    
+    '2k39_insty_first': {
+        'file': '2k39_insty_first.pdb'
+    },    
+    '2k39_insty_dcd': {
+        'file': '2k39_insty.dcd'
     },
     '2k39_hbs': {
         'file': '2k39_hbs.npy'
@@ -358,7 +378,10 @@ DATA_FILES = {
     },
     '2k39_disu': {
         'file': '2k39_disu.npy'
-    },    
+    },
+    '3o21_disu': {
+        'file': '3o21_disu.npy'
+    },
     '2k39_all': {
         'file': '2k39_all.npy'
     },
@@ -381,6 +404,38 @@ DATA_FILES = {
         'file': 'pdb7pbl.pdb',
         'atoms': 31396,
         'nucleoside': 252
+    },
+    'pqrUnknown': {
+        'file': 'pqr_snippet1.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'pqrTranscomp': {
+        'file': 'pqr_snippet2_transcomp.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'pqrFpocket': {
+        'file': 'pqr_snippet3_fpocket.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'pqrPymol': {
+        'file': 'pqr_snippet4_pymol.pqr',
+        'atoms': 5,
+        'models': 1
+    },
+    'anmd': {
+        'pdb': '1ubi',
+        'file': '1ubi_anmd_mode1_ens.pdb',
+        'n_atoms': 683,
+        'models': 5
+    },
+    'probes': {
+        'file': 'probes_in.pdb',
+        'n_atoms': 4,
+        'long_resname': 'ACET',
+        'short_resname': 'ACE'
     }
 }
 
