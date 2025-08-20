@@ -5,7 +5,18 @@ ProDy 2.6 Series
    :local:
 
 
-2.6.0 (Jul 18, 2024)
+2.6.1 (Aug 14, 2025)
+------------------------------------------------------------------------------
+
+**Bug Fixes**:
+
+* Critical fixes for CLUSTENM(D)
+* Fixes for Scipion
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.6.0...v2.6.1
+
+
+2.6.0 (Jul 18, 2025)
 ------------------------------------------------------------------------------
 
 **New Features**:
@@ -25,8 +36,6 @@ ProDy 2.6 Series
 * Fixes for WatFinder, InSty, Scipion, ClustENM(D)
 * pfam fixes
 * Test fixes 
-
-
 
 **New Contributors**:
 

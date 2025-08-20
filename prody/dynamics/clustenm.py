@@ -482,6 +482,7 @@ class ClustENM(Ensemble):
         r = r0 + d
 
         ccList = []
+        n_confs = self._n_confs
         if self._fitmap is not None:
             LOGGER.info('Filtering for fitting in generation %d ...' % self._cycle)
 
@@ -506,8 +507,8 @@ class ClustENM(Ensemble):
                 while n_confs > 0:
                     anm_ex = self._extendModel(anm_cg, cg, tmp)
                     ens_ex = sampleModes(anm_ex, atoms=tmp,
-                                        n_confs=n_confs,
-                                        rmsd=self._rmsd[self._cycle])
+                                         n_confs=n_confs,
+                                         rmsd=self._rmsd[self._cycle])
                     coordsets = ens_ex.getCoordsets()
 
                     new_coords, ccList = self._filter(coordsets)
@@ -559,7 +560,6 @@ class ClustENM(Ensemble):
         tmp = self._atoms.copy()
         tmp.setCoords(conf)
         cg = tmp[self._idx_cg]
-
         anm_cg = self._buildANM(cg)
 
         n_confs = self._n_confs
@@ -739,7 +739,7 @@ class ClustENM(Ensemble):
         confs_cg = confs_ex[:, self._idx_cg]
         
         if self._fitmap is not None:
-            self._cc_prev = max(self._cc)
+            self._cc_prev = max(max(ccList), max(self._cc))
             LOGGER.info('Best CC is %f from %d conformers' % (self._cc_prev, len(confs_ex)))
 
         if len(confs_cg) > 1:
@@ -749,15 +749,15 @@ class ClustENM(Ensemble):
             LOGGER.report('Centroids were generated in %.2fs.',
                         label='_clustenm_gen')
             confs_centers = confs_ex[centers]
-            ccList = list(np.array(ccList)[centers])
         else:
             confs_centers, wei = confs_ex, [len(confs_ex)]
 
         if self._fitmap is not None:
+            if len(confs_cg) > 1:
+                ccList = list(np.array(ccList)[centers])
+            self._cc.extend(ccList)
             self._cc_prev = max(self._cc)
             LOGGER.info('Best CC is %f from %d conformers after clustering' % (self._cc_prev, len(confs_centers)))
-
-        self._cc.extend(ccList)
         return confs_centers, wei
 
     def _outliers(self, arg):
@@ -1185,7 +1185,9 @@ class ClustENM(Ensemble):
                 self._maxclust = (0,) + (maxclust,) * n_gens
 
             if len(self._maxclust) != self._n_gens + 1:
-                raise ValueError('size mismatch: %d generations were set; %d maxclusts were given' % (self._n_gens + 1, self._maxclust))
+                raise ValueError(
+                    'size mismatch: %d generations were set; %d maxclusts were given' % (
+                        self._n_gens + 1, len(self._maxclust)))
 
         if threshold is None:
             self._threshold = None

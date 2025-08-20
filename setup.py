@@ -1,116 +1,36 @@
+# setup.py
+# This file is retained for building C/C++ extensions.
+# All project metadata has been moved to pyproject.toml.
+
 import os
-from os.path import isfile, join
 import platform
-
-from setuptools import setup
-from setuptools import Extension
-
 import shutil
 import sys
-
-if sys.version_info[:2] < (2, 7):
-    sys.stderr.write('Python 2.6 and older is not supported\n')
-    sys.exit()
-
-if sys.version_info[:2] == (2, 7) or sys.version_info[:2] <= (3, 5):
-    INSTALL_REQUIRES=['numpy>=1.10', 'biopython<=1.76', 'pyparsing', 'scipy']
-else:
-    INSTALL_REQUIRES=['numpy>=1.10', 'biopython', 'pyparsing<=3.1.1', 'scipy', 'setuptools']
-
-if sys.version_info[0] == 3 and sys.version_info[1] < 10:
-    sys.stderr.write('Python 3.9 and older is not supported\n')
-    sys.exit()
-
-if os.name == 'java':
-    sys.stderr.write('JavaOS is not supported\n')
-    sys.exit()
-
-try:
-    import numpy
-except ImportError:
-    sys.stderr.write('numpy is not installed, you can find it at: '
-                     'http://www.numpy.org/\n')
-    sys.exit()
-
-if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 10]:
-    sys.stderr.write('numpy v1.10 or later is required, you can find it at: '
-                     'http://www.numpy.org/\n')
-    sys.exit()
-
-
-__version__ = ''
-with open('prody/__init__.py') as inp:
-  for line in inp:
-      if line.startswith('__version__'):
-          exec(line.strip())
-          break
-
-with open('README.rst') as inp:
-    long_description = inp.read()
-
-
-PACKAGES = ['prody',
-            'prody.atomic',
-            'prody.database',
-            'prody.dynamics',
-            'prody.ensemble',
-            'prody.kdtree',
-            'prody.measure',
-            'prody.proteins',
-            'prody.sequence',
-            'prody.trajectory',
-            'prody.chromatin',
-            'prody.compounds',
-            'prody.domain_decomposition',
-            'prody.utilities',
-            'prody.apps',
-            'prody.apps.prody_apps',
-            'prody.apps.evol_apps',
-            'prody.tests',
-            'prody.tests.apps',
-            'prody.tests.atomic',
-            'prody.tests.datafiles',
-            'prody.tests.dynamics',
-            'prody.tests.ensemble',
-            'prody.tests.kdtree',
-            'prody.tests.measure',
-            'prody.tests.proteins',
-            'prody.tests.sequence',
-            'prody.tests.trajectory',
-            'prody.tests.utilities',]
-PACKAGE_DATA = {
-    'prody.utilities': ['datafiles/*.dat'],
-    'prody.tests': ['datafiles/*.pdb',
-                    'datafiles/*.dat',
-                    'datafiles/*.coo',
-                    'datafiles/dcd*.dcd',
-                    'datafiles/xml*.xml',
-                    'datafiles/msa*',
-                    'datafiles/mmcif*cif',
-                    'datafiles/*.npy',
-                    'datafiles/*.mmtf',
-                    'datafiles/*json'],
-    'prody.proteins': ['tabulated_energies.txt',
-                       'hpb.so'],
-}
-
-PACKAGE_DIR = {}
-for pkg in PACKAGES:
-    PACKAGE_DIR[pkg] = join(*pkg.split('.'))
-    
 from glob import glob
-tntDir = join('prody', 'utilities', 'tnt')
+from os.path import isfile, join
+
+from setuptools import Extension, setup
+
+# The build system (pip, build) ensures numpy is available because it's
+# listed in `build-system.requires` in pyproject.toml.
+import numpy
+
+# --- Logic to copy pre-compiled .so file ---
+# Note: Distributing pre-compiled binaries like this is not standard practice.
+# It would be better to compile this from source as part of the build.
+# However, this preserves the original behavior of your script.
 hpbSoDir = join('prody', 'proteins', 'hpbmodule',
-                'hpb_Python{0}.{1}'.format(sys.version_info[0],
-                                           sys.version_info[1]))
+                f'hpb_Python{sys.version_info[0]}.{sys.version_info[1]}')
 proteinsDir = join('prody', 'proteins')
 
 if not os.path.exists(join(proteinsDir, 'hpb.so')):
     try:
-        shutil.copy(hpbSoDir + "/hpb.so", proteinsDir)
+        shutil.copy(join(hpbSoDir, "hpb.so"), proteinsDir)
     except FileNotFoundError:
+        # It's okay if the precompiled file doesn't exist for this platform.
         pass
 
+# --- Define C extensions ---
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
               glob(join('prody', 'dynamics', 'rtbtools.c')),
@@ -118,84 +38,55 @@ EXTENSIONS = [
     Extension('prody.dynamics.smtools',
               glob(join('prody', 'dynamics', 'smtools.c')),
               include_dirs=[numpy.get_include()]),
-#    Extension('prody.dynamics.saxstools',
-#              glob(join('prody', 'dynamics', 'saxstools.c')),
-#              include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.msatools',
-              [join('prody', 'sequence', 'msatools.c'),],
+              [join('prody', 'sequence', 'msatools.c')],
               include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.msaio',
-              [join('prody', 'sequence', 'msaio.c'),],
+              [join('prody', 'sequence', 'msaio.c')],
               include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.seqtools',
-              [join('prody', 'sequence', 'seqtools.c'),],
+              [join('prody', 'sequence', 'seqtools.c')],
               include_dirs=[numpy.get_include()]),
 ]
 
-# extra arguments for compiling C++ extensions on MacOSX
+# --- Define C++ extensions and platform-specific build args ---
+tntDir = join('prody', 'utilities', 'tnt')
+extra_compile_args = []
+
 if platform.system() == 'Darwin':
-    os_ver = platform.mac_ver()[0]
-    os.environ['MACOSX_DEPLOYMENT_TARGET'] = os_ver
+    # Set environment variables for macOS clang compiler
+    os.environ['MACOSX_DEPLOYMENT_TARGET'] = platform.mac_ver()[0]
     os.environ['CC'] = 'clang'
     os.environ['CXX'] = 'clang++'
-    #extra_compile_args.append('-stdlib=libc++')
+    # extra_compile_args.append('-stdlib=libc++') # May be needed for some setups
 
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
                join('prody', 'kdtree', 'KDTreemodule.c')],
               include_dirs=[numpy.get_include()]),
-    Extension('prody.proteins.ccealign', 
-              [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
-              include_dirs=[tntDir], language='c++'),
+    Extension('prody.proteins.ccealign',
+              [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')],
+              include_dirs=[tntDir],
+              language='c++',
+              extra_compile_args=extra_compile_args),
 ]
 
+# Conditionally add contributed extensions if their source files exist
 for ext in CONTRIBUTED:
-    if all([isfile(src) for src in ext.sources]):
+    if all(isfile(src) for src in ext.sources):
         EXTENSIONS.append(ext)
 
-# SCRIPTS = ['scripts/prody', 'scripts/evol']
-# if (platform.system() == 'Windows' or
-#     len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
-#     for script in list(SCRIPTS):
-#         SCRIPTS.append(script + '.bat')
+# --- Setup call ---
+# This call is now minimal. It only provides the extension modules to setuptools.
+# All other configuration is automatically picked up from pyproject.toml.
+if __name__ == "__main__":
 
+    with open('README.md', 'r', encoding='utf-8') as fh:
+        long_description = fh.read()
 
-SCRIPTS = ['prody=prody.apps:prody_main', 'evol=prody.apps:evol_main']
-
-setup(
-    name='ProDy',
-    version=__version__,
-    author='James Krieger, Karolina Mikulska-Ruminska, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan, and others',
-    author_email='jamesmkrieger@gmail.com',
-    description='A Python Package for Protein Dynamics Analysis',
-    long_description=long_description,
-    url='http://www.csb.pitt.edu/ProDy',
-    packages=PACKAGES,
-    #package_dir=PACKAGE_DIR,
-    package_data=PACKAGE_DATA,
-    ext_modules=EXTENSIONS,
-    license='MIT License',
-    keywords=('protein, dynamics, elastic network model, '
-              'Gaussian network model, anisotropic network model, '
-              'essential dynamics analysis, principal component analysis, '
-              'Protein Data Bank, PDB, GNM, ANM, SM, PCA'),
-    classifiers=[
-                 'Development Status :: 5 - Production/Stable',
-                 'Intended Audience :: Education',
-                 'Intended Audience :: Science/Research',
-                 'License :: OSI Approved :: MIT License',
-                 'Operating System :: MacOS',
-                 'Operating System :: POSIX',
-                 'Programming Language :: Python',
-                 'Programming Language :: Python :: 3',
-                 'Topic :: Scientific/Engineering :: Bio-Informatics',
-                 'Topic :: Scientific/Engineering :: Chemistry',
-                ],
-    #scripts=SCRIPTS,
-    entry_points = {
-        'console_scripts': SCRIPTS,
-    },
-    install_requires=INSTALL_REQUIRES,
-    #provides=['ProDy ({0:s})'.format(__version__)]
-)
+    setup(
+        ext_modules=EXTENSIONS,
+        long_description=long_description,
+        long_description_content_type='text/markdown',
+    )

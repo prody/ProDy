@@ -1,7 +1,95 @@
+# pyproject.toml
+
 [build-system]
-requires = ["setuptools<69", "wheel", "numpy<2.0", "pyparsing<=3.1.1", "scipy"]
+# These are the build-time dependencies. `setuptools` is the build backend,
+# and `numpy` is required for its C headers when compiling the extensions.
+requires = ["setuptools>=61.0", "numpy>=1.10"]
+build-backend = "setuptools.build_meta"
 
-requires-python = ">=3.10"
+[project]
+# All static project metadata goes here.
+name = "ProDy"
+dynamic = ["version"]  # The version is read from prody/__init__.py
+description = "A Python Package for Protein Dynamics Analysis"
+readme = "README.rst"
+requires-python = ">=3.10" # Based on the logic in your setup.py
+license = { text = "MIT License" }
+keywords = [
+    "protein", "dynamics", "elastic network model",
+    "Gaussian network model", "anisotropic network model",
+    "essential dynamics analysis", "principal component analysis",
+    "Protein Data Bank", "PDB", "GNM", "ANM", "SM", "PCA",
+]
+authors = [
+    { name = "James Krieger", email = "jamesmkrieger@gmail.com" },
+    { name = "Karolina Mikulska-Ruminska" },
+    { name = "She Zhang" },
+    { name = "Hongchun Li" },
+    { name = "Cihan Kaya" },
+    { name = "Ahmet Bakan" },
+    { name = "and others" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
 
-license = "MIT"
-license-files = ["LICENSE.rst"]
+# Runtime dependencies
+dependencies = [
+    "numpy>=1.10",
+    "biopython",
+    "pyparsing<=3.1.1",
+    "scipy",
+]
+
+[project.urls]
+Homepage = "http://www.bahargroup.org/prody"
+Documentation = "http://www.bahargroup.org/prody/tutorials.html"
+Source = "https://github.com/prody/ProDy"
+CondaForge = "https://conda.anaconda.org/conda-forge"
+
+[project.scripts]
+# Defines the console scripts and their entry points.
+prody = "prody.apps:prody_main"
+evol = "prody.apps:evol_main"
+
+[tool.setuptools]
+# This section configures the setuptools build backend.
+py-modules = []
+
+[tool.setuptools.packages.find]
+# Automatically find all packages under the current directory.
+include = ["prody*"]
+
+[tool.setuptools.package-data]
+# Includes non-Python files within your packages.
+"prody.utilities" = ["datafiles/*.dat"]
+"prody.tests" = [
+    "datafiles/*.pdb",
+    "datafiles/*.dat",
+    "datafiles/*.coo",
+    "datafiles/dcd*.dcd",
+    "datafiles/xml*.xml",
+    "datafiles/msa*",
+    "datafiles/mmcif*cif",
+    "datafiles/*.npy",
+    "datafiles/*.mmtf",
+    "datafiles/*json",
+]
+"prody.proteins" = [
+    "tabulated_energies.txt",
+    "hpb.so",
+]
+
+[tool.setuptools.dynamic]
+# Tells setuptools how to find the project's version dynamically.
+version = { attr = "prody.__version__" }
+

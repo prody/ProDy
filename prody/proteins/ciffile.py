@@ -12,6 +12,7 @@ from prody.atomic import AtomGroup
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile
+from prody.utilities.misctools import packmolRenumChains
 from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
@@ -62,6 +63,9 @@ _parseMMCIFdoc = """
         chain id (label_asym_id). Using biomol=True, inside parseMMCIF is fine.
         Default is *False*
     :type unite_chains: bool
+
+    :arg packmol: whether to renumber chains like packmol, default is False
+    :type packmol: bool
     """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
@@ -169,6 +173,7 @@ def parseMMCIFStream(stream, **kwargs):
     header = kwargs.get('header', False)
     report = kwargs.get('report', False)
     assert isinstance(header, bool), 'header must be a boolean'
+    packmol = kwargs.get('packmol', False)
 
     if model is not None:
         if isinstance(model, int):
@@ -264,6 +269,9 @@ def parseMMCIFStream(stream, **kwargs):
             else:
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')    
+
+    if packmol:
+        ag = packmolRenumChains(ag)
 
     if model != 0:
         if header:
