@@ -844,6 +844,11 @@ class DruGUI:
 
             os.chdir('/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script')
 
+            if package_dir.is_dir():
+                os.chdir(package_dir)
+            else:
+                raise FileNotFoundError(f"DruGUI-script not found at {package_dir}")
+
             Druggability_path = os.getcwd()
 
             probepsf = os.path.join(Druggability_path, "probe.psf")

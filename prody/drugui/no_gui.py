@@ -192,7 +192,10 @@ def drugui_prepare(pdb, psf, **kwargs):
     additional_parameters = kwargs.pop("additional_parameters", [])
     drugui_data(vmd)
 
-    os.chdir('/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script')
+    if package_dir.is_dir():
+        os.chdir(package_dir)
+    else:
+        raise FileNotFoundError(f"DruGUI-script not found at {package_dir}")
 
     Druggability_path = os.getcwd()
 
