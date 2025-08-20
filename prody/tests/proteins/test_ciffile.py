@@ -118,7 +118,14 @@ class TestParseMMCIF(unittest.TestCase):
                         self.no_pdb['segment_SX0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'when segment SX0 is specified')
-        
+
+    def testSkipPDBs(self):
+        """Test outcome of valid and invalid *segment* arguments."""
+
+        pdb = self.altlocs['pdb']
+        _ = parsePDB(pdb)
+        _ = parseMMCIF(pdb)
+
     def testUniteChainsArgument(self):
         """Test outcome of valid and invalid *segment* arguments."""
 
