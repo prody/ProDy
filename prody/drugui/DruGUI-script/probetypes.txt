@@ -1,1 +1,0 @@
-core {Core probes} polar {Polar probes} hydrophobe Hydrophobes negative {Negatively charged} positive {Positively charged} ring5 {5-membered rings} ring6 {6-membered rings}
