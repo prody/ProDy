@@ -896,7 +896,7 @@ class DruGUI:
                     set PROBETOPPAR {{{self.PROBETOPPAR}}}
                     set PROBETYPES {{{self.PROBETYPES}}}
                     {tcl_opts}
-                    set logfile [open probe_analysis.log" a]
+                    set logfile [open probe_analysis.log a]
 
                     """
                     probe_analysis += """
