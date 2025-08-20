@@ -504,7 +504,3 @@ BSAT type ring6
 3NAP name nicotinamide
 3NAP alias  C2 CG C1 CD1 C3 CD2 OH2 O C2 C C3 N
 3NAP type ring6
-
-cfma name 4chlorodifluoromethoxyaniline
-cfma alias CLGA3 FGA3 OG301 NG2S3 CG2R61 CG312 HGP4 HGR61 LPH
-cfma type ring6
