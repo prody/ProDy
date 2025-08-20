@@ -1,7 +1,7 @@
+# -*- coding: utf-8 -*-
 __author__ = 'Carlos Ventura'
 __email__ = ['carlosventura@stonybrook.edu']
 
-#!/usr/bin/python
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import os
@@ -28,7 +28,7 @@ except ImportError as e:
         f"({e})"
     )
 
-from prody import LOGGER, plog, closeLogfile, startLogfile
+from prody import LOGGER
 from numpy import array, ceil, histogramdd, arange
 from prody.proteins.compare import matchAlign
 from prody.proteins.pdbfile import parsePDB, writePDB
@@ -40,7 +40,7 @@ from prody.trajectory.trajectory import Trajectory
 
 from druggability.grid import OpenDX
 
-__all__ = ['runGUI']
+__all__ = ['DruGUI']
 
 class DruGUI:
     def __init__(self):
@@ -2545,6 +2545,7 @@ class DruGUI:
                 for p in probes:
                     DCDOUT[p] = DCDFile(prefix + '_' + p + '.dcd', 'w')
 
+                from prody import startLogfile
                 startLogfile(prefix + '_grid.log')
 
                 pdb, psf = pdb_psf_dcds[0][:2]
@@ -2557,6 +2558,7 @@ class DruGUI:
                 pcenter = calcCenter(palign)
 
                 # make sure all probe names select some residues
+                from prody import plog
                 probe_selstr = 'noh and resname'
                 for p in probes:
                     sel = pdb.select('noh and resname ' + p)
@@ -2657,6 +2659,7 @@ class DruGUI:
                     grid.write(fn + '.dx')
                     probe_grids.append((p, fn + '.dx'))
 
+                from prody import closeLogfile
                 closeLogfile(prefix + '_grid.log')
                 return probe_grids
 

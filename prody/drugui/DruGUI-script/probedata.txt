@@ -1,0 +1,1 @@
+core {} polar {} hydrophobe {} negative {} positive {} ring5 {} ring6 {}

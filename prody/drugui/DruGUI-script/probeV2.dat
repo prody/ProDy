@@ -1,0 +1,510 @@
+# name: a common name for the probe molecule
+# alias: atom name alias list (IPRO_name OTHER_name)
+# default: percentage of the probe component
+# category: one of core, negative, positive, ring5, ring6, polar, hydrophobe
+
+IPRO name isopropanol
+IPRO default 16
+IPRO type core
+
+ACAM name acetamide
+ACAM alias OH2 O3 C3 N4 H31 H41 H32 H42 C2 C2 C1 C1 H11 H11 H12 H12 H13 H13
+ACAM default 14
+ACAM type core
+
+ACTT name acetate
+ACTT alias C3 O3 OH2 O4 C2 C2 C1 C1 H11 H11 H12 H12 H13 H13 
+ACTT default 14
+ACTT type core
+
+IPAM name isopropylamine
+IPAM alias OH2 N4 HO2 H42 C2 C2 H21 H21 C1 C1 H11 H11 H12 H12 H13 H13 C3 C3 H31 H31 H32 H32 H33 H33
+IPAM default 14
+IPAM type core
+
+IBTN name isobutane
+IBTN alias OH2 C4 HO2 H41 C2 C2 H21 H21 C1 C1 H11 H11 H12 H12 H13 H13 C3 C3 H31 H31 H32 H32 H33 H33
+IBTN default 14
+IBTN type core
+
+IMID name imidazole
+IMID alias OH2 HG1 C2 CG C3 CD2
+IMID default 14
+IMID type core
+
+PRO2 name 2-propanol
+PRO2 alias OH2 O2 C2 HO2 HO2 C2 H21 H21 C1 C1 H11 H11 H12 H12 H13 H13 C3 C3 H31 H31 H32 H32 H33 H33
+PRO2 type polar
+
+ACET name acetate
+ACET alias C1 C1 H11 H1 H12 H2 H13 H3 C2 C2 C3 O1 OH2 O2
+ACET type negative
+
+PROA name propionic acid
+PROA alias C1 C2 H11 H21 H12 H22 H13 C3 C2 C1 C3 O1 OH2 O2
+PROA type negative
+
+IBUT name isobutane
+IBUT alias C2 CT H21 HT OH2 C2 HO2 H21
+IBUT type hydrophobe
+
+BUTA name butane
+BUTA alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 H22 C3 C3 H31 H31 H32 H32 H33 C4
+BUTA type hydrophobe
+
+GLYN name glycine
+GLYN alias C1 CA H11 HA1 H12 HA2 H13 N C2 C C3 OT1 OH2 OT2
+GLYN type polar
+
+ACEH name acetic acid
+ACEH alias C1 C2 H11 H21 H12 H22 H13 H23 C2 C1 C3 O2 OH2 O1 HO2 HO1
+ACEH type polar
+
+ACEM name acetamide
+ACEM alias C2 C C1 CC H11 HC1 H12 HC2 H13 HC3 OH2 O C3 N H31 HT H32 HC
+ACEM type polar
+
+MEOH name methanol 
+MEOH alias C1 HB1 H11 HB2 H12 HB3 H13 OG   
+MEOH type polar
+
+MESH name methanethiol
+MESH alias C1 CM H11 H1 H12 H2 H13 H3 H13 H4 C2 S 
+MESH type polar 
+
+ETOH name ethanol
+ETOH alias C1 H11 H12 C2 H21 H22 H13 H23 HO2 HO1
+ETOH type polar
+
+ETSH name ethanethiol
+ETSH alias C1 CM1 H11 H1 H12 H2 H13 H3 H13 CM2 C2 S3 H31 H5 H32 H6
+ETSH type polar
+
+TBOH name t-butanol
+TBOH alias C1 C2 H11 H21 H12 H22 H13 H23 C2 C1 C3 H31 H32 H33 C2 C OH2 O HO2 HO  
+TBOH type polar
+
+AALD name Acetaldehyde
+AALD alias C1 C H11 HA OH2 O C3 CB H31 HB1 H32 HB2 H33 HB3
+AALD type polar
+
+FORM name formamide
+FORM alias C1 C H11 HA OH2 O C3 N H31 HT H32 HC
+FORM type polar
+
+PRAM name propionamide
+PRAM alias C1 CC H11 HC1 H12 HC2 H13 C1 C2 C OH2 O C3 N H31 HT H32 HC
+PRAM type polar
+
+NMA name N-methylacetamide
+NMA alias OH2 O C2 C C1 CL H11 HL1 H12 HL2 H13 HL3 C3 N H31 H H32 CR
+NMA type polar
+
+ACO name acetone
+ACO alias C2 C1 OH2 O1 C1 C2 H11 H21 H12 H22 H13 H23 C3 C3 H31 H31 H32 H32 H33 H33
+ACO type polar
+
+CO3 name ionized carbonate
+CO3 alias C2 C1 C1 O1 OH2 O2 C3 O3
+CO3 type negative
+
+METO name methoxide
+METO alias C2 CB H11 HB1 H12 HB2 H13 HB3 OH2 OG 
+METO type negative
+
+MES1 name methylthiolate
+MES1 alias C1 H11 H12 H13 HO2 S 
+MES1 type negative 
+
+ETO name ethoxide
+ETO alias C1 CA C2 CB H11 HB1 H12 HB2 OH2 OG H31 HA1 H32 HA2 H33 HA3
+ETO type negative
+
+ES1 name ethylthiolate
+ES1 alias C2 H21 H32 H22 H33 H23 C1 H11 H12 S
+ES1 type negative
+
+IMIA name imidazole
+IMIA alias OH2 HG C2 CG C3 CD2
+IMIA type ring5
+
+IMIM name imidazolium
+IMIM alias OH2 HG C2 CG C3 CD2
+IMIM type ring5
+
+MIMI name 4-methylimidazole
+MIMI alias OH2 CB C2 CG C1 ND1 
+MIMI type ring5
+
+BENZ name benzene
+BENZ alias C2 CG C1 CD1 C3 CD2
+BENZ default 14 
+BENZ type core
+
+EBEN name ethylbenzene
+EBEN alias C2 CG C1 CD1 C3 CD2 C2 CB C3 CA
+EBEN type ring6
+
+BUTA name butane
+BUTA alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 H22 C3 C3 H31 H31 H32 H32 H33 C4
+BUTA hydrophobe
+
+EMS name ethylmethylsulfide
+EMS alias C2 S3 C1 CM2 H11 CM1 H12 H4 H13 H5 C3 CM4 H31 H6 H32 H7 H33 H8
+EMS type hydrophobe
+
+DMDS name dimethyldisulfide
+DMDS alias C2 S2 C1 CM1 H11 H1 H12 H2 H13 H3 C3 S3 H31 CM4
+DMDS type hydrophobe
+
+DFET name difluoroethane
+DFET alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 F22 C3 F23
+DFET type hydrophobe
+
+TFET name trifluoroethane
+TFET alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 F21 OH2 F22 C3 F23
+TFET type hydrophobe
+
+TFE name trifluoroethanol
+TFE alias OH2 O1 HO2 HO1 C2 C1 H21 H11 C3 H12 C1 C2 H11 F21 H12 F22 H13 F23
+TFE type polar
+
+MP_0 name neutral methylphosphate
+MP_0 alias C1 O1 C2 P1 C3 O3 OH2 O2 H21 O4 H31 H3 HO2 H2
+MP_0 type polar 
+
+NIME name nitromethane
+NIME alias C1 H11 H12 H13 C2 N2 OH2 O21 HO2 O22
+NIME type polar
+
+MP_1 name anionic methylphosphate
+MP_1 alias C1 O1 C2 P1 C3 O3 OH2 O2 H21 O4 HO2 H2
+MP_1 type negative
+
+MP_2 name dianionic methylphosphate
+MP_2 alias C1 O1 C2 P1 C3 O3 OH2 O2 H21 O4
+MP_2 type negative
+
+GUAN name guanidinium
+GUAN alias C2 C C1 N1 C3 N3 OH2 N2
+GUAN type positive
+
+MGUA name methyl-guanidinium
+MGUA alias C2 C C1 N1 OH2 N2 C3 N3 H31 H31 H33 C2
+MGUA type positive
+
+MAMM name methylammonium
+MAMM alias C1 CE H31 HE1 H32 HE2 H33 HE3 C3 NZ H11 HZ1 H12 HZ2 H13 HZ3
+MAMM type positive
+
+EAMM name ethylammonium
+EAMM alias C1 H11 H12 H13 C1 CE H31 HE1 H32 HE2 C3 NZ H11 HZ1 H12 HZ2 H13 HZ3
+EAMM type positive
+
+UREA name urea
+UREA alias C2 C2 OH2 O2 C1 N1 H11 H11 H12 H12 C3 N3 H31 H31 H32 H32
+UREA type polar
+
+DMEE name Dimethylether
+DMEE alias C1 H11 H12 H13 OH2 O2 C3 H31 H32 H33
+DMEE type polar
+
+MSAM name methanesulfonamide
+MSAM alias C2 S1 H21 O11 OH2 O12 C3 C3 H31 H31 H32 H32 H33 H33 C1 N2 H11 H21 H12 H22 
+MSAM type polar
+
+MMSM name N-methylmethanesulfonamide
+MMSM alias C2 S1 H21 O11 OH2 O12 C3 C3 H31 H31 H32 H32 H33 H33 C1 N2 H11 H21 H12 C4
+MMSM type polar
+
+MMST name methyl methanesulfonate
+MMST alias C2 S1 H21 O3 OH2 O4 C1 C2 H11 H21 H12 H22 H13 H23 C3 O5 H31 C6
+MMST type polar
+
+MSNA name methyl sulfonate
+MSNA alias C1 C1 H11 H11 H12 H12 H13 H13 C2 S OH2 O2 H21 O1 C3 O3
+MSNA type negative
+
+ESNA name ethyl sulfonate
+ESNA alias C1 C2 H11 H21 H12 H22 H13 H23 C2 C1 OH2 H11 H21 H12 C3 S H31 O1 H32 O2 H33 O3
+ESNA type negative
+
+DMSN name dimethyl sulfone
+DMSN alias C2 S OH2 O2 H21 O1 C1 C4 H11 H41 H12 H42 H13 H43 C3 C3 H31 H31 H32 H32 H33 H33 
+DMSN type polar
+
+MESN name methyl ethyl sulfone
+MESN alias C2 S OH2 O2 H21 O1 C1 C4 H11 C5 H12 H42 H13 H41 C3 C3 H31 H31 H32 H32 H33 H33
+MESN type polar
+
+DMSO name dimethylsulfoxide
+DMSO alias C2 S2 OH2 O1 C1 C3 H11 H4 H12 H5 H13 H6 C3 C7 H31 H8 H32 H9 H33 H10 
+DMSO type polar
+
+DCLE name 1,1-dichloroethane
+DCLE alias C2 C1 H21 H13 OH2 CL12 C1 CL11 C3 C2 H31 H21 H32 H22 H33 H23
+DCLE type hydrophobe
+
+TCLE name 1,1,1-trichloroethane
+TCLE alias C2 C1 H21 CL13 OH2 CL12 C1 CL11 C3 C2 H31 H21 H32 H22 H33 H23
+TCLE type hydrophobe
+
+ETHE name ethylene
+ETHE alias C1 H11 H12 C2 H21 H22
+ETHE type hydrophobe
+
+PRPE name propene
+PRPE alias C1 H11 H12 C2 H21 C3 H31 H32 H33 C3
+PRPE type hydrophobe
+
+PRAL name acrolein
+PRAL alias C1 H11 H12 C2 H21 CG OH2 OD1 H31 H 
+PRAL type polar
+
+BTE2 name 2-Butene
+BTE2 alias C1 H11 H12 H13 C2 H21 C3 H31 C4 H41 H32 H42 H33 H43
+BTE2 type hydrophobe
+
+13DB name 1,3-dibutene
+13DB alias C1 H11 H12 C2 H21 C3 H31 C4 H31 H41 H32 H42
+13DB type hydrophobe
+
+PRPY name propyne
+PRPY alias C1 H11 H12 H13 C2 C3 H31 H31
+PRPY type hydrophobe
+
+C3 name Cyclopropane
+C3 alias C1 H11 H12 C2 H21 H22 C3 H31 H32 H32
+C3 type hydrophobe
+
+CBU name cyclobutane
+CBU alias C1 H11 H12 C2 H21 H22 C3 H31 H32 C4 H31 H41 H32 H42
+CBU type hydrophobe
+
+AMDN name amidinium cation
+AMDN alias C2 C1 C1 C2 H11 H3 H12 H4 H13 H5 OH2 N6 HO2 H7 C3 N9 H31 H10 H32 H11
+AMDN type positive
+
+2PDO name 2-pyrrolidinone
+2PDO alias C2 C2 OH2 O2 C3 C3 C1 N1
+2PDO type polar
+
+TMAO name trimethylamine N-oxide
+TMAO alias C2 N OH2 C2 C3 C3 C1 C1
+TMAO type polar
+
+MAS name methylacetate
+MAS alias C1 C C2 OM OH2 O H11 H12 H13 H21 H32 H22 H33 H23
+MAS type polar
+
+ACN name acetonitrile
+ACN alias C1 H11 H12 H13 C2 N3
+ACN type polar
+
+THAZ name thiazole
+THAZ alias C2 S5 C1 C1 C3 C4 H12 C2 H31 N3
+THAZ type ring5
+
+TRZ4 name triazole124
+TRZ4 alias OH2 H5 C2 N5 C1 N4 C3 C1 H12 C3 H31 N2
+TRZ4 type ring5
+
+PYRL name pyrrole
+PYRL alias OH2 H5 C2 N5 C1 C1 H12 C2 C3 C4 H31 C3
+PYRL type ring5
+
+FURA name furan
+FURA alias C2 O5 C1 C1 H12 C2 C3 C4 H31 C3
+FURA type ring5
+
+THIP name thiophene
+THIP alias C2 S5 C1 C1 H12 C2 C3 C4 H31 C3
+THIP type ring5
+
+OXAZ name oxazole
+OXAZ alias C2 O5 C1 C1 H12 C2 C3 C4 H31 N3
+OXAZ type ring5
+
+ISOX name isoxazole
+ISOX alias C2 O5 C1 C1 H12 C2 C3 N4 H31 C3
+ISOX type ring5
+
+ISOT name isothiazole
+ISOT alias C2 S5 C1 C1 H12 C2 C3 N4 H31 C3
+ISOT type ring5
+
+PYRZ name pyrazole
+PYRZ alias OH2 H5 C2 N5 C1 C1 H12 C2 C3 N4 H31 C3
+PYRZ type ring5
+
+OXAD name oxadiazole123
+OXAD alias C2 O5 C1 C1 H12 C2 C3 N4 H31 N3
+OXAD type ring5
+
+2HPR name 2H-pyrrole
+2HPR alias C2 C2 C1 N1 H12 C5 C3 C3 H31 C4
+2HPR type ring5
+
+2PRL name 2-pyrroline
+2PRL alias OH2 H1 C2 N1 C1 C5 H12 C4 C3 C2 H31 C3
+2PRL type ring5
+
+2PRZ name 2-pyrazoline
+2PRZ alias OH2 H1 C2 N1 C1 C5 H12 C4 C3 N2 H31 C3
+2PRZ type ring5
+
+2IMI name 2-imidazoline
+2IMI alias OH2 H1 C2 N1 C1 C5 H12 C4 C3 C2 H31 N3
+2IMI type ring5
+
+PRLD name pyrrolidine
+PRLD alias OH2 H1 C2 N1 C1 C5 H12 C4 C3 C2 H31 C3
+PRLD type ring5
+
+3PRL name 3-pyrroline
+3PRL alias OH2 H1 C2 N1 C1 C5 H12 C4 C3 C2 H31 C3
+3PRL type ring5
+
+PRLP name pyrrolidine protonated
+PRLP alias C2 N1 C1 C5 H12 C4 C3 C2 H31 C3
+PRLP type ring5
+
+3PRP name 3-pyrroline protonated
+3PRP alias C2 N1 C1 C5 H12 C4 C3 C2 H31 C3
+3PRP type ring5
+
+2PRP name 2-pyrroline protonated
+2PRP alias C2 N1 C1 C5 H12 C4 C3 C2 H31 C3
+2PRP type ring5
+
+2IMP name 2-imidazoline protonated
+2IMP alias OH2 H1 C2 N1 C1 C5 H12 C4 C3 C2 H31 N3
+2IMP type ring5
+
+2HPP name 2H-pyrrole protonated
+2HPP alias OH2 H1 C2 N1 C1 C5 H12 C4 C3 C2 H31 C3
+2HPP type ring5
+
+3HPR name 3H-pyrrole
+3HPR alias C2 N1 C1 C5 H12 C4 C3 C2 H31 C3
+3HPR type ring5
+
+CPDE name cyclopentadiene
+CPDE alias C2 C1 C1 C5 H12 C4 C3 C2 H31 C3
+CPDE type ring5
+
+DIOL name 1,3-Dioxolane
+DIOL alias C2 O1 C1 C5 H12 C4 C3 C2 H31 O3
+DIOL type ring5
+
+IMDP name Imidazolidine protonated
+IMDP alias OH2 H1 C2 N1 C1 C5 H12 C4 C3 C2 H31 N3
+IMDP type ring5
+
+PRZP name Pyrazolidine protonated
+PRZP alias OH2 H1 C2 N1 C1 C5 H12 C4 C3 N2 H31 C3
+PRZP type ring5
+
+2DHF name 2,3-dihydrofuran
+2DHF alias C2 O1 C1 C5 H12 C4 C3 C2 H31 C3
+2DHF type ring5
+
+MCPE name methylcyclopentane
+MCPE alias OH2 C6 C2 C5 C1 C4 H12 C3 C3 C1 H31 C2
+MCPE type ring5
+
+OXD4 name oxadiazole124
+OXD4 alias C2 O5 C1 C1 H12 N2 C3 N4 H31 C3
+OXD4 type ring5
+
+THF name tetrahydrofuran
+THF alias C2 O4' C1 C4' H12 C3' C3 C1' H31 C2'
+THF type ring5
+
+THFM name Methyl-tetrahydrofuran
+THFM alias OH2 C5' C2 C4' C1 C3' H12 C2' C3 O4' H31 C1'
+THFM type ring5
+
+THFO name 3'-hydroxyl-tetrahydrofuran
+THFO alias OH2 O3' C2 C3' C1 C2' H12 C1' C3 C4' H31 O4'
+THFO type ring5
+
+CPEN name cyclopentane north types
+CPEN alias C2 C5 C1 C4 H12 C3 C3 C1 H31 C2
+CPEN type ring5
+
+CPES name cyclopentane south types
+CPES alias C2 C5 C1 C4 H12 C3 C3 C1 H31 C2
+CPES type ring5
+
+PY01 name 4H-Pyran
+PY01 alias C2 O1 C1 C2 C3 C6
+PY01 type ring6
+
+FLUB name fluorobenzene
+FLUB alias C2 C5 C1 C4 C3 C6 C2 F6
+FLUB type ring6
+
+DFT name 2,4-difluorotoluene
+DFT alias C1 C2 C3 C3 C4 C4 C5 F2 C5 C6 C6 F4 C2 C5M 
+DFT type ring6
+
+DFB name 1,3-difluorobenzene
+DFB alias C1 C1 C2 C2 C3 C3 C4 C4 C5 F2 C5 C6 C6 F4
+DFB type ring6
+
+TOLU name toluene
+TOLU alias C2 CG C1 CD1 C3 CT H11 H12 H13 CD2 
+TOLU type ring6
+
+OXYL name o-xylene 
+OXYL alias C2 CG C1 CD1 C3 C1 H11 H12 H13 CD2 H21 H22 C2 H23
+OXYL type ring6
+
+MXYL name m-xylene
+MXYL alias C2 CG C1 CD1 C3 C1 C2 CD2
+MXYL type ring6
+
+PXYL name p-xylene
+PXYL alias C2 CG C2 C1 C3 CD2 C1 CD1 
+PXYL type ring6
+
+PNPO name p-nitrophenol
+PNPO alias C2 C1 C3 C4 C5 N6 C6 O6A C2 O6B
+PNPO type ring6
+
+CHON name cyclohexanone
+CHON alias C2 C1 C5 C1 C4 C3 C6 O1
+CHON type ring6
+
+PHEN name phenol
+PHEN alis C2 CG C1 CD1 C3 CD2 OH HH
+PHEN type ring6
+
+EPHE name p-ethylphenol
+EPHE alias C2 CG C1 CD1 C3 CD2 HO2 OH C3 CA C2 CB
+EPHE type ring6
+
+BFL name biphenyl
+BFL alias C2 CG1 C1 CD1 C3 CD2 C2 CG2 C1 CD1 C3 CD2
+BFL type ring6
+
+PYZN name pyrazine
+PYZN alias C2 N1 C3 N4 C5 C6
+PYZN type ring6
+
+BALD name Benzaldehyde
+BALD alias C2 CG C1 CD1 C3 CD2 OH2 O C2 C
+BALD type ring6
+
+BSAT name Benzenesulfonate
+BSAT alias C2 CA2 C1 CA1 C3 CA3 C4 CA4 C2 CA5 C3 CA6 OH2 O1 HO2 O2 OH2 O3 HO2 S 
+BSAT type ring6
+
+3NAP name nicotinamide
+3NAP alias  C2 CG C1 CD1 C3 CD2 OH2 O C2 C C3 N
+3NAP type ring6
+
+cfma name 4chlorodifluoromethoxyaniline
+cfma alias CLGA3 FGA3 OG301 NG2S3 CG2R61 CG312 HGP4 HGR61 LPH
+cfma type ring6
