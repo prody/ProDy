@@ -1,8 +1,8 @@
 """This module defines miscellaneous utility functions."""
 import re
 
-from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil, abs
-from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack
+from numpy import unique, linalg, diag, sqrt, dot, zeros, allclose, abs, bytes_
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max
 from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril, median
 from numpy import all
 from collections import Counter
@@ -458,7 +458,7 @@ def toChararray(arr, aligned=False):
     if ndim != 2:
         n_seq = shape[0]
         l_seq = dtype_.itemsize
-        new_arr = chararray((n_seq, l_seq))
+        new_arr = empty((n_seq, l_seq), dtype=bytes_)
         for i, s in enumerate(arr):
             for j in range(l_seq):
                 if j < len(s):
@@ -659,7 +659,9 @@ def checkIdentifiers(*pdb, **kwargs):
             LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
             append(None)
         else:
-            if format != 'emd' and not (len(pid) == 4 and pid.isalnum()):
+            if format != 'emd' and not ((len(pid) == 4 and pid.isalnum()) 
+                                        or (len(pid) == 12 and pid.startswith('pdb_') 
+                                            and pid[3] == '_')):
                 LOGGER.warn('{0} is not a valid identifier.'
                             .format(repr(pid)))
                 append(None)

@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """This module handles individual sequences."""
 
-from numpy import char, fromstring
+from numpy import char, array
 
 from prody import LOGGER, PY3K
-from prody.atomic import Atomic
 
 from prody.utilities import splitSeqLabel
 
@@ -29,11 +28,11 @@ class Sequence(object):
                 self._index = two
                 self._seq = self._label = None
             else:
-                self._seq = fromstring(one, '|S1')
+                self._seq = array(list(one), '|S1')
                 self._label = two
                 self._msa = self._index = None
         elif len(args) == 1:
-            self._seq = fromstring(args[0], '|S1')
+            self._seq = array(list(args[0]), '|S1')
             self._msa = self._index = None
             self._label = ''
         else:

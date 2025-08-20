@@ -12,6 +12,7 @@ from prody.atomic import AtomGroup
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile
+from prody.utilities.misctools import packmolRenumChains
 from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
@@ -62,6 +63,9 @@ _parseMMCIFdoc = """
         chain id (label_asym_id). Using biomol=True, inside parseMMCIF is fine.
         Default is *False*
     :type unite_chains: bool
+
+    :arg packmol: whether to renumber chains like packmol, default is False
+    :type packmol: bool
     """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
@@ -88,17 +92,14 @@ def parseMMCIF(pdb, **kwargs):
     if get_bonds:
         LOGGER.warn('Parsing struct_conn information from mmCIF is currently unsupported and no bond information is added to the results')
     if not os.path.isfile(pdb):
-        if len(pdb) == 5 and pdb.isalnum():
+        if (len(pdb) == 5 and pdb.isalnum()) or eval(long_id_check_str % 13):
             if chain is None:
-                chain = pdb[-1]
-                pdb = pdb[:4]
+                pdb, chain = _getPDBid(pdb)
             else:
                 raise ValueError('Please provide chain as a keyword argument '
                                  'or part of the PDB ID, not both')
-        else:
-            chain = chain
 
-        if len(pdb) == 4 and pdb.isalnum():
+        if (len(pdb) == 4 and pdb.isalnum()) or eval(long_id_check_str % 12):
             if title is None:
                 title = pdb
                 kwargs['title'] = title
@@ -172,6 +173,7 @@ def parseMMCIFStream(stream, **kwargs):
     header = kwargs.get('header', False)
     report = kwargs.get('report', False)
     assert isinstance(header, bool), 'header must be a boolean'
+    packmol = kwargs.get('packmol', False)
 
     if model is not None:
         if isinstance(model, int):
@@ -267,6 +269,9 @@ def parseMMCIFStream(stream, **kwargs):
             else:
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')    
+
+    if packmol:
+        ag = packmolRenumChains(ag)
 
     if model != 0:
         if header:
@@ -529,11 +534,11 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     siguij = None
     data = parseSTARSection(lines, "_atom_site_anisotrop", report=report)
     if len(data) > 0:
-        anisou = np.zeros((acount, 6),
+        anisou = np.zeros((asize, 6),
                            dtype=float)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
-            siguij = np.zeros((acount, 6),
+            siguij = np.zeros((asize, 6),
                               dtype=ATOMIC_FIELDS['siguij'].dtype)
 
         for entry in data:
