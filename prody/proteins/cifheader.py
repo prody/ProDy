@@ -810,6 +810,7 @@ def _getPolymers(lines, **kwargs):
     polymers = dict()
 
     entities = defaultdict(list)
+    longSeq = kwargs.get('longSeq', False)
 
     # SEQRES block
     items1 = parseSTARSection(lines, '_entity_poly', report=False)
@@ -823,7 +824,6 @@ def _getPolymers(lines, **kwargs):
             poly = polymers.get(ch, Polymer(ch))
             polymers[ch] = poly
 
-            longSeq = kwargs.get('longSeq', False)
             if longSeq:
                 poly.sequence += ''.join(item[
                     '_entity_poly.pdbx_seq_one_letter_code'].replace(';', '').split())
