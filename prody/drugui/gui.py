@@ -2530,11 +2530,7 @@ class DruGUI:
 
         def analyze_system():
 
-            if len(sys.argv) > 1:
-                # for VMD use. if console logging is enabled, VMD raises an error
-                verbose = sys.argv[1]
-            else:
-                verbose = 'info'
+            verbose = 'info'
 
             def buildGrids(prefix, pdb_psf_dcds, probes, align=self.align.get(), protein=self.selection.get(), contacti=self.contact_distance.get(), resolution=self.grid_spacing.get(), savedcd=False):
                 
@@ -2671,7 +2667,7 @@ class DruGUI:
             def calcDruggability(prefix, probe_grids, **kwargs):
 
 
-                dia = DIA(prefix, workdir=self.outputdir_location.get(), verbose=verbose)
+                dia = druggability.DIA(prefix, workdir=self.outputdir_location.get(), verbose=verbose)
                 # check parameters for their correctness
                 dia.set_parameters(temperature=kwargs.get('temperature', self.temperature.get())) # K (productive simulation temperature)
                 dia.set_parameters(delta_g=kwargs.get('delta_g', self.dia_delta_g.get())) # kcal/mol (probe binding hotspots with lower values will be evaluated)

@@ -1500,11 +1500,7 @@ def drugui_analysis(pdb, psf, dcds, **kwargs):
     n_charged = kwargs.pop('n_charged', 3)
     probes = kwargs.pop('probes', ['IPAM', 'IPRO', 'ACTT', 'IBUT', 'ACAM', 'IMID', 'BENZ'])
 
-    if len(sys.argv) > 1:
-        # for VMD use. if console logging is enabled, VMD raises an error
-        verbose = sys.argv[1]
-    else:
-        verbose = 'info'
+    verbose = 'info'
 
     def buildGrids(prefix, pdb_psf_dcds, probes, align = align, protein = selection, contacti = contact_distance, resolution = grid_spacing, savedcd=False):
 
@@ -1643,7 +1639,7 @@ def drugui_analysis(pdb, psf, dcds, **kwargs):
 
 
 
-        dia = DIA(prefix, workdir=outdir_location, verbose=verbose)
+        dia = druggability.DIA(prefix, workdir=outdir_location, verbose=verbose)
         # check parameters for their correctness
         dia.set_parameters(temperature=kwargs.get('temperature', temperature)) # K (productive simulation temperature)
         dia.set_parameters(delta_g=kwargs.get('delta_g', delta_g)) # kcal/mol (probe binding hotspots with lower values will be evaluated)
