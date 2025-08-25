@@ -2620,7 +2620,7 @@ class DruGUI:
 
                     # identify probes in contact and write them in DCD file
                     PROBES.setCoords(PRBSEL.getCoords())
-                    cont = PROBES.select('same residue as within {contacti} of pcontact', 
+                    cont = PROBES.select(f'same residue as within {contacti} of pcontact', 
                                          pcontact=pcontact)
 
                     if cont:
