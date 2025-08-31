@@ -673,7 +673,7 @@ FUNCTIONS = {
     'atan'  : np.arctan,
     'sinh'  : np.sinh,
     'cosh'  : np.cosh,
-    'tahn'  : np.tanh,
+    'tanh'  : np.tanh,
     'exp'   : np.exp,
     'log'   : np.log,
     'log10' : np.log10,
