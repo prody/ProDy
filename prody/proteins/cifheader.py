@@ -1104,7 +1104,6 @@ def _getChemicals(lines):
     chem_names = defaultdict(str)
     chem_synonyms = defaultdict(str)
     chem_formulas = defaultdict(str)
-    chem_n_atoms = defaultdict(int)
 
     # Data is split across blocks again
 
@@ -1153,7 +1152,7 @@ def _getChemicals(lines):
         if resname in flags.AMINOACIDS or resname == "HOH":
             continue
 
-        chem_names[resname] += data["_chem_comp.name"].upper()
+        chem_names[resname] += data.get("_chem_comp.name", "").upper()
 
         if "_chem_comp.pdbx_synonyms" in data.keys():
             synonym = data["_chem_comp.pdbx_synonyms"]
