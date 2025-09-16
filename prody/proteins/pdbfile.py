@@ -1622,10 +1622,11 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             if isinstance(atoms, AtomGroup):
                 if resnames[i] in AAMAP and atoms._getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
                     if increment_ter:
-                        serial += 1
                         num_ter_lines += 1
-                    if hybrid36:
-                        serial = decToHybrid36(hybrid36ToDec(serial))
+                        if hybrid36:
+                            serial = decToHybrid36(hybrid36ToDec(serial) + 1)
+                        else:
+                            serial += 1
 
                     if full_ter:
                         false_pdbline = pdbline % ("TER   ", serial,
@@ -1641,10 +1642,11 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             else:
                 if resnames[i] in AAMAP and atoms._getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
                     if increment_ter:
-                        serial += 1
                         num_ter_lines += 1
-                    if hybrid36:
-                        serial = decToHybrid36(hybrid36ToDec(serial))
+                        if hybrid36:
+                            serial = decToHybrid36(hybrid36ToDec(serial) + 1)
+                        else:
+                            serial += 1
 
                     if full_ter:
                         false_pdbline = pdbline % ("TER   ", serial,
