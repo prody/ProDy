@@ -274,6 +274,26 @@ class Atomic(object):
         
         return seq
 
+    def getHierView(self, **kwargs):
+        """Returns a hierarchical view of the atom selection."""
+
+        return HierView(self, **kwargs)
+
+    def numSegments(self):
+        """Returns number of segments."""
+
+        return self.getHierView().numSegments()
+
+    def numChains(self):
+        """Returns number of chains."""
+
+        return self.getHierView().numChains()
+
+    def numResidues(self):
+        """Returns number of residues."""
+
+        return self.getHierView().numResidues()
+
     def toTEMPyAtoms(self):
         """Returns a :class:`TEMPy.protein.prot_rep_biopy.Atom` or list of them as appropriate"""
         try:
@@ -294,12 +314,6 @@ class Atomic(object):
             raise ImportError('TEMPy is needed for this functionality')
 
         return BioPy_Structure(self.toTEMPyAtoms())
-
-    def numResidues(self):
-        """Returns number of residues."""
-
-        return len(set(self._getResindices()))
-
 
     def toBioPythonStructure(self, header=None, **kwargs):
         """Returns a :class:`Bio.PDB.Structure` object
