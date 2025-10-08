@@ -25,7 +25,7 @@ class TestParsePDB(unittest.TestCase):
         self.one = DATA_FILES['oneatom']
         self.ca = DATA_FILES['1ubi_ca']
 
-        self.five_dig = DATA_FILES['five_digits']
+        self.ficlve_dig = DATA_FILES['five_digits']
         self.hex = DATA_FILES['hex']
         self.h36 = DATA_FILES['h36']
 
