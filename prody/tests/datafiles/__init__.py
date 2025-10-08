@@ -134,6 +134,14 @@ DATA_FILES = {
         'atoms': 167,
         'models': 3
     },
+    'mdm2_pdb': {
+        'pdb': 'mdm2',
+        'file': 'mdm2.pdb'
+    },
+    'mdm2_psf':{
+        'psf': 'mdm2',
+        'file': 'mdm2.psf'
+    },
     'anm1ubi_hessian': {
         'file': 'anm1ubi_hessian.coo',
     },
@@ -430,6 +438,9 @@ DATA_FILES = {
         'file': '1ubi_anmd_mode1_ens.pdb',
         'n_atoms': 683,
         'models': 5
+    },
+    'drugui_outdir': {
+        'outdir_location': '/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/tests/drugui/holder',
     },
     'probes': {
         'file': 'probes_in.pdb',
