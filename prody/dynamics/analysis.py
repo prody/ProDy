@@ -21,9 +21,9 @@ from .gnm import GNMBase
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcRMSFlucts',
            'calcMostMobileNodes', 'calcTempFactors',
-           'calcProjection', 'calcCrossProjection',
+           'calcProjection', 'calcCrossProjection', 
            'calcSpecDimension', 'calcPairDeformationDist',
-           'calcDistFlucts', 'calcHinges', 'calcHitTime',
+           'calcDistFlucts', 'calcHinges', 'getHinges', 'calcHitTime',
            'calcAnisousFromModel', 'calcScipionScore', 'calcHemnmaScore']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
@@ -645,6 +645,139 @@ def calcHinges(modes, atoms=None, flag=False):
                 raise TypeError('atoms should be an Atomic object')
         return sorted(set(hinge_list))
     return hinges
+
+
+def getHinges(gnm, n_modes=None, threshold=15, space=None, trim=False):
+    """
+    Identify hinge sites from GNM normal modes, distinguishing primary and minor hinge regions.
+    If GNM model is provided without specifying the number of modes to use, n_modes will be calculated for 33% cumulative variance by default.
+    If GNM modes are provided directly, all modes will be used for hinge detection.
+    
+    :param modes: GNM model or ModeSet
+    :type modes: GNM or Mode instance
+
+    :param n_modes: Number of modes to consider. Defaults to all.
+    :type n_modes: int or None
+    
+    :param threshold: Sensitivity threshold controlling hinge width.
+    :type threshold: float
+    
+    :param space: spacing between hinges. Defaults to None. Higher space value will minimize the number of local hinges while retaining global hinges.
+    :type space: int or None
+    
+    :param trim: Whether to hinges at the N- or C-terminal ends (Protein length/20). Defaults to True.\
+    :type trim: bool
+    
+    :return: Tuple of sorted hinge indices (major_hinges, minor_hinges)
+    :rtype: tuple[list[int], list[int]]
+    
+    """
+    
+    if isinstance(gnm, ModeSet) is False:
+        
+        if isinstance(gnm, GNMBase) is False:
+            raise TypeError("Input must be a GNM model or ModeSet instance.")
+        else:
+            if gnm._kirchhoff is None:
+                raise ValueError("Kirchhoff matrix not built. Build Kirchhoff matrix before calculating modes.")
+
+            if gnm._n_modes is None:  
+                gnm.calcModes(n_modes='all')
+            
+            if (gnm._n_atoms - 1) != gnm._array.shape[1]:
+                gnm.calcModes(n_modes='all')
+            
+            if n_modes is None:
+            ### Default to auto-select based on 33% cumulative variance ###
+                cumin =0.33 
+                n_modes = 1
+                fv = calcFractVariance(gnm)        
+                cuvar = sum(fv[:n_modes])
+
+                while cuvar < cumin:
+                    n_modes += 1
+                    cuvar = sum(fv[:n_modes])
+                LOGGER.info(f"Auto-selected {n_modes} modes for {cumin} cumulative variance.")
+
+            vecs = gnm[:n_modes].getEigvecs()
+    else:
+        ### Use all provided modes for Hinge detection ###
+        vecs = gnm.getArray()
+
+    def detectHinges(v, threshold):
+        """Detect hinge-like regions within single eigenvector."""
+        
+        crx = np.where(np.diff(np.sign(v)) != 0)[0] 
+        band = np.sqrt(1 / len(v)) / threshold
+        regs = []
+
+        for i in crx:
+            r = [i, i + 1]
+   
+            if abs(v[i]) > band and abs(v[i + 1]) > band:
+                regs.append(r)
+            else:
+                j = i - 1
+                while j >= 0 and abs(v[j]) < band:
+                    r.insert(0, j)
+                    j -= 1
+                j = i + 2
+                while j < len(v) and abs(v[j]) < band:
+                    r.append(j)
+                    j += 1
+                regs.append(r)
+        
+        ### Merge overlapping or adjacent regions (separated by space value) ###
+                
+        regs = sorted(regs, key=lambda x: x[0])
+        merged = [regs[0]]
+        s = 1 + space if space is not None else 0
+        
+        for curr in regs[1:]:
+            prev = merged[-1]
+            if curr[0] <= prev[-1] + s:
+                merged[-1] = list(range(prev[0], max(prev[-1], curr[-1]) + 1))
+            else:
+                merged.append(curr)
+
+        ### Select hinges from regions ###
+        fil=[]
+        p, _ = vecs.shape
+        
+        for reg in merged:
+            if len(reg) <= p // 10:
+                if v[reg[0] - 1] * v[reg[-1] + 1] > 0:
+                    continue
+            
+            if len(reg) >= s + 5:
+                fil.append(reg[0])
+                fil.append(reg[-1])
+                
+            if len(reg) <= 5:
+                av = [abs(v[i]) for i in reg]
+                smv = np.argsort(av)[:1] 
+                fil.extend(reg[i] for i in smv)
+
+        return fil
+
+    ### Detect hinges for each mode ###
+    n_hinges = []
+    p, m = vecs.shape
+
+
+    for i in range(m):
+        hinges = detectHinges(vecs[:, i], threshold)
+        n_hinges.append(hinges)
+
+    if trim == False:
+        return n_hinges
+    else:
+        to_trim = p // 20
+        n_hinges = [[h for h in hinges if h >= to_trim and h < (p - to_trim)] for hinges in n_hinges]
+
+    return n_hinges
+
+
 
 def calcHitTime(model, method='standard'):
     """Returns the hit and commute times between pairs of nodes calculated 
