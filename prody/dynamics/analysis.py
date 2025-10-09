@@ -649,9 +649,16 @@ def calcHinges(modes, atoms=None, flag=False):
 
 def getHinges(gnm, n_modes=None, threshold=15, space=None, trim=False):
     """
-    Identify hinge sites from GNM normal modes, distinguishing primary and minor hinge regions.
-    If GNM model is provided without specifying the number of modes to use, n_modes will be calculated for 33% cumulative variance by default.
-    If GNM modes are provided directly, all modes will be used for hinge detection.
+    [HZ384] H Zhang, M Gur, I Bahar (2024) Global hinge sites of proteins as target sites for drug binding Proc Natl Acad Sci USA 121 (49), e2414333121 
+
+    Updated hinge identification based on [HZ384]. This will:
+        1) If GNM model is provided without specification of n_modes, number of modes will be determined to achieve 33% cumulative variance.
+           If selected GNM modes are provided directly, all modes will be used for hinge detection.
+        2) Identify hinge regions based on crossovers and residues within band, whose magnitude is specified by the threshold.
+        3) Merge overlapping or adjacent hinge regions.
+        4) Reduce transient hinge regions.
+        5) Trim hinges at N- or C-terminal ends. 
+        6) Return list of hinges by mode.
     
     :param modes: GNM model or ModeSet
     :type modes: GNM or Mode instance
@@ -659,17 +666,17 @@ def getHinges(gnm, n_modes=None, threshold=15, space=None, trim=False):
     :param n_modes: Number of modes to consider. Defaults to all.
     :type n_modes: int or None
     
-    :param threshold: Sensitivity threshold controlling hinge width.
+    :param threshold: Threshold controlling band width for hinge region identification.
     :type threshold: float
     
     :param space: spacing between hinges. Defaults to None. Higher space value will minimize the number of local hinges while retaining global hinges.
     :type space: int or None
     
-    :param trim: Whether to hinges at the N- or C-terminal ends (Protein length/20). Defaults to True.\
+    :param trim: Whether to hinges at the N- or C-terminal ends by Protein length // 20. Defaults to False.
     :type trim: bool
     
-    :return: Tuple of sorted hinge indices (major_hinges, minor_hinges)
-    :rtype: tuple[list[int], list[int]]
+    :return: List of sorted hinge indices
+    :rtype: [list[int], list[int], ...]
     
     """
     
