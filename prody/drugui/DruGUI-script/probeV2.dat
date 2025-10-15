@@ -161,9 +161,25 @@ DFET name difluoroethane
 DFET alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 F22 C3 F23
 DFET type hydrophobe
 
+DCLE name 1,1-dichloroethane
+DCLE alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 CL11 C3 CL12
+DCLE type hydrophobe
+
+DBRE name 1,1-dibromoethane
+DBRE alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 BR11 C3 BR12
+DBRE type hydrophobe
+
 TFET name trifluoroethane
 TFET alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 F21 OH2 F22 C3 F23
 TFET type hydrophobe
+
+TCLE name 1,1,1-trichloroethane
+TCLE alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 CL11 OH2 CL12 C3 CL13
+TCLE type hydrophobe
+
+TBRE name 1,1,1-tribromoethane
+TBRE alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 BR11 OH2 BR12 C3 BR13
+TBRE type hydrophobe
 
 TFE name trifluoroethanol
 TFE alias OH2 O1 HO2 HO1 C2 C1 H21 H11 C3 H12 C1 C2 H11 F21 H12 F22 H13 F23
@@ -445,6 +461,18 @@ FLUB name fluorobenzene
 FLUB alias C2 C5 C1 C4 C3 C6 C2 F6
 FLUB type ring6
 
+CHLB name chlorobenzene
+CHLB alias C2 C5 C1 C4 C3 C6 C2 CL LP
+CHLB type ring6
+
+BROB name Bromobenzene
+BROB alias C2 C5 C1 C4 C3 C6 C2 BR LP
+BROB type ring6
+
+IODB name Iodobenzene
+IODB alias C2 C5 C1 C4 C3 C6 C2 I6 LP
+IODB type ring6
+
 DFT name 2,4-difluorotoluene
 DFT alias C1 C2 C3 C3 C4 C4 C5 F2 C5 C6 C6 F4 C2 C5M 
 DFT type ring6
@@ -452,6 +480,14 @@ DFT type ring6
 DFB name 1,3-difluorobenzene
 DFB alias C1 C1 C2 C2 C3 C3 C4 C4 C5 F2 C5 C6 C6 F4
 DFB type ring6
+
+13DCB name 1,3-dichlorobenzene
+13DCB alias C1 C1 C2 C2 C3 C3 C4 C4 C5 CL6 LP6 C5 C6 C6 CL4 LP4
+13DCB type ring6
+
+13DBB name 1,3-dibromobenzene
+13DBB alias C1 C1 C2 C2 C3 C3 C4 C4 C5 BR6 LP6 C5 C6 C6 BR4 LP4
+13DBB type ring6
 
 TOLU name toluene
 TOLU alias C2 CG C1 CD1 C3 CT H11 H12 H13 CD2 
