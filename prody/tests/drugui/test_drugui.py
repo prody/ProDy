@@ -21,7 +21,7 @@ class TestDruGUI(unittest.TestCase):
         self.psf = {'file': pathDatafile('mdm2.psf')}
         self.pdb1 = {'file': pathDatafile('md.pdb')}
         self.psf1 = {'file': pathDatafile('md.psf')}
-        self.dcd = {'file': pathDatafile('sim.dcd')}
+        self.dcd = {'file': pathDatafile('final.dcd')}
         
     def testUsualCase(self):
         """Test the out come of preparing and analyzing a simple druggability simulation"""
