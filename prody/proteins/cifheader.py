@@ -813,7 +813,7 @@ def _getPolymers(lines, **kwargs):
 
     # SEQRES block
     items1 = parseSTARSection(lines, '_entity_poly', report=False)
-
+    longSeq = kwargs.get('longSeq', False)
     for item in items1:
         chains = item.get('_entity_poly.pdbx_strand_id', '').replace(';','').replace(' ', '')
         entity = item.get('_entity_poly.entity_id', '')
@@ -823,7 +823,6 @@ def _getPolymers(lines, **kwargs):
             poly = polymers.get(ch, Polymer(ch))
             polymers[ch] = poly
 
-            longSeq = kwargs.get('longSeq', False)
             if longSeq:
                 poly.sequence += ''.join(item[
                     '_entity_poly.pdbx_seq_one_letter_code'].replace(';', '').split())
@@ -1105,7 +1104,6 @@ def _getChemicals(lines):
     chem_names = defaultdict(str)
     chem_synonyms = defaultdict(str)
     chem_formulas = defaultdict(str)
-    chem_n_atoms = defaultdict(int)
 
     # Data is split across blocks again
 
@@ -1154,7 +1152,7 @@ def _getChemicals(lines):
         if resname in flags.AMINOACIDS or resname == "HOH":
             continue
 
-        chem_names[resname] += data["_chem_comp.name"].upper()
+        chem_names[resname] += data.get("_chem_comp.name", "").upper()
 
         if "_chem_comp.pdbx_synonyms" in data.keys():
             synonym = data["_chem_comp.pdbx_synonyms"]
