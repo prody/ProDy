@@ -152,7 +152,7 @@ DATA_FILES = {
     },
     'sim_dcd':{
         'dcd': 'sim',
-        'file': 'sim.dcd'
+        'file': 'final.dcd'
     },
     'anm1ubi_hessian': {
         'file': 'anm1ubi_hessian.coo',
