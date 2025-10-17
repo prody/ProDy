@@ -6,8 +6,9 @@ __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 from numbers import Integral
 import os
 
-from numpy import dtype, zeros, empty, ones, where, ceil, shape, eye
-from numpy import indices, tril_indices, array, ndarray, isscalar, unique
+from numpy import dtype, zeros, empty, ones, where, ceil, dot
+from numpy import indices, tril_indices, array, isscalar, unique
+from numpy.linalg import inv
 
 from prody import LOGGER
 from prody.utilities import which, MATCH_SCORE, MISMATCH_SCORE
@@ -580,7 +581,6 @@ def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
 
     msa = getMSA(msa)
     from .msatools import msadipretest, msadirectinfo1, msadirectinfo2
-    from numpy import matrix
 
     LOGGER.timeit('_di')
     if msa.shape[0]<250:
@@ -589,15 +589,15 @@ def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
     refine = 1 if refine else 0
     # msadipretest get some parameter from msa to set matrix size
     length, q = msadipretest(msa, refine=refine)
-    c = matrix.dot(matrix(zeros((length*q, 1), float)),
-                   matrix(zeros((1, length*q), float)))
+    c = dot(array(zeros((length*q, 1), float)),
+            array(zeros((1, length*q), float)))
     prob = zeros((length, q+1), float)
     # msadirectinfo1 return c to be inversed and prob to be used
     meff, n, length, c, prob = msadirectinfo1(msa, c, prob, theta=1.-seqid,
                                               pseudocount_weight=pseudo_weight,
                                               refine=refine, q=q+1)
 
-    c = c.I
+    c = inv(c)
 
     di = zeros((length, length), float)
     # get final DI
@@ -723,7 +723,7 @@ def alignSequencesByChain(PDBs, **kwargs):
 
 def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     """
-    Aligns sequences with clustalw or clustalw2 or Biopython and returns the resulting MSA.
+    Aligns sequences with a clustal program or Biopython and returns the resulting MSA.
 
     :arg sequences: a file, MSA object or a list or array containing sequences
        as Atomic objects with :func:`getSequence` or Sequence objects or strings. 
@@ -742,16 +742,23 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     :type align: bool
 
     :arg method: alignment method, one of either Biopython 'global',
-        Biopython 'local', clustalw(2), or another software in your path.
+        Biopython 'local', 'clustalw', 'clustalw2', 'clustal' 
+        or another software in your path.
         Default is 'local'
     :type align: str
     """
     
     align = kwargs.get('align', True)
     method = kwargs.get('method', 'local')
+    outfilename = kwargs.get('outfilename', title + '.fasta')
+
     # 1. check if sequences are in a fasta file and if not make one
     if isinstance(sequences, str):
         filename = sequences
+        if os.path.splitext(filename)[1] == '.sth' and 'clustalw' in method:
+            msa = parseMSA(filename)
+            filename = os.path.splitext(filename)[0] + '.fasta'
+            writeMSA(filename, msa)
     elif not isinstance(sequences, MSA):
         try:
             max_len = 0
@@ -803,6 +810,8 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
 
         if align and 'clustal' in method:
             filename = writeMSA(title + '.fasta', msa)
+    else:
+        filename = writeMSA(title + '.fasta', sequences)
 
     if align:
         # 2. find and run alignment method
@@ -823,10 +832,25 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
                     raise EnvironmentError("The executable for clustalw was not found, "
                                             "install clustalw or add it to the path.")
 
-            os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
+            outfilename_old = outfilename
+            if os.path.splitext(outfilename)[1] != '.aln':
+                outfilename = os.path.splitext(outfilename)[0] + '.aln'
+            os.system('"%s" -infile=%s -outorder=input -outfile=%s' %(clustalw, filename, outfilename))
 
             # 3. parse and return the new MSA
-            msa = parseMSA(title + '.aln')
+            msa = parseMSA(outfilename)
+            writeMSA(outfilename_old, msa)
+
+        elif 'clustalo' in method:
+            clustalo = which('clustalo')
+            if clustalo is None:
+                raise EnvironmentError("The executable for clustalo was not found, "
+                                        "install clustalo or add it to the path.")
+
+            os.system('"%s" -i %s --output-order=input-order -o %s --force'%(clustalo, filename, outfilename))
+
+            # 3. parse and return the new MSA
+            msa = parseMSA(outfilename)
 
         else:
             alignTool = which(method)

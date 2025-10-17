@@ -8,7 +8,8 @@ from .checkers import checkCoords
 from .logger import LOGGER
 
 
-__all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
+__all__ = ['calcTree', 'clusterMatrix', 
+           'showLines', 'showMatrix', 'showBars', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
            'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters', 
@@ -314,7 +315,7 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
     
     method = method.lower().strip()
 
-    if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median']:
+    if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median', 'complete']:
         from scipy.cluster.hierarchy import linkage as hlinkage
         from scipy.spatial.distance import squareform
         
@@ -591,6 +592,73 @@ def showLines(*args, **kwargs):
 
     return lines, polys
 
+def showBars(ydata, xdata=None, *args, **kwargs):
+    """
+    Show 1-D data using :func:`~matplotlib.axes.Axes.bar`. 
+    
+    :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
+            column vectors.
+            If not provided, a range with the length of the y data will be used.
+    :type x: :class:`~numpy.ndarray`
+
+    :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
+            column vectors.
+    :type y: :class:`~numpy.ndarray`
+
+    :arg ticklabels: user-defined tick labels for x-axis.
+    :type ticklabels: list
+    """
+    
+    # note for developers: this function serves as a low-level 
+    # plotting function which provides basic utilities for other 
+    # plotting functions. Therefore showFigure is not handled 
+    # in this function as it should be already handled in the caller.
+
+    ticklabels = kwargs.pop('ticklabels', None)
+    gap = kwargs.pop('gap', False)
+    labels = kwargs.pop('label', None)
+
+    from matplotlib import cm, ticker
+    from matplotlib.pyplot import figure, gca, xlim
+    from .drawtools import IndexFormatter
+
+    if xdata is None:
+        xdata = list(range(len(ydata)))
+
+    ax = gca()
+    bars = ax.bar(xdata, ydata, *args, **kwargs)
+        
+    for i, bar in enumerate(bars):
+        x, y = bar.get_xy()
+        
+        if gap:
+            x_new, y_new = addEnds(x, y)
+            bar.set_data(x_new, y_new)
+        else:
+            x_new, y_new = x, y
+        
+        if labels is not None:
+            if np.isscalar(labels):
+                bar.set_label(labels)
+            else:
+                try:
+                    bar.set_label(labels[i])
+                except IndexError:
+                    raise ValueError('The number of labels ({0}) and that of y ({1}) do not match.'
+                                     .format(len(labels), len(bar)))
+
+    ax.margins(x=0)
+    if ticklabels is not None:
+        if callable(ticklabels):
+            ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(ticklabels))
+        else:
+            ax.get_xaxis().set_major_formatter(IndexFormatter(ticklabels))
+    
+    ax.xaxis.set_major_locator(ticker.AutoLocator())
+    ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+    return bars
+
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow` or
     :meth:`~matplotlib.axes.Axes.scatter` if *markersize* is provided.
@@ -679,7 +747,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     interactive = kwargs.pop('interactive', True)
 
     import matplotlib
-    if float(matplotlib.__version__[:-2]) >= 3.6:
+    if float(matplotlib.__version__.split('.')[0]) >= 3 or float(matplotlib.__version__.split('.')[1]) >= 6:
         LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
         interactive = False
 

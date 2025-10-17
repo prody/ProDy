@@ -1,42 +1,120 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
 
-# Controls when the action will run.
-on: [push, pull_request, workflow_dispatch]
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: MatteoH2O1999/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Add conda to system path
-      run: |
-        echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install dependencies
-      run: |
-        conda create --yes -n test python=${{ matrix.python-version }}
-        source activate test
-        conda config --add channels conda-forge
-        conda install --yes numpy scipy nose requests
-        conda install --yes pdbfixer mdtraj openmm
-        pip install mmtf-python scikit-learn
-        pip install .
-        python setup.py build_ext --inplace --force
-    - name: Test with pytest
-      run: |
-        source activate test
-        conda install --yes pytest
-        pytest
-        
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Miniconda 
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          python-version: ${{ matrix.python-version }}
+          activate-environment: test
+          auto-update-conda: true
+          channels: conda-forge
+          architecture: ${{ runner.arch }}
+
+      - name: Install deps
+        shell: bash -l {0}
+        run: |
+          conda activate test
+          conda install --yes -c conda-forge compilers gfortran
+          conda install --yes \
+            "numpy" \
+            "pyparsing<=3.1.1" \
+            scipy  nose  pytest  requests \
+            pdbfixer  mdtraj  openmm
+          conda install -c bioconda --yes clustalw
+          pip install mmtf-python scikit-learn
+
+      - name: Build & compile HPB (Linux)
+        if: runner.os == 'Linux'
+        shell: bash -l {0}
+        run: |
+          conda activate test
+          pip install -e .
+          python setup.py build_ext --inplace --force
+          echo "Verifying hpb.so file properties on Linux:"
+          ls -lh prody/proteins/hpb.so || { echo "hpb.so not found on Linux!"; exit 1; }
+          file prody/proteins/hpb.so || { echo "file command failed for hpb.so on Linux!"; exit 1; }
+          ldd prody/proteins/hpb.so || { echo "ldd failed or found issues on Linux!"; exit 1; }
+
+      - name: Build & compile HPB (macOS)
+        if: runner.os == 'macOS'
+        shell: bash -l {0}
+        run: |
+          conda activate test
+
+          echo "Debugging environment variables before compilation:"
+          echo "PATH: $PATH"
+          echo "CONDA_PREFIX: $CONDA_PREFIX"
+          echo "LIBRARY_PATH: $LIBRARY_PATH"
+          echo "CPATH: $CPATH"
+          echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
+
+          export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
+          export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
+
+          pushd prody/proteins/hpbmodule
+
+          echo "Contents of hpbmodule directory:"
+          ls -l
+
+          echo "Attempting Fortran compilation..."
+          gfortran -O3 -fPIC -c reg_tet.f || { echo "Fortran compilation of reg_tet.f failed!"; exit 1; }
+          echo "reg_tet.f compiled successfully to reg_tet.o."
+          ls -lh reg_tet.o
+          file reg_tet.o
+
+          PYINC=$(python -c "import sysconfig; print(sysconfig.get_path('include'))")
+          PYLIBDIR=$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+          echo "Python Include Dir (PYINC): ${PYINC}"
+          echo "Python Lib Dir (PYLIBDIR): ${PYLIBDIR}"
+
+          [ -d "${PYINC}" ] || { echo "Python Include Dir '${PYINC}' does not exist!"; exit 1; }
+          [ -d "${PYLIBDIR}" ] || { echo "Python Lib Dir '${PYLIBDIR}' does not exist!"; exit 1; }
+
+          export LIBRARY_PATH="$CONDA_PREFIX/lib:$PYLIBDIR:$LIBRARY_PATH"
+
+          echo "Attempting C++ compilation..."
+          g++ -O3 -g -fPIC -I"${PYINC}" -c hpbmodule.cpp -o hpbmodule.o || { echo "C++ compilation of hpbmodule.cpp failed!"; exit 1; }
+          echo "hpbmodule.cpp compiled successfully to hpbmodule.o."
+          ls -lh hpbmodule.o
+          file hpbmodule.o
+
+          echo "Attempting HPB linking for macOS..."
+          g++ -dynamiclib \
+              -undefined dynamic_lookup \
+              -o hpb.so hpbmodule.o reg_tet.o \
+              -L"${PYLIBDIR}" -L"$CONDA_PREFIX/lib" -lgfortran || { echo "HPB shared library linking failed!"; exit 1; }
+          echo "hpb.so linked successfully."
+
+          echo "Verifying hpb.so file properties (macOS):"
+          ls -lh hpb.so || { echo "hpb.so not found after linking!"; exit 1; }
+          file hpb.so || { echo "File type check failed for hpb.so!"; exit 1; }
+          otool -L hpb.so || { echo "otool -L failed or found issues for hpb.so! This usually means it's not a valid Mach-O binary."; exit 1; }
+
+          cp hpb.so ../
+          popd
+          
+          pip install -e .
+          python setup.py build_ext --inplace --force
+
+      - name: Run tests
+        shell: bash -l {0}
+        run: |
+          conda activate test
+          pytest

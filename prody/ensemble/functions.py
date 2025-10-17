@@ -66,6 +66,18 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
+
+        if isinstance(atoms, AtomGroup):
+            ag = atoms
+        else:
+            ag = atoms._ag
+
+        if not hasattr(atoms, '_bondOrders'):
+            ag._bondOrders = None
+
+        if not hasattr(atoms, '_bondIndex'):
+            ag._bondIndex = None
+
         attr_dict['_atoms'] = np.array([atoms, None], 
                                         dtype=object)
 
@@ -183,10 +195,18 @@ def loadEnsemble(filename, **kwargs):
         atoms = attr_dict['_atoms'][0]
 
         if isinstance(atoms, AtomGroup):
-            data = atoms._data
+            ag = atoms
         else:
-            data = atoms._ag._data
-        
+            ag = atoms._ag
+
+        if not hasattr(ag, '_bondOrders'):
+            ag._bondOrders = None
+
+        if not hasattr(ag, '_bondIndex'):
+            ag._bondIndex = None
+
+        data = ag._data
+
         for key in data:
             arr = data[key]
             char = arr.dtype.char

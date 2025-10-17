@@ -260,6 +260,10 @@ from . import ciffile
 from .ciffile import *
 __all__.extend(ciffile.__all__)
 
+_getPDBid  = ciffile._getPDBid = pdbfile._getPDBid
+long_id_check_str = ciffile.long_id_check_str = pdbfile.long_id_check_str
+wwpdb.long_id_check_str = long_id_check_str
+
 from . import starfile
 from .starfile import *
 __all__.extend(starfile.__all__)
