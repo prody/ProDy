@@ -6245,4 +6245,4 @@ class LigandInteractionsTrajectory(object):
             LOGGER.info('PDB file saved.')
 
         return freq_contacts_list
-       
+
