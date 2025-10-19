@@ -6246,4 +6246,3 @@ class LigandInteractionsTrajectory(object):
 
         return freq_contacts_list
        
-
