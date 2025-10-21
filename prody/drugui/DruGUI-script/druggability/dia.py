@@ -941,20 +941,23 @@ class DruggabilityIndexAnalysis(ABase):
         ranges = np.array((kwargs.get('radius', 1.5) / self._all.grid.spacing).round(), 'i')
         ilists = [[], [], []]
         for index in indices:
-            for i in range(ranges[0]):
-                for j in range(ranges[1]):
-                    for k in range(ranges[0]):
-                        ilists[0].append(index[0]-i)
-                        ilists[0].append(index[0]+i)
-                        ilists[1].append(index[1]-j)
-                        ilists[1].append(index[1]+j)
-                        ilists[2].append(index[2]-k)
-                        ilists[2].append(index[2]+k)
+            for i in range(ranges[0] + 1):
+                for j in range(ranges[1] + 1):
+                    for k in range(ranges[2] + 1):
+                # Add negative and positive offsets for each dimension
+                        for sign_i in [-1, 1]:
+                            for sign_j in [-1, 1]:
+                                for sign_k in [-1, 1]:
+                                    ilists[0].append(index[0] + sign_i * i)
+                                    ilists[1].append(index[1] + sign_j * j)
+                                    ilists[2].append(index[2] + sign_k * k)
+        
+        values = -self._all.grid.array[ilists]
+        values = np.ravel(values)
 
-        spots = zip(-self._all.grid.array[ilists], ilists[0], ilists[1], ilists[2])
-        spots.sort()
+        spots = list(zip(values.tolist(), ilists[0], ilists[1], ilists[2]))
         spots = np.array(spots)
-        spots = spots[spots[:, 0] < -population, :]
+        spots = spots[spots[:, 0] < -population]
         
         radii = np.array([probe.radius for probe in self._probes])
         charges = np.array([probe.charge for probe in self._probes])

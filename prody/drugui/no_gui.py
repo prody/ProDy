@@ -10,6 +10,8 @@ import sys
 import ast
 from pathlib import Path
 import importlib
+import pickle
+import logging
 
 current_dir = Path(__file__).resolve().parent
 
@@ -1665,7 +1667,7 @@ def drugui_analysis(pdb, psf, dcds, **kwargs):
 
     def evalLigandSite(prefix, ligand, radius=1.5, delta_g=-0.5):
 
-        dia = pickler(os.path.join(prefix, prefix + '.dso.gz'))
+        dia = pickle(os.path.join(prefix, prefix + '.dso.gz'))
         dia.evaluate_ligand(ligand, radius=radius, delta_g=delta_g)
 
     
@@ -1713,7 +1715,45 @@ def drugui_analysis(pdb, psf, dcds, **kwargs):
     # LIGAND SITE
     # Evaluate a ligand. Be sure that the ligand bound structure is superimposed
     # onto PROTEIN_heavyatoms.pdb
-    #evalLigandSite(prefix, 'ligand.pdb', radius=1.5, delta_g=-0.5)
+    evalLigandSite(prefix, 'ligand.pdb', radius=1.5, delta_g=-0.5)
+
+def drugui_evaluate(pdb, dso,  **kwargs):
+    """Evaluate a druggable site with an inhibitor """
+
+    inhibitor_pdb = pdb
+    druggability_dso = dso
+    outdir_location = kwargs.pop('outdir_location', "")
+    prefix = kwargs.pop('prefix', 'dg')
+    radius = kwargs.pop('radius', 1.5)
+    delta_g = kwargs.pop('delta_g', -0.5)
+    verbose = 'info'
+
+    def evalLigandSite(prefix = prefix, ligand = inhibitor_pdb, radius= radius, delta_g = delta_g, dso=druggability_dso, outdir_location = outdir_location):
+        dia = DIA(prefix, workdir=outdir_location, verbose=verbose)
+        log_filename = prefix + '_evaluate.log'
+
+        logger = logging.getLogger('druggability')
+        logger.setLevel(logging.INFO)
+    
+        if logger.hasHandlers():
+            logger.handlers.clear()
+
+        file_handler = logging.FileHandler(log_filename, mode='w')
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logger.addHandler(file_handler)
+
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logger.addHandler(console_handler)
+
+        dia = pickler(dso)
+        dia.logger = logger  
+
+        dia.evaluate_ligand(ligand, radius=radius, delta_g=delta_g)
+
+        file_handler.close()
+        console_handler.close()
+
 
 PROBETOPPAR = {
         "PBDA": "probe2.top probe.prm",
