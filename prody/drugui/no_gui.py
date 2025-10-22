@@ -10,6 +10,7 @@ import sys
 import ast
 from pathlib import Path
 import importlib
+import gzip
 import pickle
 import logging
 
@@ -1661,16 +1662,6 @@ def drugui_analysis(pdb, psf, dcds, **kwargs):
         dia.pickle()
             # Evaluate a ligand. Be sure that the ligand bound structure is superimposed
             # onto PROTEIN_heavyatoms.pdb
-        ligand = kwargs.get('ligand', None)
-        if ligand:
-            dia.evaluate_ligand(ligand)
-
-    def evalLigandSite(prefix, ligand, radius=1.5, delta_g=-0.5):
-
-        dia = pickle(os.path.join(prefix, prefix + '.dso.gz'))
-        dia.evaluate_ligand(ligand, radius=radius, delta_g=delta_g)
-
-    
     # output file and folder names will start with the following
     prefix_n = prefix
     os.chdir(outdir_location)
@@ -1711,11 +1702,10 @@ def drugui_analysis(pdb, psf, dcds, **kwargs):
                     for fn in glob(prefix_n + '_*.dx')]  
                      
     calcDruggability(prefix_n, probe_grids, **parameters)
-    
+
     # LIGAND SITE
     # Evaluate a ligand. Be sure that the ligand bound structure is superimposed
     # onto PROTEIN_heavyatoms.pdb
-    evalLigandSite(prefix, 'ligand.pdb', radius=1.5, delta_g=-0.5)
 
 def drugui_evaluate(pdb, dso,  **kwargs):
     """Evaluate a druggable site with an inhibitor """
@@ -1729,7 +1719,7 @@ def drugui_evaluate(pdb, dso,  **kwargs):
     verbose = 'info'
 
     def evalLigandSite(prefix = prefix, ligand = inhibitor_pdb, radius= radius, delta_g = delta_g, dso=druggability_dso, outdir_location = outdir_location):
-        dia = DIA(prefix, workdir=outdir_location, verbose=verbose)
+        dia = druggability.DIA(prefix, workdir=outdir_location, verbose=verbose)
         log_filename = prefix + '_evaluate.log'
 
         logger = logging.getLogger('druggability')
@@ -1746,14 +1736,18 @@ def drugui_evaluate(pdb, dso,  **kwargs):
         console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
         logger.addHandler(console_handler)
 
-        dia = pickler(dso)
+        with gzip.open(dso, 'rb') as f:
+            dia = pickle.load(f)
         dia.logger = logger  
 
         dia.evaluate_ligand(ligand, radius=radius, delta_g=delta_g)
 
         file_handler.close()
         console_handler.close()
-
+    # LIGAND SITE
+    # Evaluate a ligand. Be sure that the ligand bound structure is superimposed
+    # onto dg_protein_heavyatoms.pdb
+    evalLigandSite(prefix=prefix, ligand=pdb, radius=radius, delta_g=delta_g, dso=druggability_dso,outdir_location = outdir_location )
 
 PROBETOPPAR = {
         "PBDA": "probe2.top probe.prm",
