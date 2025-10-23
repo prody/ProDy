@@ -5,7 +5,7 @@ from prody import LOGGER
 from prody.tests import TEMPDIR, unittest
 from prody.tests.datafiles import *
 from prody.utilities import which
-from prody.drugui import drugui_prepare, drugui_analysis
+from prody.drugui import drugui_prepare, drugui_analysis, drugui_evaluate
 import os
 
 
@@ -22,6 +22,7 @@ class TestDruGUI(unittest.TestCase):
         self.pdb1 = {'file': pathDatafile('md.pdb')}
         self.psf1 = {'file': pathDatafile('md.psf')}
         self.dcd = {'file': pathDatafile('final.dcd')}
+        self.pdb2 = {'file': pathDatafile('ligand.pdb')}
         
     def testUsualCase(self):
         """Test the out come of preparing and analyzing a simple druggability simulation"""
@@ -68,10 +69,16 @@ class TestDruGUI(unittest.TestCase):
             self.assertIsNotNone(probe, 'DruGUI failed to produce probe dcd files')
 
         solution = os.path.join(outdir, "dg_site_1.pdb")
-
         solution_pdb = parsePDB(f'{solution}')
-
         self.assertIsNotNone(solution_pdb, "DruGUI failed to produce druggable sites")
+
+
+        dso = os.path.join(outdir, "dg.dso.gz")
+        drugui_evaluate(pdb =self.pdb2['file'], outdir_location =outdir, dso = dso, radius=1.5, delta_g=-0.5)
+
+        ligand = os.path.join(outdir, "dg_ligand.pdb")
+        ligand_pdb = parsePDB(f'{ligand}')
+        self.assertIsNotNone(ligand_pdb, "DruGUI failed to evaluate the inhibitor")
         
 if __name__ == '__main__':
     unittest.main()

@@ -154,6 +154,10 @@ DATA_FILES = {
         'dcd': 'sim',
         'file': 'final.dcd'
     },
+    'ligand_pdb': {
+        'pdb': 'ligand',
+        'file': 'ligand.pdb'
+    },
     'anm1ubi_hessian': {
         'file': 'anm1ubi_hessian.coo',
     },

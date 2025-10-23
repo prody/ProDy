@@ -12,6 +12,9 @@ import sys
 import ast
 from pathlib import Path
 import importlib
+import gzip
+import pickle
+import logging
 
 current_dir = Path(__file__).resolve().parent
 
@@ -96,6 +99,10 @@ class DruGUI:
         self.dia_n_solutions = tk.IntVar(value=3)
         self.dia_n_charged = tk.IntVar(value=3)
         self.probe_selection = tk.StringVar(value=[self.probe01_type.get(),self.probe02_type.get(),self.probe03_type.get(),self.probe04_type.get(),self.probe05_type.get(),self.probe06_type.get(),self.probe07_type.get()])
+        self.ligand_pdb = tk.StringVar()
+        self.dso = tk.StringVar()
+        self.dial_radius = tk.DoubleVar(value=1.5)
+        self.dial_deltag = tk.DoubleVar(value=-0.5)
         self.PROBETOPPAR = {
         "PBDA": "probe2.top probe.prm",
         "CGenff": "top_all36_cgenff.rtf par_all36_cgenff.prm"
@@ -2685,17 +2692,6 @@ class DruGUI:
                 # Do the calculations
                 dia.perform_analysis()
                 dia.pickle()
-                # Evaluate a ligand. Be sure that the ligand bound structure is superimposed
-                # onto PROTEIN_heavyatoms.pdb
-                ligand = kwargs.get('ligand', None)
-                if ligand:
-                    dia.evaluate_ligand(ligand)
-
-            #def evalLigandSite(prefix, ligand, radius=1.5, delta_g=-0.5):
-
-                #dia = pickler(os.path.join(prefix, prefix + '.dso.gz'))
-                #dia.evaluate_ligand(ligand, radius=radius, delta_g=delta_g)
-
             
             # output file and folder names will start with the following
             prefix_n = self.prefix.get()
@@ -2747,7 +2743,146 @@ class DruGUI:
                 
 
         analyze_system_button = tk.Button(mfbgo, text="Access Druggability", bd=3, command=analyze_system)
-        analyze_system_button.grid(row=0, column=0, padx=(225,0))
+        analyze_system_button.grid(row=0, column=0, padx=(225,0)) 
+
+        mfbgo = tk.LabelFrame(mfb, text= "Evaluate a Site:", bd =2)
+        mfbgo.grid(row=6, column=0, padx=5, pady=5, sticky='ew')
+
+        def ligand_help():
+            messagebox.showinfo(
+                "Help",
+                "Ligand coordinates will be used to determine the site. PDB files should contain only ligand atoms."
+            )
+
+        ligand_help_button = tk.Button(mfbgo, text="?", padx=0, pady=0, command=ligand_help)
+        ligand_help_button.grid(row=0, column=0, sticky='w',padx=(40, 0))
+
+        ligand_label = tk.Label(mfbgo, text="Ligand PDB:")
+        ligand_label.grid(row=0, column=1, sticky='w')
+
+        ligand_entry = tk.Entry(mfbgo, width=40, textvariable=self.ligand_pdb)
+        ligand_entry.grid(row=0, column= 2, sticky='w')
+    
+        def browse_pdb_file():
+            tempfile = filedialog.askopenfilename(
+                filetypes=[("PDB files", "*.pdb"), ("All files", "*.*")]
+            )
+            if tempfile:  # If a file is selected
+                self.ligand_pdb.set(tempfile)
+
+        ligand_browse_button = tk.Button(mfbgo, text="Browse", width=6, pady=1, command=browse_pdb_file)
+        ligand_browse_button.grid(row=0, column=3, sticky='w')
+
+        def dso_help():
+            messagebox.showinfo(
+                "Help",
+                "A DSO (Druggability Suite Object) file that contains a previously saved analysis is required for evaluation of a specific site."
+            )
+
+        dso_help_button = tk.Button(mfbgo, text="?", padx=0, pady=0, command=dso_help)
+        dso_help_button.grid(row=1, column=0, sticky='w',padx=(40, 0))
+
+        dso_label = tk.Label(mfbgo, text="DSO file:")
+        dso_label.grid(row=1, column=1, sticky='w')
+
+        dso_entry = tk.Entry(mfbgo, width=40, textvariable=self.dso)
+        dso_entry.grid(row=1, column= 2, sticky='w')
+
+        def browse_dso_file():
+            tempfile = filedialog.askopenfilename(
+                filetypes=[("GZ files", "*.gz"), ("All files", "*.*")]
+            )
+            if tempfile:  # If a file is selected
+                self.dso.set(tempfile)
+
+        dso_browse_button = tk.Button(mfbgo, text="Browse", width=6, pady=1, command=browse_dso_file)
+        dso_browse_button.grid(row=1, column=3, sticky='w')
+
+        mfbho = tk.LabelFrame(mfb, text= "Options and parameters:", bd =2)
+        mfbho.grid(row=7, column=0, padx=5, pady=5, sticky='ew')
+
+        def solution_help():
+            messagebox.showinfo(
+                "Help",
+                "When evaluating a ligand bound site, grid elements within\
+                a specific distance from the ligand atoms will be considered. User can\
+                adjust this distance using this parameter."
+            )
+
+        solution_help_button = tk.Button(mfbho, text="?", padx=0, pady=0, command=solution_help)
+        solution_help_button.grid(row=0, column=0, sticky='w',padx=(40, 0))
+
+        solution_label = tk.Label(mfbho, text="Within ligand atoms (A):")
+        solution_label.grid(row=0, column=1, sticky='w')
+
+        solution_entry = tk.Entry(mfbho, width=3, textvariable=self.dial_radius)
+        solution_entry.grid(row=0, column= 2, sticky='w')
+
+        def temp_help():
+            messagebox.showinfo(
+                "Help",
+                "The maximum dG will be used to determine probe binding\
+                hotspots in the site of interest. This parameter must have a negative value."
+            )
+
+        temp_help_button = tk.Button(mfbho, text="?", padx=0, pady=0, command=temp_help)
+        temp_help_button.grid(row=0, column=3, sticky='w',padx=(40, 0))
+
+        temp_label = tk.Label(mfbho, text="Maximum dG (kcal/mol):")
+        temp_label.grid(row=0, column=4, sticky='w')
+
+        temp_entry = tk.Entry(mfbho, width=3, textvariable=self.dial_deltag)
+        temp_entry.grid(row=0, column= 5, sticky='w')
+
+        mfbio = tk.LabelFrame(mfb, bd =2)
+        mfbio.grid(row=8, column=0, padx=5, pady=5, sticky='ew') 
+
+        def evaluate_system():
+                """Evaluate a druggable site with an inhibitor """
+
+                inhibitor_pdb = self.ligand_pdb.get()
+                druggability_dso = self.dso.get()
+                outdir_location = self.outputdir_location.get()
+                prefix = self.prefix.get()
+                radius = self.dial_radius.get()
+                delta_g = self.dial_deltag.get()
+                verbose = 'info'
+
+                def evalLigandSite(prefix = prefix, ligand = inhibitor_pdb, radius= radius, delta_g = delta_g, dso=druggability_dso, outdir_location = outdir_location):
+                    os.chdir(self.outputdir_location.get())
+                    dia = druggability.DIA(prefix, workdir=outdir_location, verbose=verbose)
+                    log_filename = prefix + '_evaluate.log'
+
+                    logger = logging.getLogger('druggability')
+                    logger.setLevel(logging.INFO)
+                
+                    if logger.hasHandlers():
+                        logger.handlers.clear()
+
+                    file_handler = logging.FileHandler(log_filename, mode='w')
+                    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+                    logger.addHandler(file_handler)
+
+                    console_handler = logging.StreamHandler()
+                    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+                    logger.addHandler(console_handler)
+
+                    with gzip.open(dso, 'rb') as f:
+                        dia = pickle.load(f)
+                    dia.logger = logger  
+
+                    dia.evaluate_ligand(ligand, radius=radius, delta_g=delta_g)
+
+                    file_handler.close()
+                    console_handler.close()
+                # LIGAND SITE
+                # Evaluate a ligand. Be sure that the ligand bound structure is superimposed
+                # onto dg_protein_heavyatoms.pdb
+                evalLigandSite(prefix=prefix, ligand=inhibitor_pdb, radius=radius, delta_g=delta_g, dso=druggability_dso,outdir_location = self.outputdir_location.get() )
+
+        evaluate_system_button = tk.Button(mfbio, text="Evaluate Site", bd=3, command=evaluate_system)
+        evaluate_system_button.grid(row=0, column=0, padx=(225,0)) 
+
 
 
 

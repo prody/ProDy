@@ -40,7 +40,7 @@ from prody.trajectory.trajectory import Trajectory
 
 from druggability.grid import OpenDX
 
-__all__ = ['drugui_prepare', 'drugui_analysis']
+__all__ = ['drugui_prepare', 'drugui_analysis', 'drugui_evaluate']
 
 def drugui_data(vmd_executable):
     """Prepares the nessecary files needed for both preparing and analyzing druggability simulations"""
