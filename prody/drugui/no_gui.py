@@ -46,7 +46,7 @@ def drugui_data(vmd_executable):
     """Prepares the nessecary files needed for both preparing and analyzing druggability simulations"""
 
 
-    os.chdir('/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script')
+    os.chdir(package_dir)
     Druggability_path = os.getcwd()
     global PROBEDATA
     global PROBETYPES
