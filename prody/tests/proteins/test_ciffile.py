@@ -26,6 +26,7 @@ class TestParseMMCIF(unittest.TestCase):
         self.big_biomols = DATA_FILES['big_biomols_cif']
         self.chimerax = DATA_FILES['chimerax_cif']
         self.pymol = DATA_FILES['pymol_cif']
+        self.wrapped = DATA_FILES['boltz_wrapped_line_cif']
 
         self.altlocs = DATA_FILES['cif_6flr']
         self.his_selstr = 'resname HIS and chain B and resnum 234 and name CA'
@@ -203,6 +204,20 @@ class TestParseMMCIF(unittest.TestCase):
                          'parseMMCIF failed to parse correct number of chains '
                          'for 7cth with biomol True')
 
+    def testWrappedLines(self):
+        """Test that we can handle wrapped lines, as generatd by Boltz and Chai"""
+        path = pathDatafile(self.wrapped['file'])
+
+        prot = parseMMCIF(path)
+        self.assertEqual(prot.numAtoms(),
+                         self.wrapped['atoms'],
+                         'parseMMCIF failed to parse correct number of atoms '
+                         f'for {self.wrapped["file"]}')
+        self.assertEqual(prot.numChains(),
+                         self.wrapped['num_chains'],
+                        'parseMMCIF failed to parse correct numbers of chains '
+                         f'for {self.wrapped["file"]}')       
+        
     def testChimeraxCIFBiomolArguments(self):
         """Test outcome of valid and invalid *segment* arguments."""
 
