@@ -248,6 +248,11 @@ DATA_FILES = {
         'models': 1,
         'unobs_B_start': 'G-------------------------------NQNTTEK-'
     },
+    'pymol_cif': {
+        'pdb': '3o21',
+        'file': 'mmcif_3o21_pymol.cif',
+        'atoms': 12793
+    },
     'big_biomols_cif': {
         'pdb': '7cth',
         'file': 'mmcif_7cth.cif',

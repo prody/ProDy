@@ -25,6 +25,7 @@ class TestParseMMCIF(unittest.TestCase):
         self.biomols = DATA_FILES['biomols_cif']
         self.big_biomols = DATA_FILES['big_biomols_cif']
         self.chimerax = DATA_FILES['chimerax_cif']
+        self.pymol = DATA_FILES['pymol_cif']
 
         self.altlocs = DATA_FILES['cif_6flr']
         self.his_selstr = 'resname HIS and chain B and resnum 234 and name CA'
@@ -295,7 +296,18 @@ class TestParseMMCIF(unittest.TestCase):
 
         assert_allclose(hisB234.getAnisous()[1], self.altlocs['anisousB'][0],
             err_msg='parsePDB failed to have right His B234 CA atoms getAnisous B with altloc "all"')
-        
+
+    def testAltlocAllPymol(self):
+        """Test number of coordinate sets and atoms for PyMOL CIF file with altloc='all'."""
+
+        path = pathDatafile(self.pymol['file'])
+
+        ag = parsePDB(path, altloc="all")
+        self.assertEqual(ag.numAtoms(), self.pymol['atoms'],
+            'parsePDB failed to parse correct number of atoms from pymol cif with altloc "all"')
+        self.assertEqual(ag.numCoordsets(), 1,
+            'parsePDB failed to parse correct number of coordsets (1) from pymol cif with altloc "all"')
+
     def testAltlocNoneToLessAtoms(self):
         """Test number of coordinate sets and atoms with altloc=None."""
 
