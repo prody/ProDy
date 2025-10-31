@@ -252,7 +252,7 @@ DATA_FILES = {
         'pdb': '3o21',
         'file': 'mmcif_3o21_pymol.cif',
         'atoms': 12793,
-        'last_coords': array([ 50.327, -11.971, -19.976])
+        'last_coords': array([50.327, -11.971, -19.976])
     },
     'big_biomols_cif': {
         'pdb': '7cth',

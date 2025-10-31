@@ -323,7 +323,7 @@ class TestParseMMCIF(unittest.TestCase):
         self.assertEqual(ag.numCoordsets(), 1,
             'parsePDB failed to parse correct number of coordsets (1) from pymol cif with altloc "all"')
         assert_allclose(ag.getCoords()[-1], self.pymol['last_coords'],
-            'parsePDB failed to parse correct last coords from pymol cif with altloc "all"')
+            err_msg='parsePDB failed to parse correct last coords from pymol cif with altloc "all"')
 
     def testAltlocAPymol(self):
         """Test number of coordinate sets and atoms for PyMOL CIF file with altloc='all'."""
@@ -336,7 +336,7 @@ class TestParseMMCIF(unittest.TestCase):
         self.assertEqual(ag.numCoordsets(), 1,
             'parsePDB failed to parse correct number of coordsets (1) from pymol cif with altloc "all"')
         assert_allclose(ag.getCoords()[-1], self.pymol['last_coords'],
-            'parsePDB failed to parse correct last coords from pymol cif with altloc "all"')
+            err_msg='parsePDB failed to parse correct last coords from pymol cif with altloc "all"')
 
     def testAltlocNoneToLessAtoms(self):
         """Test number of coordinate sets and atoms with altloc=None."""
