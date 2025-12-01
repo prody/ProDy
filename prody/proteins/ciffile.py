@@ -334,7 +334,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 nModels += 1
             asize += 1
 
-        else:
+        elif line.strip() == "#":
             if foundAtomBlock:
                 doneAtomBlock = True
                 stop = i
@@ -402,14 +402,22 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         asize = n_atoms
 
     acount = 0
-    for line in lines[start:stop]:
-        startswith = line.split()[fields['group_PDB']]
+    lineidx = start
+    while lineidx < stop: # not a for loop since need to be able to skip lines
+        line = lines[lineidx]
+        lineidx += 1
+        linefields = line.split()
+        while len(linefields) <= fieldCounter: #line is wrapped
+            lineidx += 1
+            linefields += lines[lineidx].split()
+        
+        startswith = linefields[fields['group_PDB']]
 
         try:
-            atomname = line.split()[fields['auth_atom_id']]
+            atomname = linefields[fields['auth_atom_id']]
         except KeyError:
             try:
-                atomname = line.split()[fields['label_atom_id']]
+                atomname = linefields[fields['label_atom_id']]
             except KeyError:
                 raise MMCIFParseError('mmCIF file is missing required atom IDs.')
  
@@ -418,10 +426,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             atomname = atomname[1:-1]
         
         try:
-            resname = line.split()[fields['auth_comp_id']]
+            resname = linefields[fields['auth_comp_id']]
         except KeyError:
             try:
-                resname = line.split()[fields['label_comp_id']]
+                resname = linefields[fields['label_comp_id']]
             except KeyError:
                 raise MMCIFParseError('mmCIF file is missing required component IDs.')
                 
@@ -430,8 +438,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if not (atomname in subset and resname in protein_resnames):
                 continue
 
-        chID = line.split()[fields['label_asym_id']]
-        segID = line.split()[fields['auth_asym_id']]
+        chID = linefields[fields['label_asym_id']]
+        segID = linefields[fields['auth_asym_id']]
 
         if chain is not None:
             if isinstance(chain, str):
@@ -448,14 +456,14 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if not segID in segment:
                 continue
 
-        alt = line.split()[fields['label_alt_id']]
+        alt = linefields[fields['label_alt_id']]
 
         if alt == '.':
             alt = ' '
 
-        coordinates[acount] = [line.split()[fields['Cartn_x']],
-                               line.split()[fields['Cartn_y']],
-                               line.split()[fields['Cartn_z']]]
+        coordinates[acount] = [linefields[fields['Cartn_x']],
+                               linefields[fields['Cartn_y']],
+                               linefields[fields['Cartn_z']]]
         atomnames[acount] = atomname
         resnames[acount] = resname
         chainids[acount] = chID
@@ -463,10 +471,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         hetero[acount] = startswith == 'HETATM' # True or False
 
         try:
-            resnums[acount] = line.split()[fields['auth_seq_id']]
+            resnums[acount] = linefields[fields['auth_seq_id']]
         except KeyError:
             try:
-                resnums[acount] = line.split()[fields['label_seq_id']]
+                resnums[acount] = linefields[fields['label_seq_id']]
             except KeyError:
                 raise MMCIFParseError('mmCIF file is missing required sequence IDs.')
 
@@ -477,19 +485,19 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         altlocs[acount] = alt
         
         try:
-            icodes[acount] = line.split()[fields['pdbx_PDB_ins_code']]
+            icodes[acount] = linefields[fields['pdbx_PDB_ins_code']]
         except KeyError:
             icodes[acount] = ''
 
         if icodes[acount] == '?' or icodes[acount] == '.':
             icodes[acount] = ''
 
-        serials[acount] = line.split()[fields['id']]
-        elements[acount] = line.split()[fields['type_symbol']]
+        serials[acount] = linefields[fields['id']]
+        elements[acount] = linefields[fields['type_symbol']]
         if 'B_iso_or_equiv' in fields.keys():
-            bfactors[acount] = line.split()[fields['B_iso_or_equiv']]
+            bfactors[acount] = linefields[fields['B_iso_or_equiv']]
         if 'occupancy' in fields.keys():
-            occupancies[acount] = line.split()[fields['occupancy']]
+            occupancies[acount] = linefields[fields['occupancy']]
 
         acount += 1
 
