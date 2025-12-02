@@ -7,6 +7,15 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    
+    # PREVENT HANGS: Limit threading for scientific libraries in CI
+    env:
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      VECLIB_MAXIMUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+
     strategy:
       fail-fast: false
       matrix:
@@ -22,10 +31,8 @@ jobs:
         with:
           environment-file: environment.yml
           cache-environment: true
-          # This overrides the python version in environment.yml with the matrix version
           create-args: >-
             python=${{ matrix.python-version }}
-          # Micromamba automatically initializes the shell, so manual activation isn't needed
 
       - name: Verify Environment
         shell: bash -l {0}
@@ -40,43 +47,30 @@ jobs:
           pip install -e .
           python setup.py build_ext --inplace --force
           
-          echo "Verifying hpb.so file properties on Linux:"
-          ls -lh prody/proteins/hpb.so || { echo "hpb.so not found on Linux!"; exit 1; }
-          file prody/proteins/hpb.so || { echo "file command failed for hpb.so on Linux!"; exit 1; }
-          ldd prody/proteins/hpb.so || { echo "ldd failed or found issues on Linux!"; exit 1; }
+          # Verification
+          ls -lh prody/proteins/hpb.so || { echo "hpb.so missing"; exit 1; }
+          ldd prody/proteins/hpb.so || { echo "linking failed"; exit 1; }
 
       - name: Build & compile HPB (macOS)
         if: runner.os == 'macOS'
         shell: bash -l {0}
         run: |
-          echo "Debugging environment variables before compilation:"
-          echo "PATH: $PATH"
-          echo "CONDA_PREFIX: $CONDA_PREFIX"
-
           export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
           export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
 
           pushd prody/proteins/hpbmodule
 
-          # Compilation steps...
-          gfortran -O3 -fPIC -c reg_tet.f || { echo "Fortran compilation failed!"; exit 1; }
+          gfortran -O3 -fPIC -c reg_tet.f || exit 1
           
           PYINC=$(python -c "import sysconfig; print(sysconfig.get_path('include'))")
           PYLIBDIR=$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
-          
-          # Add Conda lib to path for linking
           export LIBRARY_PATH="$CONDA_PREFIX/lib:$PYLIBDIR:$LIBRARY_PATH"
 
-          g++ -O3 -g -fPIC -I"${PYINC}" -c hpbmodule.cpp -o hpbmodule.o || { echo "C++ compilation failed!"; exit 1; }
+          g++ -O3 -g -fPIC -I"${PYINC}" -c hpbmodule.cpp -o hpbmodule.o || exit 1
 
-          g++ -dynamiclib \
-              -undefined dynamic_lookup \
+          g++ -dynamiclib -undefined dynamic_lookup \
               -o hpb.so hpbmodule.o reg_tet.o \
-              -L"${PYLIBDIR}" -L"$CONDA_PREFIX/lib" -lgfortran || { echo "HPB linking failed!"; exit 1; }
-          
-          # Verification
-          ls -lh hpb.so
-          otool -L hpb.so
+              -L"${PYLIBDIR}" -L"$CONDA_PREFIX/lib" -lgfortran || exit 1
           
           cp hpb.so ../
           popd
@@ -84,7 +78,36 @@ jobs:
           pip install -e .
           python setup.py build_ext --inplace --force
 
+      # --- DEBUGGING STEPS START HERE ---
+      
+      # 1. Check if the module can even be imported (Hangs here = Bad compilation/linking)
+      - name: Debug Imports
+        shell: bash -l {0}
+        timeout-minutes: 2
+        run: |
+          echo "Checking dependencies..."
+          python -c "import numpy; print('Numpy:', numpy.__version__)"
+          python -c "import openmm; print('OpenMM:', openmm.__version__)"
+          
+          echo "Checking ProDy import..."
+          python -c "import prody; print('ProDy:', prody.__version__)"
+          
+          echo "Checking Extension import..."
+          # This verifies if the .so can be loaded without segfaulting
+          python -c "from prody.proteins import hpb; print('HPB Extension loaded successfully')"
+
+      # 2. Check if pytest can collect tests (Hangs here = Bad module-level code)
+      - name: Debug Test Collection
+        shell: bash -l {0}
+        timeout-minutes: 2
+        run: |
+          pytest --collect-only -v
+
+      # 3. Run actual tests
       - name: Run tests
         shell: bash -l {0}
+        timeout-minutes: 10
         run: |
-          pytest
+          pip install pytest-timeout
+          # -X faulthandler: dumps C-level traceback if python crashes/deadlocks
+          python -X faulthandler -m pytest -v -s --timeout=300
