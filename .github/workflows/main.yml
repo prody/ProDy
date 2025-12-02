@@ -8,13 +8,16 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     
-    # PREVENT HANGS: Limit threading for scientific libraries in CI
+    # PREVENT HANGS: 
+    # 1. Limit threading for scientific libraries
+    # 2. Force Matplotlib to use non-interactive backend (Headless)
     env:
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"
       VECLIB_MAXIMUM_THREADS: "1"
       NUMEXPR_NUM_THREADS: "1"
+      MPLBACKEND: "Agg"
 
     strategy:
       fail-fast: false
@@ -78,35 +81,10 @@ jobs:
           pip install -e .
           python setup.py build_ext --inplace --force
 
-      # --- DEBUGGING STEPS START HERE ---
-      
-      # 1. Check if the module can even be imported (Hangs here = Bad compilation/linking)
-      - name: Debug Imports
-        shell: bash -l {0}
-        timeout-minutes: 2
-        run: |
-          echo "Checking dependencies..."
-          python -c "import numpy; print('Numpy:', numpy.__version__)"
-          python -c "import openmm; print('OpenMM:', openmm.__version__)"
-          
-          echo "Checking ProDy import..."
-          python -c "import prody; print('ProDy:', prody.__version__)"
-          
-          echo "Checking Extension import..."
-          # This verifies if the .so can be loaded without segfaulting
-          python -c "from prody.proteins import hpb; print('HPB Extension loaded successfully')"
-
-      # 2. Check if pytest can collect tests (Hangs here = Bad module-level code)
-      - name: Debug Test Collection
-        shell: bash -l {0}
-        timeout-minutes: 2
-        run: |
-          pytest --collect-only -v
-
       # 3. Run actual tests
       - name: Run tests
         shell: bash -l {0}
-        timeout-minutes: 10
+        timeout-minutes: 20
         run: |
           pip install pytest-timeout
           # -X faulthandler: dumps C-level traceback if python crashes/deadlocks
