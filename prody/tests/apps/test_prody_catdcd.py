@@ -18,19 +18,21 @@ from prody.tests import MATPLOTLIB, NOPRODYCMD, WINDOWS
 
 class TestCatdcdCommand(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.dcdpath = pathDatafile('dcd')
+        cls.pdbpath = pathDatafile('multi_model_truncated')
+
+        cls.dcd = DCDFile(cls.dcdpath)
+        cls.ag = parsePDB(cls.pdbpath, model=1)
+
     def setUp(self):
 
         self.output = join(TEMPDIR, 'test_prody_catdcd.dcd')
-
-        self.dcdpath = pathDatafile('dcd')
-        self.pdbpath = pathDatafile('multi_model_truncated')
-
-        self.dcd = DCDFile(self.dcdpath)
-        self.ag = parsePDB(self.pdbpath, model=1)
-
         self.command = 'catdcd -o ' + self.output
 
-        self.tearDown()
+        if isfile(self.output):
+            remove(self.output)
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
