@@ -67,13 +67,17 @@ for cmd in prody_commands.choices:
         def func(self, examples=egs):
 
             for eg in examples:
-                # --- FIX STARTS HERE ---
-                # We use communicate() to avoid deadlocks when stderr fills up
+                # --- FIX APPLIED ---
+                # 1. stdin=PIPE allows us to send input to the subprocess
+                # 2. stdout/stderr=PIPE captures output
                 pipe = Popen(shlex.split(eg + ' --quiet'),
-                             stdout=PIPE, stderr=PIPE)
+                             stdout=PIPE, stderr=PIPE, stdin=PIPE)
                 
-                stdout, stderr = pipe.communicate()
-                # --- FIX ENDS HERE ---
+                # communicate() reads both stdout and stderr buffers simultaneously
+                # preventing the buffer fill deadlock.
+                # input=b'n\n' sends "n" + Enter to the process. 
+                # If the app asks "Overwrite? [y/n]", this answers "no" and unblocks it.
+                stdout, stderr = pipe.communicate(input=b'n\n')
 
         func.__name__ = 'testCommandExample{0:d}'.format(count)
         func.__doc__ = 'Test example: $ {0:s}'.format(' $ '.join(egs))
