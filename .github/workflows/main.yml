@@ -25,10 +25,10 @@ jobs:
           create-args: |
             python=${{ matrix.python-version }}
           init-shell: bash
-          cache-environment: true    # <-- Huge speed boost
+          cache-environment: true
           cache-downloads: true
 
-      - name: Create environment.yml inside workflow
+      - name: Create environment.yml
         run: |
           cat > environment.yml <<EOF
           name: test
@@ -55,18 +55,17 @@ jobs:
                 - scikit-learn
           EOF
 
-      - name: Update environment (fast + reproducible)
-        shell: bash -l {0}
+      - name: Update environment
+        shell: bash
         run: |
-          micromamba env update --name test --file environment.yml
+          micromamba env update -n test -f environment.yml
 
       - name: Build & compile HPB (Linux)
         if: runner.os == 'Linux'
-        shell: bash -l {0}
+        shell: bash
         run: |
-          micromamba activate test
-          pip install -e .
-          python setup.py build_ext --inplace --force
+          micromamba run -n test pip install -e .
+          micromamba run -n test python setup.py build_ext --inplace --force
 
           echo "Verifying hpb.so file properties..."
           ls -lh prody/proteins/hpb.so
@@ -75,21 +74,25 @@ jobs:
 
       - name: Build & compile HPB (macOS)
         if: runner.os == 'macOS'
-        shell: bash -l {0}
+        shell: bash
         run: |
-          micromamba activate test
-
+          # Python commands must run inside the environment; compiler commands can run outside.
           export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
           export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
 
           pushd prody/proteins/hpbmodule
 
+          # Fortran compilation
           gfortran -O3 -fPIC -c reg_tet.f
-          PYINC=$(python -c "import sysconfig; print(sysconfig.get_path('include'))")
-          PYLIBDIR=$(python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
 
+          # Python include/lib dirs (must run inside env)
+          PYINC=$(micromamba run -n test python -c "import sysconfig; print(sysconfig.get_path('include'))")
+          PYLIBDIR=$(micromamba run -n test python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+
+          # C++ compile
           g++ -O3 -fPIC -I"${PYINC}" -c hpbmodule.cpp -o hpbmodule.o
 
+          # Link shared library
           g++ -dynamiclib \
               -undefined dynamic_lookup \
               -o hpb.so hpbmodule.o reg_tet.o \
@@ -101,11 +104,11 @@ jobs:
           cp hpb.so ../
           popd
 
-          pip install -e .
-          python setup.py build_ext --inplace --force
+          micromamba run -n test pip install -e .
+          micromamba run -n test python setup.py build_ext --inplace --force
 
       - name: Run tests
-        shell: bash -l {0}
+        shell: bash
         run: |
-          micromamba activate test
-          pytest -q
+          micromamba run -n test pytest -q
+
