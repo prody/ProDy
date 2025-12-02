@@ -88,4 +88,4 @@ jobs:
         run: |
           pip install pytest-timeout
           # -X faulthandler: dumps C-level traceback if python crashes/deadlocks
-          python -X faulthandler -m pytest -v -s --timeout=300
+          python -X faulthandler -m pytest -v -s --timeout=300 --durations=0
