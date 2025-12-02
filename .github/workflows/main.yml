@@ -17,41 +17,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Mambaforge
-        uses: conda-incubator/setup-miniconda@v3
+      - name: Set up Micromamba
+        uses: mamba-org/setup-micromamba@v1
         with:
-          # Miniforge includes Mamba and defaults to conda-forge, faster than stock miniconda
-          miniforge-version: "latest"
-          miniforge-variant: Mambaforge
-          python-version: ${{ matrix.python-version }}
-          activate-environment: test
-          use-mamba: true
-          
-          # This caches the environment based on the content of environment.yml
-          # and the date (to force periodic updates if needed)
           environment-file: environment.yml
           cache-environment: true
-          cache-downloads: true
-          
-          # Optimization: Don't check for conda updates on every run
-          auto-update-conda: false 
+          # This overrides the python version in environment.yml with the matrix version
+          create-args: >-
+            python=${{ matrix.python-version }}
+          # Micromamba automatically initializes the shell, so manual activation isn't needed
 
-      # We no longer need a heavy "Install deps" step because setup-miniconda 
-      # handles the install via environment.yml (and caches it!)
       - name: Verify Environment
         shell: bash -l {0}
         run: |
-          conda info
-          conda list
+          micromamba info
+          micromamba list
 
       - name: Build & compile HPB (Linux)
         if: runner.os == 'Linux'
         shell: bash -l {0}
         run: |
-          # setup-miniconda automatically activates the environment in bash shells
-          # but explicit activation doesn't hurt.
-          conda activate test
-          
           pip install -e .
           python setup.py build_ext --inplace --force
           
@@ -64,8 +49,6 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash -l {0}
         run: |
-          conda activate test
-
           echo "Debugging environment variables before compilation:"
           echo "PATH: $PATH"
           echo "CONDA_PREFIX: $CONDA_PREFIX"
@@ -104,5 +87,4 @@ jobs:
       - name: Run tests
         shell: bash -l {0}
         run: |
-          conda activate test
           pytest
