@@ -1,112 +1,66 @@
 name: CI
+
 on:
-  - push
-  - pull_request
-  - workflow_dispatch
+  push:
+  pull_request:
 
 jobs:
-  build:
+  test:
+    name: Test (${{ matrix.os }}, py${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install micromamba
-        uses: mamba-org/setup-micromamba@v1
-        with:
-          micromamba-version: "latest"
-          environment-name: test
-          create-args: |
-            python=${{ matrix.python-version }}
-          init-shell: bash
-          cache-environment: true
-          cache-downloads: true
-
-      - name: Create environment.yml
-        run: |
-          cat > environment.yml <<EOF
-          name: test
-          channels:
-            - conda-forge
-            - bioconda
-          dependencies:
-            - python=${{ matrix.python-version }}
-            - compilers
-            - gfortran
-            - numpy
-            - pyparsing<=3.1.1
-            - scipy
-            - nose
-            - pytest
-            - requests
-            - pdbfixer
-            - mdtraj
-            - openmm
-            - clustalw
-            - pip
-            - pip:
-                - mmtf-python
-                - scikit-learn
-          EOF
-
-      - name: Update environment
-        shell: bash
-        run: |
-          micromamba env update -n test -f environment.yml
-
-      - name: Build & compile HPB (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          micromamba run -n test pip install -e .
-          micromamba run -n test python setup.py build_ext --inplace --force
-
-          ls -lh prody/proteins/hpb.so
-          file prody/proteins/hpb.so
-          ldd prody/proteins/hpb.so
-
-      - name: Build & compile HPB (macOS)
+      # ------- Install compilers (macOS needs gfortran) -------
+      - name: Install build tools (macOS)
         if: runner.os == 'macOS'
+        run: |
+          brew install gfortran || true
+
+      - name: Install build tools (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gfortran
+
+      # ------- Setup micromamba -------
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: test
+          create-args: >-
+            python=${{ matrix.python-version }}
+          cache-environment: true
+          cache-environment-key: ${{ runner.os }}-${{ matrix.python-version }}
+
+      # ------- Install package dependencies -------
+      - name: Install package dependencies
         shell: bash
         run: |
-          export CFLAGS="${CFLAGS} -D__NO_FLOAT16"
-          export CPPFLAGS="${CPPFLAGS} -D__NO_FLOAT16"
+          eval "$(micromamba shell hook -s bash)"
+          micromamba activate test
 
-          pushd prody/proteins/hpbmodule
+          micromamba install -y \
+            numpy scipy matplotlib biopython \
+            pytest pip setuptools wheel
 
-          # Fortran compile inside the env
-          micromamba run -n test gfortran -O3 -fPIC -c reg_tet.f
+          # If you need additional deps, add them here
+          # micromamba install -y <packages>
 
-          # Python include/lib dirs
-          PYINC=$(micromamba run -n test python -c "import sysconfig; print(sysconfig.get_path('include'))")
-          PYLIBDIR=$(micromamba run -n test python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+          pip install -e .
 
-          # C++ compile inside the env
-          micromamba run -n test g++ -O3 -fPIC -I"${PYINC}" -c hpbmodule.cpp -o hpbmodule.o
-
-          # Link inside the env
-          micromamba run -n test g++ -dynamiclib \
-              -undefined dynamic_lookup \
-              -o hpb.so hpbmodule.o reg_tet.o \
-              -L"${PYLIBDIR}" -L"$CONDA_PREFIX/lib" -lgfortran
-
-          ls -lh hpb.so
-          otool -L hpb.so
-
-          cp hpb.so ../
-          popd
-
-          micromamba run -n test pip install -e .
-          micromamba run -n test python setup.py build_ext --inplace --force
-
+      # ------- Run tests -------
       - name: Run tests
         shell: bash
         run: |
-          micromamba run -n test pytest -q
+          eval "$(micromamba shell hook -s bash)"
+          micromamba activate test
+
+          pytest -q
 
