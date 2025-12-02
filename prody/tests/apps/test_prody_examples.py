@@ -24,17 +24,18 @@ TESTDIR = os.path.join(TEMPDIR, 'prody_tests')
 class TestCommandExamples(TestCase):
 
     def setUp(self):
-
         self.cwd = os.getcwd()
         if not os.path.isdir(TESTDIR):
             os.mkdir(TESTDIR)
         os.chdir(TESTDIR)
 
     def tearDown(self):
-
         if os.path.isdir(TESTDIR):
             for fn in glob.glob(os.path.join(TESTDIR, '*')):
-                os.remove(fn)
+                try:
+                    os.remove(fn)
+                except OSError:
+                    pass
         os.chdir(self.cwd)
 
 
@@ -66,12 +67,13 @@ for cmd in prody_commands.choices:
         def func(self, examples=egs):
 
             for eg in examples:
+                # --- FIX STARTS HERE ---
+                # We use communicate() to avoid deadlocks when stderr fills up
                 pipe = Popen(shlex.split(eg + ' --quiet'),
                              stdout=PIPE, stderr=PIPE)
-                stdout = pipe.stdout.read()
-                pipe.stdout.close()
-                stderr = pipe.stderr.read()
-                pipe.stderr.close()
+                
+                stdout, stderr = pipe.communicate()
+                # --- FIX ENDS HERE ---
 
         func.__name__ = 'testCommandExample{0:d}'.format(count)
         func.__doc__ = 'Test example: $ {0:s}'.format(' $ '.join(egs))
