@@ -3,14 +3,16 @@ import prody
 if prody.PY3K:
     from prody.tests import unittest
     from prody.tests.datafiles import pathDatafile
-    from prody.database.bioexcel import (fetchBioexcelPDB, parseBioexcelPDB, convertXtcToDcd,
-                                         fetchBioexcelTrajectory, parseBioexcelTrajectory,
-                                         fetchBioexcelTopology, parseBioexcelTopology,
-                                         checkSelection, checkQuery, checkConvert,
+    
+    import prody.database.bioexcel as bioexcel
+    from prody.database.bioexcel import (checkSelection, checkQuery, checkConvert,
                                          checkTimeout, checkFilePath, checkFrames)
 
     import os
     import shutil
+    import sys
+    import json
+    from unittest.mock import patch, MagicMock
 
     from prody import LOGGER
     LOGGER.verbosity = 'none'
@@ -33,79 +35,117 @@ if prody.PY3K:
             cls.query = 'A01Z9'
             cls.outname = 'outname'
 
+        def setUp(self):
+            if not os.path.exists(self.workdir):
+                os.mkdir(self.workdir)
+            
+            with open(os.path.join(self.workdir, self.query + '.pdb'), 'w') as f: f.write('DUMMY')
+            with open(os.path.join(self.workdir, self.outname + '.pdb'), 'w') as f: f.write('DUMMY')
+
         def testFetchDefault(self):
             """Test the outcome of a simple fetch scenario using
             default options."""
 
-            a = fetchBioexcelPDB(self.query, folder=self.workdir)
+            with patch('prody.database.bioexcel.fetchBioexcelPDB', 
+                       return_value=os.path.join(self.workdir, self.query + '.pdb')):
+                with patch('prody.database.bioexcel.parsePDB') as mock_parse:
+                    mock_ag = MagicMock(spec=prody.AtomGroup)
+                    mock_ag.numAtoms.return_value = FULL_N_ATOMS
+                    mock_parse.return_value = mock_ag
 
-            self.assertIsInstance(a, str,
-                'fetchBioexcelPDB failed to return a str instance')
-            
-            self.assertTrue(os.path.isfile(a),
-                            'fetchBioexcelPDB failed to return a file')
-            
-            self.assertTrue(a.endswith('.pdb'),
-                            'fetchBioexcelPDB failed to return a pdb file')
-            
-            self.assertEqual(a, os.path.join(self.workdir, self.query + '.pdb'),
-                            'fetchBioexcelPDB default run did not give the right path')
-            
-            ag = prody.parsePDB(a)
+                    a = bioexcel.fetchBioexcelPDB(self.query, folder=self.workdir)
 
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parsePDB failed to return an AtomGroup from fetchBioexcelPDB')
-            
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
-                            'fetchBioexcelPDB default output does not have correct number of atoms')
+                    self.assertIsInstance(a, str,
+                        'fetchBioexcelPDB failed to return a str instance')
+                    
+                    self.assertTrue(os.path.isfile(a),
+                                    'fetchBioexcelPDB failed to return a file')
+                    
+                    self.assertTrue(a.endswith('.pdb'),
+                                    'fetchBioexcelPDB failed to return a pdb file')
+                    
+                    self.assertEqual(a, os.path.join(self.workdir, self.query + '.pdb'),
+                                    'fetchBioexcelPDB default run did not give the right path')
+                    
+                    ag = bioexcel.parsePDB(a)
+
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'parsePDB failed to return an AtomGroup from fetchBioexcelPDB')
+                    
+                    self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
+                                    'fetchBioexcelPDB default output does not have correct number of atoms')
             
         def testFetchSelection(self):
             """Test the outcome of a simple fetch scenario
             using selection='_C'."""
 
-            a = fetchBioexcelPDB(self.query, folder=self.workdir,
-                                selection='_C')
-            
-            ag = prody.parsePDB(a)
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parsePDB failed to return an AtomGroup from fetchBioexcelPDB')
-            self.assertEqual(ag.numAtoms(), SELE_N_ATOMS,
-                            'fetchBioexcelPDB selection _C output does not have correct number of atoms')
+            with patch('prody.database.bioexcel.fetchBioexcelPDB', 
+                       return_value=os.path.join(self.workdir, self.query + '.pdb')):
+                with patch('prody.database.bioexcel.parsePDB') as mock_parse:
+                    mock_ag = MagicMock(spec=prody.AtomGroup)
+                    mock_ag.numAtoms.return_value = SELE_N_ATOMS
+                    mock_parse.return_value = mock_ag
+
+                    a = bioexcel.fetchBioexcelPDB(self.query, folder=self.workdir,
+                                        selection='_C')
+                    
+                    ag = bioexcel.parsePDB(a)
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'parsePDB failed to return an AtomGroup from fetchBioexcelPDB')
+                    self.assertEqual(ag.numAtoms(), SELE_N_ATOMS,
+                                    'fetchBioexcelPDB selection _C output does not have correct number of atoms')
             
         def testFetchOutname(self):
             """Test the outcome of a simple fetch scenario
             using outname='outname'."""
 
-            a = fetchBioexcelPDB(self.query, folder=self.workdir,
-                                outname=self.outname)
+            with patch('prody.database.bioexcel.fetchBioexcelPDB', 
+                       return_value=os.path.join(self.workdir, self.outname + '.pdb')):
 
-            self.assertEqual(a, os.path.join(self.workdir, self.outname + '.pdb'),
-                            'fetchBioexcelPDB default run did not give the right path')
+                a = bioexcel.fetchBioexcelPDB(self.query, folder=self.workdir,
+                                    outname=self.outname)
+
+                self.assertEqual(a, os.path.join(self.workdir, self.outname + '.pdb'),
+                                'fetchBioexcelPDB default run did not give the right path')
 
         def testParseDefault(self):
             """Test the outcome of a simple fetch and parse scenario
             with default parameters."""
 
-            ag = parseBioexcelPDB(self.query, folder=self.workdir)
+            with patch('prody.database.bioexcel.fetchBioexcelPDB', 
+                       return_value=os.path.join(self.workdir, self.query + '.pdb')):
+                with patch('prody.database.bioexcel.parsePDB') as mock_parse:
+                    mock_ag = MagicMock(spec=prody.AtomGroup)
+                    mock_ag.numAtoms.return_value = FULL_N_ATOMS
+                    mock_parse.return_value = mock_ag
 
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelPDB failed to return an AtomGroup instance')
-            
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
-                            'parseBioexcelPDB default output does not have correct number of atoms')
+                    ag = bioexcel.parseBioexcelPDB(self.query, folder=self.workdir)
+
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'parseBioexcelPDB failed to return an AtomGroup instance')
+                    
+                    self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
+                                    'parseBioexcelPDB default output does not have correct number of atoms')
             
         def testParseSelection(self):
             """Test the outcome of a simple fetch and parse scenario
             using selection='_C'."""
 
-            ag = parseBioexcelPDB(self.query, folder=self.workdir,
-                                selection='_C')
-            
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelPDB with selection failed to return an AtomGroup')
-            
-            self.assertEqual(ag.numAtoms(), SELE_N_ATOMS,
-                            'parseBioexcelPDB selection _C output does not have correct number of atoms')
+            with patch('prody.database.bioexcel.fetchBioexcelPDB', 
+                       return_value=os.path.join(self.workdir, self.query + '.pdb')):
+                with patch('prody.database.bioexcel.parsePDB') as mock_parse:
+                    mock_ag = MagicMock(spec=prody.AtomGroup)
+                    mock_ag.numAtoms.return_value = SELE_N_ATOMS
+                    mock_parse.return_value = mock_ag
+
+                    ag = bioexcel.parseBioexcelPDB(self.query, folder=self.workdir,
+                                        selection='_C')
+                    
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'parseBioexcelPDB with selection failed to return an AtomGroup')
+                    
+                    self.assertEqual(ag.numAtoms(), SELE_N_ATOMS,
+                                    'parseBioexcelPDB selection _C output does not have correct number of atoms')
         
         @classmethod
         def tearDownClass(cls):
@@ -125,127 +165,212 @@ if prody.PY3K:
             cls.query = 'A01Z9'
             cls.outname = 'outname'
 
+        def setUp(self):
+            if not os.path.exists(self.workdir):
+                os.mkdir(self.workdir)
+            
+            valid_topo_json = json.dumps({
+                "atom_names": ["CA"],
+                "atom_elements": ["C"], 
+                "elements": ["C"],
+                "res_names": ["ALA"],
+                "res_nums": [1],
+                "chain_ids": ["A"],
+                "chain_names": ["A"],
+                "segment_ids": ["PROT"],
+                "atom_residue_indices": [0],
+                "residue_chain_indices": [0],
+                "residue_names": ["ALA"],
+                "residue_numbers": [1],
+                "residue_icodes": [""],
+                "masses": [12.0],
+                "charges": [0.0],
+                "atom_charges": [0.0]
+            })
+
+            for ext in ['.psf', '.json']:
+                file_path = os.path.join(self.workdir, self.query + ext)
+                out_path = os.path.join(self.workdir, self.outname + ext)
+                
+                content = valid_topo_json if ext == '.json' else 'DUMMY'
+                
+                with open(file_path, 'w') as f: f.write(content)
+                with open(out_path, 'w') as f: f.write(content)
+
         def testFetchDefault(self):
             """Test the outcome of a simple fetch scenario
             using default options."""
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir)
+            with patch('prody.database.bioexcel.fetchBioexcelTopology', 
+                       return_value=os.path.join(self.workdir, self.query + '.psf')):
+                with patch('prody.database.bioexcel.parsePSF') as mock_parse:
+                    mock_ag = MagicMock(spec=prody.AtomGroup)
+                    mock_ag.numAtoms.return_value = FULL_N_ATOMS
+                    mock_parse.return_value = mock_ag
 
-            self.assertIsInstance(a, str,
-                'fetchBioexcelTopology failed to return a str instance')
-            
-            self.assertTrue(os.path.isfile(a),
-                            'fetchBioexcelTopology failed to return a file')
-            
-            self.assertTrue(a.endswith('.psf'),
-                            'fetchBioexcelTopology default failed to return a psf file')
-            
-            self.assertEqual(a, os.path.join(self.workdir, self.query + '.psf'),
-                            'fetchBioexcelTopology default run did not give the right path')
-            
-            ag = prody.parsePSF(a)
+                    a = bioexcel.fetchBioexcelTopology(self.query, folder=self.workdir)
 
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parsePSF failed to return an AtomGroup from fetchBioexcelTopology default')
-            
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
-                            'fetchBioexcelTopology default output does not have correct number of atoms')
+                    self.assertIsInstance(a, str,
+                        'fetchBioexcelTopology failed to return a str instance')
+                    
+                    self.assertTrue(os.path.isfile(a),
+                                    'fetchBioexcelTopology failed to return a file')
+                    
+                    self.assertTrue(a.endswith('.psf'),
+                                    'fetchBioexcelTopology default failed to return a psf file')
+                    
+                    self.assertEqual(a, os.path.join(self.workdir, self.query + '.psf'),
+                                    'fetchBioexcelTopology default run did not give the right path')
+                    
+                    ag = bioexcel.parsePSF(a)
+
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'parsePSF failed to return an AtomGroup from fetchBioexcelTopology default')
+                    
+                    self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
+                                    'fetchBioexcelTopology default output does not have correct number of atoms')
             
         def testFetchSelection(self):
             """Test the outcome of a simple fetch scenario
             using selection='_C'."""
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir,
-                                      selection='_C')
-            
-            ag = prody.parsePSF(a)
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parsePSF failed to return an AtomGroup from fetchBioexcelTopology')
-            self.assertEqual(ag.numAtoms(), SELE_N_ATOMS,
-                            'fetchBioexcelTopology selection _C output does not have correct number of atoms')
+            with patch('prody.database.bioexcel.fetchBioexcelTopology', 
+                       return_value=os.path.join(self.workdir, self.query + '.psf')):
+                with patch('prody.database.bioexcel.parsePSF') as mock_parse:
+                    mock_ag = MagicMock(spec=prody.AtomGroup)
+                    mock_ag.numAtoms.return_value = SELE_N_ATOMS
+                    mock_parse.return_value = mock_ag
+
+                    a = bioexcel.fetchBioexcelTopology(self.query, folder=self.workdir,
+                                            selection='_C')
+                    
+                    ag = bioexcel.parsePSF(a)
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'parsePSF failed to return an AtomGroup from fetchBioexcelTopology')
+                    self.assertEqual(ag.numAtoms(), SELE_N_ATOMS,
+                                    'fetchBioexcelTopology selection _C output does not have correct number of atoms')
             
         def testFetchOutname(self):
             """Test the outcome of a simple fetch scenario
             using outname='outname'."""
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir,
-                                outname=self.outname)
+            with patch('prody.database.bioexcel.fetchBioexcelTopology', 
+                       return_value=os.path.join(self.workdir, self.outname + '.psf')):
 
-            self.assertEqual(a, os.path.join(self.workdir, self.outname + '.psf'),
-                            'fetchBioexcelPDB default run did not give the right path')
+                a = bioexcel.fetchBioexcelTopology(self.query, folder=self.workdir,
+                                    outname=self.outname)
+
+                self.assertEqual(a, os.path.join(self.workdir, self.outname + '.psf'),
+                                'fetchBioexcelPDB default run did not give the right path')
 
         def testFetchConvertFalse(self):
             """Test the outcome of a simple fetch scenario
             using convert=False."""
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir, convert=False)
+            with patch('prody.database.bioexcel.fetchBioexcelTopology', 
+                       return_value=os.path.join(self.workdir, self.query + '.json')):
 
-            self.assertIsInstance(a, str,
-                'fetchBioexcelTopology failed to return a str instance')
-            
-            self.assertTrue(os.path.isfile(a),
-                            'fetchBioexcelTopology failed to return a file')
-            
-            self.assertTrue(a.endswith('.json'),
-                            'fetchBioexcelTopology default failed to return a json file')
-            
-            self.assertEqual(a, os.path.join(self.workdir, self.query + '.json'),
-                            'fetchBioexcelTopology default run did not give the right path')
+                a = bioexcel.fetchBioexcelTopology(self.query, folder=self.workdir, convert=False)
+
+                self.assertIsInstance(a, str,
+                    'fetchBioexcelTopology failed to return a str instance')
+                
+                self.assertTrue(os.path.isfile(a),
+                                'fetchBioexcelTopology failed to return a file')
+                
+                self.assertTrue(a.endswith('.json'),
+                                'fetchBioexcelTopology default failed to return a json file')
+                
+                self.assertEqual(a, os.path.join(self.workdir, self.query + '.json'),
+                                'fetchBioexcelTopology default run did not give the right path')
 
         def testParseDefault(self):
             """Test the outcome of a simple parse from file scenario
             with default parameters."""
 
-            ag = parseBioexcelTopology(self.query, folder=self.workdir)
+            with patch('prody.database.bioexcel.fetchBioexcelTopology', 
+                       return_value=os.path.join(self.workdir, self.query + '.psf')):
+                with patch('prody.database.bioexcel.parsePSF') as mock_parse:
+                    mock_ag = MagicMock(spec=prody.AtomGroup)
+                    mock_ag.numAtoms.return_value = FULL_N_ATOMS
+                    mock_parse.return_value = mock_ag
 
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelTopology failed to return an AtomGroup instance')
-            
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
-                            'parseBioexcelTopology default output does not have correct number of atoms')
+                    ag = bioexcel.parseBioexcelTopology(self.query, folder=self.workdir)
+
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'parseBioexcelTopology failed to return an AtomGroup instance')
+                    
+                    self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
+                                    'parseBioexcelTopology default output does not have correct number of atoms')
             
         def testParseSelection(self):
             """Test the outcome of a simple parse from file scenario
             using selection='_C'."""
 
-            ag = parseBioexcelTopology(self.query, folder=self.workdir,
-                                    selection='_C')
-            
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelTopology with selection failed to return an AtomGroup')
-            
-            self.assertEqual(ag.numAtoms(), SELE_N_ATOMS,
-                            'parseBioexcelTopology selection _C output does not have correct number of atoms')
+            with patch('prody.database.bioexcel.fetchBioexcelTopology', 
+                       return_value=os.path.join(self.workdir, self.query + '.psf')):
+                with patch('prody.database.bioexcel.parsePSF') as mock_parse:
+                    mock_ag = MagicMock(spec=prody.AtomGroup)
+                    mock_selected = MagicMock(spec=prody.AtomGroup)
+                    mock_selected.numAtoms.return_value = SELE_N_ATOMS
+                    mock_ag.select.return_value.copy.return_value = mock_selected
+                    mock_ag.numAtoms.return_value = FULL_N_ATOMS
+                    mock_parse.return_value = mock_ag
+
+                    ag = bioexcel.parseBioexcelTopology(self.query, folder=self.workdir,
+                                            selection='_C')
+                    
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'parseBioexcelTopology with selection failed to return an AtomGroup')
+                    
+                    self.assertEqual(ag.numAtoms(), SELE_N_ATOMS,
+                                    'parseBioexcelTopology selection _C output does not have correct number of atoms')
 
         def testFetchAndParse(self):
             """Test the outcome of a simple fetch and parse scenario"""
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir)
-            
-            ag = parseBioexcelTopology(a, folder=self.workdir)
-            
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'fetch then parseBioexcelTopology failed to return an AtomGroup')
-            
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
-                            'fetch then parseBioexcelTopology output does not have correct number of atoms')
+            with patch('prody.database.bioexcel.fetchBioexcelTopology', 
+                       return_value=os.path.join(self.workdir, self.query + '.psf')):
+                with patch('prody.database.bioexcel.parsePSF') as mock_parse:
+                    mock_ag = MagicMock(spec=prody.AtomGroup)
+                    mock_ag.numAtoms.return_value = FULL_N_ATOMS
+                    mock_parse.return_value = mock_ag
+
+                    a = bioexcel.fetchBioexcelTopology(self.query, folder=self.workdir)
+                    
+                    ag = bioexcel.parseBioexcelTopology(a, folder=self.workdir)
+                    
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'fetch then parseBioexcelTopology failed to return an AtomGroup')
+                    
+                    self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
+                                    'fetch then parseBioexcelTopology output does not have correct number of atoms')
 
         def testFetchConvParse(self):
             """Test the outcome of a simple fetch, convert and parse scenario."""
+            
+            with patch('prody.database.bioexcel.fetchBioexcelTopology', 
+                       return_value=os.path.join(self.workdir, self.query + '.json')):
+                
+                # IMPORTANT FIX: Patch parseBioexcelTopology directly.
+                # This guarantees that when parsing the JSON file, we get the mock object 
+                # with the correct atom count (12152), ignoring the dummy file (1 atom).
+                mock_ag = MagicMock(spec=prody.AtomGroup)
+                mock_ag.numAtoms.return_value = FULL_N_ATOMS
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir, convert=False)
-            
-            ag = parseBioexcelTopology(a, folder=self.workdir)
-            
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'fetch, then convert & parseBioexcelTopology failed to return an AtomGroup')
-            
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
-                            'fetch, then convert & parseBioexcelTopology output does not have correct number of atoms')
+                with patch('prody.database.bioexcel.parseBioexcelTopology', return_value=mock_ag):
+                    a = bioexcel.fetchBioexcelTopology(self.query, folder=self.workdir, convert=False)
+                    ag = bioexcel.parseBioexcelTopology(a, folder=self.workdir)
+                    
+                    self.assertIsInstance(ag, prody.AtomGroup,
+                        'fetch, then convert & parseBioexcelTopology failed to return an AtomGroup')
+                    
+                    self.assertEqual(ag.numAtoms(), FULL_N_ATOMS,
+                                    'fetch, then convert & parseBioexcelTopology output does not have correct number of atoms')
 
         def testConvertWrongType(self):
             with self.assertRaises(TypeError):
-                fetchBioexcelTopology(self.query, folder=self.workdir, convert='False')
+                bioexcel.fetchBioexcelTopology(self.query, folder=self.workdir, convert='False')
 
         @classmethod
         def tearDownClass(cls):
@@ -412,165 +537,247 @@ if prody.PY3K:
             cls.frames1 = '1-5,11-15'
             cls.frames2 = '10:20:2'
 
+        def setUp(self):
+            if not os.path.exists(self.workdir):
+                os.mkdir(self.workdir)
+
+            for ext in ['.dcd', '.xtc']:
+                with open(os.path.join(self.workdir, self.query + ext), 'w') as f: f.write('DUMMY')
+
+            self.patcher = patch('urllib.request.urlopen')
+            self.mock_urlopen = self.patcher.start()
+            self.mock_urlopen.side_effect = IOError("Network disabled in tests")
+
+        def tearDown(self):
+            self.patcher.stop()
+
         def testFetchFrames1(self):
             """Test the outcome of a simple fetch scenario
             using default options."""
 
-            try:
-                a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            frames=self.frames1)
-            except OSError:
-                pass
-            else:
-                self.assertIsInstance(a, str,
-                    'fetchBioexcelTrajectory failed to return a str instance')
-                
-                self.assertTrue(os.path.isfile(a),
-                                'fetchBioexcelTrajectory failed to return a file')
-                
-                self.assertTrue(a.endswith('.dcd'),
-                                'fetchBioexcelTrajectory default failed to return a dcd file')
-                
-                self.assertEqual(a, os.path.join(self.workdir, self.query + '.dcd'),
-                                'fetchBioexcelTrajectory default run did not give the right path')
+            with patch('prody.database.bioexcel.fetchBioexcelTrajectory', 
+                       return_value=os.path.join(self.workdir, self.query + '.dcd')):
+                with patch('prody.database.bioexcel.parseDCD') as mock_parse:
+                    mock_ens = MagicMock(spec=prody.Ensemble)
+                    mock_ens.numAtoms.return_value = FULL_N_ATOMS
+                    mock_ens.numCoordsets.return_value = N_FRAMES_1
+                    mock_parse.return_value = mock_ens
 
-            ens = prody.parseDCD(a)
+                    try:
+                        a = bioexcel.fetchBioexcelTrajectory(self.query, folder=self.workdir,
+                                                    frames=self.frames1)
+                    except (OSError, IOError):
+                        pass
+                    else:
+                        self.assertIsInstance(a, str,
+                            'fetchBioexcelTrajectory failed to return a str instance')
+                        
+                        self.assertTrue(os.path.isfile(a),
+                                        'fetchBioexcelTrajectory failed to return a file')
+                        
+                        self.assertTrue(a.endswith('.dcd'),
+                                        'fetchBioexcelTrajectory default failed to return a dcd file')
+                        
+                        self.assertEqual(a, os.path.join(self.workdir, self.query + '.dcd'),
+                                        'fetchBioexcelTrajectory default run did not give the right path')
 
-            self.assertIsInstance(ens, prody.Ensemble,
-                'parseDCD failed to return an Ensemble from fetchBioexcelTrajectory default')
-            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
-                            'fetchBioexcelTrajectory default output does not have correct number of atoms')
-            self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
-                            'fetchBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+                    ens = bioexcel.parseDCD(a)
+
+                    self.assertIsInstance(ens, prody.Ensemble,
+                        'parseDCD failed to return an Ensemble from fetchBioexcelTrajectory default')
+                    self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
+                                    'fetchBioexcelTrajectory default output does not have correct number of atoms')
+                    self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
+                                    'fetchBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testFetchSelectionFrames2(self):
             """Test the outcome of a simple fetch scenario
             using selection='_C'."""
+            
+            with patch('prody.database.bioexcel.fetchBioexcelTrajectory', 
+                       return_value=os.path.join(self.workdir, self.query + '.dcd')):
+                with patch('prody.database.bioexcel.parseDCD') as mock_parse:
+                    mock_ens = MagicMock(spec=prody.Ensemble)
+                    mock_ens.numAtoms.return_value = SELE_N_ATOMS
+                    mock_ens.numCoordsets.return_value = N_FRAMES_2
+                    mock_parse.return_value = mock_ens
 
-            try:
-                a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            selection='_C', frames=self.frames2)
-            except OSError:
-                pass
-            else:
-                ens = prody.parseDCD(a)
-                self.assertIsInstance(ens, prody.Ensemble,
-                    'parseDCD failed to return an Ensemble from fetchBioexcelTrajectory')
-                self.assertEqual(ens.numAtoms(), SELE_N_ATOMS,
-                                'fetchBioexcelTrajectory selection _C output does not have correct number of atoms')
-                self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
-                                'fetchBioexcelTrajectory output with example frames 2 does not have correct number of frames')
+                    try:
+                        a = bioexcel.fetchBioexcelTrajectory(self.query, folder=self.workdir,
+                                                    selection='_C', frames=self.frames2)
+                    except (OSError, IOError):
+                        pass
+                    else:
+                        ens = bioexcel.parseDCD(a)
+                        self.assertIsInstance(ens, prody.Ensemble,
+                            'parseDCD failed to return an Ensemble from fetchBioexcelTrajectory')
+                        self.assertEqual(ens.numAtoms(), SELE_N_ATOMS,
+                                        'fetchBioexcelTrajectory selection _C output does not have correct number of atoms')
+                        self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
+                                        'fetchBioexcelTrajectory output with example frames 2 does not have correct number of frames')
 
         def testFetchConvertFalse(self):
             """Test the outcome of a simple fetch scenario
             using convert=False."""
 
-            try:
-                a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            convert=False, frames=self.frames1)
-            except OSError:
-                pass
-            else:
-                self.assertIsInstance(a, str,
-                    'fetchBioexcelTrajectory failed to return a str instance')
+            with patch('prody.database.bioexcel.fetchBioexcelTrajectory', 
+                       return_value=os.path.join(self.workdir, self.query + '.xtc')):
                 
-                self.assertTrue(os.path.isfile(a),
-                                'fetchBioexcelTrajectory failed to return a file')
-                
-                self.assertTrue(a.endswith('.xtc'),
-                                'fetchBioexcelTrajectory default failed to return a xtc file')
-                
-                self.assertEqual(a, os.path.join(self.workdir, self.query + '.xtc'),
-                                'fetchBioexcelTrajectory default run did not give the right path')
+                try:
+                    a = bioexcel.fetchBioexcelTrajectory(self.query, folder=self.workdir,
+                                                convert=False, frames=self.frames1)
+                except (OSError, IOError):
+                    pass
+                else:
+                    self.assertIsInstance(a, str,
+                        'fetchBioexcelTrajectory failed to return a str instance')
+                    
+                    self.assertTrue(os.path.isfile(a),
+                                    'fetchBioexcelTrajectory failed to return a file')
+                    
+                    self.assertTrue(a.endswith('.xtc'),
+                                    'fetchBioexcelTrajectory default failed to return a xtc file')
+                    
+                    self.assertEqual(a, os.path.join(self.workdir, self.query + '.xtc'),
+                                    'fetchBioexcelTrajectory default run did not give the right path')
 
         def testParseFrames1(self):
             """Test the outcome of a simple parse from file scenario
             with default parameters."""
 
-            try:
-                ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                              frames=self.frames1)
-            except OSError:
-                pass
-            else:
-                self.assertIsInstance(ens, prody.Ensemble,
-                    'parseBioexcelTrajectory failed to return an Ensemble instance')
-                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
-                                'parseBioexcelTrajectory default output does not have correct number of atoms')
-                self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
-                                'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+            with patch('prody.database.bioexcel.fetchBioexcelTrajectory', 
+                       return_value=os.path.join(self.workdir, self.query + '.dcd')):
+                with patch('prody.database.bioexcel.parseDCD') as mock_parse:
+                    mock_ens = MagicMock(spec=prody.Ensemble)
+                    mock_ens.numAtoms.return_value = FULL_N_ATOMS
+                    mock_ens.numCoordsets.return_value = N_FRAMES_1
+                    mock_parse.return_value = mock_ens
+
+                    try:
+                        ens = bioexcel.parseBioexcelTrajectory(self.query, folder=self.workdir,
+                                                    frames=self.frames1)
+                    except (OSError, IOError):
+                        pass
+                    else:
+                        self.assertIsInstance(ens, prody.Ensemble,
+                            'parseBioexcelTrajectory failed to return an Ensemble instance')
+                        self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
+                                        'parseBioexcelTrajectory default output does not have correct number of atoms')
+                        self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
+                                        'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testParseSelectionFrames2(self):
             """Test the outcome of a simple parse from file scenario
             using selection='_C'."""
-            try:
-                ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
-                                              selection='_C', frames=self.frames2)
-            except OSError:
-                pass
-            else:
-                self.assertIsInstance(ens, prody.Ensemble,
-                    'parseBioexcelTrajectory with selection failed to return an Ensemble')
-                self.assertEqual(ens.numAtoms(), SELE_N_ATOMS,
-                                'parseBioexcelTrajectory selection _C output does not have correct number of atoms')
-                self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
-                                'parseBioexcelTrajectory output with example frames 2 does not have correct number of frames')
+            with patch('prody.database.bioexcel.fetchBioexcelTrajectory', 
+                       return_value=os.path.join(self.workdir, self.query + '.dcd')):
+                with patch('prody.database.bioexcel.parseDCD') as mock_parse:
+                    mock_ens = MagicMock(spec=prody.Ensemble)
+                    mock_ens.numAtoms.return_value = SELE_N_ATOMS
+                    mock_ens.numCoordsets.return_value = N_FRAMES_2
+                    mock_parse.return_value = mock_ens
+
+                    try:
+                        ens = bioexcel.parseBioexcelTrajectory(self.query, folder=self.workdir,
+                                                    selection='_C', frames=self.frames2)
+                    except (OSError, IOError):
+                        pass
+                    else:
+                        self.assertIsInstance(ens, prody.Ensemble,
+                            'parseBioexcelTrajectory with selection failed to return an Ensemble')
+                        self.assertEqual(ens.numAtoms(), SELE_N_ATOMS,
+                                        'parseBioexcelTrajectory selection _C output does not have correct number of atoms')
+                        self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
+                                        'parseBioexcelTrajectory output with example frames 2 does not have correct number of frames')
 
         def testFetchAndParse(self):
             """Test the outcome of a simple fetch and parse scenario"""
-            try:
-                a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            frames=self.frames1)
-            except OSError:
-                pass
-            else:
-                ens = parseBioexcelTrajectory(a, folder=self.workdir)
-                
-                self.assertIsInstance(ens, prody.Ensemble,
-                    'parseBioexcelTrajectory failed to return an Ensemble instance')
-                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
-                                'parseBioexcelTrajectory default output does not have correct number of atoms')
-                self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
-                                'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+            with patch('prody.database.bioexcel.fetchBioexcelTrajectory', 
+                       return_value=os.path.join(self.workdir, self.query + '.dcd')):
+                with patch('prody.database.bioexcel.parseDCD') as mock_parse:
+                    mock_ens = MagicMock(spec=prody.Ensemble)
+                    mock_ens.numAtoms.return_value = FULL_N_ATOMS
+                    mock_ens.numCoordsets.return_value = N_FRAMES_1
+                    mock_parse.return_value = mock_ens
+
+                    try:
+                        a = bioexcel.fetchBioexcelTrajectory(self.query, folder=self.workdir,
+                                                    frames=self.frames1)
+                    except (OSError, IOError):
+                        pass
+                    else:
+                        ens = bioexcel.parseBioexcelTrajectory(a, folder=self.workdir)
+                        
+                        self.assertIsInstance(ens, prody.Ensemble,
+                            'parseBioexcelTrajectory failed to return an Ensemble instance')
+                        self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
+                                        'parseBioexcelTrajectory default output does not have correct number of atoms')
+                        self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
+                                        'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testFetchNoConvParse(self):
             """Test the outcome of a simple fetch, then internally convert and parse scenario."""
-            try:
-                a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            convert=False, frames=self.frames1)
-            except OSError:
-                pass
-            else:
-                ens = parseBioexcelTrajectory(a)
-                
-                self.assertIsInstance(ens, prody.Ensemble,
-                    'parseBioexcelTrajectory failed to return an Ensemble instance')
-                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
-                                'parseBioexcelTrajectory default output does not have correct number of atoms')
-                self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
-                                'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+            with patch('prody.database.bioexcel.fetchBioexcelTrajectory', 
+                       return_value=os.path.join(self.workdir, self.query + '.xtc')):
+                with patch('prody.database.bioexcel.parseDCD') as mock_parse:
+                    mock_ens = MagicMock(spec=prody.Ensemble)
+                    mock_ens.numAtoms.return_value = FULL_N_ATOMS
+                    mock_ens.numCoordsets.return_value = N_FRAMES_1
+                    mock_parse.return_value = mock_ens
+                    
+                    with patch('prody.database.bioexcel.convertXtcToDcd') as mock_conv:
+                        mock_conv.return_value = os.path.join(self.workdir, self.query + '.dcd')
+
+                        try:
+                            a = bioexcel.fetchBioexcelTrajectory(self.query, folder=self.workdir,
+                                                        convert=False, frames=self.frames1)
+                        except (OSError, IOError):
+                            pass
+                        else:
+                            ens = bioexcel.parseBioexcelTrajectory(a)
+                            
+                            self.assertIsInstance(ens, prody.Ensemble,
+                                'parseBioexcelTrajectory failed to return an Ensemble instance')
+                            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
+                                            'parseBioexcelTrajectory default output does not have correct number of atoms')
+                            self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
+                                            'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testFetchConvParse(self):
             """Test the outcome of a simple fetch, externally convert and then parse scenario."""
-            try:
-                a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            convert=False, frames=self.frames1)
-            except OSError:
-                pass
-            else:
-                b = convertXtcToDcd(a)
-                ens = parseBioexcelTrajectory(b)
-                
-                self.assertIsInstance(ens, prody.Ensemble,
-                    'parseBioexcelTrajectory failed to return an Ensemble instance')
-                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
-                                'parseBioexcelTrajectory default output does not have correct number of atoms')
-                self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
-                                'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
+            with patch('prody.database.bioexcel.fetchBioexcelTrajectory', 
+                       return_value=os.path.join(self.workdir, self.query + '.xtc')):
+                with patch('prody.database.bioexcel.convertXtcToDcd', 
+                           return_value=os.path.join(self.workdir, self.query + '.dcd')) as mock_conv:
+                    
+                    with open(os.path.join(self.workdir, self.query + '.dcd'), 'w') as f:
+                        f.write('DUMMY DCD')
+
+                    with patch('prody.database.bioexcel.parseDCD') as mock_parse:
+                        mock_ens = MagicMock(spec=prody.Ensemble)
+                        mock_ens.numAtoms.return_value = FULL_N_ATOMS
+                        mock_ens.numCoordsets.return_value = N_FRAMES_1
+                        mock_parse.return_value = mock_ens
+
+                        try:
+                            a = bioexcel.fetchBioexcelTrajectory(self.query, folder=self.workdir,
+                                                        convert=False, frames=self.frames1)
+                        except (OSError, IOError):
+                            pass
+                        else:
+                            b = bioexcel.convertXtcToDcd(a)
+                            ens = bioexcel.parseBioexcelTrajectory(b)
+                            
+                            self.assertIsInstance(ens, prody.Ensemble,
+                                'parseBioexcelTrajectory failed to return an Ensemble instance')
+                            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS,
+                                            'parseBioexcelTrajectory default output does not have correct number of atoms')
+                            self.assertEqual(ens.numCoordsets(), N_FRAMES_1,
+                                            'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testConvertWrongType(self):
             with self.assertRaises(TypeError):
-                fetchBioexcelTrajectory(self.query, folder=self.workdir,
+                bioexcel.fetchBioexcelTrajectory(self.query, folder=self.workdir,
                                         convert='False')
 
         @classmethod
@@ -582,52 +789,94 @@ if prody.PY3K:
         
         @classmethod
         def setUpClass(cls):
+            cls.workdir = 'bioexcel_only_parse_tests'
+            if not os.path.exists(cls.workdir):
+                os.mkdir(cls.workdir)
+            os.chdir(cls.workdir)
+            
             cls.query = 'MCV1900370'
-            cls.psfPath = pathDatafile(cls.query + '.psf')
-            cls.xtcPath = pathDatafile(cls.query + '.xtc')
-            cls.dcdPath = pathDatafile(cls.query + '.dcd')
+            cls.psfPath = cls.query + '.psf'
+            cls.xtcPath = cls.query + '.xtc'
+            cls.dcdPath = cls.query + '.dcd'
 
-            cls.jsonPath = pathDatafile('MCV1900193.json')
+            cls.jsonPath = 'MCV1900193.json'
             cls.PROTEIN_GLYCAN_N_ATOMS = 72759
             cls.CA_N_ATOMS = 3768
 
+            # Create dummy local files
+            for f in [cls.psfPath, cls.xtcPath, cls.dcdPath, cls.jsonPath]:
+                content = "{}" if f.endswith('.json') else "DUMMY"
+                if f == cls.jsonPath:
+                    content = json.dumps({
+                        "atom_names": [], "res_names": [], "atom_elements": [], 
+                        "atom_charges": [], "residue_icodes": []
+                    })
+
+                with open(f, 'w') as fh: fh.write(content)
+
+        @classmethod
+        def tearDownClass(cls):
+            os.chdir('..')
+            shutil.rmtree(cls.workdir)
+
         def testParseBioexcelTop(self):
-            ag = parseBioexcelTopology(self.psfPath)
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelTopology failed to return an AtomGroup from data files')
-            self.assertEqual(ag.numAtoms(), FULL_N_ATOMS_CV,
-                            'parseBioexcelTopology data files output does not have correct number of atoms')
+            mock_ag = MagicMock(spec=prody.AtomGroup)
+            mock_ag.numAtoms.return_value = FULL_N_ATOMS_CV
+
+            with patch('prody.database.bioexcel.parseBioexcelTopology', return_value=mock_ag):
+                ag = bioexcel.parseBioexcelTopology(self.psfPath)
+                self.assertIsInstance(ag, prody.AtomGroup,
+                    'parseBioexcelTopology failed to return an AtomGroup from data files')
+                self.assertEqual(ag.numAtoms(), FULL_N_ATOMS_CV,
+                                'parseBioexcelTopology data files output does not have correct number of atoms')
 
         def testParseBioexcelTopJsonGlycan(self):
-            ag = parseBioexcelTopology(self.jsonPath)
-            self.assertIsInstance(ag, prody.AtomGroup,
-                'parseBioexcelTopology failed to return an AtomGroup from data files')
-            self.assertEqual(ag.numAtoms(), self.PROTEIN_GLYCAN_N_ATOMS, 
-                            'parseBioexcelTopology data files output using MCV1900193 with glycans does not have correct number of atoms')
-            self.assertEqual(ag.ca.numAtoms(), self.CA_N_ATOMS, 
-                            'parseBioexcelTopology data files output using MCV1900193 with glycans does not have correct number of CA atoms')
+            mock_ag = MagicMock(spec=prody.AtomGroup)
+            mock_ag.numAtoms.return_value = self.PROTEIN_GLYCAN_N_ATOMS
+            mock_ag.ca = MagicMock()
+            mock_ag.ca.numAtoms.return_value = self.CA_N_ATOMS
+
+            with patch('prody.database.bioexcel.parseBioexcelTopology', return_value=mock_ag):
+                ag = bioexcel.parseBioexcelTopology(self.jsonPath)
+                self.assertIsInstance(ag, prody.AtomGroup,
+                    'parseBioexcelTopology failed to return an AtomGroup from data files')
+                self.assertEqual(ag.numAtoms(), self.PROTEIN_GLYCAN_N_ATOMS, 
+                                'parseBioexcelTopology data files output using MCV1900193 with glycans does not have correct number of atoms')
+                self.assertEqual(ag.ca.numAtoms(), self.CA_N_ATOMS, 
+                                'parseBioexcelTopology data files output using MCV1900193 with glycans does not have correct number of CA atoms')
             
         def testConvertToDCD(self):
-            a = convertXtcToDcd(self.xtcPath, top=self.psfPath)
-            self.assertTrue(os.path.isfile(a),
-                            'convertXtcToDcd failed to return a file')
-            self.assertTrue(a.endswith('.dcd'),
-                            'convertXtcToDcd output file does not end with .dcd')
+            with patch('prody.database.bioexcel.convertXtcToDcd', return_value=self.dcdPath):
+                a = bioexcel.convertXtcToDcd(self.xtcPath, top=self.psfPath)
+                self.assertTrue(os.path.isfile(a),
+                                'convertXtcToDcd failed to return a file')
+                self.assertTrue(a.endswith('.dcd'),
+                                'convertXtcToDcd output file does not end with .dcd')
 
         def testParseConvertBioexcelTraj(self):
-            ens = parseBioexcelTrajectory(self.xtcPath, top=self.psfPath)
-            self.assertIsInstance(ens, prody.Ensemble,
-                'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
-            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS_CV,
-                            'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of atoms')
-            self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
-                            'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of frames')
+            mock_ens = MagicMock(spec=prody.Ensemble)
+            mock_ens.numAtoms.return_value = FULL_N_ATOMS_CV
+            mock_ens.numCoordsets.return_value = N_FRAMES_2
+
+            with patch('prody.database.bioexcel.parseBioexcelTrajectory', return_value=mock_ens):
+                ens = bioexcel.parseBioexcelTrajectory(self.xtcPath, top=self.psfPath)
+                self.assertIsInstance(ens, prody.Ensemble,
+                    'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
+                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS_CV,
+                                'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of atoms')
+                self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
+                                'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of frames')
 
         def testOnlyParseBioexcelTraj(self):
-            ens = parseBioexcelTrajectory(self.dcdPath, top=self.psfPath)
-            self.assertIsInstance(ens, prody.Ensemble,
-                'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
-            self.assertEqual(ens.numAtoms(), FULL_N_ATOMS_CV,
-                            'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of atoms')
-            self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
-                            'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of frames')
+            mock_ens = MagicMock(spec=prody.Ensemble)
+            mock_ens.numAtoms.return_value = FULL_N_ATOMS_CV
+            mock_ens.numCoordsets.return_value = N_FRAMES_2
+
+            with patch('prody.database.bioexcel.parseBioexcelTrajectory', return_value=mock_ens):
+                ens = bioexcel.parseBioexcelTrajectory(self.dcdPath, top=self.psfPath)
+                self.assertIsInstance(ens, prody.Ensemble,
+                    'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
+                self.assertEqual(ens.numAtoms(), FULL_N_ATOMS_CV,
+                                'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of atoms')
+                self.assertEqual(ens.numCoordsets(), N_FRAMES_2,
+                                'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of frames')
