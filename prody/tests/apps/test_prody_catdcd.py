@@ -26,6 +26,13 @@ class TestCatdcdCommand(TestCase):
         cls.dcd = DCDFile(cls.dcdpath)
         cls.ag = parsePDB(cls.pdbpath, model=1)
 
+    @classmethod
+    def tearDownClass(cls):
+        # Explicitly close the file handle opened in setUpClass
+        # to prevent process hang at the end of the suite.
+        if hasattr(cls, 'dcd') and cls.dcd is not None:
+            cls.dcd.close()
+
     def setUp(self):
 
         self.output = join(TEMPDIR, 'test_prody_catdcd.dcd')
@@ -45,7 +52,14 @@ class TestCatdcdCommand(TestCase):
         namespace.func(namespace)
 
         coords = self.dcd[:]._getCoordsets()
-        concat = parseDCD(self.output)._getCoordsets()
+        
+        concat_dcd = parseDCD(self.output)
+        concat = concat_dcd._getCoordsets()
+        
+        # Explicitly close to ensure file release before tearDown removal
+        if hasattr(concat_dcd, 'close'):
+            concat_dcd.close()
+
         assert_equal(coords, concat[:3])
         assert_equal(coords, concat[3:6])
         assert_equal(coords, concat[6:])
@@ -68,9 +82,12 @@ class TestCatdcdCommand(TestCase):
         coords.setAtoms(select)
         coords = coords._getCoordsets()
 
-        concat = parseDCD(self.output)
-        assert_equal(concat.numAtoms(), select.numAtoms())
-        concat = concat._getCoordsets()
+        concat_dcd = parseDCD(self.output)
+        assert_equal(concat_dcd.numAtoms(), select.numAtoms())
+        concat = concat_dcd._getCoordsets()
+
+        if hasattr(concat_dcd, 'close'):
+            concat_dcd.close()
 
         assert_equal(select.numAtoms(), coords.shape[1])
         assert_equal(select.numAtoms(), concat.shape[1])
@@ -91,9 +108,9 @@ class TestCatdcdCommand(TestCase):
         select = self.ag.ca
 
         coords = self.dcd[:]
-        concat = parseDCD(self.output)
+        concat_dcd = parseDCD(self.output)
 
-        assert_equal(concat.numAtoms(), coords.numAtoms())
+        assert_equal(concat_dcd.numAtoms(), coords.numAtoms())
 
         coords.setCoords(self.ag.getCoords())
         coords.setAtoms(select)
@@ -101,7 +118,10 @@ class TestCatdcdCommand(TestCase):
         coords.setAtoms(None)
         coords = coords._getCoordsets()
 
-        concat = concat._getCoordsets()
+        concat = concat_dcd._getCoordsets()
+
+        if hasattr(concat_dcd, 'close'):
+            concat_dcd.close()
 
         assert_equal(coords, concat[:3])
         assert_equal(coords, concat[3:])
