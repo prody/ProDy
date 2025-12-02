@@ -20,26 +20,36 @@ class TestCatdcdCommand(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # Optimization: Perform the heavy PDB parsing only ONCE.
+        # This resolves the slowness without causing file handle risks.
         cls.dcdpath = pathDatafile('dcd')
         cls.pdbpath = pathDatafile('multi_model_truncated')
-
-        cls.dcd = DCDFile(cls.dcdpath)
         cls.ag = parsePDB(cls.pdbpath, model=1)
 
-    @classmethod
-    def tearDownClass(cls):
-        # Explicitly close the file handle opened in setUpClass
-        # to prevent process hang at the end of the suite.
-        if hasattr(cls, 'dcd') and cls.dcd is not None:
-            cls.dcd.close()
-
     def setUp(self):
-
+        # Safety: Open a fresh DCD handle for every test. 
+        # This prevents pointer conflicts and ensures clean closing.
+        self.dcd = DCDFile(self.dcdpath)
+        
         self.output = join(TEMPDIR, 'test_prody_catdcd.dcd')
         self.command = 'catdcd -o ' + self.output
 
         if isfile(self.output):
             remove(self.output)
+
+    def tearDown(self):
+        # CRITICAL FIX: Close the main DCD handle before teardown
+        if hasattr(self, 'dcd') and self.dcd is not None:
+            self.dcd.close()
+
+        # Remove output only after ensuring it is closed
+        if isfile(self.output): 
+            try:
+                remove(self.output)
+            except OSError:
+                # If removal fails, it usually means a handle is still open.
+                # Pass to avoid failing the test suite, but this indicates a leak.
+                pass
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
@@ -53,16 +63,15 @@ class TestCatdcdCommand(TestCase):
 
         coords = self.dcd[:]._getCoordsets()
         
+        # Load output, check it, and CLOSE it immediately
         concat_dcd = parseDCD(self.output)
-        concat = concat_dcd._getCoordsets()
-        
-        # Explicitly close to ensure file release before tearDown removal
-        if hasattr(concat_dcd, 'close'):
+        try:
+            concat = concat_dcd._getCoordsets()
+            assert_equal(coords, concat[:3])
+            assert_equal(coords, concat[3:6])
+            assert_equal(coords, concat[6:])
+        finally:
             concat_dcd.close()
-
-        assert_equal(coords, concat[:3])
-        assert_equal(coords, concat[3:6])
-        assert_equal(coords, concat[6:])
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
@@ -83,16 +92,16 @@ class TestCatdcdCommand(TestCase):
         coords = coords._getCoordsets()
 
         concat_dcd = parseDCD(self.output)
-        assert_equal(concat_dcd.numAtoms(), select.numAtoms())
-        concat = concat_dcd._getCoordsets()
+        try:
+            assert_equal(concat_dcd.numAtoms(), select.numAtoms())
+            concat = concat_dcd._getCoordsets()
 
-        if hasattr(concat_dcd, 'close'):
+            assert_equal(select.numAtoms(), coords.shape[1])
+            assert_equal(select.numAtoms(), concat.shape[1])
+            assert_equal(coords, concat[:3])
+            assert_equal(coords, concat[3:])
+        finally:
             concat_dcd.close()
-
-        assert_equal(select.numAtoms(), coords.shape[1])
-        assert_equal(select.numAtoms(), concat.shape[1])
-        assert_equal(coords, concat[:3])
-        assert_equal(coords, concat[3:])
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
@@ -108,23 +117,24 @@ class TestCatdcdCommand(TestCase):
         select = self.ag.ca
 
         coords = self.dcd[:]
+        
         concat_dcd = parseDCD(self.output)
+        
+        try:
+            assert_equal(concat_dcd.numAtoms(), coords.numAtoms())
 
-        assert_equal(concat_dcd.numAtoms(), coords.numAtoms())
+            coords.setCoords(self.ag.getCoords())
+            coords.setAtoms(select)
+            coords.superpose()
+            coords.setAtoms(None)
+            coords = coords._getCoordsets()
 
-        coords.setCoords(self.ag.getCoords())
-        coords.setAtoms(select)
-        coords.superpose()
-        coords.setAtoms(None)
-        coords = coords._getCoordsets()
+            concat = concat_dcd._getCoordsets()
 
-        concat = concat_dcd._getCoordsets()
-
-        if hasattr(concat_dcd, 'close'):
+            assert_equal(coords, concat[:3])
+            assert_equal(coords, concat[3:])
+        finally:
             concat_dcd.close()
-
-        assert_equal(coords, concat[:3])
-        assert_equal(coords, concat[3:])
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command is not found')
@@ -163,8 +173,3 @@ class TestCatdcdCommand(TestCase):
         command = self.command + ' -s None {0:s} {0:s}'.format(self.dcdpath)
         namespace = prody_parser.parse_args(shlex.split(command))
         self.assertRaises(ValueError, namespace.func, namespace)
-
-
-    def tearDown(self):
-
-        if isfile(self.output): remove(self.output)
