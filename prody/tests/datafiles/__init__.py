@@ -256,6 +256,11 @@ DATA_FILES = {
         'num_chains': 14,
         'bm0_chains': 840,
     },
+    'boltz_wrapped_line_cif':{
+        'file': 'NRAS_BRAF_GDP_model_0.cif',
+        'atoms': 7333,
+        'num_chains': 3
+    },
     'long_chid_cif': {
         'pdb': '6zu5',
         'file': 'mmcif_6zu5.cif',
