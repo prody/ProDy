@@ -16,37 +16,74 @@ import sys
 
 class TestInteractions(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         """Generating new data to compare it with the existing one"""
         
         if prody.PY3K:
-            self.ATOMS = parseDatafile('2k39_insty') # no disulfides
-            self.ALL_INTERACTIONS = parseDatafile('2k39_all')
-            self.ALL_INTERACTIONS2 = parseDatafile('2k39_all2')
-            self.HBS_INTERACTIONS = parseDatafile('2k39_hbs')
-            self.SBS_INTERACTIONS = parseDatafile('2k39_sbs')
-            self.RIB_INTERACTIONS = parseDatafile('2k39_rib')
-            self.PISTACK_INTERACTIONS = parseDatafile('2k39_PiStack')
-            self.PICAT_INTERACTIONS = parseDatafile('2k39_PiCat')
-            self.HPH_INTERACTIONS = parseDatafile('2k39_hph')
-            self.HPH_INTERACTIONS2 = parseDatafile('2k39_hph2')
-            self.DISU_INTERACTIONS = parseDatafile('2k39_disu')
+            # 1. Load Data Files
+            cls.ATOMS = parseDatafile('2k39_insty') # no disulfides
+            cls.ALL_INTERACTIONS = parseDatafile('2k39_all')
+            cls.ALL_INTERACTIONS2 = parseDatafile('2k39_all2')
+            cls.HBS_INTERACTIONS = parseDatafile('2k39_hbs')
+            cls.SBS_INTERACTIONS = parseDatafile('2k39_sbs')
+            cls.RIB_INTERACTIONS = parseDatafile('2k39_rib')
+            cls.PISTACK_INTERACTIONS = parseDatafile('2k39_PiStack')
+            cls.PICAT_INTERACTIONS = parseDatafile('2k39_PiCat')
+            cls.HPH_INTERACTIONS = parseDatafile('2k39_hph')
+            cls.HPH_INTERACTIONS2 = parseDatafile('2k39_hph2')
+            cls.DISU_INTERACTIONS = parseDatafile('2k39_disu')
 
-            self.ATOMS_FIRST = parseDatafile('2k39_insty_first')
-            self.DCD = Trajectory(pathDatafile('2k39_insty_dcd'))
-            self.DCD.link(self.ATOMS_FIRST)
-            self.DCD.setCoords(self.ATOMS_FIRST)
+            cls.ATOMS_FIRST = parseDatafile('2k39_insty_first')
+            cls.DCD = Trajectory(pathDatafile('2k39_insty_dcd'))
+            cls.DCD.link(cls.ATOMS_FIRST)
+            cls.DCD.setCoords(cls.ATOMS_FIRST)
 
-            self.ATOMS_3O21 = parseDatafile('3o21') # has disulfides & not traj
-            self.DISU_INTERACTIONS_3O21 = parseDatafile('3o21_disu')
+            cls.ATOMS_3O21 = parseDatafile('3o21') # has disulfides & not traj
+            cls.DISU_INTERACTIONS_3O21 = parseDatafile('3o21_disu')
+
+            # 2. Pre-calculate expensive trajectories ONCE here
+            # These were originally being re-calculated in every single test method.
+            
+            # For: testAllInteractionsCalc, testAllInteractionsSave
+            cls.calc_all_13 = np.array(InteractionsTrajectory().calcProteinInteractionsTrajectory(cls.ATOMS, stop_frame=13))
+
+            # For: testAllInteractionsCalcWithTraj
+            cls.calc_all_traj_13 = np.array(InteractionsTrajectory().calcProteinInteractionsTrajectory(cls.ATOMS_FIRST, trajectory=cls.DCD, stop_frame=13))
+
+            # For: testHydrogenBonds
+            cls.calc_hbs_13 = calcHydrogenBondsTrajectory(cls.ATOMS, stop_frame=13)
+
+            # For: testSaltBridgesCalc, testSaltBridgesSave
+            cls.calc_sbs_13 = calcSaltBridgesTrajectory(cls.ATOMS, stop_frame=13)
+
+            # For: testRepulsiveIonicBonding
+            cls.calc_rib_13 = calcRepulsiveIonicBondingTrajectory(cls.ATOMS, stop_frame=13)
+
+            # For: testPiStacking
+            cls.calc_pistack_13 = calcPiStackingTrajectory(cls.ATOMS, stop_frame=13)
+
+            # For: testPiCation
+            cls.calc_picat_13 = calcPiCationTrajectory(cls.ATOMS, stop_frame=13)
+            
+            # For: testPiCationTrajArg
+            cls.calc_picat_traj_arg_13 = calcPiCationTrajectory(cls.ATOMS, trajectory=cls.ATOMS, stop_frame=13)
+
+            # For: testHydrophobicInteractions
+            cls.calc_hph_13 = calcHydrophobicTrajectory(cls.ATOMS, stop_frame=13)
+
+            # For: testDisulfideBondsCalcNone, testDisulfideBondsSaveNone
+            cls.calc_disu_13 = calcDisulfideBondsTrajectory(cls.ATOMS, stop_frame=13)
+            
+            # For: testDisulfideBondsCalcSomeNotTraj, testDisulfideBondsSaveSomeNotTraj
+            cls.calc_disu_3o21 = calcDisulfideBonds(cls.ATOMS_3O21)
 
     def testAllInteractionsCalc(self):
         """Test for calculating all types of interactions."""
 
         if prody.PY3K:
-            self.INTERACTIONS_ALL = InteractionsTrajectory()
-            self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS,
-                                                                                             stop_frame=13))
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            self.data_all = self.calc_all_13
 
             try:
                 assert_equal(self.data_all, self.ALL_INTERACTIONS2,
@@ -60,6 +97,8 @@ class TestInteractions(unittest.TestCase):
 
         if prody.PY3K:
             self.INTERACTIONS_ALL = InteractionsTrajectory()
+            # Note: This is kept as a live calculation because it tests specific flags (max_proc=1) 
+            # and uses a shorter stop_frame (3) so it is not a major bottleneck.
             self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS,
                                                                                              stop_frame=3,
                                                                                              max_proc=1))
@@ -74,9 +113,8 @@ class TestInteractions(unittest.TestCase):
     def testAllInteractionsSave(self):
         """Test for saving and loading all types of interactions."""
         if prody.PY3K:
-            self.INTERACTIONS_ALL = InteractionsTrajectory()
-            self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS,
-                                                                                             stop_frame=13))
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            self.data_all = self.calc_all_13
 
             np.save('test_2k39_all.npy', np.array(self.data_all, dtype=object), allow_pickle=True)
 
@@ -93,10 +131,8 @@ class TestInteractions(unittest.TestCase):
         """Test for calculating all types of interactions."""
 
         if prody.PY3K:
-            self.INTERACTIONS_ALL = InteractionsTrajectory()
-            self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS_FIRST,
-                                                                                             trajectory=self.DCD,
-                                                                                             stop_frame=13))
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            self.data_all = self.calc_all_traj_13
 
             try:
                 assert_equal(self.data_all, self.ALL_INTERACTIONS2,
@@ -111,7 +147,8 @@ class TestInteractions(unittest.TestCase):
         order can be also different in the interactions"""
 
         if prody.PY3K:                
-            data_test = calcHydrogenBondsTrajectory(self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_hbs_13
             assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HBS_INTERACTIONS]),
                          'failed to get correct hydrogen bonds')        
                      
@@ -119,7 +156,8 @@ class TestInteractions(unittest.TestCase):
         """Test for salt bridges without saving and loading."""
 
         if prody.PY3K:                
-            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            self.data_sbs = self.calc_sbs_13
             assert_equal(sorted([i[-1][-1] for i in self.data_sbs]), sorted([i[-1][-1] for i in self.SBS_INTERACTIONS]),
                          'failed to get correct salt bridges')
 
@@ -128,7 +166,8 @@ class TestInteractions(unittest.TestCase):
         """Test for salt bridges with saving and loading (one type with results)."""
 
         if prody.PY3K:                
-            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            self.data_sbs = self.calc_sbs_13
             
             np.save('test_2k39_sbs.npy', np.array(self.data_sbs, dtype=object), allow_pickle=True)
 
@@ -141,7 +180,8 @@ class TestInteractions(unittest.TestCase):
         """Test for repulsive ionic bonding."""
 
         if prody.PY3K:                
-            data_test = calcRepulsiveIonicBondingTrajectory(self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_rib_13
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.RIB_INTERACTIONS if len(i) > 0]),
                          'failed to get correct repulsive ionic bonding')                             
 
@@ -149,7 +189,8 @@ class TestInteractions(unittest.TestCase):
         """Test for pi-stacking interactions."""
 
         if prody.PY3K:                
-            data_test = calcPiStackingTrajectory(self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_pistack_13
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PISTACK_INTERACTIONS if len(i) > 0]),
                          'failed to get correct pi-stacking interactions')                             
                      
@@ -157,7 +198,8 @@ class TestInteractions(unittest.TestCase):
         """Test for pi-stacking interactions."""
 
         if prody.PY3K:                
-            data_test = calcPiCationTrajectory(self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_picat_13
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if len(i) > 0]),
                          'failed to get correct pi-cation interactions')
 
@@ -165,7 +207,8 @@ class TestInteractions(unittest.TestCase):
         """Test for hydrophobic interactions."""
 
         if prody.PY3K:        
-            data_test = calcHydrophobicTrajectory(self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_hph_13
             try:
                 assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HPH_INTERACTIONS2]),
                          'failed to get correct hydrophobic interactions without hpb.so')
@@ -177,7 +220,8 @@ class TestInteractions(unittest.TestCase):
     def testDisulfideBondsCalcNone(self):
         """Test for disulfide bonds interactions without saving and loading."""
         if prody.PY3K:
-            data_test = calcDisulfideBondsTrajectory(self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_disu_13
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), 
                          sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
                          'failed to get correct disulfide bonds from 2k39 (None) from calculation')
@@ -185,7 +229,8 @@ class TestInteractions(unittest.TestCase):
     def testDisulfideBondsSaveNone(self):
         """Test for disulfide bonds interactions with saving and loading (one type of interactions with 0)."""
         if prody.PY3K:
-            data_test = calcDisulfideBondsTrajectory(self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_disu_13
             np.save('test_2k39_disu.npy', np.array(data_test, dtype=object), 
                     allow_pickle=True)
 
@@ -197,7 +242,8 @@ class TestInteractions(unittest.TestCase):
     def testDisulfideBondsCalcSomeNotTraj(self):
         """Test for disulfide bonds interactions without saving and loading."""
         if prody.PY3K:
-            data_test = calcDisulfideBonds(self.ATOMS_3O21)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_disu_3o21
             assert_equal(sorted([i[-1] for i in data_test if len(i) > 0]), 
                          sorted([i[-1] for i in self.DISU_INTERACTIONS_3O21 if len(i) > 0]),
                          'failed to get correct disulfide bonds from 3o21 from calculation')
@@ -205,7 +251,8 @@ class TestInteractions(unittest.TestCase):
     def testDisulfideBondsSaveSomeNotTraj(self):
         """Test for disulfide bonds interactions with saving and loading (one type of interactions with 0)."""
         if prody.PY3K:
-            data_test = calcDisulfideBonds(self.ATOMS_3O21)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_disu_3o21
             np.save('test_3o21_disu.npy', np.array(data_test, dtype=object), 
                     allow_pickle=True)
 
@@ -218,7 +265,8 @@ class TestInteractions(unittest.TestCase):
         """Test for pi-stacking interactions."""
 
         if prody.PY3K:
-            data_test = calcPiCationTrajectory(self.ATOMS, trajectory=self.ATOMS, stop_frame=13)
+            # OPTIMIZATION: Use pre-calculated data from setUpClass
+            data_test = self.calc_picat_traj_arg_13
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if len(i) > 0]),
                          'failed to get correct pi-cation interactions')
 
@@ -243,5 +291,6 @@ class TestInteractions(unittest.TestCase):
     def tearDownClass(cls):
         if prody.PY3K:
             import os
-            for filename in ['test_2k39_all.npy', 'test_2k39_sbs.npy', 'test_2k39_disu.npy']:
-                os.remove(filename)
+            for filename in ['test_2k39_all.npy', 'test_2k39_sbs.npy', 'test_2k39_disu.npy', 'test_3o21_disu.npy']:
+                if os.path.exists(filename):
+                    os.remove(filename)
