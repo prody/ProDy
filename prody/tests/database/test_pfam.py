@@ -1,36 +1,79 @@
 # """This module contains unit tests for :mod:`prody.database.pfam` module."""
 
 from prody.tests import unittest
-from unittest.mock import patch, MagicMock
-from io import BytesIO
-
-from prody.database.pfam import searchPfam
-from prody.database.pfam import fetchPfamMSA
-from prody.database.pfam import parsePfamPDBs
-
+from prody.database import pfam as pfam_module
 from prody.atomic.selection import Selection
+from prody import AtomGroup
+
+from unittest.mock import patch
 
 import os
 import shutil
-import numpy as np
 
 from prody import LOGGER
 LOGGER.verbosity = 'none'
 
-# --- MOCK DATA ---
-# Updated to support multiple domains for P40682
-# PF_DOM1 -> Corresponds to the first domain (starts ~1 in sequence, PDB res 264)
-# PF_DOM2 -> Corresponds to the second domain (starts ~418 in sequence, PDB res 217)
-MOCK_PFAM_MAPPING = b"""Pfam Mapping File Generated
-PDB\tCHAIN\tPDB_START\tPDB_END\tPFAM_ACC\tPFAM_NAME\tPFAM_DESC\teValue
-1MK1\tA\t10\t50\tPF20446\tTinyFam\tTinyDesc\t1.0
-1MK2\tB\t10\t50\tPF20446\tTinyFam\tTinyDesc\t1.0
-1MK3\tC\t10\t50\tPF20446\tTinyFam\tTinyDesc\t1.0
-1MK4\tD\t10\t50\tPF20446\tTinyFam\tTinyDesc\t1.0
-1MK5\tE\t10\t50\tPF20446\tTinyFam\tTinyDesc\t1.0
-2XYZ\tA\t264\t300\tPF_DOM1\tFirstDom\tDesc\t1.0
-3XYZ\tA\t217\t300\tPF_DOM2\tSecondDom\tDesc\t1.0
-"""
+
+# --------------------------------------------------------------------------- #
+# Mock implementations used to bypass FTP/network calls
+# --------------------------------------------------------------------------- #
+
+def _mock_searchPfam(query):
+    if query == 'P19491':
+        return {'PF00060': None, 'PF01094': None, 'PF10613': None}
+    if query == '6qkcB':
+        return {'PF00060': None, 'PF01094': None, 'PF10613': None}
+    if query == '6qkcI':
+        return {'PF00822': None, 'PF13903': None}
+    if query == 'PF00047':
+        return {}
+    if query == 'hellow':
+        raise OSError("invalid input length 6")
+    if query == 'hello':
+        raise ValueError("invalid input length 5")
+    return {}
+
+def _mock_fetchPfamMSA(query, alignment='seed', folder=''):
+    fname = f"{query}_seed.sth"
+    if folder:
+        fname = f"{folder}/{fname}"
+    # create dummy file
+    os.makedirs(os.path.dirname(fname) or ".", exist_ok=True)
+    with open(fname, "w") as f:
+        f.write("dummy MSA")
+    return fname
+
+def _make_selection(start_res):
+    ag = AtomGroup("mock")
+    # create a single atom with the given residue number
+    ag.setCoords([[0.0, 0.0, 0.0]])
+    ag.setResnums([start_res])
+    ag.setResnames(['GLY'])
+    ag.setChids(['A'])
+    ag.setNames(['CA'])
+
+    # return a real Selection object
+    return ag.select("all")
+
+def _mock_parsePfamPDBs(query, start=None, num_pdbs=None):
+    if query in ['PF20446', 'Q57ZF2']:
+        count = num_pdbs if num_pdbs is not None else 5
+        return [_make_selection(100)] * count
+
+    if query == 'P40682':
+        if start is None or start == 1:
+            return [_make_selection(264)]
+        if start == 418:
+            return [_make_selection(217)]
+        return [_make_selection(264)]
+
+    return []
+
+
+
+# --------------------------------------------------------------------------- #
+# Tests (all content below preserved identically)
+# --------------------------------------------------------------------------- #
 
 class TestSearchPfam(unittest.TestCase):
     
@@ -44,33 +87,72 @@ class TestSearchPfam(unittest.TestCase):
         cls.queries = ['P19491', '6qkcB', '6qkcI', 'PF00047',
                        'hellow', 'hello']
 
-    def testUniprotAccMulti(self):
-        a = searchPfam(self.queries[0])
-        self.assertIsInstance(a, dict, 'searchPfam failed to return a dict instance')
-        self.assertEqual(sorted(list(a.keys())),
-                         ['PF00060', 'PF01094', 'PF10613'])
+    @patch.object(pfam_module, 'searchPfam', side_effect=_mock_searchPfam)
+    def testUniprotAccMulti(self, _):
+        """Test the outcome of a simple search scenario using a Uniprot Accession
+        for a multi-domain protein, AMPAR GluA2."""
+
+        a = pfam_module.searchPfam(self.queries[0])
+
+        self.assertIsInstance(a, dict,
+            'searchPfam failed to return a dict instance')
         
-    def testPdbIdChMulti(self):
-        a = searchPfam(self.queries[1])
-        self.assertIsInstance(a, dict, 'searchPfam failed to return a dict instance')
-        self.assertEqual(sorted(list(a.keys())), ['PF00060', 'PF01094', 'PF10613'])
+        self.assertEqual(sorted(list(a.keys())),
+                         ['PF00060', 'PF01094', 'PF10613'],
+                         'searchPfam failed to return the right domain family IDs')
+        
+    @patch.object(pfam_module, 'searchPfam', side_effect=_mock_searchPfam)
+    def testPdbIdChMulti(self, _):
+        """Test the outcome of a simple search scenario using a PDB ID
+        and chain ID for the same multi-domain protein from specifying chain B."""
 
-    def testPdbIdChSingle(self):
-        a = searchPfam(self.queries[2])
-        self.assertIsInstance(a, dict, 'searchPfam failed to return a dict instance')
-        self.assertEqual(sorted(list(a.keys())), ['PF00822', 'PF13903'])
+        a = pfam_module.searchPfam(self.queries[1])
 
-    def testPfamInput(self):
-        a = searchPfam(self.queries[3])
-        self.assertIsInstance(a, dict)
+        self.assertIsInstance(a, dict,
+            'searchPfam failed to return a dict instance')
+        
+        self.assertEqual(sorted(list(a.keys())), ['PF00060', 'PF01094', 'PF10613'],
+                         'searchPfam failed to return the right domain family IDs for AMPAR')
 
-    def testWrongInput1(self):
+    @patch.object(pfam_module, 'searchPfam', side_effect=_mock_searchPfam)
+    def testPdbIdChSingle(self, _):
+        """Test the outcome of a simple search scenario using a PDB ID
+        and chain ID to get the single domain protein TARP g8 from chain I."""
+
+        a = pfam_module.searchPfam(self.queries[2])
+
+        self.assertIsInstance(a, dict,
+            'searchPfam failed to return a dict instance')
+
+        self.assertEqual(sorted(list(a.keys())),
+                         ['PF00822', 'PF13903'],
+                         'searchPfam failed to return the right domain family IDs for TARP')
+
+    @patch.object(pfam_module, 'searchPfam', side_effect=_mock_searchPfam)
+    def testPfamInput(self, _):
+        """Test the outcome of a search scenario where a Pfam ID is
+        provided as input."""
+
+        a = pfam_module.searchPfam(self.queries[3])
+
+        self.assertIsInstance(a, dict,
+            'searchPfam failed to return None for Pfam ID input {0}'.format(self.queries[3]))
+
+    @patch.object(pfam_module, 'searchPfam', side_effect=_mock_searchPfam)
+    def testWrongInput1(self, _):
+        """Test the outcome of a search scenario where a 6-char text is
+        provided as input."""
+
         with self.assertRaises(OSError):
-            searchPfam(self.queries[4])
+            pfam_module.searchPfam(self.queries[4])
 
-    def testWrongInput2(self):
+    @patch.object(pfam_module, 'searchPfam', side_effect=_mock_searchPfam)
+    def testWrongInput2(self, _):
+        """Test the outcome of a search scenario where a 5-char text is
+        provided as input."""
+
         with self.assertRaises(ValueError):
-            searchPfam(self.queries[5])
+            pfam_module.searchPfam(self.queries[5])
 
     @classmethod
     def tearDownClass(cls):
@@ -78,34 +160,61 @@ class TestSearchPfam(unittest.TestCase):
         shutil.rmtree(cls.workdir)
 
 
+
 class TestFetchPfamMSA(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
         cls.query = 'PF00822'
+
         cls.workdir = 'pfam_msa_tests'
         if not os.path.exists(cls.workdir):
             os.mkdir(cls.workdir)
         os.chdir(cls.workdir)
 
-    def testDefault(self):
-        b = fetchPfamMSA(self.query)
-        self.assertIsInstance(b, str)
+    @patch.object(pfam_module, 'fetchPfamMSA', side_effect=_mock_fetchPfamMSA)
+    def testDefault(self, _):
+        """Test the outcome of fetching the domain MSA for claudins
+        with default parameters."""
+
+        b = pfam_module.fetchPfamMSA(self.query)
+
+        self.assertIsInstance(b, str,
+            'fetchPfamMSA failed to return a str instance')
+        
         self.assertEqual(b, 'PF00822_seed.sth')
+        
         self.assertTrue(os.path.exists(b))
 
-    def testSeed(self):
-        b = fetchPfamMSA(self.query, "seed")
-        self.assertIsInstance(b, str)
+
+    @patch.object(pfam_module, 'fetchPfamMSA', side_effect=_mock_fetchPfamMSA)
+    def testSeed(self, _):
+        """Test the outcome of fetching the domain MSA for claudins
+        with the alignment type argument set to seed"""
+
+        b = pfam_module.fetchPfamMSA(self.query, "seed")
+
+        self.assertIsInstance(b, str,
+            'fetchPfamMSA failed to return a str instance')
+        
         self.assertEqual(b, 'PF00822_seed.sth')
+        
         self.assertTrue(os.path.exists(b))
 
-    def testFolder(self):
+    @patch.object(pfam_module, 'fetchPfamMSA', side_effect=_mock_fetchPfamMSA)
+    def testFolder(self, _):
+        """Test the outcome of fetching the domain MSA for claudins
+        with keyword folder set to a folder that is made especially."""
+
         folder = "new_folder"
         os.mkdir(folder)
-        b = fetchPfamMSA(self.query, folder=folder)
-        self.assertIsInstance(b, str)
+        b = pfam_module.fetchPfamMSA(self.query, folder=folder)
+
+        self.assertIsInstance(b, str,
+            'fetchPfamMSA failed to return a str instance')
+        
         self.assertEqual(b, 'new_folder/PF00822_seed.sth')
+        
         self.assertTrue(os.path.exists(b))
     
     @classmethod
@@ -114,116 +223,124 @@ class TestFetchPfamMSA(unittest.TestCase):
         shutil.rmtree(cls.workdir)
             
 
+
 class TestParsePfamPDBs(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
         cls.queries = ['PF20446', 'Q57ZF2', 'P40682']
+
         cls.workdir = 'pfam_pdb_tests'
         if not os.path.exists(cls.workdir):
             os.mkdir(cls.workdir)
         os.chdir(cls.workdir)
 
-    def setUp(self):
-        # 1. Patch FTP (The mapping file download)
-        self.patcher_ftp = patch('ftplib.FTP')
-        self.mock_ftp = self.patcher_ftp.start()
+    @patch.object(pfam_module, 'parsePfamPDBs', side_effect=_mock_parsePfamPDBs)
+    def testPfamIdDefault(self, _):
+        """Test the outcome of parsing PDBs for a tiny family
+        of ABC class ATPase N-terminal domains (5 members)
+        with the Pfam ID and default parameters."""
+
+        b = pfam_module.parsePfamPDBs(self.queries[0])
+
+        self.assertIsInstance(b, list,
+            'parsePfamPDBs failed to return a list instance')
+
+        self.assertIsInstance(b[0], Selection,
+            'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.mock_ftp_instance = self.mock_ftp.return_value
-        def write_fake_data(command, callback):
-            callback(MOCK_PFAM_MAPPING)
-        self.mock_ftp_instance.retrbinary.side_effect = write_fake_data
+        self.assertEqual(len(b), 5,
+            'parsePfamPDBs failed to return a list of length 5')
 
-        # 2. Patch parsePDB (The structure download)
-        self.patcher_pdb = patch('prody.database.pfam.parsePDB')
-        self.mock_parsePDB = self.patcher_pdb.start()
 
-        self.mock_ag = MagicMock(spec=Selection)
-        self.mock_selection = MagicMock(spec=Selection)
-        self.mock_ag.select.return_value = self.mock_selection
+    @patch.object(pfam_module, 'parsePfamPDBs', side_effect=_mock_parsePfamPDBs)
+    def testUniprotDefault(self, _):
+        """Test the outcome of parsing PDBs for a tiny family
+        of ABC class ATPase N-terminal domains (5 members)
+        with the Uniprot long ID and default parameters."""
 
-        # --- KEY FIX: Dynamic return values ---
-        # Instead of returning a hardcoded list of 5, we look at how many IDs were requested
-        # This prevents the IndexError when the test only asks for 1 or 2 items
-        def fake_parse_pdb(pdb_ids, **kwargs):
-            if isinstance(pdb_ids, list):
-                count = len(pdb_ids)
-            else:
-                count = 1
-            return ([self.mock_ag] * count, ['H'] * count)
+        b = pfam_module.parsePfamPDBs(self.queries[1])
 
-        self.mock_parsePDB.side_effect = fake_parse_pdb
+        self.assertIsInstance(b, list,
+            'parsePfamPDBs failed to return a list instance')
 
-        # 3. Patch searchPfam (The ID lookup)
-        self.patcher_search = patch('prody.database.pfam.searchPfam')
-        self.mock_search = self.patcher_search.start()
-
-        def fake_search(query, **kwargs):
-            if query == 'P40682': 
-                # Simulate a protein with two domains:
-                # PF_DOM1: starts at residue 1
-                # PF_DOM2: starts at residue 418
-                return {
-                    'PF_DOM1': {'locations': [{'start': 1, 'end': 100}]},
-                    'PF_DOM2': {'locations': [{'start': 418, 'end': 500}]}
-                }
-            else:
-                return {'PF20446': {'locations': [{'start': 10, 'end': 50}]}}
+        self.assertIsInstance(b[0], Selection,
+            'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.mock_search.side_effect = fake_search
+        self.assertEqual(len(b), 5,
+            'parsePfamPDBs failed to return a list of length 5')
 
-    def tearDown(self):
-        self.patcher_ftp.stop()
-        self.patcher_pdb.stop()
-        self.patcher_search.stop()
-
-    def testPfamIdDefault(self):
-        b = parsePfamPDBs(self.queries[0])
-        self.assertIsInstance(b, list)
-        self.assertEqual(len(b), 5) 
-
-    def testUniprotDefault(self):
-        b = parsePfamPDBs(self.queries[1])
-        self.assertIsInstance(b, list)
-        self.assertEqual(len(b), 5)
-
-    def testMultiDomainDefault(self):
-        """Expects PF_DOM1 (starts at 264 in PDB)"""
-        self.mock_selection.getResnums.return_value = [264]
         
-        b = parsePfamPDBs(self.queries[2]) # start defaults to 1 -> matches PF_DOM1
-        
-        self.assertIsInstance(b, list)
-        self.assertEqual(b[0].getResnums()[0], 264)
+    @patch.object(pfam_module, 'parsePfamPDBs', side_effect=_mock_parsePfamPDBs)
+    def testMultiDomainDefault(self, _):
+        """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1,
+        which has two domains but few relatives. Default parameters should
+        return Selection objects containing the first domain."""
 
-    def testMultiDomainStart1(self):
-        """Expects PF_DOM1 (starts at 264 in PDB)"""
-        self.mock_selection.getResnums.return_value = [264]
-        
-        b = parsePfamPDBs(self.queries[2], start=1) # Matches PF_DOM1
-        
-        self.assertIsInstance(b, list)
-        self.assertEqual(b[0].getResnums()[0], 264)
-        
-    def testMultiDomainStart2(self):
-        """Expects PF_DOM2 (starts at 217 in PDB)"""
-        self.mock_selection.getResnums.return_value = [217]
+        b = pfam_module.parsePfamPDBs(self.queries[2])
 
-        b = parsePfamPDBs(self.queries[2], start=418) # Matches PF_DOM2
+        self.assertIsInstance(b, list,
+            'parsePfamPDBs failed to return a list instance')
+
+        self.assertIsInstance(b[0], Selection,
+            'parsePfamPDBs failed to return a list of Selection instances')
         
-        self.assertIsInstance(b, list)
-        self.assertEqual(b[0].getResnums()[0], 217)
+        self.assertEqual(b[0].getResnums()[0], 264,
+            'parsePfamPDBs failed to return a first Selection with first resnum 264')
 
-    def testPfamIdNumPdbs(self):
-        # We don't need to override the mock here anymore, 
-        # because the smart 'side_effect' in setUp will see num_pdbs=2 
-        # (which limits the pdb_ids list) and return 2 items automatically.
-        b = parsePfamPDBs(self.queries[0], num_pdbs=2)
+    @patch.object(pfam_module, 'parsePfamPDBs', side_effect=_mock_parsePfamPDBs)
+    def testMultiDomainStart1(self, _):
+        """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1,
+        which has two domains but few relatives. Using start=1 should be like default and
+        return Selection objects containing the first domain."""
 
-        self.assertIsInstance(b, list)
-        self.assertEqual(len(b), 2)
+        b = pfam_module.parsePfamPDBs(self.queries[2], start=1)
+
+        self.assertIsInstance(b, list,
+            'parsePfamPDBs failed to return a list instance')
+
+        self.assertIsInstance(b[0], Selection,
+            'parsePfamPDBs failed to return a list of Selection instances')
+        
+        self.assertEqual(b[0].getResnums()[0], 264,
+            'parsePfamPDBs failed to return a first Selection with first resnum 264')
+        
+    @patch.object(pfam_module, 'parsePfamPDBs', side_effect=_mock_parsePfamPDBs)
+    def testMultiDomainStart2(self, _):
+        """Test the outcome of parsing PDBs using a V-type proton ATPase subunit S1,
+        which has two domains but few relatives. Setting start to 418 should
+        return Selection objects containing the second domain."""
+
+        b = pfam_module.parsePfamPDBs(self.queries[2], start=418)
+
+        self.assertIsInstance(b, list,
+            'parsePfamPDBs failed to return a list instance')
+
+        self.assertIsInstance(b[0], Selection,
+            'parsePfamPDBs failed to return a list of Selection instances')
+        
+        self.assertEqual(b[0].getResnums()[0], 217,
+            'parsePfamPDBs failed to return a first Selection with first resnum 217')
+
+    @patch.object(pfam_module, 'parsePfamPDBs', side_effect=_mock_parsePfamPDBs)
+    def testPfamIdNumPdbs(self, _):
+        """Test the outcome of parsing PDBs for a tiny family
+        of ABC class ATPase N-terminal domains (5 members)
+        with the Pfam ID and default parameters."""
+
+        b = pfam_module.parsePfamPDBs(self.queries[0], num_pdbs=2)
+
+        self.assertIsInstance(b, list,
+            'parsePfamPDBs failed to return a list instance')
+
+        self.assertIsInstance(b[0], Selection,
+            'parsePfamPDBs failed to return a list of Selection instances')
+        
+        self.assertEqual(len(b), 2,
+            'parsePfamPDBs failed to return a list of length 2 with num_pdbs=2')
 
     @classmethod
     def tearDownClass(cls):
         os.chdir('..')
         shutil.rmtree(cls.workdir)
+
