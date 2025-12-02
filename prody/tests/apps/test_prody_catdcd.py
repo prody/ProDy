@@ -21,14 +21,12 @@ class TestCatdcdCommand(TestCase):
     @classmethod
     def setUpClass(cls):
         # Optimization: Perform the heavy PDB parsing only ONCE.
-        # This resolves the slowness without causing file handle risks.
         cls.dcdpath = pathDatafile('dcd')
         cls.pdbpath = pathDatafile('multi_model_truncated')
         cls.ag = parsePDB(cls.pdbpath, model=1)
 
     def setUp(self):
         # Safety: Open a fresh DCD handle for every test. 
-        # This prevents pointer conflicts and ensures clean closing.
         self.dcd = DCDFile(self.dcdpath)
         
         self.output = join(TEMPDIR, 'test_prody_catdcd.dcd')
@@ -42,13 +40,11 @@ class TestCatdcdCommand(TestCase):
         if hasattr(self, 'dcd') and self.dcd is not None:
             self.dcd.close()
 
-        # Remove output only after ensuring it is closed
+        # Remove output only after ensuring input is closed
         if isfile(self.output): 
             try:
                 remove(self.output)
             except OSError:
-                # If removal fails, it usually means a handle is still open.
-                # Pass to avoid failing the test suite, but this indicates a leak.
                 pass
 
     @dec.slow
@@ -63,15 +59,13 @@ class TestCatdcdCommand(TestCase):
 
         coords = self.dcd[:]._getCoordsets()
         
-        # Load output, check it, and CLOSE it immediately
-        concat_dcd = parseDCD(self.output)
-        try:
-            concat = concat_dcd._getCoordsets()
-            assert_equal(coords, concat[:3])
-            assert_equal(coords, concat[3:6])
-            assert_equal(coords, concat[6:])
-        finally:
-            concat_dcd.close()
+        # parseDCD returns an Ensemble, which auto-closes the file.
+        # We do not need to call .close() on 'concat'.
+        concat = parseDCD(self.output)._getCoordsets()
+        
+        assert_equal(coords, concat[:3])
+        assert_equal(coords, concat[3:6])
+        assert_equal(coords, concat[6:])
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
@@ -91,17 +85,14 @@ class TestCatdcdCommand(TestCase):
         coords.setAtoms(select)
         coords = coords._getCoordsets()
 
-        concat_dcd = parseDCD(self.output)
-        try:
-            assert_equal(concat_dcd.numAtoms(), select.numAtoms())
-            concat = concat_dcd._getCoordsets()
+        concat = parseDCD(self.output)
+        assert_equal(concat.numAtoms(), select.numAtoms())
+        concat = concat._getCoordsets()
 
-            assert_equal(select.numAtoms(), coords.shape[1])
-            assert_equal(select.numAtoms(), concat.shape[1])
-            assert_equal(coords, concat[:3])
-            assert_equal(coords, concat[3:])
-        finally:
-            concat_dcd.close()
+        assert_equal(select.numAtoms(), coords.shape[1])
+        assert_equal(select.numAtoms(), concat.shape[1])
+        assert_equal(coords, concat[:3])
+        assert_equal(coords, concat[3:])
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
@@ -118,23 +109,19 @@ class TestCatdcdCommand(TestCase):
 
         coords = self.dcd[:]
         
-        concat_dcd = parseDCD(self.output)
-        
-        try:
-            assert_equal(concat_dcd.numAtoms(), coords.numAtoms())
+        concat = parseDCD(self.output)
+        assert_equal(concat.numAtoms(), coords.numAtoms())
 
-            coords.setCoords(self.ag.getCoords())
-            coords.setAtoms(select)
-            coords.superpose()
-            coords.setAtoms(None)
-            coords = coords._getCoordsets()
+        coords.setCoords(self.ag.getCoords())
+        coords.setAtoms(select)
+        coords.superpose()
+        coords.setAtoms(None)
+        coords = coords._getCoordsets()
 
-            concat = concat_dcd._getCoordsets()
+        concat = concat._getCoordsets()
 
-            assert_equal(coords, concat[:3])
-            assert_equal(coords, concat[3:])
-        finally:
-            concat_dcd.close()
+        assert_equal(coords, concat[:3])
+        assert_equal(coords, concat[3:])
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command is not found')
