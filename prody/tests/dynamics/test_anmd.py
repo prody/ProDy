@@ -49,12 +49,21 @@ class TestANMD(unittest.TestCase):
         if prody.PY3K:
             self.assertRaises(TypeError, self.runANMD, self.ATOMS, tolerance='nogood', num_steps=2)
 
-class TestAnmdResults(TestANMD):
+class TestAnmdResults(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        if prody.PY3K:
+            from prody import runANMD
+            cls.ATOMS = parseDatafile('1ubi')
+            # Run calculations once here to speed up tests
+            cls.DEFAULT_RESULTS = runANMD(cls.ATOMS, num_steps=2)
+            cls.RESULTS_1_MODE = runANMD(cls.ATOMS, num_modes=1, num_steps=2)
 
     def testResults(self):
         """Test results with default parameters"""
         if prody.PY3K:
-            DEFAULT_RESULTS = runANMD(self.ATOMS, num_steps=2)
+            DEFAULT_RESULTS = self.DEFAULT_RESULTS
             ens1 = DEFAULT_RESULTS[0]
 
             assert_equal(len(DEFAULT_RESULTS), 2,
@@ -70,7 +79,7 @@ class TestAnmdResults(TestANMD):
     def testResultsNumModes1(self):
         """Test that num_modes=1 gives 1 ensemble"""
         if prody.PY3K:
-            RESULTS = runANMD(self.ATOMS, num_modes=1, num_steps=2)
+            RESULTS = self.RESULTS_1_MODE
             assert_equal(len(RESULTS), 1,
                         'runANMD with num_modes=1 failed to give 1 ensemble')
 
