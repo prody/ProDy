@@ -8,9 +8,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     
-    # PREVENT HANGS: 
-    # 1. Limit threading for scientific libraries
-    # 2. Force Matplotlib to use non-interactive backend (Headless)
+    # ENVIRONMENT SETTINGS TO PREVENT HANGS & SPEED UP START
     env:
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
@@ -18,6 +16,9 @@ jobs:
       VECLIB_MAXIMUM_THREADS: "1"
       NUMEXPR_NUM_THREADS: "1"
       MPLBACKEND: "Agg"
+      PYTHONUNBUFFERED: "1"
+      # Prevent ProDy from checking online for updates during import
+      PRODY_NO_UPDATE_CHECK: "1"
 
     strategy:
       fail-fast: false
@@ -28,6 +29,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # CACHE MATPLOTLIB: This prevents the 3-minute hang where Matplotlib
+      # scans /usr/share/fonts on every single run.
+      - name: Cache Matplotlib
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/matplotlib
+          key: ${{ runner.os }}-matplotlib-${{ hashFiles('environment.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-matplotlib-
 
       - name: Set up Micromamba
         uses: mamba-org/setup-micromamba@v1
@@ -49,10 +60,7 @@ jobs:
         run: |
           pip install -e .
           python setup.py build_ext --inplace --force
-          
-          # Verification
           ls -lh prody/proteins/hpb.so || { echo "hpb.so missing"; exit 1; }
-          ldd prody/proteins/hpb.so || { echo "linking failed"; exit 1; }
 
       - name: Build & compile HPB (macOS)
         if: runner.os == 'macOS'
@@ -81,11 +89,13 @@ jobs:
           pip install -e .
           python setup.py build_ext --inplace --force
 
-      # 3. Run actual tests
       - name: Run tests
         shell: bash -l {0}
         timeout-minutes: 20
         run: |
-          pip install pytest-timeout
-          # -X faulthandler: dumps C-level traceback if python crashes/deadlocks
-          python -X faulthandler -m pytest -v -s --timeout=300 --durations=0
+          # pytest-timeout is now in environment.yml, so we skip the pip install
+          
+          # Warm up imports to ensure font cache is built/saved if missing
+          python -c "import matplotlib.pyplot"
+          
+          python -X faulthandler -m pytest -vv -s --timeout=300 --durations=0

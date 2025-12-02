@@ -13,6 +13,7 @@ dependencies:
   - scipy
   - nose
   - pytest
+  - pytest-timeout  # Added here for caching
   - requests
   - pdbfixer
   - mdtraj
