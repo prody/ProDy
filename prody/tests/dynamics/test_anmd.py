@@ -18,7 +18,7 @@ try:
 except ImportError:
     from mock import MagicMock, patch
 
-# Prevent threading hangs
+# Prevent threading hangs on remote servers
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS'] = '1'
 
@@ -70,19 +70,13 @@ class TestAnmdResults(unittest.TestCase):
         if not prody.PY3K:
             return
 
-        # 1. Start Patchers
-        # We patch 'prody.parseDatafile' to avoid network/disk IO
-        cls.patcher_parse = patch('prody.parseDatafile')
-        cls.mock_parse = cls.patcher_parse.start()
-        
-        # We patch 'prody.runANMD' to avoid expensive math
+        # 1. Patch 'prody.runANMD' to avoid expensive math
+        # We patch it where it is looked up in the imports
         cls.patcher_run = patch('prody.runANMD')
         cls.mock_run = cls.patcher_run.start()
 
         # 2. Configure Mocks
-        # parseDatafile returns a dummy atom group (sufficient for passing to the mocked runANMD)
-        cls.mock_parse.return_value = MagicMock(spec=AtomGroup)
-
+        
         # Create a mock ensemble that mimics the expected ENSEMBLE object
         mock_ens = MagicMock(spec=PDBEnsemble)
         mock_ens.__len__.return_value = 5  # Mock 5 conformers
@@ -92,14 +86,21 @@ class TestAnmdResults(unittest.TestCase):
         mock_ens.getRMSDs.return_value = ENSEMBLE.getRMSDs()
 
         # 3. Define Return Values for runANMD
-        # Default run returns 2 ensembles
-        cls.mock_run.side_effect = lambda *args, **kwargs: (
-            [mock_ens] if kwargs.get('num_modes') == 1 else [mock_ens, MagicMock()]
-        )
+        # We define a side_effect to return different results based on inputs
+        def side_effect(*args, **kwargs):
+            if kwargs.get('num_modes') == 1:
+                return [mock_ens]
+            return [mock_ens, MagicMock()]
+        
+        cls.mock_run.side_effect = side_effect
 
-        # 4. "Run" the (mocked) setup
+        # 4. Setup dummy atoms
+        # Instead of calling parseDatafile('1ubi') which downloads data, we just mock the atoms.
+        # runANMD is mocked, so it won't actually look at the atoms anyway.
+        cls.ATOMS = MagicMock(spec=AtomGroup)
+
+        # 5. Run the "calculations"
         from prody import runANMD
-        cls.ATOMS = parseDatafile('1ubi')
         cls.DEFAULT_RESULTS = runANMD(cls.ATOMS, num_steps=2)
         cls.RESULTS_1_MODE = runANMD(cls.ATOMS, num_modes=1, num_steps=2)
 
@@ -107,7 +108,6 @@ class TestAnmdResults(unittest.TestCase):
     def tearDownClass(cls):
         if prody.PY3K:
             cls.patcher_run.stop()
-            cls.patcher_parse.stop()
 
     def testResults(self):
         """Test results with default parameters"""
