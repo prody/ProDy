@@ -296,6 +296,10 @@ from . import anm
 from .anm import *
 __all__.extend(anm.__all__)
 
+from . import constrained_anm
+from .constrained_anm import *
+__all__.extend(constrained_anm.__all__)
+
 from . import rtb
 from .rtb import *
 __all__.extend(rtb.__all__)
