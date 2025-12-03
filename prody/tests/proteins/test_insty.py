@@ -16,67 +16,56 @@ import sys
 
 class TestInteractions(unittest.TestCase):
 
+    @staticmethod
+    def _initialize_data(target):
+        """
+        Helper method to load data and pre-calculate trajectories.
+        Target can be 'cls' (for setUpClass) or 'self' (for setUp).
+        """
+        # 1. Load Data Files
+        target.ATOMS = parseDatafile('2k39_insty') # no disulfides
+        target.ALL_INTERACTIONS = parseDatafile('2k39_all')
+        target.ALL_INTERACTIONS2 = parseDatafile('2k39_all2')
+        target.HBS_INTERACTIONS = parseDatafile('2k39_hbs')
+        target.SBS_INTERACTIONS = parseDatafile('2k39_sbs')
+        target.RIB_INTERACTIONS = parseDatafile('2k39_rib')
+        target.PISTACK_INTERACTIONS = parseDatafile('2k39_PiStack')
+        target.PICAT_INTERACTIONS = parseDatafile('2k39_PiCat')
+        target.HPH_INTERACTIONS = parseDatafile('2k39_hph')
+        target.HPH_INTERACTIONS2 = parseDatafile('2k39_hph2')
+        target.DISU_INTERACTIONS = parseDatafile('2k39_disu')
+
+        target.ATOMS_FIRST = parseDatafile('2k39_insty_first')
+        target.DCD = Trajectory(pathDatafile('2k39_insty_dcd'))
+        target.DCD.link(target.ATOMS_FIRST)
+        target.DCD.setCoords(target.ATOMS_FIRST)
+
+        target.ATOMS_3O21 = parseDatafile('3o21') # has disulfides & not traj
+        target.DISU_INTERACTIONS_3O21 = parseDatafile('3o21_disu')
+
+        # 2. Pre-calculate expensive trajectories
+        target.calc_all_13 = np.array(InteractionsTrajectory().calcProteinInteractionsTrajectory(target.ATOMS, stop_frame=13))
+        target.calc_all_traj_13 = np.array(InteractionsTrajectory().calcProteinInteractionsTrajectory(target.ATOMS_FIRST, trajectory=target.DCD, stop_frame=13))
+        target.calc_hbs_13 = calcHydrogenBondsTrajectory(target.ATOMS, stop_frame=13)
+        target.calc_sbs_13 = calcSaltBridgesTrajectory(target.ATOMS, stop_frame=13)
+        target.calc_rib_13 = calcRepulsiveIonicBondingTrajectory(target.ATOMS, stop_frame=13)
+        target.calc_pistack_13 = calcPiStackingTrajectory(target.ATOMS, stop_frame=13)
+        target.calc_picat_13 = calcPiCationTrajectory(target.ATOMS, stop_frame=13)
+        target.calc_picat_traj_arg_13 = calcPiCationTrajectory(target.ATOMS, trajectory=target.ATOMS, stop_frame=13)
+        target.calc_hph_13 = calcHydrophobicTrajectory(target.ATOMS, stop_frame=13)
+        target.calc_disu_13 = calcDisulfideBondsTrajectory(target.ATOMS, stop_frame=13)
+        target.calc_disu_3o21 = calcDisulfideBonds(target.ATOMS_3O21)
+
     @classmethod
     def setUpClass(cls):
-        """Generating new data to compare it with the existing one"""
-        
+        """Run setup ONCE for Python 3 for performance."""
         if prody.PY3K:
-            # 1. Load Data Files
-            cls.ATOMS = parseDatafile('2k39_insty') # no disulfides
-            cls.ALL_INTERACTIONS = parseDatafile('2k39_all')
-            cls.ALL_INTERACTIONS2 = parseDatafile('2k39_all2')
-            cls.HBS_INTERACTIONS = parseDatafile('2k39_hbs')
-            cls.SBS_INTERACTIONS = parseDatafile('2k39_sbs')
-            cls.RIB_INTERACTIONS = parseDatafile('2k39_rib')
-            cls.PISTACK_INTERACTIONS = parseDatafile('2k39_PiStack')
-            cls.PICAT_INTERACTIONS = parseDatafile('2k39_PiCat')
-            cls.HPH_INTERACTIONS = parseDatafile('2k39_hph')
-            cls.HPH_INTERACTIONS2 = parseDatafile('2k39_hph2')
-            cls.DISU_INTERACTIONS = parseDatafile('2k39_disu')
+            cls._initialize_data(cls)
 
-            cls.ATOMS_FIRST = parseDatafile('2k39_insty_first')
-            cls.DCD = Trajectory(pathDatafile('2k39_insty_dcd'))
-            cls.DCD.link(cls.ATOMS_FIRST)
-            cls.DCD.setCoords(cls.ATOMS_FIRST)
-
-            cls.ATOMS_3O21 = parseDatafile('3o21') # has disulfides & not traj
-            cls.DISU_INTERACTIONS_3O21 = parseDatafile('3o21_disu')
-
-            # 2. Pre-calculate expensive trajectories ONCE here
-            # These were originally being re-calculated in every single test method.
-            
-            # For: testAllInteractionsCalc, testAllInteractionsSave
-            cls.calc_all_13 = np.array(InteractionsTrajectory().calcProteinInteractionsTrajectory(cls.ATOMS, stop_frame=13))
-
-            # For: testAllInteractionsCalcWithTraj
-            cls.calc_all_traj_13 = np.array(InteractionsTrajectory().calcProteinInteractionsTrajectory(cls.ATOMS_FIRST, trajectory=cls.DCD, stop_frame=13))
-
-            # For: testHydrogenBonds
-            cls.calc_hbs_13 = calcHydrogenBondsTrajectory(cls.ATOMS, stop_frame=13)
-
-            # For: testSaltBridgesCalc, testSaltBridgesSave
-            cls.calc_sbs_13 = calcSaltBridgesTrajectory(cls.ATOMS, stop_frame=13)
-
-            # For: testRepulsiveIonicBonding
-            cls.calc_rib_13 = calcRepulsiveIonicBondingTrajectory(cls.ATOMS, stop_frame=13)
-
-            # For: testPiStacking
-            cls.calc_pistack_13 = calcPiStackingTrajectory(cls.ATOMS, stop_frame=13)
-
-            # For: testPiCation
-            cls.calc_picat_13 = calcPiCationTrajectory(cls.ATOMS, stop_frame=13)
-            
-            # For: testPiCationTrajArg
-            cls.calc_picat_traj_arg_13 = calcPiCationTrajectory(cls.ATOMS, trajectory=cls.ATOMS, stop_frame=13)
-
-            # For: testHydrophobicInteractions
-            cls.calc_hph_13 = calcHydrophobicTrajectory(cls.ATOMS, stop_frame=13)
-
-            # For: testDisulfideBondsCalcNone, testDisulfideBondsSaveNone
-            cls.calc_disu_13 = calcDisulfideBondsTrajectory(cls.ATOMS, stop_frame=13)
-            
-            # For: testDisulfideBondsCalcSomeNotTraj, testDisulfideBondsSaveSomeNotTraj
-            cls.calc_disu_3o21 = calcDisulfideBonds(cls.ATOMS_3O21)
+    def setUp(self):
+        """Run setup PER TEST for Python 2 for compatibility."""
+        if not prody.PY3K:
+            self._initialize_data(self)
 
     def testAllInteractionsCalc(self):
         """Test for calculating all types of interactions."""
