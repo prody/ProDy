@@ -117,7 +117,7 @@ class DruGUI:
         "ring6": "6-membered rings"
         }
         self.PROBEDATA = {}
-        os.chdir('/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script')
+        os.chdir(package_dir)
         self.Druggability_path = os.getcwd()
 
         # Define the main dropdown menu options and view functions
@@ -848,8 +848,6 @@ class DruGUI:
 
             if self.percent_total.get() == 0:
                 Probes = False
-
-            os.chdir('/Users/carlosventura/Desktop/prody_drugui/ProDy/prody/drugui/DruGUI-script')
 
             if package_dir.is_dir():
                 os.chdir(package_dir)

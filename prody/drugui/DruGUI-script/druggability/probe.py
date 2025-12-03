@@ -103,11 +103,8 @@ PROBE_CARDS = {'IPRO': IPRO, 'IBUT': IBUT, 'IPAM': IPAM, 'ACET': ACET,
                'ACAM': ACAM, 'IBTN': IBUT, 'ACTT': ACET, 'ALL': ALL,
                'PRO2': IPRO} # included for backwards compatibility
 
-import druggability
-if isinstance(druggability.__path__, list):
-    path = druggability.__path__[0]
-else:
-    path = druggability.__path__
+import os
+path = os.path.dirname(os.path.abspath(__file__))
     
 with open(join(path, 'probe.dat')) as dat:
     for line in dat:
