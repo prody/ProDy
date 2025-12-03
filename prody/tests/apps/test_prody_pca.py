@@ -43,12 +43,10 @@ class TestPCACommand(TestCase):
 
         self.tearDown()
 
-    # NOTE: I have kept the skip decorators commented out so you can verify the fix works.
-    # In a real PR, you might want to uncomment them.
-    # @dec.slow
-    # @skipIf(NOPRODYCMD, 'prody command not found')
-    # @skipUnless(MATPLOTLIB, 'matplotlib not found')
-    # @skipIf(WINDOWS, 'command tests are not run on Windows')
+    @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command not found')
+    @skipUnless(MATPLOTLIB, 'matplotlib not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testPCACommandDCD(self):
 
         # 1. Load the original data
@@ -74,10 +72,10 @@ class TestPCACommand(TestCase):
             fn = join(TEMPDIR, prefix + suffix)
             self.assertTrue(isfile(fn), msg=fn+' not found')
 
-    # @dec.slow
-    # @skipIf(NOPRODYCMD, 'prody command not found')
-    # @skipUnless(MATPLOTLIB, 'matplotlib not found')
-    # @skipIf(WINDOWS, 'command tests are not run on Windows')
+    @dec.slow
+    @skipIf(NOPRODYCMD, 'prody command not found')
+    @skipUnless(MATPLOTLIB, 'matplotlib not found')
+    @skipIf(WINDOWS, 'command tests are not run on Windows')
     def testPCACommandPDB(self):
 
         # 1. Load original data
