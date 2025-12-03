@@ -105,7 +105,7 @@ if prody.PY3K:
                 a = bioexcel.fetchBioexcelPDB(self.query, folder=self.workdir,
                                     outname=self.outname)
 
-                self.assertEqual(a, os.path.join(self.workdir, self.outname + '.pdb'),
+            self.assertEqual(a, os.path.join(self.workdir, self.outname + '.pdb'),
                                 'fetchBioexcelPDB default run did not give the right path')
 
         def testParseDefault(self):
@@ -260,7 +260,7 @@ if prody.PY3K:
                 a = bioexcel.fetchBioexcelTopology(self.query, folder=self.workdir,
                                     outname=self.outname)
 
-                self.assertEqual(a, os.path.join(self.workdir, self.outname + '.psf'),
+            self.assertEqual(a, os.path.join(self.workdir, self.outname + '.psf'),
                                 'fetchBioexcelPDB default run did not give the right path')
 
         def testFetchConvertFalse(self):
