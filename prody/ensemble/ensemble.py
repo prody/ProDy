@@ -11,6 +11,7 @@ from prody import LOGGER
 from prody.atomic import Atomic, sliceAtoms
 from prody.atomic.atomgroup import checkLabel
 from prody.measure import getRMSD, calcDeformVector
+from prody.proteins import EMDMAP
 from prody.utilities import importLA, checkCoords, checkWeights, copy, isListLike
 
 from .conformation import *
@@ -899,3 +900,100 @@ class Ensemble(object):
             return self._data[label].dtype
         except KeyError:
             return None
+
+    def filterConformers(self, ref=None, target=None, **kwargs):
+        """Filter conformers to only include those towards *target*.
+
+        If target is an atomic object, then RMSD is used.
+        If it's an EM density map, then deltaCCC is used."""
+        if ref is None:
+            ref = self.getAtoms()
+            if ref is None:
+                raise ValueError('Please set a ref for filtering.')
+            else:
+                LOGGER.info('Using structure A as ref')
+
+        if target is None:
+            if hasattr(self, 'getAtomsB'):
+                LOGGER.info('Using structure B as target')
+                target = self.getAtomsB()
+            if target is None:
+                raise ValueError('Please set a target for filtering.')
+
+        if self._confs is None or self._coords is None:
+            return None
+
+        n = 0
+        n_csets = self.numCoordsets()
+
+        if isinstance(target, Atomic):
+            LOGGER.info('Using Atomic target and RMSD for filtering')
+
+            indices = self._indices
+            if indices is None:
+                indices = np.arange(self._confs.shape[1])
+
+            weights = self._weights[indices] if self._weights is not None else None
+            rmsds = calcRMSD(target, self._confs[:, indices], weights)
+            rmsd_ref = calcRMSD(target, ref)
+
+            LOGGER.progress('Filtering the ensemble...', n_csets, '_prody_FilterEnsemble')
+            for i, rmsd in enumerate(reversed(rmsds)):
+                curr_conf = n_csets - i - 1
+                LOGGER.update(i + 1, label='_prody_FilterEnsemble')
+                if rmsd > rmsd_ref:
+                    self.delCoordset(curr_conf)
+                    n += 1
+        else:
+            try:
+                from TEMPy.maps.em_map import Map
+                from TEMPy.protein.structure_blurrer import StructureBlurrer
+                from TEMPy.protein.scoring_functions import ScoringFunctions
+            except:
+                raise ImportError("TEMPy is needed to filter by a non-Atomic target")
+
+            if isinstance(target, EMDMAP):
+                target = target.toTEMPyMap()
+
+            if isinstance(target, Map):
+                LOGGER.info('Using EM map target and CCC for filtering')
+
+                resolution = kwargs.get('resolution', 5)
+                blurrer = StructureBlurrer()
+                scorer = ScoringFunctions()
+
+                if not isinstance(ref, Atomic):
+                    coords = getCoords(ref)
+                    ref = self.atoms.copy()
+                    ref.setCoords(coords)
+
+                ref_tempy = ref.toTEMPyStructure()
+                ref_blurred = blurrer.gaussian_blur(ref_tempy, resolution, target,
+                                                    filename=ref.getTitle()+'.mrc')
+                ref_ccc = scorer.CCC(ref_blurred, target)
+
+                conf = self.getAtoms().copy()
+
+                LOGGER.progress('Filtering the ensemble...', n_csets, '_prody_FilterEnsemble')
+                for i, coordset in enumerate(reversed(self.getCoordsets())):
+                    curr_conf = n_csets - i - 1
+                    LOGGER.update(i + 1, label='_prody_FilterEnsemble')
+                    conf.setCoords(coordset)
+                    blurred_conf = blurrer.gaussian_blur(conf.toTEMPyStructure(),
+                                                         resolution, target,
+                                                         filename='{0}_{1}'.format(conf.getTitle(),
+                                                                                   curr_conf))
+                    ccc = scorer.CCC(blurred_conf, target)
+                    if ccc < ref_ccc:
+                        self.delCoordset(curr_conf)
+                        n += 1
+            else:
+                raise TypeError('target should be an Atomic or EM density map object')
+
+        LOGGER.finish()
+        if n == 1:
+            LOGGER.info('{0} conformer removed, leaving {1} conformers remaining'.format(n, self.numConfs()))
+        elif self.numConfs() == 1:
+            LOGGER.info('{0} conformers removed, leaving {1} conformer remaining'.format(n, self.numConfs()))
+        else:
+            LOGGER.info('{0} conformers removed, leaving {1} conformers remaining'.format(n, self.numConfs()))
