@@ -9,10 +9,9 @@ from prody import *
 from pylab import *
 from typing import *
 from collections import defaultdict
-from Bio.PDB import PDBIO, PDBParser, Atom
 import numpy as np
 from numpy import array, median, c_, hstack, savez, save
-import matplotlib.pyplot as plt       
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 import os
 import contextlib
@@ -25,6 +24,7 @@ import shutil
 import subprocess
 from pathlib import Path
 import re
+from Bio.PDB import PDBIO, PDBParser, Atom
 
 try:
     from pandas import DataFrame, Index
@@ -61,7 +61,6 @@ class ESSA2:
                     "CH2": [4.60,   1.20,   0.00],
                     "CZ2": [5.20,   0.00,   0.00],
                 }
-
 
     def setSystem(self, pdb_input, lig: Optional[str] = None, cutoff: float = 10.0,
                 target_variance: Optional[float] = None, num_modes: Optional[int] = None,
@@ -174,117 +173,196 @@ class ESSA2:
 
         return self._ref_msfs
 
-    def _write_trp_mutation_pdb(self, res_idx, chi, tmp_pdb_path):
+    def _rotate_point_around_axis(self, point: np.ndarray, axis_point: np.ndarray,
+                              axis_dir: np.ndarray, angle_rad: float) -> np.ndarray:
         """
-        Write a PDB file with a single residue mutated to TRP and 
-        rotated according to chi angles.
+        Rotate `point` around a line through `axis_point` in direction `axis_dir`
+        by `angle_rad` radians using Rodrigues' formula. `axis_dir` must be a unit vector.
+        """
+        p = np.asarray(point, dtype=float) - np.asarray(axis_point, dtype=float)
+        a = np.asarray(axis_dir, dtype=float)
+        cos_a = np.cos(angle_rad)
+        sin_a = np.sin(angle_rad)
+        p_rot = p * cos_a + np.cross(a, p) * sin_a + a * (np.dot(a, p) * (1.0 - cos_a))
+        return p_rot + axis_point
 
-        Handles missing CB atoms (e.g., Glycine) by estimating CB position.
+
+    def _write_trp_mutation_pdb(self, res_idx: int, chi: dict, tmp_pdb_path: str):
+        """
+        Mutate residue with PDB resnum `res_idx` to TRP and write a PDB to tmp_pdb_path.
+        - chi: dict with 'chi1' and 'chi2' in degrees.
+        - Preserves backbone atoms (N, CA, C, O, OXT).
+        - Uses CB as anchor; estimates CB if missing.
+        - Applies chi1 (CA->CB axis) then chi2 (CB->CG axis).
+        NOTE: self.TRP_TEMPLATE must be a dict mapping atom name -> [x,y,z] relative to CB.
         """
 
         if self._pdb_path is None:
-            raise ValueError("PDB path is not set. Call setSystem first.")
+            raise ValueError("PDB path is not set. Call setSystem() first.")
 
         parser = PDBParser(QUIET=True)
         structure = parser.get_structure("WT", self._pdb_path)
-        model = next(structure.get_models())  # assume first model
+        model = next(structure.get_models())  # first model
 
-        # Identify residue by index (assuming 0-based indexing)
+        # find residue by PDB resnum (resseq)
         res = next((r for r in model.get_residues() if r.get_id()[1] == res_idx), None)
         if res is None:
             raise ValueError(f"Residue index {res_idx} not found in PDB.")
 
-        CA = res['CA'].get_coord()
+        # backbone coords (kept unchanged)
+        CA = np.array(res['CA'].get_coord(), dtype=float)
+        N_coord = np.array(res['N'].get_coord(), dtype=float)
+        C_coord = np.array(res['C'].get_coord(), dtype=float)
 
-        # Estimate CB if missing (for glycine or incomplete PDB)
+        # CB (estimate if missing)
         try:
-            CB = res['CB'].get_coord()
+            CB = np.array(res['CB'].get_coord(), dtype=float)
         except KeyError:
-            N = res['N'].get_coord()
-            C = res['C'].get_coord()
-            b = CA - N
-            c = CA - C
+            b = CA - N_coord
+            c = CA - C_coord
             n = np.cross(b, c)
-            n = n / np.linalg.norm(n)
+            norm_n = np.linalg.norm(n)
+            if norm_n < 1e-8:
+                # fallback axis
+                n = np.array([1.0, 0.0, 0.0])
+            else:
+                n = n / norm_n
             CB = CA + 1.53 * n  # typical CA-CB bond length
 
-        # Prepare new TRP atoms
-        trp_atoms = []
-        for name, xyz_local in self.TRP_TEMPLATE.items():
-            local = np.array(xyz_local)
-            global_xyz = CA + local 
-            # Create a new Bio.PDB Atom
-            atom = Atom.Atom(
-                name=name,
-                coord=global_xyz,
-                bfactor=0.0,
-                occupancy=1.0,
-                altloc=' ',
-                fullname=name.ljust(4),
-                serial_number=0,
-                element=name[0] 
-            )
-            trp_atoms.append(atom)
+        # Ensure template exists
+        if not hasattr(self, "TRP_TEMPLATE") or not isinstance(self.TRP_TEMPLATE, dict):
+            raise RuntimeError("self.TRP_TEMPLATE missing or invalid (expected dict name->coord relative to CB)")
 
+        # Build initial atom positions: place template (CB-relative) at CB
+        atom_positions = {}
+        for name, local in self.TRP_TEMPLATE.items():
+            local = np.asarray(local, dtype=float)
+            atom_positions[name] = CB + local
+
+        # χ1 rotation about CA -> CB
+        chi1_rad = np.deg2rad(float(chi.get("chi1", 0.0)))
+        axis1 = CB - CA
+        axis1_norm = np.linalg.norm(axis1)
+        if axis1_norm < 1e-8:
+            axis1_dir = np.array([1.0, 0.0, 0.0])
+        else:
+            axis1_dir = axis1 / axis1_norm
+
+        # Apply χ1 to all side-chain atoms except CB (CB is on the axis)
+        for name, pos in list(atom_positions.items()):
+            if name == "CB":
+                continue
+            atom_positions[name] = self._rotate_point_around_axis(pos, CB, axis1_dir, chi1_rad)
+
+        # Recompute CG position after χ1 (CG must be in template)
+        if "CG" not in atom_positions:
+            raise RuntimeError("TRP_TEMPLATE must include 'CG' atom")
+        CG_pos = atom_positions["CG"]
+
+        # χ2 rotation about CB -> CG
+        chi2_rad = np.deg2rad(float(chi.get("chi2", 0.0)))
+        axis2 = CG_pos - CB
+        axis2_norm = np.linalg.norm(axis2)
+        if axis2_norm < 1e-8:
+            axis2_dir = np.array([1.0, 0.0, 0.0])
+        else:
+            axis2_dir = axis2 / axis2_norm
+
+        # Apply χ2 to atoms distal to CB-CG (i.e., everything except CB and CG)
+        for name, pos in list(atom_positions.items()):
+            if name in ("CB", "CG"):
+                continue
+            atom_positions[name] = self._rotate_point_around_axis(pos, CB, axis2_dir, chi2_rad)
+
+        # Remove existing side-chain atoms but keep backbone atoms
+        backbone_names = {"N", "CA", "C", "O", "OXT"}
         for atom in list(res):
-            if atom.get_name() != 'CA':
+            if atom.get_name() not in backbone_names:
                 res.detach_child(atom.get_id())
 
-        for atom in trp_atoms:
+        # Add TRP side-chain atoms (Bio.PDB Atom)
+        for name, coord in atom_positions.items():
+            atom = Atom.Atom(
+                name=name,
+                coord=np.asarray(coord, dtype=float),
+                bfactor=0.0,
+                occupancy=1.0,
+                altloc=" ",
+                fullname=name.ljust(4),
+                serial_number=0,
+                element=(name[0] if len(name) > 0 else "C")
+            )
             res.add(atom)
 
+        # Write mutated PDB
         io = PDBIO()
         io.set_structure(structure)
         io.save(tmp_pdb_path)
 
+
     def scanResidues(self, residue_indices=None, tmp_dir=None):
+        """
+        Scan residues by mutating each to TRP using self.TRP_ROTAMERS, computing MSFs,
+        and averaging across rotamers. Returns msf_matrix (n_mutations x n_CAs).
+        """
+        import tempfile
+        from tqdm import tqdm
+        import os
+        import numpy as np
+        from prody import parsePDB
+
         if not self._system_ready:
             raise RuntimeError("Call setSystem() first.")
 
+        residue_indices = residue_indices or self._ca.getResnums()
+        tmp_dir = tmp_dir or tempfile.gettempdir()
+
+        n_res = len(residue_indices)
+        n_ca = len(self._ca)
+        msf_matrix = np.zeros((n_res, n_ca))
+
         print(f"Running mutation scan with {self.num_modes} GNM modes.")
-
-        if residue_indices is None:
-            residue_indices = self._ca.getResnums()
-
-        if tmp_dir is None:
-            tmp_dir = tempfile.gettempdir()
-
-        msf_matrix = np.zeros((len(residue_indices), len(self._ca)))
-
-        print(f"Scanning {len(residue_indices)} residues.")
+        print(f"Scanning {n_res} residues...")
 
         for i, res_idx in enumerate(tqdm(residue_indices, desc="Residues", unit="res")):
             rotamer_flucts = []
 
             for rot in self.TRP_ROTAMERS:
                 tmp_pdb = os.path.join(tmp_dir, f"tmp_res{res_idx}.pdb")
+                # write mutated structure (applies chi1/chi2)
                 self._write_trp_mutation_pdb(res_idx, rot, tmp_pdb)
 
                 ag = parsePDB(tmp_pdb)
-                ca = ag.select('calpha')
-                heavy = ag.select('protein and heavy')
-                cwd = heavy.select(f'calpha or resnum {res_idx}')
+                ca = ag.select("calpha")
+                heavy = ag.select("protein and heavy")
+                # select mutated residue by resnum plus all CAs
+                cwd = heavy.select(f"resnum {res_idx} or calpha")
 
+                # build GNM on cwd
                 gnm = GNM()
                 gnm.buildKirchhoff(cwd, cutoff=self._cutoff)
                 gnm.calcModes(self.num_modes)
 
+                # reduce and match
                 gnm_red, _ = reduceModel(gnm, cwd, ca)
                 gnm_red.calcModes(self.num_modes)
-
                 _, matched = matchModes(self._gnm, gnm_red)
                 msf = calcSqFlucts(matched[:self.num_modes])
 
                 rotamer_flucts.append(msf)
 
-                try: os.remove(tmp_pdb)
-                except: pass
+                try:
+                    os.remove(tmp_pdb)
+                except FileNotFoundError:
+                    pass
 
-            msf_matrix[i,:] = np.mean(rotamer_flucts, axis=0)
-           
+            # average MSF vectors across rotamers (axis 0 -> average per-residue MSF)
+            msf_matrix[i, :] = np.mean(rotamer_flucts, axis=0)
+
         self._msf_matrix = msf_matrix
         print(f"Stored MSF matrix of shape: {msf_matrix.shape}")
         return msf_matrix
+
 
     def zscores(self, ref_msf: np.ndarray = None, msf_perturbed: np.ndarray = None, rank_norm: bool = False) -> np.ndarray:
         """
