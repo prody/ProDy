@@ -2,53 +2,33 @@
 ESSA-2 implementation for ProDy integration
 
 """
-import sys
-import subprocess
-
-from prody import *
-from pylab import *
-from typing import *
-from collections import defaultdict
-import numpy as np
-from numpy import array, median, c_, hstack, savez, save
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 import os
-import contextlib
-import sys
 import tempfile
+from collections import defaultdict
+from typing import Optional, Sequence, Tuple
+
+import numpy as np
+from numpy import array, savez, save
 from scipy.ndimage import gaussian_filter
 from scipy.stats import rankdata
-import logging
-import shutil
-import subprocess
-from pathlib import Path
-import re
+
+from prody import *
+import matplotlib.pyplot as plt
 from Bio.PDB import PDBIO, PDBParser, Atom
 
-try:
-    from pandas import DataFrame, Index
-except Exception:
-    DataFrame = Index = None
+__all__ = ['ESSA2']
 
 class ESSA2:
 
     def __init__(self):
         self._system_ready = False
-        confProDy(verbosity='none')
         self._zscores = None
         self._msf_matrix = None
         self._ref_msfs = None
         self._ligres_idx = {}
         self._ligres_code = {}
         self.TRP_ROTAMERS = [                      
-                {"chi1": -60, "chi2":  90},
-                #{"chi1": -60, "chi2": -90},
-                #{"chi1":  60, "chi2":  90},
-                #{"chi1":  60, "chi2": -90},
-                #{"chi1": 180, "chi2":  90},
-                #{"chi1": 180, "chi2": -90},
-            ]
+                {"chi1": -60, "chi2":  90}]  
 
         self.TRP_TEMPLATE = {
                     "CG":  [1.50,   0.00,   0.00],
@@ -194,9 +174,8 @@ class ESSA2:
         - Preserves backbone atoms (N, CA, C, O, OXT).
         - Uses CB as anchor; estimates CB if missing.
         - Applies chi1 (CA->CB axis) then chi2 (CB->CG axis).
-        NOTE: self.TRP_TEMPLATE must be a dict mapping atom name -> [x,y,z] relative to CB.
+        self.TRP_TEMPLATE must be a dict mapping atom name -> [x,y,z] relative to CB.
         """
-
         if self._pdb_path is None:
             raise ValueError("PDB path is not set. Call setSystem() first.")
 
@@ -299,18 +278,11 @@ class ESSA2:
         io.set_structure(structure)
         io.save(tmp_pdb_path)
 
-
     def scanResidues(self, residue_indices=None, tmp_dir=None):
         """
         Scan residues by mutating each to TRP using self.TRP_ROTAMERS, computing MSFs,
         and averaging across rotamers. Returns msf_matrix (n_mutations x n_CAs).
         """
-        import tempfile
-        from tqdm import tqdm
-        import os
-        import numpy as np
-        from prody import parsePDB
-
         if not self._system_ready:
             raise RuntimeError("Call setSystem() first.")
 
@@ -322,9 +294,12 @@ class ESSA2:
         msf_matrix = np.zeros((n_res, n_ca))
 
         print(f"Running mutation scan with {self.num_modes} GNM modes.")
-        print(f"Scanning {n_res} residues...")
+        #print(f"Scanning {n_res} residues...")
 
-        for i, res_idx in enumerate(tqdm(residue_indices, desc="Residues", unit="res")):
+        total = len(residue_indices)
+        for i, res_idx in enumerate(residue_indices, 1):  # start counting from 1
+            print(f"\rScanning residues {i}/{total}", end="")
+
             rotamer_flucts = []
 
             for rot in self.TRP_ROTAMERS:
@@ -335,15 +310,12 @@ class ESSA2:
                 ag = parsePDB(tmp_pdb)
                 ca = ag.select("calpha")
                 heavy = ag.select("protein and heavy")
-                # select mutated residue by resnum plus all CAs
                 cwd = heavy.select(f"resnum {res_idx} or calpha")
 
-                # build GNM on cwd
                 gnm = GNM()
                 gnm.buildKirchhoff(cwd, cutoff=self._cutoff)
                 gnm.calcModes(self.num_modes)
 
-                # reduce and match
                 gnm_red, _ = reduceModel(gnm, cwd, ca)
                 gnm_red.calcModes(self.num_modes)
                 _, matched = matchModes(self._gnm, gnm_red)
@@ -356,13 +328,13 @@ class ESSA2:
                 except FileNotFoundError:
                     pass
 
-            # average MSF vectors across rotamers (axis 0 -> average per-residue MSF)
-            msf_matrix[i, :] = np.mean(rotamer_flucts, axis=0)
+            msf_matrix[i-1, :] = np.mean(rotamer_flucts, axis=0)
 
+        print("\nDone scanning residues.")
         self._msf_matrix = msf_matrix
+
         print(f"Stored MSF matrix of shape: {msf_matrix.shape}")
         return msf_matrix
-
 
     def zscores(self, ref_msf: np.ndarray = None, msf_perturbed: np.ndarray = None, rank_norm: bool = False) -> np.ndarray:
         """
@@ -430,7 +402,7 @@ class ESSA2:
         np.save(fn, self._msf_matrix)
         print(f"Saved MSF matrix to {fn}")
 
-    def saveESSAZscores(self, fn: Optional[str] = None):
+    def saveZscores(self, fn: Optional[str] = None):
         if self._zscores is None:
             raise RuntimeError("ESSA Z-scores not computed. Run zscores() first.")
         if fn is None:
@@ -438,45 +410,121 @@ class ESSA2:
         np.save(fn, self._zscores)
         print(f"Saved ESSA Z-scores to {fn}")
 
-    def loadESSAZscores(self, fn: Optional[str] = None) -> np.ndarray:
+    def loadZscores(self, fn: Optional[str] = None) -> np.ndarray:
         if fn is None:
             fn = f"{self._title}_zs.npy"
         if not os.path.exists(fn):
             raise FileNotFoundError(f"Z-scores file not found: {fn}")
         self._zscores = np.load(fn)
         return self._zscores
+ 
+    def showLigResnums(self):
 
-    def saveLigResidues(self, fn="lig_resindices.npy"):
-        all_res = sorted({idx for group in self._ligres_idx.values() for idx in group})
-        np.save(fn, np.array(all_res, dtype=int))
-        print(f"Saved ligand-binding residue indices to {fn}")
+        if not getattr(self, "_ligres_code", None):
+            print("No ligand residue information available.")
+            return
 
-    def saveLigResidueZscores(self, fn="lig_zscores.npy"):
+        print("\nResidues near ligand(s):")
+        for lig_key, selections in self._ligres_code.items():
+            if not selections:
+                print(f"[{lig_key}]: (none)")
+                continue
+            sel_str = ", ".join(selections)
+            print(f"[{lig_key}]: {sel_str}")
+
+    def showLigResindices(self):
+
+        if not getattr(self, "_ligres_idx", None):
+            print("No ligand residue index information available.")
+            return
+        print("\nResidue indices near ligand(s):")
+        for lig_key, residx_list in self._ligres_idx.items():
+            indices_str = ", ".join(str(idx) for idx in residx_list)
+            print(f"[{lig_key}]: {indices_str}")
+
+    def saveLigResindices(self, outdir="ligres"):
+        """
+        Save residue indices near each ligand separately as .npy files.
+        Output directory is created if missing.
+        """
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+            print(f"Created directory: {outdir}")
+        else:
+            print(f"Using existing directory: {outdir}")
+
+        for lig_key, indices in self._ligres_idx.items():
+            fname = f"{lig_key}.npy"
+            fpath = os.path.join(outdir, fname)
+            arr = np.array(sorted(indices), dtype=int)
+            np.save(fpath, arr)
+            print(f"Saved {len(arr)} indices for ligand {lig_key} → {fpath}")
+
+        print("\nAll ligand-binding residue indices saved.\n")
+
+    def saveLigResZscores(self, outdir="ligres_zs"):
+        """
+        Save ESSA Z-scores for residue indices near each ligand, separately.
+        Creates output directory if needed.
+        """
         if self._zscores is None:
             raise RuntimeError("ESSA Z-scores not computed. Run zscores() first.")
-        all_res = sorted({idx for group in self._ligres_idx.values() for idx in group})
-        np.save(fn, self._zscores[all_res])
-        print(f"Saved ligand-binding Z-scores to {fn}")
 
-    def plotESSAZscores(self, zscores: Optional[np.ndarray] = None,
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+            print(f"Created directory: {outdir}")
+        else:
+            print(f"Using existing directory: {outdir}")
+
+        for lig_key, indices in self._ligres_idx.items():
+            idx_sorted = sorted(indices)
+            zvals = self._zscores[idx_sorted]
+            fname = f"{lig_key}.npy"
+            fpath = os.path.join(outdir, fname)
+            np.save(fpath, zvals)
+
+            print(f"Saved {len(zvals)} Z-scores for ligand {lig_key} → {fpath}")
+
+        print("\nAll ligand-binding Z-scores saved.\n")
+
+    def plotESSAZscores(self, 
+                        zscores: Optional[np.ndarray] = None,
                         title: str = "ESSA Profile",
-                        figsize: Tuple[int,int] = (6, 5)):
+                        figsize: Tuple[int, int] = (6, 5)):
+
         if zscores is None:
             if self._zscores is None:
                 raise RuntimeError("No ESSA Z-scores available. Compute or load them first.")
             zscores = self._zscores
 
         p75 = np.percentile(zscores, 75)
+
         plt.figure(figsize=figsize)
         plt.plot(zscores, lw=1.8, color='gray', label="ESSA Z-scores")
-        plt.axhline(p75, linestyle='--', color='black', alpha=0.6,
-                    label=f"75th percentile = {p75:.2f}")
+        plt.axhline(
+            p75, linestyle='--', color='black', alpha=0.6,
+            label=f"75th percentile = {p75:.2f}")
 
         if self._ligres_idx:
-            lig_indices = sorted({idx for group in self._ligres_idx.values() for idx in group})
-            plt.scatter(lig_indices, zscores[lig_indices], color='red', s=45,
-                        label="Ligand-binding residues")
+            cmap = plt.cm.get_cmap("tab10", len(self._ligres_idx))
+            colors = [cmap(i) for i in range(len(self._ligres_idx))]
 
+            for (i, (lig_key, indices)) in enumerate(self._ligres_idx.items()):
+                if len(indices) == 0:
+                    continue
+
+                idx_sorted = sorted(indices)
+
+                plt.scatter(
+                    idx_sorted,
+                    zscores[idx_sorted],
+                    color=colors[i],
+                    s=55,
+                    label=f"{lig_key}",
+                    edgecolor='black',
+                    linewidth=0.5,
+                    zorder=5)
+                
         plt.xlabel("Residue index")
         plt.ylabel("ESSA Z-score")
         plt.title(title)
@@ -503,7 +551,7 @@ class ESSA2:
         print(f"Saved ESSA Z-scores to PDB file: {fn}")
 
     def plotMSFchangeMap(self, msf_vals: Optional[np.ndarray] = None, ref_msf: Optional[np.ndarray] = None,
-                       highlight_indices: Optional[Sequence[int]] = None,
+                       highlight_indices: Optional[Sequence] = None,
                        sigma: float = 0.8, figsize: tuple = (5, 4), cmap: str = 'bwr_r',
                         percentile_clip: float = 98):
 
@@ -567,6 +615,7 @@ class ESSA2:
         from pandas import Index, DataFrame
         from shutil import which
         from scipy.stats import zscore
+        import pandas as pd
 
         fpocket = which('fpocket')
         if fpocket is None:
