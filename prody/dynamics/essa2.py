@@ -28,8 +28,13 @@ class ESSA2:
         self._ligres_idx = {}
         self._ligres_code = {}
         self.TRP_ROTAMERS = [                      
-                {"chi1": -60, "chi2":  90}]  
-
+                {"chi1": -60, "chi2":  90},
+                {"chi1": -60, "chi2": -90},
+                {"chi1":  60, "chi2":  90},
+                {"chi1":  60, "chi2": -90},
+                {"chi1": 180, "chi2":  90},
+                {"chi1": 180, "chi2": -90},
+            ]  
         self.TRP_TEMPLATE = {
                     "CG":  [1.50,   0.00,   0.00],
                     "CD1": [2.10,  -1.20,   0.00],
@@ -278,32 +283,47 @@ class ESSA2:
         io.set_structure(structure)
         io.save(tmp_pdb_path)
 
-    def scanResidues(self, residue_indices=None, tmp_dir=None):
+    def scanResidues(self, residue_indices=None, tmp_dir=None, num_rotamers: int = 1):
         """
-        Scan residues by mutating each to TRP using self.TRP_ROTAMERS, computing MSFs,
-        and averaging across rotamers. Returns msf_matrix (n_mutations x n_CAs).
+        Scan residues by mutating each to TRP using a subset of self.TRP_ROTAMERS,
+        computing MSFs, and averaging across rotamers.
+
+        Parameters
+        ----------
+        residue_indices : list[int]
+            Which residues to scan. Default: all CA residues.
+        tmp_dir : str
+            Temporary directory for mutated PDBs.
+        num_rotamers : int
+            Number of rotamers to use from self.TRP_ROTAMERS (default=1).
+            Automatically capped at len(self.TRP_ROTAMERS).
         """
+
         if not self._system_ready:
             raise RuntimeError("Call setSystem() first.")
 
         residue_indices = residue_indices or self._ca.getResnums()
         tmp_dir = tmp_dir or tempfile.gettempdir()
 
+        num_rotamers = max(1, min(num_rotamers, len(self.TRP_ROTAMERS)))
+        rotamer_list = self.TRP_ROTAMERS[:num_rotamers]
+
         n_res = len(residue_indices)
         n_ca = len(self._ca)
         msf_matrix = np.zeros((n_res, n_ca))
 
         print(f"Running mutation scan with {self.num_modes} GNM modes.")
-        #print(f"Scanning {n_res} residues...")
 
         total = len(residue_indices)
-        for i, res_idx in enumerate(residue_indices, 1):  # start counting from 1
+
+        for i, res_idx in enumerate(residue_indices, 1):
             print(f"\rScanning residues {i}/{total}", end="")
 
             rotamer_flucts = []
 
-            for rot in self.TRP_ROTAMERS:
+            for rot in rotamer_list:
                 tmp_pdb = os.path.join(tmp_dir, f"tmp_res{res_idx}.pdb")
+
                 # write mutated structure (applies chi1/chi2)
                 self._write_trp_mutation_pdb(res_idx, rot, tmp_pdb)
 
@@ -332,11 +352,11 @@ class ESSA2:
 
         print("\nDone scanning residues.")
         self._msf_matrix = msf_matrix
-
         print(f"Stored MSF matrix of shape: {msf_matrix.shape}")
+
         return msf_matrix
 
-    def zscores(self, ref_msf: np.ndarray = None, msf_perturbed: np.ndarray = None, rank_norm: bool = False) -> np.ndarray:
+    def zscores(self, ref_msf: np.ndarray = None, msf_perturbed: np.ndarray = None) -> np.ndarray:
         """
         Compute Z-scores from MSF differences.
 
@@ -371,18 +391,10 @@ class ESSA2:
         msf_diff = ref_msf - msf_perturbed
         avg_diff = np.mean(msf_diff, axis=1)
 
-        if rank_norm:
-            # Rank-based normalization
-            ranks = rankdata(avg_diff, method="average")
-            mean = ranks.mean()
-            std = ranks.std()
-            zscores = (ranks - mean) / std if std > 0 else ranks
-            self._zscores = zscores
-        else:
-            mean = avg_diff.mean()
-            std = avg_diff.std()
-            zscores = (avg_diff - mean) / std if std > 0 else avg_diff
-            self._zscores = zscores
+        mean = avg_diff.mean()
+        std = avg_diff.std()
+        zscores = (avg_diff - mean) / std if std > 0 else avg_diff
+        self._zscores = zscores
 
         return zscores
 
@@ -487,6 +499,22 @@ class ESSA2:
 
         print("\nAll ligand-binding Z-scores saved.\n")
 
+    def _ligand_color_map(self):
+        
+        if not hasattr(self, "_ligres_idx") or not self._ligres_idx:
+            return {}
+
+        cmap = plt.cm.get_cmap("tab10", len(self._ligres_idx))
+        color_map = {}
+
+        for i, (lig_key, indices) in enumerate(self._ligres_idx.items()):
+            if len(indices) == 0:
+                continue
+            for idx in indices:
+                color_map[idx] = cmap(i)
+
+        return color_map
+
     def plotESSAZscores(self, 
                         zscores: Optional[np.ndarray] = None,
                         title: str = "ESSA Profile",
@@ -506,24 +534,25 @@ class ESSA2:
             label=f"75th percentile = {p75:.2f}")
 
         if self._ligres_idx:
-            cmap = plt.cm.get_cmap("tab10", len(self._ligres_idx))
-            colors = [cmap(i) for i in range(len(self._ligres_idx))]
+            color_map = self._ligand_color_map()
 
-            for (i, (lig_key, indices)) in enumerate(self._ligres_idx.items()):
-                if len(indices) == 0:
+            for lig_key, indices in self._ligres_idx.items():
+                idx_sorted = sorted(indices)
+                if len(idx_sorted) == 0:
                     continue
 
-                idx_sorted = sorted(indices)
+                colors = [color_map[idx] for idx in idx_sorted]
 
                 plt.scatter(
                     idx_sorted,
                     zscores[idx_sorted],
-                    color=colors[i],
+                    color=colors,
                     s=55,
-                    label=f"{lig_key}",
+                    label=lig_key,
                     edgecolor='black',
                     linewidth=0.5,
-                    zorder=5)
+                    zorder=5
+                )
                 
         plt.xlabel("Residue index")
         plt.ylabel("ESSA Z-score")
@@ -532,12 +561,18 @@ class ESSA2:
         plt.tight_layout()
         plt.show()
 
-    def writeESSAZscoresToPDB(self, zscores: Optional[np.ndarray] = None, fn: Optional[str] = None):
+    def writeESSAZscoresToPDB(self, zscores: Optional[np.ndarray] = None, fn: Optional[str] = None, rank_norm: bool = False):
 
         if zscores is None:
             if self._zscores is None:
                 raise RuntimeError("No ESSA Z-scores available. Compute or load them first.")
             zscores = self._zscores
+
+        if rank_norm:
+            ranks = rankdata(zscores, method="average")
+            mean = ranks.mean()
+            std = ranks.std()
+            zscores = (ranks - mean) / std if std > 0 else ranks
 
         if not hasattr(self, "_heavy") or not hasattr(self, "_ca"):
             raise RuntimeError("System not set. Run setSystem() first.")
@@ -551,9 +586,9 @@ class ESSA2:
         print(f"Saved ESSA Z-scores to PDB file: {fn}")
 
     def plotMSFchangeMap(self, msf_vals: Optional[np.ndarray] = None, ref_msf: Optional[np.ndarray] = None,
-                       highlight_indices: Optional[Sequence] = None,
-                       sigma: float = 0.8, figsize: tuple = (5, 4), cmap: str = 'bwr_r',
-                        percentile_clip: float = 98):
+                     highlight_indices: Optional[Sequence] = None,
+                     sigma: float = 0.8, figsize: tuple = (5, 4), cmap: str = 'bwr_r',
+                     percentile_clip: float = 98):
 
         if msf_vals is None:
             if not hasattr(self, "_msf_matrix"):
@@ -578,26 +613,46 @@ class ESSA2:
             else:
                 highlight_indices = []
 
+        # --- Use the same ligand color mapping as ESSA Z-scores ---
+        color_map = self._ligand_color_map()
+
         fig = plt.figure(figsize=figsize)
         ax1 = fig.add_axes([0.06, 0.1, 0.64, 0.8])
         v = np.percentile(np.abs(smoothed), percentile_clip)
         im = ax1.imshow(smoothed, aspect='auto', origin='lower', cmap=cmap, vmin=-v, vmax=v)
+
         ax1.set_xlabel("Residues (j)", fontsize=16)
         ax1.set_ylabel("Residues (i)", fontsize=16)
         ax1.tick_params(labelsize=12)
 
         ax2 = fig.add_axes([0.71, 0.1, 0.10, 0.8], sharey=ax1)
         ax2.plot(avg_diff, residue_indices, color='gray', lw=1.5, zorder=1)
-        if len(highlight_indices) > 0:
-            ax2.scatter(avg_diff[highlight_indices], highlight_indices,
-                        color='red', edgecolors='black', s=20)
+
+        # --- Scatter points using consistent ligand colors ---
+        if hasattr(self, "_ligres_idx") and self._ligres_idx:
+            for lig_key, indices in self._ligres_idx.items():
+                idx_sorted = sorted(indices)
+                if len(idx_sorted) == 0:
+                    continue
+
+                colors = [color_map[idx] for idx in idx_sorted]
+
+                ax2.scatter(
+                    avg_diff[idx_sorted],
+                    idx_sorted,
+                    color=colors,      
+                    edgecolors='black',
+                    s=28,
+                    zorder=5
+                )
+
         ax2.set_xticks([])
         ax2.tick_params(left=False, labelleft=False)
         for spine in ax2.spines.values():
             spine.set_visible(False)
 
         cax = fig.add_axes([0.83, 0.1, 0.02, 0.8])
-        cbar = fig.colorbar(im, cax=cax)
+        cbar = plt.colorbar(im, cax=cax)
         cbar.set_label(r"$\Delta \mathrm{MSF}_{j|i}$ ", fontsize=16)
         cbar.ax.tick_params(labelsize=12)
 
