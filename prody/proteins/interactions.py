@@ -1702,6 +1702,43 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
         raise TypeError('An object should contain ions')
 
 
+def _analyseFrameTrajectory(j0, frame0_coords, atoms_copy, interaction_type, 
+                            interactions_dic, start_frame, kwargs):
+    """Worker function for trajectory frame analysis (module-level for pickling)."""
+    LOGGER.info('Frame: {0}'.format(j0))
+    atoms_copy.setCoords(frame0_coords)
+    protein = atoms_copy.select('protein')
+    interactions = interactions_dic[interaction_type](protein, **kwargs)
+    return interactions
+
+
+def _analyseFrameTrajectoryWrapper(j0, frame0_coords, atoms_copy, interaction_type, 
+                                   interactions_dic, start_frame, kwargs, interactions_all):
+    """Wrapper for multiprocessing with managed list."""
+    interactions = _analyseFrameTrajectory(j0, frame0_coords, atoms_copy, 
+                                          interaction_type, interactions_dic, 
+                                          start_frame, kwargs)
+    interactions_all.append(interactions)
+
+
+def _analyseFrameMultiModel(i, atoms, interaction_type, interactions_dic, 
+                            start_frame, kwargs):
+    """Worker function for multi-model PDB analysis (module-level for pickling)."""
+    LOGGER.info('Model: {0}'.format(i+start_frame))
+    atoms.setACSIndex(i+start_frame)
+    protein = atoms.select('protein')
+    interactions = interactions_dic[interaction_type](protein, **kwargs)
+    return interactions
+
+
+def _analyseFrameMultiModelWrapper(i, atoms, interaction_type, interactions_dic, 
+                                   start_frame, kwargs, interactions_all):
+    """Wrapper for multiprocessing with managed list."""
+    interactions = _analyseFrameMultiModel(i, atoms, interaction_type, 
+                                          interactions_dic, start_frame, kwargs)
+    interactions_all.append(interactions)
+
+
 def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs):
     """Compute selected type interactions for DCD trajectory or multi-model PDB 
     using default parameters or those from kwargs.
@@ -1750,17 +1787,14 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
             traj = trajectory[start_frame:stop_frame+1]
         
         atoms_copy = atoms.copy()
-        def analyseFrame(j0, frame0, interactions_all):
-            LOGGER.info('Frame: {0}'.format(j0))
-            atoms_copy.setCoords(frame0.getCoords())
-            protein = atoms_copy.select('protein')
-            interactions = interactions_dic[interaction_type](protein, **kwargs)
-            interactions_all.append(interactions)
 
         if max_proc == 1:
             interactions_all = []
             for j0, frame0 in enumerate(traj, start=start_frame):
-                analyseFrame(j0, frame0, interactions_all)
+                interactions = _analyseFrameTrajectory(j0, frame0.getCoords(), 
+                                                       atoms_copy, interaction_type, 
+                                                       interactions_dic, start_frame, kwargs)
+                interactions_all.append(interactions)
         else:
             with mp.Manager() as manager:
                 interactions_all = manager.list()
@@ -1771,9 +1805,12 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
                     processes = []
                     for _ in range(max_proc):
                         frame0 = traj[j0-start_frame]
+                        frame0_coords = frame0.getCoords()
                         
-                        p = mp.Process(target=analyseFrame, args=(j0, frame0,
-                                                                 interactions_all))
+                        p = mp.Process(target=_analyseFrameTrajectoryWrapper, 
+                                      args=(j0, frame0_coords, atoms_copy, 
+                                            interaction_type, interactions_dic, 
+                                            start_frame, kwargs, interactions_all))
                         p.start()
                         processes.append(p)
 
@@ -1791,20 +1828,15 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
     
     else:
         if atoms.numCoordsets() > 1:
-            def analyseFrame(i, interactions_all):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                protein = atoms.select('protein')
-                interactions = interactions_dic[interaction_type](protein, **kwargs)
-                interactions_all.append(interactions)
-
             if stop_frame == -1:
                 stop_frame = atoms.numCoordsets()
 
             if max_proc == 1:
                 interactions_all = []
                 for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
-                    analyseFrame(i, interactions_all)
+                    interactions = _analyseFrameMultiModel(i, atoms, interaction_type, 
+                                                          interactions_dic, start_frame, kwargs)
+                    interactions_all.append(interactions)
             else:
                 with mp.Manager() as manager:
                     interactions_all = manager.list()
@@ -1813,7 +1845,10 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
                     while i < len(atoms.getCoordsets()[start_frame:stop_frame+1]):
                         processes = []
                         for _ in range(max_proc):
-                            p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                            p = mp.Process(target=_analyseFrameMultiModelWrapper, 
+                                         args=(i, atoms, interaction_type, 
+                                               interactions_dic, start_frame, 
+                                               kwargs, interactions_all))
                             p.start()
                             processes.append(p)
 
