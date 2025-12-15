@@ -478,11 +478,21 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             alt = ' '
 
         try:
-            coordinates[acount] = [linefields[fields['Cartn_x']],
-                                   linefields[fields['Cartn_y']],
-                                   linefields[fields['Cartn_z']]]
-        except KeyError as e:
-            raise MMCIFParseError('mmCIF file is missing required coordinate field: {0}.'.format(str(e)))
+            x_coord = linefields[fields['Cartn_x']]
+        except KeyError:
+            raise MMCIFParseError('mmCIF file is missing required field: Cartn_x.')
+        
+        try:
+            y_coord = linefields[fields['Cartn_y']]
+        except KeyError:
+            raise MMCIFParseError('mmCIF file is missing required field: Cartn_y.')
+        
+        try:
+            z_coord = linefields[fields['Cartn_z']]
+        except KeyError:
+            raise MMCIFParseError('mmCIF file is missing required field: Cartn_z.')
+        
+        coordinates[acount] = [x_coord, y_coord, z_coord]
         atomnames[acount] = atomname
         resnames[acount] = resname
         chainids[acount] = chID
