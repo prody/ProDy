@@ -329,7 +329,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 start = i
             if i + 1 < len(lines) and not lines[i + 1].startswith(("ATOM", "HETATM", "#", "_")):
                 line = line.strip() + " " + lines[i + 1].strip() + "\n"
-            models.append(line.split()[fields['pdbx_PDB_model_num']])
+            try:
+                models.append(line.split()[fields['pdbx_PDB_model_num']])
+            except KeyError:
+                raise MMCIFParseError('mmCIF file is missing required field: pdbx_PDB_model_num.')
             if len(models) == 1 or (models[asize] != models[asize-1]):
                 nModels += 1
             asize += 1
@@ -411,7 +414,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             lineidx += 1
             linefields += lines[lineidx].split()
         
-        startswith = linefields[fields['group_PDB']]
+        try:
+            startswith = linefields[fields['group_PDB']]
+        except KeyError:
+            raise MMCIFParseError('mmCIF file is missing required field: group_PDB.')
 
         try:
             atomname = linefields[fields['auth_atom_id']]
@@ -438,8 +444,15 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if not (atomname in subset and resname in protein_resnames):
                 continue
 
-        chID = linefields[fields['label_asym_id']]
-        segID = linefields[fields['auth_asym_id']]
+        try:
+            chID = linefields[fields['label_asym_id']]
+        except KeyError:
+            raise MMCIFParseError('mmCIF file is missing required field: label_asym_id.')
+        
+        try:
+            segID = linefields[fields['auth_asym_id']]
+        except KeyError:
+            raise MMCIFParseError('mmCIF file is missing required field: auth_asym_id.')
 
         if chain is not None:
             if isinstance(chain, str):
@@ -456,14 +469,20 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if not segID in segment:
                 continue
 
-        alt = linefields[fields['label_alt_id']]
+        try:
+            alt = linefields[fields['label_alt_id']]
+        except KeyError:
+            raise MMCIFParseError('mmCIF file is missing required field: label_alt_id.')
 
         if alt == '.':
             alt = ' '
 
-        coordinates[acount] = [linefields[fields['Cartn_x']],
-                               linefields[fields['Cartn_y']],
-                               linefields[fields['Cartn_z']]]
+        try:
+            coordinates[acount] = [linefields[fields['Cartn_x']],
+                                   linefields[fields['Cartn_y']],
+                                   linefields[fields['Cartn_z']]]
+        except KeyError as e:
+            raise MMCIFParseError('mmCIF file is missing required coordinate field: {0}.'.format(str(e)))
         atomnames[acount] = atomname
         resnames[acount] = resname
         chainids[acount] = chID
@@ -492,8 +511,15 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         if icodes[acount] == '?' or icodes[acount] == '.':
             icodes[acount] = ''
 
-        serials[acount] = linefields[fields['id']]
-        elements[acount] = linefields[fields['type_symbol']]
+        try:
+            serials[acount] = linefields[fields['id']]
+        except KeyError:
+            raise MMCIFParseError('mmCIF file is missing required field: id.')
+        
+        try:
+            elements[acount] = linefields[fields['type_symbol']]
+        except KeyError:
+            raise MMCIFParseError('mmCIF file is missing required field: type_symbol.')
         if 'B_iso_or_equiv' in fields.keys():
             bfactors[acount] = linefields[fields['B_iso_or_equiv']]
         if 'occupancy' in fields.keys():
