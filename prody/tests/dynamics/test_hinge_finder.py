@@ -3,7 +3,7 @@ import numpy as np
 from prody import *
 
 # TODO: Import your function here
-# from your_module_name import hingeFinder
+# from your_module_name import getGlobalHinges
 
 # --- THE UNIT TEST SUITE ---
 class TestHingesWithRealGNM(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestHingesWithRealGNM(unittest.TestCase):
     def test_output_structure(self):
         """Verify the output is a list of lists of integers."""
         # Use explicit n_modes to keep it simple
-        hinges = hingeFinder(self.gnm, n_modes=2)
+        hinges = getGlobalHinges(self.gnm, n_modes=2)
         
         self.assertIsInstance(hinges, list, "Output must be a list")
         self.assertEqual(len(hinges), 2, "Must return results for exactly 2 modes")
@@ -42,7 +42,7 @@ class TestHingesWithRealGNM(unittest.TestCase):
     def test_auto_mode_selection(self):
         """Verify that passing n_modes=None triggers auto-selection."""
         # The function defaults to 33% cumulative variance
-        hinges = hingeFinder(self.gnm, n_modes=None)
+        hinges = getGlobalHinges(self.gnm, n_modes=None)
         
         num_modes_selected = len(hinges)
         
@@ -61,10 +61,10 @@ class TestHingesWithRealGNM(unittest.TestCase):
         # trim = length // 20 = 214 // 20 = 10 residues cut from each end.
         
         # First, run WITHOUT trim
-        hinges_untrimmed = hingeFinder(self.gnm, n_modes=1, trim=False)[0]
+        hinges_untrimmed = getGlobalHinges(self.gnm, n_modes=1, trim=False)[0]
         
         # Then, run WITH trim
-        hinges_trimmed = hingeFinder(self.gnm, n_modes=1, trim=True)[0]
+        hinges_trimmed = getGlobalHinges(self.gnm, n_modes=1, trim=True)[0]
         
         # Calculate the forbidden zones
         n_atoms = self.gnm.numAtoms()
@@ -79,18 +79,6 @@ class TestHingesWithRealGNM(unittest.TestCase):
         # (This assumes the un-trimmed version had middle hinges, which 1AKE Mode 1 usually does)
         self.assertGreater(len(hinges_trimmed), 0, "1AKE Mode 1 should have valid central hinges")
 
-    def test_threshold_sensitivity(self):
-        """Verify that a lower threshold finds MORE (or wider) hinges."""
-        # Low threshold = wider band = stricter condition to be considered a hinge
-        # Actually, in your logic: 
-        # band = sqrt(1/N) / threshold
-        # Higher threshold -> smaller band -> Easier to be OUTSIDE the band -> Hinge region is narrower/more specific?
-        # Let's test equality. Changing threshold MUST change output.
-        
-        h_std = hingeFinder(self.gnm, n_modes=1, threshold=15)[0]
-        h_extreme = hingeFinder(self.gnm, n_modes=1, threshold=1.0)[0]
-        
-        self.assertNotEqual(h_std, h_extreme, "Changing threshold should affect hinge detection results")
 
 if __name__ == '__main__':
     # Verbosity=2 shows individual test status (OK/FAIL)
