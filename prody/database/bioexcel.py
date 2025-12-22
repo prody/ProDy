@@ -71,7 +71,9 @@ def fetchBioexcelPDB(acc, **kwargs):
     if selection is not None:
         url += '?selection=' + selection.replace(" ","%20")
     
-    filepath = requestFromUrl(url, timeout, filepath, source='pdb', **kwargs)
+    # Remove timeout from kwargs to avoid passing it twice
+    kwargs_copy = {k: v for k, v in kwargs.items() if k != 'timeout'}
+    filepath = requestFromUrl(url, timeout, filepath, source='pdb', **kwargs_copy)
 
     return filepath
 
@@ -136,7 +138,9 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     if selection is not None:
         url += '&selection=' + selection.replace(" ","%20")
 
-    filepath = requestFromUrl(url, timeout, filepath, source='xtc', **kwargs)
+    # Remove timeout from kwargs to avoid passing it twice
+    kwargs_copy = {k: v for k, v in kwargs.items() if k != 'timeout'}
+    filepath = requestFromUrl(url, timeout, filepath, source='xtc', **kwargs_copy)
 
     if convert:
         filepath = convertXtcToDcd(filepath, **kwargs)
@@ -188,7 +192,9 @@ def fetchBioexcelTopology(acc, **kwargs):
 
     if not isfile(filepath):
         url = prefix + acc + "/topology"
-        filepath = requestFromUrl(url, timeout, filepath, source='json', **kwargs)
+        # Remove timeout from kwargs to avoid passing it twice
+        kwargs_copy = {k: v for k, v in kwargs.items() if k != 'timeout'}
+        filepath = requestFromUrl(url, timeout, filepath, source='json', **kwargs_copy)
 
     if convert:
         ag = parseBioexcelTopology(filepath, **kwargs)
