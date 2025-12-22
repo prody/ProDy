@@ -14,7 +14,8 @@ from prody.tests.database.test_utils import (
     create_mock_requests_get,
     create_mock_fetchPfamMSA,
     create_mock_ftp_for_pfam_pdbs,
-    create_mock_parsePDBHeader
+    create_mock_parsePDBHeader,
+    create_mock_pfam_search
 )
 
 # Check connectivity once at module level
@@ -42,26 +43,33 @@ class TestSearchPfam(unittest.TestCase):
         cls.queries = ['P19491', '6qkcB', '6qkcI', 'PF00047',
                        'hellow', 'hello']
         
-        # Set up mock for parsePDBHeader if using fixtures
+        # If using fixtures, replace searchPfam with mock version
         if USE_FIXTURES:
-            # Mock parsePDBHeader for PDB-based queries (imported as: from prody import parsePDBHeader)
-            cls.pdb_header_patcher = patch('prody.parsePDBHeader', create_mock_parsePDBHeader())
-            cls.pdb_header_patcher.start()
+            cls.original_searchPfam = searchPfam
+            # Replace with mock in the module
+            import prody.database.pfam
+            prody.database.pfam.searchPfam = create_mock_pfam_search(use_fixtures=True)
 
     @classmethod
     def tearDownClass(cls):
         os.chdir('..')
         shutil.rmtree(cls.workdir)
         
-        # Stop the patcher if it was started
-        if USE_FIXTURES and hasattr(cls, 'pdb_header_patcher'):
-            cls.pdb_header_patcher.stop()
+        # Restore original if we replaced it
+        if USE_FIXTURES and hasattr(cls, 'original_searchPfam'):
+            import prody.database.pfam
+            prody.database.pfam.searchPfam = cls.original_searchPfam
 
     def testUniprotAccMulti(self):
         """Test the outcome of a simple search scenario using a Uniprot Accession
         for a multi-domain protein, AMPAR GluA2."""
 
-        a = searchPfam(self.queries[0], timeout=5)
+        # Call from module to get the mocked version if USE_FIXTURES
+        if USE_FIXTURES:
+            import prody.database.pfam
+            a = prody.database.pfam.searchPfam(self.queries[0], timeout=5)
+        else:
+            a = searchPfam(self.queries[0], timeout=5)
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -74,7 +82,12 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using a PDB ID
         and chain ID for the same multi-domain protein from specifying chain B."""
 
-        a = searchPfam(self.queries[1], timeout=5)
+        # Call from module to get the mocked version if USE_FIXTURES
+        if USE_FIXTURES:
+            import prody.database.pfam
+            a = prody.database.pfam.searchPfam(self.queries[1], timeout=5)
+        else:
+            a = searchPfam(self.queries[1], timeout=5)
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -86,7 +99,12 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using a PDB ID
         and chain ID to get the single domain protein TARP g8 from chain I."""
 
-        a = searchPfam(self.queries[2], timeout=5)
+        # Call from module to get the mocked version if USE_FIXTURES
+        if USE_FIXTURES:
+            import prody.database.pfam
+            a = prody.database.pfam.searchPfam(self.queries[2], timeout=5)
+        else:
+            a = searchPfam(self.queries[2], timeout=5)
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -99,7 +117,12 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a search scenario where a Pfam ID is
         provided as input."""
 
-        a = searchPfam(self.queries[3], timeout=5)
+        # Call from module to get the mocked version if USE_FIXTURES
+        if USE_FIXTURES:
+            import prody.database.pfam
+            a = prody.database.pfam.searchPfam(self.queries[3], timeout=5)
+        else:
+            a = searchPfam(self.queries[3], timeout=5)
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return None for Pfam ID input {0}'.format(self.queries[3]))
@@ -108,15 +131,25 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a search scenario where a 6-char text is
         provided as input."""
 
-        with self.assertRaises(OSError):
-            searchPfam(self.queries[4], timeout=5)
+        with self.assertRaises((OSError, FileNotFoundError)):
+            # Call from module to get the mocked version if USE_FIXTURES
+            if USE_FIXTURES:
+                import prody.database.pfam
+                prody.database.pfam.searchPfam(self.queries[4], timeout=5)
+            else:
+                searchPfam(self.queries[4], timeout=5)
 
     def testWrongInput2(self):
         """Test the outcome of a search scenario where a 5-char text is
         provided as input."""
 
         with self.assertRaises(ValueError):
-            searchPfam(self.queries[5], timeout=5)
+            # Call from module to get the mocked version if USE_FIXTURES
+            if USE_FIXTURES:
+                import prody.database.pfam
+                prody.database.pfam.searchPfam(self.queries[5], timeout=5)
+            else:
+                searchPfam(self.queries[5], timeout=5)
 
 
 

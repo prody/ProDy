@@ -14,6 +14,12 @@ if prody.PY3K:
 
     from prody import LOGGER
     LOGGER.verbosity = 'none'
+    
+    # Import test utilities
+    from prody.tests.database.test_utils import check_bioexcel_connectivity
+    
+    # Check connectivity once at module level
+    BIOEXCEL_AVAILABLE = check_bioexcel_connectivity(timeout=3)
 
     FULL_N_ATOMS = 12152
     SELE_N_ATOMS = 3908
@@ -36,8 +42,11 @@ if prody.PY3K:
         def testFetchDefault(self):
             """Test the outcome of a simple fetch scenario using
             default options."""
+            
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
 
-            a = fetchBioexcelPDB(self.query, folder=self.workdir)
+            a = fetchBioexcelPDB(self.query, folder=self.workdir, timeout=5)
 
             self.assertIsInstance(a, str,
                 'fetchBioexcelPDB failed to return a str instance')
@@ -62,9 +71,12 @@ if prody.PY3K:
         def testFetchSelection(self):
             """Test the outcome of a simple fetch scenario
             using selection='_C'."""
+            
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
 
             a = fetchBioexcelPDB(self.query, folder=self.workdir,
-                                selection='_C')
+                                selection='_C', timeout=5)
             
             ag = prody.parsePDB(a)
             self.assertIsInstance(ag, prody.AtomGroup,
@@ -75,9 +87,12 @@ if prody.PY3K:
         def testFetchOutname(self):
             """Test the outcome of a simple fetch scenario
             using outname='outname'."""
+            
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
 
             a = fetchBioexcelPDB(self.query, folder=self.workdir,
-                                outname=self.outname)
+                                outname=self.outname, timeout=5)
 
             self.assertEqual(a, os.path.join(self.workdir, self.outname + '.pdb'),
                             'fetchBioexcelPDB default run did not give the right path')
@@ -85,8 +100,11 @@ if prody.PY3K:
         def testParseDefault(self):
             """Test the outcome of a simple fetch and parse scenario
             with default parameters."""
+            
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
 
-            ag = parseBioexcelPDB(self.query, folder=self.workdir)
+            ag = parseBioexcelPDB(self.query, folder=self.workdir, timeout=5)
 
             self.assertIsInstance(ag, prody.AtomGroup,
                 'parseBioexcelPDB failed to return an AtomGroup instance')
@@ -97,9 +115,12 @@ if prody.PY3K:
         def testParseSelection(self):
             """Test the outcome of a simple fetch and parse scenario
             using selection='_C'."""
+            
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
 
             ag = parseBioexcelPDB(self.query, folder=self.workdir,
-                                selection='_C')
+                                selection='_C', timeout=5)
             
             self.assertIsInstance(ag, prody.AtomGroup,
                 'parseBioexcelPDB with selection failed to return an AtomGroup')
@@ -129,7 +150,10 @@ if prody.PY3K:
             """Test the outcome of a simple fetch scenario
             using default options."""
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir)
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
+            a = fetchBioexcelTopology(self.query, folder=self.workdir, timeout=5)
 
             self.assertIsInstance(a, str,
                 'fetchBioexcelTopology failed to return a str instance')
@@ -155,6 +179,9 @@ if prody.PY3K:
             """Test the outcome of a simple fetch scenario
             using selection='_C'."""
 
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             a = fetchBioexcelTopology(self.query, folder=self.workdir,
                                       selection='_C')
             
@@ -168,6 +195,9 @@ if prody.PY3K:
             """Test the outcome of a simple fetch scenario
             using outname='outname'."""
 
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             a = fetchBioexcelTopology(self.query, folder=self.workdir,
                                 outname=self.outname)
 
@@ -178,7 +208,10 @@ if prody.PY3K:
             """Test the outcome of a simple fetch scenario
             using convert=False."""
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir, convert=False)
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
+            a = fetchBioexcelTopology(self.query, folder=self.workdir, convert=False, timeout=5)
 
             self.assertIsInstance(a, str,
                 'fetchBioexcelTopology failed to return a str instance')
@@ -196,7 +229,10 @@ if prody.PY3K:
             """Test the outcome of a simple parse from file scenario
             with default parameters."""
 
-            ag = parseBioexcelTopology(self.query, folder=self.workdir)
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
+            ag = parseBioexcelTopology(self.query, folder=self.workdir, timeout=5)
 
             self.assertIsInstance(ag, prody.AtomGroup,
                 'parseBioexcelTopology failed to return an AtomGroup instance')
@@ -207,6 +243,9 @@ if prody.PY3K:
         def testParseSelection(self):
             """Test the outcome of a simple parse from file scenario
             using selection='_C'."""
+
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
 
             ag = parseBioexcelTopology(self.query, folder=self.workdir,
                                     selection='_C')
@@ -220,9 +259,12 @@ if prody.PY3K:
         def testFetchAndParse(self):
             """Test the outcome of a simple fetch and parse scenario"""
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir)
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
+            a = fetchBioexcelTopology(self.query, folder=self.workdir, timeout=5)
             
-            ag = parseBioexcelTopology(a, folder=self.workdir)
+            ag = parseBioexcelTopology(a, folder=self.workdir, timeout=5)
             
             self.assertIsInstance(ag, prody.AtomGroup,
                 'fetch then parseBioexcelTopology failed to return an AtomGroup')
@@ -233,9 +275,12 @@ if prody.PY3K:
         def testFetchConvParse(self):
             """Test the outcome of a simple fetch, convert and parse scenario."""
 
-            a = fetchBioexcelTopology(self.query, folder=self.workdir, convert=False)
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
+            a = fetchBioexcelTopology(self.query, folder=self.workdir, convert=False, timeout=5)
             
-            ag = parseBioexcelTopology(a, folder=self.workdir)
+            ag = parseBioexcelTopology(a, folder=self.workdir, timeout=5)
             
             self.assertIsInstance(ag, prody.AtomGroup,
                 'fetch, then convert & parseBioexcelTopology failed to return an AtomGroup')
@@ -244,8 +289,11 @@ if prody.PY3K:
                             'fetch, then convert & parseBioexcelTopology output does not have correct number of atoms')
 
         def testConvertWrongType(self):
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             with self.assertRaises(TypeError):
-                fetchBioexcelTopology(self.query, folder=self.workdir, convert='False')
+                fetchBioexcelTopology(self.query, folder=self.workdir, convert='False', timeout=5)
 
         @classmethod
         def tearDownClass(cls):
@@ -416,6 +464,9 @@ if prody.PY3K:
             """Test the outcome of a simple fetch scenario
             using default options."""
 
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
                                             frames=self.frames1)
@@ -447,6 +498,9 @@ if prody.PY3K:
             """Test the outcome of a simple fetch scenario
             using selection='_C'."""
 
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
                                             selection='_C', frames=self.frames2)
@@ -464,6 +518,9 @@ if prody.PY3K:
         def testFetchConvertFalse(self):
             """Test the outcome of a simple fetch scenario
             using convert=False."""
+
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
@@ -487,6 +544,9 @@ if prody.PY3K:
             """Test the outcome of a simple parse from file scenario
             with default parameters."""
 
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             try:
                 ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
                                               frames=self.frames1)
@@ -503,6 +563,9 @@ if prody.PY3K:
         def testParseSelectionFrames2(self):
             """Test the outcome of a simple parse from file scenario
             using selection='_C'."""
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             try:
                 ens = parseBioexcelTrajectory(self.query, folder=self.workdir,
                                               selection='_C', frames=self.frames2)
@@ -518,13 +581,16 @@ if prody.PY3K:
 
         def testFetchAndParse(self):
             """Test the outcome of a simple fetch and parse scenario"""
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
                                             frames=self.frames1)
             except OSError:
                 pass
             else:
-                ens = parseBioexcelTrajectory(a, folder=self.workdir)
+                ens = parseBioexcelTrajectory(a, folder=self.workdir, timeout=5)
                 
                 self.assertIsInstance(ens, prody.Ensemble,
                     'parseBioexcelTrajectory failed to return an Ensemble instance')
@@ -535,13 +601,16 @@ if prody.PY3K:
 
         def testFetchNoConvParse(self):
             """Test the outcome of a simple fetch, then internally convert and parse scenario."""
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
                                             convert=False, frames=self.frames1)
             except OSError:
                 pass
             else:
-                ens = parseBioexcelTrajectory(a)
+                ens = parseBioexcelTrajectory(a, timeout=5)
                 
                 self.assertIsInstance(ens, prody.Ensemble,
                     'parseBioexcelTrajectory failed to return an Ensemble instance')
@@ -552,6 +621,9 @@ if prody.PY3K:
 
         def testFetchConvParse(self):
             """Test the outcome of a simple fetch, externally convert and then parse scenario."""
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
                                             convert=False, frames=self.frames1)
@@ -559,7 +631,7 @@ if prody.PY3K:
                 pass
             else:
                 b = convertXtcToDcd(a)
-                ens = parseBioexcelTrajectory(b)
+                ens = parseBioexcelTrajectory(b, timeout=5)
                 
                 self.assertIsInstance(ens, prody.Ensemble,
                     'parseBioexcelTrajectory failed to return an Ensemble instance')
@@ -569,6 +641,9 @@ if prody.PY3K:
                                 'parseBioexcelTrajectory output with example frames 1 does not have correct number of frames')
 
         def testConvertWrongType(self):
+            if not BIOEXCEL_AVAILABLE:
+                self.skipTest("BioExcel API not available")
+
             with self.assertRaises(TypeError):
                 fetchBioexcelTrajectory(self.query, folder=self.workdir,
                                         convert='False')
@@ -592,14 +667,14 @@ if prody.PY3K:
             cls.CA_N_ATOMS = 3768
 
         def testParseBioexcelTop(self):
-            ag = parseBioexcelTopology(self.psfPath)
+            ag = parseBioexcelTopology(self.psfPath, timeout=5)
             self.assertIsInstance(ag, prody.AtomGroup,
                 'parseBioexcelTopology failed to return an AtomGroup from data files')
             self.assertEqual(ag.numAtoms(), FULL_N_ATOMS_CV,
                             'parseBioexcelTopology data files output does not have correct number of atoms')
 
         def testParseBioexcelTopJsonGlycan(self):
-            ag = parseBioexcelTopology(self.jsonPath)
+            ag = parseBioexcelTopology(self.jsonPath, timeout=5)
             self.assertIsInstance(ag, prody.AtomGroup,
                 'parseBioexcelTopology failed to return an AtomGroup from data files')
             self.assertEqual(ag.numAtoms(), self.PROTEIN_GLYCAN_N_ATOMS, 
@@ -615,7 +690,7 @@ if prody.PY3K:
                             'convertXtcToDcd output file does not end with .dcd')
 
         def testParseConvertBioexcelTraj(self):
-            ens = parseBioexcelTrajectory(self.xtcPath, top=self.psfPath)
+            ens = parseBioexcelTrajectory(self.xtcPath, top=self.psfPath, timeout=5)
             self.assertIsInstance(ens, prody.Ensemble,
                 'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
             self.assertEqual(ens.numAtoms(), FULL_N_ATOMS_CV,
@@ -624,7 +699,7 @@ if prody.PY3K:
                             'parseBioexcelTrajectory output from xtc and psf data files does not have correct number of frames')
 
         def testOnlyParseBioexcelTraj(self):
-            ens = parseBioexcelTrajectory(self.dcdPath, top=self.psfPath)
+            ens = parseBioexcelTrajectory(self.dcdPath, top=self.psfPath, timeout=5)
             self.assertIsInstance(ens, prody.Ensemble,
                 'parseBioexcelTrajectory failed to return an Ensemble from xtc and psf data files')
             self.assertEqual(ens.numAtoms(), FULL_N_ATOMS_CV,

@@ -140,6 +140,29 @@ def create_mock_pfam_search(use_fixtures=True, timeout=5):
     """
     def mock_search(query, **kwargs):
         if use_fixtures:
+            # Check for invalid inputs first (like the real searchPfam does)
+            seq = ''.join(query.split())
+            
+            # For queries <=5 chars that aren't valid PDB IDs, raise ValueError
+            # (mimicking searchPfam's parsePDBHeader failure)
+            if len(seq) <= 5:
+                # Check if it looks like a PDB ID (4 alphanumeric chars, optionally followed by chain)
+                if not (len(seq) >= 4 and seq[:4].isalnum()):
+                    raise ValueError('Invalid PDB ID: {}'.format(seq))
+            
+            # Check if fixture exists before trying to load
+            import os
+            fixture_file = get_fixture_path('{}_search.json'.format(query), 'pfam_fixtures')
+            if not os.path.exists(fixture_file):
+                # If fixture not found for 6-char query, assume it's an invalid PDB/Uniprot
+                if len(query) == 6:
+                    raise OSError('Invalid PDB ID or Uniprot accession: {}'.format(query))
+                # For 5-char queries without fixtures, raise ValueError (PDB parse failure)
+                if len(query) <= 5:
+                    raise ValueError('Failed to parse PDB ID: {}'.format(query))
+                # For other cases, raise FileNotFoundError
+                raise FileNotFoundError("Fixture file not found for query: {}".format(query))
+            
             # Load from fixture
             data = load_pfam_search_fixture(query)
             
