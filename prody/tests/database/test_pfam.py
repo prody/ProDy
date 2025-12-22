@@ -20,20 +20,15 @@ from prody.tests.database.test_utils import (
 # Check connectivity once at module level
 USE_FIXTURES = not check_pfam_connectivity(timeout=3)
 
-# Patch requests at the module level before importing pfam functions
-if USE_FIXTURES:
-    import requests as real_requests
-    # Create a wrapper that will be used for all requests
-    _mock_get = create_mock_requests_get(use_fixtures=True)
-    real_requests.get = _mock_get
-
-# Now import after patching
+# Import the pfam functions
 from prody.database.pfam import searchPfam
 from prody.database.pfam import fetchPfamMSA
 from prody.database.pfam import parsePfamPDBs
 
 from prody.atomic.selection import Selection
 from ftplib import FTP
+
+# If using fixtures, we'll replace the functions at module level later in each test class
 
 class TestSearchPfam(unittest.TestCase):
     
@@ -135,17 +130,34 @@ class TestFetchPfamMSA(unittest.TestCase):
         if not os.path.exists(cls.workdir):
             os.mkdir(cls.workdir)
         os.chdir(cls.workdir)
+        
+        # If using fixtures, replace fetchPfamMSA with mock version
+        if USE_FIXTURES:
+            cls.original_fetchPfamMSA = fetchPfamMSA
+            # Replace with mock in the module
+            import prody.database.pfam
+            prody.database.pfam.fetchPfamMSA = create_mock_fetchPfamMSA(use_fixtures=True)
 
     @classmethod
     def tearDownClass(cls):
         os.chdir('..')
         shutil.rmtree(cls.workdir)
+        
+        # Restore original if we replaced it
+        if USE_FIXTURES and hasattr(cls, 'original_fetchPfamMSA'):
+            import prody.database.pfam
+            prody.database.pfam.fetchPfamMSA = cls.original_fetchPfamMSA
 
     def testDefault(self):
         """Test the outcome of fetching the domain MSA for claudins
         with default parameters."""
 
-        b = fetchPfamMSA(self.query, timeout=5)
+        # Call from module to get the mocked version if USE_FIXTURES
+        if USE_FIXTURES:
+            import prody.database.pfam
+            b = prody.database.pfam.fetchPfamMSA(self.query, timeout=5)
+        else:
+            b = fetchPfamMSA(self.query, timeout=5)
 
         self.assertIsInstance(b, str,
             'fetchPfamMSA failed to return a str instance')
@@ -159,7 +171,12 @@ class TestFetchPfamMSA(unittest.TestCase):
         """Test the outcome of fetching the domain MSA for claudins
         with the alignment type argument set to seed"""
 
-        b = fetchPfamMSA(self.query, "seed", timeout=5)
+        # Call from module to get the mocked version if USE_FIXTURES
+        if USE_FIXTURES:
+            import prody.database.pfam
+            b = prody.database.pfam.fetchPfamMSA(self.query, "seed", timeout=5)
+        else:
+            b = fetchPfamMSA(self.query, "seed", timeout=5)
 
         self.assertIsInstance(b, str,
             'fetchPfamMSA failed to return a str instance')
@@ -174,7 +191,13 @@ class TestFetchPfamMSA(unittest.TestCase):
 
         folder = "new_folder"
         os.mkdir(folder)
-        b = fetchPfamMSA(self.query, folder=folder, timeout=5)
+        
+        # Call from module to get the mocked version if USE_FIXTURES
+        if USE_FIXTURES:
+            import prody.database.pfam
+            b = prody.database.pfam.fetchPfamMSA(self.query, folder=folder, timeout=5)
+        else:
+            b = fetchPfamMSA(self.query, folder=folder, timeout=5)
 
         self.assertIsInstance(b, str,
             'fetchPfamMSA failed to return a str instance')
