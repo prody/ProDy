@@ -1,0 +1,60 @@
+{
+  "results": [
+    {
+      "metadata": {
+        "accession": "PF00822",
+        "name": "Claudin",
+        "source_database": "pfam",
+        "type": "domain",
+        "member_databases": {
+          "pfam": {
+            "PF00822": {}
+          }
+        }
+      },
+      "proteins": [
+        {
+          "entry_protein_locations": [
+            {
+              "fragments": [
+                {
+                  "start": 13,
+                  "end": 207
+                }
+              ],
+              "score": 5.2e-30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "accession": "PF13903",
+        "name": "Claudin_2",
+        "source_database": "pfam",
+        "type": "domain",
+        "member_databases": {
+          "pfam": {
+            "PF13903": {}
+          }
+        }
+      },
+      "proteins": [
+        {
+          "entry_protein_locations": [
+            {
+              "fragments": [
+                {
+                  "start": 5,
+                  "end": 80
+                }
+              ],
+              "score": 1.8e-15
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

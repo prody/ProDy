@@ -1,0 +1,88 @@
+{
+  "results": [
+    {
+      "metadata": {
+        "accession": "PF00060",
+        "name": "Ligand_chan",
+        "source_database": "pfam",
+        "type": "domain",
+        "member_databases": {
+          "pfam": {
+            "PF00060": {}
+          }
+        }
+      },
+      "proteins": [
+        {
+          "entry_protein_locations": [
+            {
+              "fragments": [
+                {
+                  "start": 411,
+                  "end": 541
+                }
+              ],
+              "score": 1.5e-25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "accession": "PF01094",
+        "name": "ANF_receptor",
+        "source_database": "pfam",
+        "type": "domain",
+        "member_databases": {
+          "pfam": {
+            "PF01094": {}
+          }
+        }
+      },
+      "proteins": [
+        {
+          "entry_protein_locations": [
+            {
+              "fragments": [
+                {
+                  "start": 549,
+                  "end": 803
+                }
+              ],
+              "score": 2.3e-20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "metadata": {
+        "accession": "PF10613",
+        "name": "Lig_chan-Glu_bd",
+        "source_database": "pfam",
+        "type": "domain",
+        "member_databases": {
+          "pfam": {
+            "PF10613": {}
+          }
+        }
+      },
+      "proteins": [
+        {
+          "entry_protein_locations": [
+            {
+              "fragments": [
+                {
+                  "start": 12,
+                  "end": 397
+                }
+              ],
+              "score": 3.1e-50
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
