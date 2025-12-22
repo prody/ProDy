@@ -338,7 +338,10 @@ def create_mock_ftp_for_pfam_pdbs(use_fixtures=True):
         return None  # Use real FTP
     
     # Mock FTP data - minimal mapping for tests
-    mock_pdb_pfam_mapping = """PDB_ID	CHAIN	PDB_START	PDB_END	PFAM_ACC	PFAM_NAME	PFAM_START	PFAM_END
+    # Format matches what pfam.py expects: Line 0 is ignored, Line 1 has headers, Line 2+ has data
+    # Note: The actual code uses rawdata.split('\n')[1] for field names (line index 1, not 0)
+    mock_pdb_pfam_mapping = """# Pfam PDB Mapping File
+PDB	CHAIN	PDB_START	PDB_END	PFAM_ACC	PFAM_NAME	PFAM_START	PFAM_END
 7pj2	A	1	60	PF20446	ATPase_N_2	1	60
 7pj2	B	1	60	PF20446	ATPase_N_2	1	60
 7pj3	A	1	60	PF20446	ATPase_N_2	1	60

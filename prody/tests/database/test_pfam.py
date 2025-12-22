@@ -277,6 +277,9 @@ class TestParsePfamPDBs(unittest.TestCase):
         of ABC class ATPase N-terminal domains (5 members)
         with the Pfam ID and default parameters."""
 
+        if USE_FIXTURES:
+            self.skipTest("Test requires PDB downloads - skipped in fixture mode")
+
         b = parsePfamPDBs(self.queries[0], timeout=5)
 
         self.assertIsInstance(b, list,
@@ -378,6 +381,9 @@ class TestParsePfamPDBs(unittest.TestCase):
         """Test the outcome of parsing PDBs for a tiny family
         of ABC class ATPase N-terminal domains (5 members)
         with the Pfam ID and default parameters."""
+
+        if USE_FIXTURES:
+            self.skipTest("Test requires PDB downloads - skipped in fixture mode")
 
         b = parsePfamPDBs(self.queries[0], num_pdbs=2, timeout=5)
 
