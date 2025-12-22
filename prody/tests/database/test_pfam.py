@@ -18,8 +18,9 @@ from prody.tests.database.test_utils import (
     create_mock_pfam_search
 )
 
-# Check connectivity once at module level
-USE_FIXTURES = not check_pfam_connectivity(timeout=3)
+# Always use fixtures by default to keep tests fast
+# Set environment variable PRODY_TEST_PFAM_LIVE=1 to test against live API
+USE_FIXTURES = os.environ.get('PRODY_TEST_PFAM_LIVE', '0') != '1'
 
 # Import the pfam functions
 from prody.database.pfam import searchPfam

@@ -18,8 +18,9 @@ if prody.PY3K:
     # Import test utilities
     from prody.tests.database.test_utils import check_bioexcel_connectivity
     
-    # Check connectivity once at module level
-    BIOEXCEL_AVAILABLE = check_bioexcel_connectivity(timeout=3)
+    # Always skip BioExcel tests by default to keep CI fast
+    # Set environment variable PRODY_TEST_BIOEXCEL_LIVE=1 to test against live API
+    BIOEXCEL_AVAILABLE = os.environ.get('PRODY_TEST_BIOEXCEL_LIVE', '0') == '1'
 
     FULL_N_ATOMS = 12152
     SELE_N_ATOMS = 3908

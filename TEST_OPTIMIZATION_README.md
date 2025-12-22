@@ -5,10 +5,24 @@ This document describes the changes made to reduce ProDy test suite runtime from
 
 ## Final Status: ✅ COMPLETE
 
-**Total Runtime**: < 2 seconds (vs 30+ minutes potential)
+**Total Runtime**: < 6 seconds for all database tests (vs 30+ minutes potential)
 **Tests Optimized**: 
-- Pfam tests: 9/9 passing in 0.89s
-- BioExcel tests: 32 passing, 23 skipping in 1.16s
+- Pfam tests: 9/9 passing in <1s using fixtures
+- BioExcel tests: 32 passing, 27 skipping in <1s
+- All database tests: Complete in 5.68s
+
+## Key Change: Tests Now Use Fixtures by Default
+
+**Important**: Tests now ALWAYS use fixtures/skip by default to ensure fast CI runs. This prevents slow network calls even when services are available.
+
+To test against live APIs (for development/debugging):
+```bash
+# Test Pfam against live API
+PRODY_TEST_PFAM_LIVE=1 python -m pytest prody/tests/database/test_pfam.py
+
+# Test BioExcel against live API  
+PRODY_TEST_BIOEXCEL_LIVE=1 python -m pytest prody/tests/database/test_bioexcel.py
+```
 
 ## Changes Made
 
@@ -35,24 +49,24 @@ Created cached response fixtures for Pfam tests:
 ### 3. Modified Test Files
 
 #### `prody/tests/database/test_pfam.py` ✅ COMPLETE
-- **TestSearchPfam**: 6/6 tests passing in 0.88s
-  - Added connectivity check at module level (3s timeout)
+- **Default behavior**: Always uses fixtures (set `PRODY_TEST_PFAM_LIVE=1` to test live)
+- **TestSearchPfam**: 6/6 tests passing in <1s
   - Implemented function replacement strategy for mocking
-  - All tests use fixtures when network unavailable
+  - All tests use fixtures by default
   - Proper error handling (ValueError, OSError, FileNotFoundError)
-  - Timeout=5 on all searchPfam calls
+  - Timeout=5 on all searchPfam calls when testing live
 
-- **TestFetchPfamMSA**: 3/3 tests passing in 0.88s
+- **TestFetchPfamMSA**: 3/3 tests passing in <1s
   - Uses mocked `fetchPfamMSA` with fixtures
   - Tests copy fixtures to working directory
-  - Timeout=5 on all fetch operations
+  - Timeout=5 on all fetch operations when testing live
 
 - **TestParsePfamPDBs**: Skipped (would need complex PDB download fixtures)
 
 **Total**: 9/9 tests passing in 0.89s
 
 #### `prody/tests/database/test_bioexcel.py` ✅ COMPLETE
-- Added connectivity check at module level (3s timeout)
+- **Default behavior**: Always skips tests (set `PRODY_TEST_BIOEXCEL_LIVE=1` to test live)
 - Added `timeout=5` parameter to ALL fetch/parse calls:
   - `fetchBioexcelPDB()`
   - `fetchBioexcelTopology()`
@@ -61,23 +75,31 @@ Created cached response fixtures for Pfam tests:
   - `parseBioexcelTopology()`
   - `parseBioexcelTrajectory()`
 
-- Added skip decorators when `BIOEXCEL_AVAILABLE=False`:
+- Skip decorators when `BIOEXCEL_AVAILABLE=False` (default):
   - TestFetchParseBioexcelPDB (5 tests)
   - TestFetchConvertParseBioexcelTop (9 tests)
   - TestFetchConvertParseBioexcelTraj (11 tests)
 
-**Total**: 32 tests passing, 23 skipping in 1.16s
+**Total**: 32 tests passing (local data), 27 skipping (network) in <1s
 
-### 4. Test Execution Strategy
-When network is available:
-- Attempt live connection with strict 3-5s timeouts
-- Pfam tests use fixtures as primary source
-- BioExcel tests use live API with timeout protection
+### 4. Core Fixes - `bioexcel.py`
+- Added `timeout=request_timeout` to `requests.get()` call (prevents hanging)
+- Filter `timeout` from kwargs before passing to `requestFromUrl()` (prevents TypeError)
+- Cap individual request timeout at 10 seconds max
 
-When network is unavailable:
+### 5. Test Execution Strategy
+
+**Default (CI and local)**:
 - Pfam tests use cached fixtures exclusively
-- BioExcel tests skip gracefully with informative messages
-- Tests remain deterministic and fast
+- BioExcel tests skip network-dependent tests
+- Tests complete in <6 seconds total
+- No network dependencies, no hangs
+
+**Live testing (development/debugging)**:
+- Set `PRODY_TEST_PFAM_LIVE=1` to test Pfam against live API
+- Set `PRODY_TEST_BIOEXCEL_LIVE=1` to test BioExcel against live API  
+- All network calls have strict 5-10s timeouts
+- Tests fall back gracefully on network errors
 
 ## Testing Results
 
@@ -89,12 +111,12 @@ When network is unavailable:
 - CI builds frequently timed out
 
 ### After Optimization  
-- **Pfam tests**: 9/9 passing in 0.89s (99.5% faster)
-- **BioExcel tests**: Complete in 1.16s with graceful skips
-- **Total runtime**: < 2 seconds vs 30+ minutes potential
-- Tests never hang due to strict timeouts
-- Tests pass reliably using fixtures when network is down
-- Connectivity checks complete in <1s
+- **Pfam tests**: 9/9 passing in <1s using fixtures (99.9% faster)
+- **BioExcel tests**: Complete in <1s with graceful skips  
+- **All database tests**: Complete in 5.68s total
+- Tests never hang - no network calls by default
+- Tests pass reliably using fixtures
+- CI runs are fast and stable
 
 ## Technical Implementation
 
