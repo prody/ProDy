@@ -183,7 +183,7 @@ if prody.PY3K:
                 self.skipTest("BioExcel API not available")
 
             a = fetchBioexcelTopology(self.query, folder=self.workdir,
-                                      selection='_C')
+                                      selection='_C', timeout=5)
             
             ag = prody.parsePSF(a)
             self.assertIsInstance(ag, prody.AtomGroup,
@@ -199,7 +199,7 @@ if prody.PY3K:
                 self.skipTest("BioExcel API not available")
 
             a = fetchBioexcelTopology(self.query, folder=self.workdir,
-                                outname=self.outname)
+                                outname=self.outname, timeout=5)
 
             self.assertEqual(a, os.path.join(self.workdir, self.outname + '.psf'),
                             'fetchBioexcelPDB default run did not give the right path')
@@ -248,7 +248,7 @@ if prody.PY3K:
                 self.skipTest("BioExcel API not available")
 
             ag = parseBioexcelTopology(self.query, folder=self.workdir,
-                                    selection='_C')
+                                    selection='_C', timeout=5)
             
             self.assertIsInstance(ag, prody.AtomGroup,
                 'parseBioexcelTopology with selection failed to return an AtomGroup')
@@ -469,7 +469,7 @@ if prody.PY3K:
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            frames=self.frames1)
+                                            frames=self.frames1, timeout=5)
             except OSError:
                 pass
             else:
@@ -503,7 +503,7 @@ if prody.PY3K:
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            selection='_C', frames=self.frames2)
+                                            selection='_C', frames=self.frames2, timeout=5)
             except OSError:
                 pass
             else:
@@ -524,7 +524,7 @@ if prody.PY3K:
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            convert=False, frames=self.frames1)
+                                            convert=False, frames=self.frames1, timeout=5)
             except OSError:
                 pass
             else:
@@ -586,7 +586,7 @@ if prody.PY3K:
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            frames=self.frames1)
+                                            frames=self.frames1, timeout=5)
             except OSError:
                 pass
             else:
@@ -606,7 +606,7 @@ if prody.PY3K:
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            convert=False, frames=self.frames1)
+                                            convert=False, frames=self.frames1, timeout=5)
             except OSError:
                 pass
             else:
@@ -626,7 +626,7 @@ if prody.PY3K:
 
             try:
                 a = fetchBioexcelTrajectory(self.query, folder=self.workdir,
-                                            convert=False, frames=self.frames1)
+                                            convert=False, frames=self.frames1, timeout=5)
             except OSError:
                 pass
             else:

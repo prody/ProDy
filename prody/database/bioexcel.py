@@ -350,9 +350,11 @@ def requestFromUrl(url, timeout, filepath, source=None, **kwargs):
     LOGGER.timeit('_bioexcel')
     response = None
     sleep = 2
+    # Use a small timeout for individual requests to prevent hanging
+    request_timeout = min(timeout, 10)  # Cap individual request timeout at 10 seconds
     while LOGGER.timing('_bioexcel') < timeout:
         try:
-            response = requests.get(url).content
+            response = requests.get(url, timeout=request_timeout).content
 
             if source == 'json':
                 json.loads(response)
