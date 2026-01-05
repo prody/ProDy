@@ -61,6 +61,6 @@ __all__.extend(functions.__all__)
 
 from . import sdf_summary
 from .sdf_summary import *
-__all__.extend(ligand_efficiency.__all__)
+__all__.extend(sdf_summary.__all__)
 
 

@@ -61,10 +61,11 @@ line; in that case, see the docstring of :func:`calcLigandEfficiencyFromSDF`
 for details of the generated CSV columns and how to control the input
 and output paths.
 """
-__author__ = 'Anupam Banerjee'
-__email__ = ['anupam.banerjee@stonybrook.edu']
 
 from __future__ import annotations
+
+__author__ = 'Anupam Banerjee'
+__email__ = ['anupam.banerjee@stonybrook.edu']
 
 import argparse
 import csv
@@ -72,12 +73,15 @@ import math
 import sys
 from typing import List, Tuple, Optional
 
-from rdkit import Chem, RDLogger
-from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors as rdmd, Lipinski
-from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
-from rdkit.Chem import SDWriter
-from rdkit.Chem import QED
-from rdkit.Chem.MolStandardize import rdMolStandardize as std
+try:
+    from rdkit import Chem, RDLogger
+    from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors as rdmd, Lipinski
+    from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
+    from rdkit.Chem import SDWriter
+    from rdkit.Chem import QED
+    from rdkit.Chem.MolStandardize import rdMolStandardize as std
+except ImportError:
+    raise ImportError('Please install rdkit in order to use this functionality.')
 
 __all__ = ["calcLigandEfficiencyFromSDF"]
 
