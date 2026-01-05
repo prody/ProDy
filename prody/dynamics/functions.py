@@ -494,17 +494,8 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         exanm.buildHessian(atoms, gamma=gamma, **kwargs)
         enm = exanm
         MaskedModel = MaskedExANM
-    elif model.lower() in ('genanm', 'generalized', 'generalized_anm', 'canm', 'constrained', 'constrained_anm'):
-        # Generalized ANM model (with backward compatibility for old names)
-        if model.lower() in ('canm', 'constrained', 'constrained_anm'):
-            import warnings
-            warnings.warn(
-                "Model names 'canm', 'constrained', and 'constrained_anm' are deprecated. "
-                "Please use 'genANM', 'generalized', or 'generalized_anm' instead.",
-                DeprecationWarning,
-                stacklevel=2
-            )
-        
+    elif model.lower() in ('genanm', 'generalized', 'generalized_anm'):
+        # Generalized ANM model
         try:
             from generalized_anm import genANM  # your local file
         except ImportError:
