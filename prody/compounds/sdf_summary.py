@@ -80,8 +80,9 @@ try:
     from rdkit.Chem import SDWriter
     from rdkit.Chem import QED
     from rdkit.Chem.MolStandardize import rdMolStandardize as std
+    HAVE_RDKIT = True
 except ImportError:
-    raise ImportError('Please install rdkit in order to use this functionality.')
+    HAVE_RDKIT = False
 
 __all__ = ["calcLigandEfficiencyFromSDF"]
 
@@ -165,15 +166,17 @@ def build_catalog(cat_type) -> FilterCatalog:
     params.AddCatalog(cat_type)
     return FilterCatalog(params)
 
-
-# Filter catalogs
-FC_PAINS_A = build_catalog(FilterCatalogParams.FilterCatalogs.PAINS_A)
-FC_PAINS_B = build_catalog(FilterCatalogParams.FilterCatalogs.PAINS_B)
-FC_PAINS_C = build_catalog(FilterCatalogParams.FilterCatalogs.PAINS_C)
-FC_BRENK = build_catalog(FilterCatalogParams.FilterCatalogs.BRENK)
-FC_NIH = build_catalog(FilterCatalogParams.FilterCatalogs.NIH)
-FC_ZINC = build_catalog(FilterCatalogParams.FilterCatalogs.ZINC)
-
+# Filter catalogs - only initialize if RDKit is present
+if HAVE_RDKIT:
+    FC_PAINS_A = build_catalog(FilterCatalogParams.FilterCatalogs.PAINS_A)
+    FC_PAINS_B = build_catalog(FilterCatalogParams.FilterCatalogs.PAINS_B)
+    FC_PAINS_C = build_catalog(FilterCatalogParams.FilterCatalogs.PAINS_C)
+    FC_BRENK = build_catalog(FilterCatalogParams.FilterCatalogs.BRENK)
+    FC_NIH = build_catalog(FilterCatalogParams.FilterCatalogs.NIH)
+    FC_ZINC = build_catalog(FilterCatalogParams.FilterCatalogs.ZINC)
+else:
+    FC_PAINS_A = FC_PAINS_B = FC_PAINS_C = None
+    FC_BRENK = FC_NIH = FC_ZINC = None
 
 def list_alerts(
     mol: Chem.Mol,
@@ -552,6 +555,9 @@ def calcLigandEfficiencyFromSDF(
       ``extract_sdf`` output.
     """
     ...
+
+    if not HAVE_RDKIT:
+        raise ImportError('Please install rdkit in order to use this functionality.')
 
     maybe_quiet_rdkit(quiet)
 
