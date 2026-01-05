@@ -342,7 +342,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         if i == len(lines) - 1:
             if foundAtomBlock:
                 doneAtomBlock = True
-                stop = i
+                stop = i + 1
             else:
                 raise MMCIFParseError('mmCIF file contained no atoms.')
 
