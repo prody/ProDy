@@ -494,15 +494,17 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         exanm.buildHessian(atoms, gamma=gamma, **kwargs)
         enm = exanm
         MaskedModel = MaskedExANM
-    elif model.lower() in ('canm', 'constrained', 'constrained_anm'):
-        # Deprecated backward compatibility for constrained_anm
-        import warnings
-        warnings.warn(
-            "Model names 'canm', 'constrained', and 'constrained_anm' are deprecated. "
-            "Please use 'genANM', 'generalized', or 'generalized_anm' instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
+    elif model.lower() in ('genanm', 'generalized', 'generalized_anm', 'canm', 'constrained', 'constrained_anm'):
+        # Generalized ANM model (with backward compatibility for old names)
+        if model.lower() in ('canm', 'constrained', 'constrained_anm'):
+            import warnings
+            warnings.warn(
+                "Model names 'canm', 'constrained', and 'constrained_anm' are deprecated. "
+                "Please use 'genANM', 'generalized', or 'generalized_anm' instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+        
         try:
             from generalized_anm import genANM  # your local file
         except ImportError:
@@ -528,36 +530,6 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
                           symmetrize=symmetrize)
 
         enm = genanm
-        MaskedModel = MaskedANM
-    elif model.lower() in ('genanm', 'generalized', 'generalized_anm'):
-        # Your Generalized ANM model
-        try:
-            from generalized_anm import genANM  # your local file
-        except ImportError:
-            # fallback if you later put generalized_anm inside the ProDy dynamics package
-            from .generalized_anm import genANM
-        genanm = genANM(title)
-
-        # Extract generalized-ANM parameters, with defaults if missing
-        cutoff = kwargs.pop('cutoff', 15.0)       # your example value
-        k_theta = kwargs.pop('k_theta', 10.0)      # example
-        k_phi = kwargs.pop('k_phi', 1.0)           # example
-        kappa = kwargs.pop('kappa', 20.0)          # example
-        include_sequential = kwargs.pop('include_sequential', True)
-        symmetrize = kwargs.pop('symmetrize', True)
-
-        # Build generalized Hessian
-        genanm.buildHessian(atoms,
-                          cutoff=cutoff,
-                          gamma=gamma,
-                          k_theta=k_theta,
-                          k_phi=k_phi,
-                          kappa=kappa,
-                          include_sequential=include_sequential,
-                          symmetrize=symmetrize)
-
-        enm = genanm
-
         # Reuse the same masked model as ANM because genANM is a subclass of ANM
         MaskedModel = MaskedANM
     else:
