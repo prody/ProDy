@@ -356,6 +356,10 @@ from . import adaptive
 from .adaptive import *
 __all__.extend(adaptive.__all__)
 
+from . import adaptive2
+from .adaptive2 import *
+__all__.extend(adaptive2.__all__)
+
 from . import clustenm
 from .clustenm import *
 __all__.extend(clustenm.__all__)
