@@ -190,7 +190,6 @@ class genANM(ANM):
             except TypeError:
                 raise TypeError('coords must be a Numpy array or an object with `getCoords` method')
 
-        #cutoff, g, gamma_checked = checkENMParameters(cutoff, gamma)
         cutoff, g, gamma_func = checkENMParameters(cutoff, gamma)
 
         # generalized-specific parameters
@@ -212,21 +211,11 @@ class genANM(ANM):
         self._cutoff = cutoff
         self._gamma = g
         n_atoms = coords.shape[0]
-        #H = build_generalized_hessian(
-        #    coords,
-        #    cutoff=cutoff,
-        #    gamma=gamma_checked,
-        #    k_theta=k_theta,
-        #    k_phi=k_phi,
-        #    kappa=kappa,
-        #    include_sequential=include_sequential,
-        #    symmetrize=symmetrize,
-        #)
 
         H = build_generalized_hessian(
             coords,
             cutoff=cutoff,
-            gamma=g,  # <--- Use 'g' (the value) instead of the function
+            gamma=g,
             k_theta=k_theta,
             k_phi=k_phi,
             kappa=kappa,
