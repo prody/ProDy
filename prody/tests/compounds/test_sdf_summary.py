@@ -3,7 +3,7 @@ import csv
 import pytest
 
 # 1. Skip all tests if RDKit is not installed
-pytest.importorskip("rdkit")
+pytest.importorskip("rdkit", allow_module_level=True)
 
 # 2. Import everything from prody
 from prody import *
