@@ -12,7 +12,13 @@ from numpy import array, savez, save
 from scipy.ndimage import gaussian_filter
 from scipy.stats import rankdata
 
-from prody import *
+from .anm import ANM
+from .gnm import GNM
+from .analysis import calcFractVariance, calcSqFlucts
+from .editing import reduceModel
+from .compare import matchModes
+from prody.proteins import parsePDB, writePDB
+
 import matplotlib.pyplot as plt
 from Bio.PDB import PDBIO, PDBParser, Atom
 
