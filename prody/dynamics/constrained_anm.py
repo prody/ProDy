@@ -16,12 +16,12 @@ This implementation uses dense NumPy arrays (no sparse support). For very large
 systems, consider implementing a sparse version.
 """
 
+from __future__ import annotations
 
 __author__ = 'Anupam Banerjee'
 __credits__ = ['Anthony Bogetti']
 __email__ = ['anupam.banerjee@stonybrook.edu', 'anthony.bogetti@stonybrook.edu']
 
-from __future__ import annotations
 import numpy as np
 
 from prody import LOGGER
@@ -190,7 +190,8 @@ class cANM(ANM):
             except TypeError:
                 raise TypeError('coords must be a Numpy array or an object with `getCoords` method')
 
-        cutoff, g, gamma_checked = checkENMParameters(cutoff, gamma)
+        #cutoff, g, gamma_checked = checkENMParameters(cutoff, gamma)
+        cutoff, g, gamma_func = checkENMParameters(cutoff, gamma)
 
         # constrained-specific parameters
         k_theta = float(kwargs.pop('k_theta', 0.5))
@@ -211,10 +212,21 @@ class cANM(ANM):
         self._cutoff = cutoff
         self._gamma = g
         n_atoms = coords.shape[0]
+        #H = build_constrained_hessian(
+        #    coords,
+        #    cutoff=cutoff,
+        #    gamma=gamma_checked,
+        #    k_theta=k_theta,
+        #    k_phi=k_phi,
+        #    kappa=kappa,
+        #    include_sequential=include_sequential,
+        #    symmetrize=symmetrize,
+        #)
+
         H = build_constrained_hessian(
             coords,
             cutoff=cutoff,
-            gamma=gamma_checked,
+            gamma=g,  # <--- Use 'g' (the value) instead of the function
             k_theta=k_theta,
             k_phi=k_phi,
             kappa=kappa,
