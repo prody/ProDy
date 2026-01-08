@@ -683,32 +683,32 @@ def getHinges(v, threshold=15, space=None):
                 j += 1
             regs.append(list(range(start, end + 1)))
     
-      ### Merge overlapping or adjacent regions (separated by space value) ###
-                
-        regs = sorted(regs, key=lambda x: x[0])
-        merged = [regs[0]]
-        s = 1 + space if space is not None else 0
-        
-        for curr in regs[1:]:
-            prev = merged[-1]
-            if curr[0] <= prev[-1] + s:
-                merged[-1] = list(range(prev[0], max(prev[-1], curr[-1]) + 1))
-            else:
-                merged.append(curr)
-
-        ### Select hinges from regions ###
-        fil=[]
-        for reg in merged:
-            av = np.abs(v[reg])
+    ### Merge overlapping or adjacent regions (separated by space value) ###
             
-            if len(reg) >= s + 4: # region with length of 2+ discrete regions
-                fil.extend([reg[i] for i in np.argsort(av)[:2] if av < band]) # end hinges within band
-            else:
-                if v[reg[0]] * v[reg[-1]] > 0 : # skip transient region
-                    continue
-                fil.append(reg[np.argmin(av)]) # minimum point as hinge
+    regs = sorted(regs, key=lambda x: x[0])
+    merged = [regs[0]]
+    s = 1 + space if space is not None else 0
+    
+    for curr in regs[1:]:
+        prev = merged[-1]
+        if curr[0] <= prev[-1] + s:
+            merged[-1] = list(range(prev[0], max(prev[-1], curr[-1]) + 1))
+        else:
+            merged.append(curr)
 
-        return [int(x) for x in fil]
+    ### Select hinges from regions ###
+    fil=[]
+    for reg in merged:
+        av = np.abs(v[reg])
+        
+        if len(reg) >= s + 4: # region with length of 2+ discrete regions
+            fil.extend([reg[i] for i in np.argsort(av)[:2]]) # end hinges within band
+        else:
+            if v[reg[0]] * v[reg[-1]] > 0 : # skip transient region
+                continue
+            fil.append(reg[np.argmin(av)]) # minimum point as hinge
+
+    return [int(x) for x in fil]
     
 
 def _getModeVecs(gnm, n_modes=None, min_variance=0.33, atoms=None):
@@ -794,7 +794,7 @@ def getGlobalHinges(gnm, n_modes=None, threshold=15, space=None, atoms=None, min
         fst = 0
         for chain in hv.iterChains():
             n = chain.numAtoms()
-            chains.append((fst, fst + n))
+            chains.append((fst, fst + n - 1))
             fst += n
     else:
         chains = [(0, p)]
@@ -803,16 +803,15 @@ def getGlobalHinges(gnm, n_modes=None, threshold=15, space=None, atoms=None, min
         hinges = []
         
         for fst, lst in chains:
+            l = lst + 1 - fst
             h = getHinges(vecs[fst:lst, i], threshold, space)
-            h = [x + fst for x in h]
-            hinges.extend(h)
-        
-        n_hinges.append(sorted(hinges))
+            
+        if trim is not False:
+            hinges.extend(x + fst for x in h if trim <= x < l - trim)
+        else:
+            hinges.extend(x + fst for x in h)
 
-    if trim == False:
-        return n_hinges
-    else:
-        n_hinges = [[h for h in hinges if h >= trim and h < (p - trim)] for hinges in n_hinges]
+        n_hinges.append(sorted(hinges))
 
     return n_hinges
 
