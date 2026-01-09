@@ -54,3 +54,4 @@ Documentation/*
 *log
 *BAK
 *.sublime*
+*.npy
