@@ -1968,7 +1968,7 @@ class DruGUI:
                         eq2.write("    run              1000;\n")
                         eq2.write("}\n")
                         eq2.write(f"langevinTemp    600\n")
-                        eq2.write(f"run           300000;")
+                        eq2.write(f"run           300000;\n")
                         eq2.write("for {set T 570} {$T >= 300} {incr T -30} {\n")
                         eq2.write(f"    langevinTemp     $T;\n")
                         eq2.write(f"	   run             1000;\n")
