@@ -239,6 +239,9 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
     to use projection itself.
+    
+    By default, the projection is not normalized. If you would like it to be,
+    pass ``norm=True``.
 
     Matplotlib function used for plotting depends on the number of modes:
 
