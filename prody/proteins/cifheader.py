@@ -876,6 +876,7 @@ def _getPolymers(lines, **kwargs):
     polymers = dict()
 
     entities = defaultdict(list)
+    longSeq = kwargs.get('longSeq', False)
 
     # SEQRES block
     items1 = parseSTARSection(lines, '_entity_poly', report=False)

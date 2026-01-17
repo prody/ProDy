@@ -314,7 +314,10 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
         try:
             url = getURL(pdb)
             if kwargs.get('format', 'pdb') != 'pdb':
-                url = url.replace('.pdb', extension)
+                if url.find('.pdb') != -1:
+                    url = url.replace('.pdb', extension)
+                elif url.find('.ent') != -1:
+                    url = url.replace('.ent', extension)
             handle = openURL(url)
         except Exception as err:
             if not (eval(long_id_check_str % 12) or eval(long_id_check_str % 13)):
