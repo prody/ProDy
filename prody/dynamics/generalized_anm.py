@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Constrained ANM (cANM)
-A ProDy-compatible ANM subclass that builds a constrained Hessian with:
+"""Generalized ANM (genANM)
+A ProDy-compatible ANM subclass that builds a generalized Hessian with:
  - pairwise distance springs (ANM-style)
  - 3-body bond-angle terms
  - 4-body torsional/dihedral terms
  - backbone curvature (discrete second-difference) term
 
 This module provides:
- - class cANM(ANM)
- - calcCANM(...) convenience function, analogous to calcANM in anm.py
+ - class genANM(ANM)
+ - calcGenANM(...) convenience function, analogous to calcANM in anm.py
 
 Notes
 -----
@@ -30,10 +30,10 @@ from prody.utilities import checkCoords
 from prody.dynamics.anm import ANM
 from prody.dynamics.gnm import checkENMParameters
 
-__all__ = ['cANM', 'calcCANM']
+__all__ = ['genANM', 'calcGenANM']
 
 # ---------------------------------------------------------------------------
-# Internal helpers to assemble constrained Hessian
+# Internal helpers to assemble generalized Hessian
 # ---------------------------------------------------------------------------
 
 def _pairwise_blocks(coords: np.ndarray, cutoff: float, k_pair: float, include_sequential: bool) -> np.ndarray:
@@ -138,7 +138,7 @@ def _backbone_curvature_blocks(coords: np.ndarray, kappa: float) -> np.ndarray:
     return H
 
 
-def build_constrained_hessian(
+def build_generalized_hessian(
     coords: np.ndarray,
     cutoff: float = 10.0,
     gamma: float = 1.0,
@@ -148,7 +148,7 @@ def build_constrained_hessian(
     include_sequential: bool = True,
     symmetrize: bool = True,
 ) -> np.ndarray:
-    """Assemble the constrained Hessian from an (N,3) coordinate array."""
+    """Assemble the generalized Hessian from an (N,3) coordinate array."""
     H = (
         _pairwise_blocks(coords, cutoff=cutoff, k_pair=gamma, include_sequential=include_sequential)
         + _angle_blocks(coords, k_theta=k_theta)
@@ -164,14 +164,14 @@ def build_constrained_hessian(
 # ProDy-compatible subclass
 # ---------------------------------------------------------------------------
 
-class cANM(ANM):
-    """Constrained ANM that behaves like a ProDy ANM/NMA object."""
+class genANM(ANM):
+    """Generalized ANM that behaves like a ProDy ANM/NMA object."""
 
-    def __init__(self, name: str = 'cANM') -> None:
+    def __init__(self, name: str = 'genANM') -> None:
         super().__init__(name)
 
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
-        """Build constrained Hessian from coordinates or an object exposing getCoords().
+        """Build generalized Hessian from coordinates or an object exposing getCoords().
 
         Additional keyword arguments (defaults shown):
           k_theta=0.5
@@ -190,10 +190,9 @@ class cANM(ANM):
             except TypeError:
                 raise TypeError('coords must be a Numpy array or an object with `getCoords` method')
 
-        #cutoff, g, gamma_checked = checkENMParameters(cutoff, gamma)
         cutoff, g, gamma_func = checkENMParameters(cutoff, gamma)
 
-        # constrained-specific parameters
+        # generalized-specific parameters
         k_theta = float(kwargs.pop('k_theta', 0.5))
         k_phi = float(kwargs.pop('k_phi', 0.2))
         kappa = float(kwargs.pop('kappa', 0.8))
@@ -202,7 +201,7 @@ class cANM(ANM):
 
         # Do not support sparse construction in this reference implementation
         if kwargs.pop('sparse', False):
-            raise NotImplementedError('sparse=True is not supported by constrained ANM (dense NumPy used).')
+            raise NotImplementedError('sparse=True is not supported by generalized ANM (dense NumPy used).')
 
         coords = np.asarray(coords, dtype=float)
         if coords.ndim != 2 or coords.shape[1] != 3:
@@ -212,21 +211,11 @@ class cANM(ANM):
         self._cutoff = cutoff
         self._gamma = g
         n_atoms = coords.shape[0]
-        #H = build_constrained_hessian(
-        #    coords,
-        #    cutoff=cutoff,
-        #    gamma=gamma_checked,
-        #    k_theta=k_theta,
-        #    k_phi=k_phi,
-        #    kappa=kappa,
-        #    include_sequential=include_sequential,
-        #    symmetrize=symmetrize,
-        #)
 
-        H = build_constrained_hessian(
+        H = build_generalized_hessian(
             coords,
             cutoff=cutoff,
-            gamma=g,  # <--- Use 'g' (the value) instead of the function
+            gamma=g,
             k_theta=k_theta,
             k_phi=k_phi,
             kappa=kappa,
@@ -245,9 +234,9 @@ class cANM(ANM):
 # Convenience functions
 # ---------------------------------------------------------------------------
 
-def calcCANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
-             zeros=False, title=None, **kwargs):
-    """Perform cANM calculation and return (cANM, selection) similar to calcANM.
+def calcGenANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
+               zeros=False, title=None, **kwargs):
+    """Perform genANM calculation and return (genANM, selection) similar to calcANM.
 
     Accepts the same kinds of inputs as calcANM:
       - numpy.ndarray (Hessian or coords) => if array is Hessian, accepted directly
@@ -261,7 +250,7 @@ def calcCANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
         H = pdb
         if title is None:
             title = 'Unknown'
-        model = cANM(title)
+        model = genANM(title)
         model.setHessian(H)
         model.calcModes(n_modes, zeros)
         return model
@@ -281,7 +270,7 @@ def calcCANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
         else:
             raise TypeError('pdb must be an atomic class, not {0}'.format(type(pdb)))
 
-        model = cANM(title)
+        model = genANM(title)
         sel = ag.select(selstr)
         model.buildHessian(sel, cutoff, gamma, **kwargs)
         model.calcModes(n_modes, zeros)
