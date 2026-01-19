@@ -76,9 +76,7 @@ class DruGUI:
         self.outdir_location = tk.StringVar()
         self.output_prefix = tk.StringVar()
         self.par_files_list = [
-        "probe.prm", "par_all36_cgenff.prm", "par_all27_prot_lipid_na.inp",
-        "par_all36_lipid.prm", "par_all36_prot.prm", "par_all36_carb.prm",
-        "par_all36_na.prm", "toppar_water_ions.str"
+        "probe.prm"
         ]
         self.par_files = tk.StringVar(value='\n'.join(self.par_files_list))
         self.tk_vmd_executable = tk.StringVar(value="/Applications/VMD1.9.4a57-arm64-Rev12.app/Contents/vmd/vmd_MACOSXARM64")
@@ -103,10 +101,8 @@ class DruGUI:
         self.dso = tk.StringVar()
         self.dial_radius = tk.DoubleVar(value=1.5)
         self.dial_deltag = tk.DoubleVar(value=-0.5)
-        self.PROBETOPPAR = {
-        "PBDA": "probe2.top probe.prm",
-        "CGenff": "top_all36_cgenff.rtf par_all36_cgenff.prm"
-        }
+        self.cgenff_rtf =tk.StringVar(value="")
+        self.cgenff_prm = tk.StringVar(value="")
         self.PROBETYPES = {
         "core": "Core probes",
         "polar": "Polar probes",
@@ -620,8 +616,67 @@ class DruGUI:
         lipid_check = tk.Checkbutton(mfasi, variable=self.lipid)
         lipid_check.grid(row=1, column=5,sticky='w')
 
+        mfaro = tk.LabelFrame(mfa, text="CGENFF Files:", bd=2, pady=2)
+        mfaro.grid(row=6, column=0, padx=5, pady=5, sticky='ew')
+
+        def cgenff_top_help():
+            messagebox.showinfo(
+                "HELP",
+                "CGENFF RTF file needed to generate probes."
+            )
+
+        cgenff_top_help_button = tk.Button(mfaro, text="?", padx=0, pady=0, command=cgenff_top_help)
+        cgenff_top_help_button.grid(row=0, column=0, sticky='w')
+
+        cgenff_top_label = tk.Label(mfaro, text="CGENFF RTF:",)
+        cgenff_top_label.grid(row=0, column=1, sticky='w')
+
+        def cgenff_top_file():
+            tempfile = filedialog.askopenfilename(
+                filetypes=[("RTF files", "*.rtf"), ("All files", "*.*")]
+            )
+            if tempfile:
+                self.cgenff_rtf.set(tempfile)
+                print(f"Selected RTF file: {self.cgenff_rtf.get()}")
+            else:
+                messagebox.showinfo("No Selection", "No file was selected.")
+
+        cgenff_top_entry = tk.Entry(mfaro, width=60, textvariable=self.cgenff_rtf)
+        cgenff_top_entry.grid(row=0, column=2, sticky='ew')
+
+        cgenff_top_browse_button = tk.Button(mfaro, text="Browse", width=6, pady=1, command=cgenff_top_file)
+        cgenff_top_browse_button.grid(row=0, column=3, sticky='w')
+
+        def cgenff_prm_help():
+            messagebox.showinfo(
+                "HELP",
+                "CGENFF PRM file needed to generate probes."
+            )
+
+        cgenff_prm_help_button = tk.Button(mfaro, text="?", padx=0, pady=0, command=cgenff_prm_help)
+        cgenff_prm_help_button.grid(row=1, column=0, sticky='w')
+
+        cgenff_prm_label = tk.Label(mfaro, text="CGENFF PRM:",)
+        cgenff_prm_label.grid(row=1, column=1, sticky='w')
+
+        def cgenff_prm_file():
+            tempfile = filedialog.askopenfilename(
+                filetypes=[("PRM files", "*.prm"), ("All files", "*.*")]
+            )
+            if tempfile:
+                self.cgenff_prm.set(tempfile)
+                print(f"Selected PRM file: {self.cgenff_prm.get()}")
+            else:
+                messagebox.showinfo("No Selection", "No file was selected.")
+
+        cgenff_prm_entry = tk.Entry(mfaro, width=60, textvariable=self.cgenff_prm)
+        cgenff_prm_entry.grid(row=1, column=2, sticky='ew')
+
+        cgenff_prm_browse_button = tk.Button(mfaro, text="Browse", width=6, pady=1, command=cgenff_prm_file)
+        cgenff_prm_browse_button.grid(row=1, column=3, sticky='w')        
+
         mfaoo = tk.LabelFrame(mfa, text="Output options:", bd=2, pady=2)
-        mfaoo.grid(row=6, column=0, padx=5, pady=5, sticky='ew') 
+        mfaoo.grid(row=7, column=0, padx=5, pady=5, sticky='ew') 
 
         def outdir_help():
             messagebox.showinfo(
@@ -762,7 +817,7 @@ class DruGUI:
         def add_par_files():
             tempfiles = filedialog.askopenfilenames(
                 title="Select CHARMM parameter files",
-                filetypes=[("CHARMM parameter files", "*.prm *.inp *.str"), ("All files", "*.*")]
+                filetypes=[("CHARMM parameter files", "*.prm *.inp *.str *.rtf"), ("All files", "*.*")]
             )
             if tempfiles:
                 added = False
@@ -773,7 +828,7 @@ class DruGUI:
                         self.par_files_list.append(tempfile)
                         added = True
                 if added:
-                    par_files.set('\n'.join(self.par_files_list))
+                    self.par_files.set('\n'.join(self.par_files_list))
 
         test = tk.Frame(mfaoo)
         test.grid(row=3, column=3, sticky='w')
@@ -811,6 +866,11 @@ class DruGUI:
         vmd_executabl_entry = tk.Entry(mfaoo, textvariable=self.tk_vmd_executable, width = 40)
         vmd_executabl_entry.grid(row=4, column=2, sticky='w')
 
+        self.PROBETOPPAR = {
+        "PBDA": "probe2.top probe.prm",
+        "CGenff": f"{self.cgenff_rtf.get()} {self.cgenff_prm.get()}"
+        }
+
         def Prepare_system():
             global par_files
             global percent_probe01 
@@ -834,6 +894,8 @@ class DruGUI:
             constrain = "heavy"
             vmd = self.tk_vmd_executable.get()
             global write_conf
+            cgenff_prm = self.cgenff_prm.get()
+            cgenff_rtf = self.cgenff_rtf.get()
 
             drugui_data(self)
 
@@ -860,8 +922,8 @@ class DruGUI:
             probepdb = os.path.join(Druggability_path, "probe.pdb")
             probetop = os.path.join(Druggability_path, "probe2.top")
             probeprm = os.path.join(Druggability_path, "probe.prm")
-            cgenfftop = os.path.join(Druggability_path, "top_all36_cgenff.rtf")
-            cgenffprm = os.path.join(Druggability_path, "par_all36_cgenff.prm")
+            cgenfftop = os.path.join(Druggability_path, f"{cgenff_rtf}")
+            cgenffprm = os.path.join(Druggability_path, f"{cgenff_prm}")
             probebox = 62.3572
             probekey = "name OH2"
 
@@ -1968,7 +2030,7 @@ class DruGUI:
                         eq2.write("    run              1000;\n")
                         eq2.write("}\n")
                         eq2.write(f"langevinTemp    600\n")
-                        eq2.write(f"run           300000;\n")
+                        eq2.write(f"run           300000;")
                         eq2.write("for {set T 570} {$T >= 300} {incr T -30} {\n")
                         eq2.write(f"    langevinTemp     $T;\n")
                         eq2.write(f"	   run             1000;\n")
@@ -2903,7 +2965,7 @@ def drugui_data(self):
     dict set PROBETYPES ring5 "5-membered rings"
     dict set PROBETYPES ring6 "6-membered rings"
     set PROBETOPPAR [dict create PBDA "probe2.top probe.prm"]
-    dict set PROBETOPPAR CGenFF "top_all36_cgenff.rtf par_all36_cgenff.prm"
+    dict set PROBETOPPAR CGenFF "{self.cgenff_rtf.get()} {self.cgenff_prm.get()}"
     set PACKAGEPATH {self.Druggability_path}
     """
     probedata += """

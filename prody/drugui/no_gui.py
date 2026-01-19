@@ -42,7 +42,7 @@ from druggability.grid import OpenDX
 
 __all__ = ['drugui_prepare', 'drugui_analysis', 'drugui_evaluate']
 
-def drugui_data(vmd_executable):
+def drugui_data(rtf, prm, vmd_executable):
     """Prepares the nessecary files needed for both preparing and analyzing druggability simulations"""
 
 
@@ -62,7 +62,7 @@ def drugui_data(vmd_executable):
     dict set PROBETYPES ring5 "5-membered rings"
     dict set PROBETYPES ring6 "6-membered rings"
     set PROBETOPPAR [dict create PBDA "probe2.top probe.prm"]
-    dict set PROBETOPPAR CGenFF "top_all36_cgenff.rtf par_all36_cgenff.prm"
+    dict set PROBETOPPAR CGenFF "{rtf} {prm}"
     set PACKAGEPATH {Druggability_path}
     """
     probedata += """
@@ -192,8 +192,10 @@ def drugui_prepare(pdb, psf, **kwargs):
     outdir_location = kwargs.pop('outdir_location', "")
     constrain = kwargs.pop("constrain", "heavy")
     vmd = kwargs.pop("vmd","")
+    cgenff_rtf = kwargs.pop("cgenff_rtf","")
+    cgenff_prm = kwargs.pop("cgenff_prm","")
     additional_parameters = kwargs.pop("additional_parameters", [])
-    drugui_data(vmd)
+    drugui_data(rtf=cgenff_rtf, prm=cgenff_prm, vmd_executable=vmd)
 
     if package_dir.is_dir():
         os.chdir(package_dir)
@@ -206,8 +208,8 @@ def drugui_prepare(pdb, psf, **kwargs):
     probepdb = os.path.join(Druggability_path, "probe.pdb")
     probetop = os.path.join(Druggability_path, "probe2.top")
     probeprm = os.path.join(Druggability_path, "probe.prm")
-    cgenfftop = os.path.join(Druggability_path, "top_all36_cgenff.rtf")
-    cgenffprm = os.path.join(Druggability_path, "par_all36_cgenff.prm")
+    cgenfftop = os.path.join(Druggability_path, f"{cgenff_rtf}")
+    cgenffprm = os.path.join(Druggability_path, f"{cgenff_prm}")
     probebox = 62.3572
     probekey = "name OH2"
     intermediate = os.path.join(Druggability_path, "intermediate")
@@ -226,9 +228,7 @@ def drugui_prepare(pdb, psf, **kwargs):
         raise ValueError("ERROR", "The location of your VMD executable is needed to setup druggability simulations.")
 
     par_files_list = [
-    "probe.prm", "par_all36_cgenff.prm", "par_all27_prot_lipid_na.inp",
-    "par_all36_lipid.prm", "par_all36_prot.prm", "par_all36_carb.prm",
-    "par_all36_na.prm", "toppar_water_ions.str"
+    "probe.prm"
     ] 
 
     if additional_parameters:
