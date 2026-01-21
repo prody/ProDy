@@ -500,7 +500,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=N
 
         # find the mapping of chains of atoms to those of target
         debug[labels[i]] = {}
-        atommaps_ = alignChains(atoms, target, debug=debug[labels[i]], **kwargs)
+        atommaps_ = alignChains(atoms, target, debug=debug[labels[i]], label=labels[i], **kwargs)
 
         if len(atommaps_) == 0:
             unmapped.append(labels[i])
