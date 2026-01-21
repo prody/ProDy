@@ -33,7 +33,7 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, rever
             else:
                 eigvals = (0, n_modes+expct_n_zeros-1)
 
-    def _eigh(M, eigvals=None, turbo=True):
+    def _eigh(M, eigvals=None, turbo=True, n_modes=n_modes):
         if linalg.__package__.startswith('scipy'):
             from scipy.sparse import issparse
 
@@ -74,7 +74,16 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, rever
                 LOGGER.info('Scipy is not found, all modes were calculated.')
             else:
                 n_modes = dof
+
+            if linalg.__package__.startswith('torch'):
+                import torch
+                M = torch.from_numpy(M)
+
             values, vectors = linalg.eigh(M)
+
+            if linalg.__package__.startswith('torch'):
+                values, vectors = values.detach().numpy(), vectors.detach().numpy()
+                
         return values, vectors
 
     def _calc_n_zero_modes(M):
