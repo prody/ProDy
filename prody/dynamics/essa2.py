@@ -19,7 +19,6 @@ from .editing import reduceModel
 from .compare import matchModes
 from prody.proteins import parsePDB, writePDB
 
-import matplotlib.pyplot as plt
 from Bio.PDB import PDBIO, PDBParser, Atom
 
 __all__ = ['ESSA2']
@@ -510,6 +509,7 @@ class ESSA2:
         if not hasattr(self, "_ligres_idx") or not self._ligres_idx:
             return {}
 
+        import matplotlib.pyplot as plt
         cmap = plt.cm.get_cmap("tab10", len(self._ligres_idx))
         color_map = {}
 
