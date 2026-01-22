@@ -71,7 +71,7 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, rever
                 vectors = vectors[:, j:k]
         else:
             if n_modes is not None:
-                LOGGER.info('Scipy is not found, all modes were calculated.')
+                LOGGER.info('Scipy is not used, all modes will be calculated.')
             else:
                 n_modes = dof
 
