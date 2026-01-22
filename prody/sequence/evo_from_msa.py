@@ -57,7 +57,8 @@ import math
 import os
 import sys
 from collections import Counter
-from typing import Iterable, List, Optional, Sequence, Tuple, Dict
+from typing import (Iterable, List, Optional, Any,
+                    Sequence, Tuple, Dict, Union)
 
 from Bio.Blast import NCBIXML
 from Bio.PDB import PDBParser

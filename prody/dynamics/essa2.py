@@ -533,6 +533,7 @@ class ESSA2:
 
         p75 = np.percentile(zscores, 75)
 
+        import matplotlib.pyplot as plt
         plt.figure(figsize=figsize)
         plt.plot(zscores, lw=1.8, color='gray', label="ESSA Z-scores")
         plt.axhline(
@@ -622,6 +623,7 @@ class ESSA2:
         # --- Use the same ligand color mapping as ESSA Z-scores ---
         color_map = self._ligand_color_map()
 
+        import matplotlib.pyplot as plt
         fig = plt.figure(figsize=figsize)
         ax1 = fig.add_axes([0.06, 0.1, 0.64, 0.8])
         v = np.percentile(np.abs(smoothed), percentile_clip)
