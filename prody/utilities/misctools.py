@@ -236,8 +236,8 @@ def importLA():
             try:
                 import numpy.linalg as linalg
             except ImportError:
-                raise ImportError('scipy.linalg or numpy.linalg is required for '
-                                'NMA and structure alignment calculations')
+                raise ImportError('torch.linalg or scipy.linalg or numpy.linalg is required for '
+                                  'NMA and structure alignment calculations')
     return linalg
 
 def createStringIO():
