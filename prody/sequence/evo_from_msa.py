@@ -57,14 +57,13 @@ import math
 import os
 import sys
 from collections import Counter
-from typing import Iterable, List, Optional, Sequence, Tuple, Dict
+from typing import (Iterable, List, Optional, Any,
+                    Sequence, Tuple, Dict, Union)
 
 from Bio.Blast import NCBIXML
 from Bio.PDB import PDBParser
 from Bio.Align import substitution_matrices
 
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 import numpy as np
 
 __all__ = ["computeConservationFromMSA"]
@@ -699,6 +698,10 @@ def generate_matplotlib_heatmap_png(
         vmin, vmax = -4.0, 11.0
 
     bounds = np.linspace(vmin, vmax, n_grades + 1)
+
+    import matplotlib.colors as mcolors
+    import matplotlib.pyplot as plt
+    
     cmap = plt.cm.get_cmap(cmap_name, n_grades)
     norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
