@@ -167,7 +167,7 @@ def calcMSAOccupancy(msa, occ='res', count=False):
 
 
 def applyMutinfoNorm(mutinfo, entropy, norm='sument'):
-    """Apply one of the normalizations discussed in [MLC05]_ to *mutinfo*
+    r"""Apply one of the normalizations discussed in [MLC05]_ to *mutinfo*
     matrix.  *norm* can be one of the following:
 
       * ``'sument'``: :math:`H(X) + H(Y)`, sum of entropy of columns

@@ -75,7 +75,7 @@ def execDSSP(pdb, outputname=None, outputdir=None, stderr=True):
 
 
 def parseDSSP(dssp, ag, parseall=False):
-    """Parse DSSP data from file *dssp* into :class:`.AtomGroup` instance
+    r"""Parse DSSP data from file *dssp* into :class:`.AtomGroup` instance
     *ag*.  DSSP output file must be in the new format used from July 1995
     and onwards.  When *dssp* file is parsed, following attributes are added
     to *ag*:
