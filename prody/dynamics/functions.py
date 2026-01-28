@@ -19,7 +19,7 @@ from prody.ensemble import PDBEnsemble
 
 from .nma import NMA, MaskedNMA
 from .anm import ANM, ANMBase, MaskedANM
-from .analysis import calcProjection
+from .analysis import calcProjection, calcCollectivity, calcScipionScore
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
 from .rtb import RTB
