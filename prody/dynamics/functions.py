@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 """This module defines input and output functions."""
 
+from collections import OrderedDict
+import datetime
 
 import os
-from os.path import abspath, join, isfile, isdir, split, splitext
-#from constrained_anm import cANM
+from os.path import isdir, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS, PY3K
+from prody import LOGGER
 from prody.atomic import Atomic, AtomSubset
-from prody.proteins import alignChains
-from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
+from prody.utilities import openFile, openSQLite
+from prody.proteins import (parseSTAR, writeSTAR, StarDict, 
+                            alignChains, parsePDB)
 
 from prody.ensemble import PDBEnsemble
 
