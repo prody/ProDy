@@ -31,8 +31,8 @@ from .editing import sliceModel, reduceModel, trimModel
 from .editing import sliceModelByMask, reduceModelByMask, trimModelByMask
 
 __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
-           'parseGromacsModes',
-           'writeArray', 'writeModes',
+           'parseGromacsModes', 'parseScipionModes',
+           'writeArray', 'writeModes', 'writeScipionModes',
            'saveModel', 'loadModel', 'saveVector', 'loadVector',
            'calcENM', 'realignModes']
 
