@@ -23,8 +23,7 @@ from .exanm import exANM, MaskedExANM
 from .rtb import RTB
 from .pca import PCA, EDA
 from .imanm import imANM
-from .exanm import exANM
-from .mode import Vector, Mode
+from .mode import Vector, Mode, VectorBase
 from .modeset import ModeSet
 from .editing import sliceModel, reduceModel, trimModel
 from .editing import sliceModelByMask, reduceModelByMask, trimModelByMask
