@@ -254,6 +254,12 @@ DATA_FILES = {
         'atoms': 12793,
         'last_coords': array([50.327, -11.971, -19.976])
     },
+    'scipion_cif': {
+        'pdb': '4ake',
+        'file': 'mmcif_4ake_scipion.cif',
+        'atoms': 3459,
+        'last_coords': array([ 1.413, -6.322, -9.968])
+    },
     'big_biomols_cif': {
         'pdb': '7cth',
         'file': 'mmcif_7cth.cif',
