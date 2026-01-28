@@ -24,7 +24,7 @@ class TestPCACommand(TestCase):
         self.command = ('pca --pdb {pdb} '
                         '-e -r -o {outdir} -v -z -t all -j '
                         '-f %8g -d , -x .dat '
-                        '-R -Q -J 1,2 '
+                        '-R -Q -J 1,2 -S '
                         '-F png -D 120 -W 5 -H 4 ').format(outdir=TEMPDIR,
                         pdb=pathDatafile('multi_model_truncated'))
         self.suffixes = [
