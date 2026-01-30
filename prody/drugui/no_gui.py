@@ -195,6 +195,10 @@ def drugui_prepare(pdb, psf, **kwargs):
     cgenff_rtf = kwargs.pop("cgenff_rtf","")
     cgenff_prm = kwargs.pop("cgenff_prm","")
     additional_parameters = kwargs.pop("additional_parameters", [])
+    from druggability import probe
+
+    probe.set_cgenff_rtf(cgenff_rtf)
+    probe.load_probe_cards()
     drugui_data(rtf=cgenff_rtf, prm=cgenff_prm, vmd_executable=vmd)
 
     if package_dir.is_dir():
