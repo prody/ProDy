@@ -116,19 +116,44 @@ with open(join(path, 'probe.dat')) as dat:
                                      'n_atoms': 4}
              
 resi = None
-with open(join(path, 'top_all36_cgenff.rtf')) as top: 
-    for line in top:
-        if line.startswith('RESI'):
-            resi = None
-            items = line.split()
-            if items[1] in PROBE_CARDS:
-                resi = items[1]
-                PROBE_CARDS[resi]['charge'] = float(items[2])
-                PROBE_CARDS[resi]['n_atoms'] = 0
-        if resi and line.startswith('ATOM'):
-            aname = line.split()[1]
-            if not aname.startswith('H'):
-                PROBE_CARDS[resi]['n_atoms'] += 1
+PROBE_CARDS = {...}   # unchanged
+_CGENFF_RTF_PATH = None
+_LOADED = False
+
+
+def set_cgenff_rtf(path):
+    global _CGENFF_RTF_PATH, _LOADED
+    _CGENFF_RTF_PATH = path
+    _LOADED = False   # force reload if path changes
+
+
+def load_probe_cards():
+    global _LOADED
+    if _LOADED:
+        return
+
+    if not _CGENFF_RTF_PATH:
+        raise RuntimeError("CGENFF RTF path not set yet.")
+
+    if not os.path.isfile(_CGENFF_RTF_PATH):
+        raise FileNotFoundError(f"CGENFF RTF not found: {_CGENFF_RTF_PATH}")
+
+    resi = None
+    with open(_CGENFF_RTF_PATH) as top:
+        for line in top:
+            if line.startswith('RESI'):
+                resi = None
+                items = line.split()
+                if items[1] in PROBE_CARDS:
+                    resi = items[1]
+                    PROBE_CARDS[resi]['charge'] = float(items[2])
+                    PROBE_CARDS[resi]['n_atoms'] = 0
+            elif resi and line.startswith('ATOM'):
+                aname = line.split()[1]
+                if not aname.startswith('H'):
+                    PROBE_CARDS[resi]['n_atoms'] += 1
+
+    _LOADED = True
 
 def get_expected_occupancy(grid_spacing):
     """Return number of expected probes in a rectangular grid element.
