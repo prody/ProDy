@@ -896,7 +896,11 @@ class DruGUI:
             global write_conf
             cgenff_prm = self.cgenff_prm.get()
             cgenff_rtf = self.cgenff_rtf.get()
+            from druggability import probe
 
+            probe.set_cgenff_rtf(self.cgenff_rtf.get())
+            probe.load_probe_cards()
+        
             drugui_data(self)
 
             if self.protein_pdb.get() == "" or  self.protein_psf.get() == "":
