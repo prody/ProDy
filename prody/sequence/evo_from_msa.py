@@ -62,13 +62,10 @@ from typing import (Iterable, List, Optional, Any,
 
 from Bio.Blast import NCBIXML
 from Bio.PDB import PDBParser
-from Bio.Align import substitution_matrices
 
 import numpy as np
 
 __all__ = ["computeConservationFromMSA"]
-
-BLOSUM62 = substitution_matrices.load("BLOSUM62")
 
 # ------------------------- Amino-acid helpers -------------------------
 
@@ -372,6 +369,9 @@ def calculate_conservation_scores(
     consensus_seq_type : str
         Consensus type sequence.
     """
+    from Bio.Align import substitution_matrices
+    BLOSUM62 = substitution_matrices.load("BLOSUM62")
+
     if not msa_sequences:
         return [], [], "", ""
 
