@@ -253,14 +253,6 @@ DMSO name dimethylsulfoxide
 DMSO alias C2 S2 OH2 O1 C1 C3 H11 H4 H12 H5 H13 H6 C3 C7 H31 H8 H32 H9 H33 H10 
 DMSO type polar
 
-DCLE name 1,1-dichloroethane
-DCLE alias C2 C1 H21 H13 OH2 CL12 C1 CL11 C3 C2 H31 H21 H32 H22 H33 H23
-DCLE type hydrophobe
-
-TCLE name 1,1,1-trichloroethane
-TCLE alias C2 C1 H21 CL13 OH2 CL12 C1 CL11 C3 C2 H31 H21 H32 H22 H33 H23
-TCLE type hydrophobe
-
 ETHE name ethylene
 ETHE alias C1 H11 H12 C2 H21 H22
 ETHE type hydrophobe
