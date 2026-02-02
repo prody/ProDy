@@ -498,7 +498,7 @@ CHON alias C2 C1 C5 C1 C4 C3 C6 O1
 CHON type ring6
 
 PHEN name phenol
-PHEN alis C2 CG C1 CD1 C3 CD2 OH HH
+PHEN alias C2 CG C1 CD1 C3 CD2 OH HH
 PHEN type ring6
 
 EPHE name p-ethylphenol
