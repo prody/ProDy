@@ -145,10 +145,6 @@ EBEN name ethylbenzene
 EBEN alias C2 CG C1 CD1 C3 CD2 C2 CB C3 CA
 EBEN type ring6
 
-BUTA name butane
-BUTA alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 H22 C3 C3 H31 H31 H32 H32 H33 C4
-BUTA hydrophobe
-
 EMS name ethylmethylsulfide
 EMS alias C2 S3 C1 CM2 H11 CM1 H12 H4 H13 H5 C3 CM4 H31 H6 H32 H7 H33 H8
 EMS type hydrophobe
