@@ -445,13 +445,9 @@ THFO name 3'-hydroxyl-tetrahydrofuran
 THFO alias OH2 O3' C2 C3' C1 C2' H12 C1' C3 C4' H31 O4'
 THFO type ring5
 
-CPEN name cyclopentane north types
+CPEN name cyclopentane
 CPEN alias C2 C5 C1 C4 H12 C3 C3 C1 H31 C2
 CPEN type ring5
-
-CPES name cyclopentane south types
-CPES alias C2 C5 C1 C4 H12 C3 C3 C1 H31 C2
-CPES type ring5
 
 PY01 name 4H-Pyran
 PY01 alias C2 O1 C1 C2 C3 C6
