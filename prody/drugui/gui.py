@@ -1888,15 +1888,15 @@ class DruGUI:
                 par_files = [] 
 
                 for par_file in parameterfiles:
-                    par_files = os.path.basename(par_file)
-                    par_files_location = os.path.join(Druggability_path, par_files)
-                    par_files_path = os.path.join(parfolder,par_files)
+                    par_file = Path(par_file).expanduser().resolve()
+                    par_files = par_file.name
+                    par_files_path = Path(parfolder) / par_files
 
-                    if not os.path.exists(parfolder):
-                        os.makedirs(parfolder)
+                    os.makedirs(parfolder, exist_ok=True)
 
-                    if not os.path.exists(par_files_path):
-                        shutil.copy(par_files_location, parfolder)
+                    if not par_files_path.exists():
+                        shutil.copy(par_file, parfolder)
+
                     par_lines.append(f"parameters      ../parameters/{par_files}")
 
                 par_lines = "\n".join(par_lines)
