@@ -116,7 +116,6 @@ with open(join(path, 'probe.dat')) as dat:
                                      'n_atoms': 4}
              
 resi = None
-PROBE_CARDS = {...}   # unchanged
 _CGENFF_RTF_PATH = None
 _LOADED = False
 
