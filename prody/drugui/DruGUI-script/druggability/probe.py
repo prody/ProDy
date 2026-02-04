@@ -106,7 +106,7 @@ PROBE_CARDS = {'IPRO': IPRO, 'IBUT': IBUT, 'IPAM': IPAM, 'ACET': ACET,
 import os
 path = os.path.dirname(os.path.abspath(__file__))
     
-with open(join(path, 'probeV2.dat')) as dat:
+with open(join(path, 'probe.dat')) as dat:
     for line in dat:
         items = line.split()
         if len(items) > 2 and items[1] == 'name' and items[0] not in PROBE_CARDS:
