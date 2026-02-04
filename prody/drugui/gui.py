@@ -79,7 +79,7 @@ class DruGUI:
         "probe.prm"
         ]
         self.par_files = tk.StringVar(value='\n'.join(self.par_files_list))
-        self.tk_vmd_executable = tk.StringVar(value="/Applications/VMD1.9.4a57-arm64-Rev12.app/Contents/vmd/vmd_MACOSXARM64")
+        self.tk_vmd_executable = tk.StringVar(value="")
         self.selection = tk.StringVar(value="noh and protein")
         self.grid_spacing = tk.DoubleVar(value=0.5)
         self.contact_distance = tk.DoubleVar(value=4.0)
