@@ -12,3 +12,6 @@ python:
       extra_requirements:
         - docs  # Ensure setup.py has this or use requirements.txt
     - requirements: docs/requirements.txt
+
+sphinx:
+  configuration: docs/conf.py
