@@ -1,4 +1,14 @@
-matplotlib
-ipython
+# Documentation Tools
+Sphinx>=6.0
+sphinx_rtd_theme
+
+# Scientific Stack (Needed to import ProDy)
 numpy
-mock
+scipy
+matplotlib
+ipython  # Required if your tutorials use 'ipython' directives
+
+# Any other plugins found in your conf.py
+# (Add these only if you use them)
+sphinx-copybutton
+nbsphinx
