@@ -22,6 +22,9 @@ extensions = [
     'sphinx.ext.viewcode',     # Adds links to source code
     'sphinx.ext.napoleon',     # <--- CRITICAL: Parses NumPy/Scientific docstrings
     # 'sphinx.ext.intersphinx', # Optional: links to python docs
+    'sphinx_rtd_theme',    # Ensure this is in the list too!
+    'sphinxcontrib.jquery', # <--- ADD THIS
+
 ]
 
 # Napoleon settings (to handle ProDy's scientific docstrings)

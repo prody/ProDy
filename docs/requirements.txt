@@ -12,3 +12,4 @@ ipython  # Required if your tutorials use 'ipython' directives
 # (Add these only if you use them)
 sphinx-copybutton
 nbsphinx
+sphinxcontrib-jquery
