@@ -134,30 +134,6 @@ DATA_FILES = {
         'atoms': 167,
         'models': 3
     },
-    'mdm2_pdb': {
-        'pdb': 'mdm2',
-        'file': 'mdm2.pdb'
-    },
-    'mdm2_psf':{
-        'psf': 'mdm2',
-        'file': 'mdm2.psf'
-    },
-    'md_pdb':{
-        'pdb': 'md',
-        'file': 'md.pdb'
-    },
-    'md_psf':{
-        'psf': 'md',
-        'file': 'md.psf'
-    },
-    'sim_dcd':{
-        'dcd': 'sim',
-        'file': 'final.dcd'
-    },
-    'ligand_pdb': {
-        'pdb': 'ligand',
-        'file': 'ligand.pdb'
-    },
     'anm1ubi_hessian': {
         'file': 'anm1ubi_hessian.coo',
     },
