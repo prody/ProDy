@@ -1,15 +1,16 @@
-# Documentation Tools
+# --- Documentation Core ---
 Sphinx>=7.0.0
 sphinx_rtd_theme>=2.0.0
 sphinxcontrib-jquery
 
-# Scientific Stack (Needed to import ProDy)
+# --- Scientific Stack (Required for ProDy to import) ---
 numpy
 scipy
 matplotlib
-ipython  # Required if your tutorials use 'ipython' directives
+ipython
+ipykernel
 
-# Any other plugins found in your conf.py
-# (Add these only if you use them)
+# --- Plugins ---
 sphinx-copybutton
 nbsphinx
+pandoc
