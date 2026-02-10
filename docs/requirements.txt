@@ -1,6 +1,7 @@
 # Documentation Tools
-Sphinx>=6.0
-sphinx_rtd_theme
+Sphinx>=7.0.0
+sphinx_rtd_theme>=2.0.0
+sphinxcontrib-jquery
 
 # Scientific Stack (Needed to import ProDy)
 numpy
@@ -12,4 +13,3 @@ ipython  # Required if your tutorials use 'ipython' directives
 # (Add these only if you use them)
 sphinx-copybutton
 nbsphinx
-sphinxcontrib-jquery
