@@ -1,55 +1,45 @@
 [![ProDy workflow status](https://img.shields.io/github/actions/workflow/status/prody/prody/main.yml)](https://github.com/prody/ProDy/actions/workflows/main.yml)
-
 [![ProDy conda-forge page](https://anaconda.org/conda-forge/prody/badges/version.svg)](https://anaconda.org/conda-forge/prody)
-
 [![ProDy pypi page](https://img.shields.io/pypi/v/ProDy.svg)](https://pypi.org/project/ProDy/)
+[![Docs](https://img.shields.io/readthedocs/prody.svg?logo=read-the-docs&logoColor=white)](https://prody.readthedocs.io/en/latest/)
 
-
-## **SYNOPSIS**
+## Synopsis
 
 ProDy is a free and open-source Python package for protein structure, dynamics, and sequence analysis. It allows for comparative analysis and modeling of protein structural dynamics and sequence co-evolution. The fast and flexible ProDy API is designed for interactive usage as well as application development. ProDy also comes with several analysis applications and a graphical user interface for visual analysis.
 
 Further details are described in the ProDy papers:
 
-Bakan A, Meireles LM, Bahar I.
+* Bakan A, Meireles LM, Bahar I. **ProDy: Protein Dynamics Inferred from Theory and Experiments.** *Bioinformatics* 2011 27(11):1575-1577.
+* Bakan A, Dutta A, Mao W, Liu Y, Chennubhotla C, Lezon TR, Bahar I. **Evol and ProDy for Bridging Protein Sequence Evolution and Structural Dynamics.** *Bioinformatics* 2014 30(18):2681-2683.
+* Zhang S, Krieger JM, Zhang Y, Kaya C, Kaynak B, Mikulska-Ruminska K, Doruker P, Li H, Bahar I. **ProDy 2.0: Increased Scale and Scope after 10 Years of Protein Dynamics Modelling with Python.** *Bioinformatics* 2021 37(20):3657-3659.
 
-ProDy: Protein Dynamics Inferred from Theory and Experiments.
-
-Bioinformatics 2011 27(11):1575-1577.
-
-Bakan A, Dutta A, Mao W, Liu Y, Chennubhotla C, Lezon TR, Bahar I.
-
-Evol and ProDy for Bridging Protein Sequence Evolution and Structural Dynamics.
-
-Bioinformatics 2014 30(18):2681-2683.
-
-Zhang S, Krieger JM, Zhang Y, Kaya C, Kaynak B, Mikulska-Ruminska K, Doruker P, Li H, Bahar I.
-
-ProDy 2.0: Increased Scale and Scope after 10 Years of Protein Dynamics Modelling with Python.
-
-Bioinformatics 2021 37(20):3657-3659.
-
-## **INSTALLING PRODY**
+## Installing ProDy
 
 We recommend downloading and installing the Anaconda package manager to handle dependencies in controlled environments. ProDy can be installed with the following command:
 
-conda install \-c conda-forge ProDy
+```bash
+conda install -c conda-forge ProDy
+```
 
 ProDy is under active development. Install it from the source on GitHub if you want the most recent fixes.
 
 First, download the ProDy code either as a zipped folder or using Git. For example, if you have Git installed, you can do the following:
 
+```bash
 git clone https://github.com/prody/ProDy.git
+```
 
 Then, change into the ProDy directory and install it by running the following commands:
 
+```bash
 cd ProDy  
 python setup.py build\_ext \--inplace \--force  
 pip install \-Ue .
+```
 
 More instructions can be found at [http://bahargroup.org/prody/downloads/](http://bahargroup.org/prody/downloads/) and [http://bahargroup.org/prody/manual/devel/develop.html](http://bahargroup.org/prody/manual/devel/develop.html).
 
-## **MODULES**
+## MODULES
 
 ProDy has a modular structure with modules inside various subpackages.
 
@@ -70,11 +60,11 @@ Smaller ones include:
 * **prody.trajectory**: for trajectories in DCD format  
 * **prody.utilities**
 
-## **GETTING PRODY**
+## GETTING PRODY
 
 You can run ProDy on all major platforms. For download and installation instructions see: [http://www.bahargroup.org/prody/downloads/](http://www.bahargroup.org/prody/downloads/)
 
-## **DOCUMENTATION**
+## DOCUMENTATION
 
 * **Homepage**: [http://www.bahargroup.org/prody/](http://www.bahargroup.org/prody/)  
 * **Tutorials**: [http://www.bahargroup.org/prody/tutorials](http://www.bahargroup.org/prody/tutorials)  
@@ -84,12 +74,12 @@ You can run ProDy on all major platforms. For download and installation instruct
 * **Changes**: [http://www.bahargroup.org/prody/manual/release](http://www.bahargroup.org/prody/manual/release)  
 * See also [https://github.com/prody/ProDy-website](https://github.com/prody/ProDy-website) for latest versions.
 
-## **SOURCE CODE**
+## SOURCE CODE
 
 * **Source code**: [https://github.com/prody/ProDy](https://github.com/prody/ProDy)  
 * **Issue tracker**: [https://github.com/prody/ProDy/issues](https://github.com/prody/ProDy/issues)
 
-## **LICENSE**
+## LICENSE
 
 ProDy is available under the MIT License. See LICENSE.txt for more details.
 

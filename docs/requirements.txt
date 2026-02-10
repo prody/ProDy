@@ -1,4 +1,16 @@
+# --- Documentation Core ---
+Sphinx>=7.0.0
+sphinx_rtd_theme>=2.0.0
+sphinxcontrib-jquery
+
+# --- Scientific Stack (Required for ProDy to import) ---
+numpy
+scipy
 matplotlib
 ipython
-numpy
-mock
+ipykernel
+
+# --- Plugins ---
+sphinx-copybutton
+nbsphinx
+pandoc
