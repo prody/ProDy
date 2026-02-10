@@ -4,6 +4,8 @@
 
 [![ProDy pypi page](https://img.shields.io/pypi/v/ProDy.svg)](https://pypi.org/project/ProDy/)
 
+[![Docs](https://img.shields.io/readthedocs/prody.svg?logo=read-the-docs&logoColor=white)](https://prody.readthedocs.io/en/latest/)
+
 
 ## **SYNOPSIS**
 
