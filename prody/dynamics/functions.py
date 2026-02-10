@@ -834,25 +834,24 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         exanm.buildHessian(atoms, gamma=gamma, **kwargs)
         enm = exanm
         MaskedModel = MaskedExANM
-    elif model in ('canm', 'constrained', 'constrained_anm'):
-        # Your Constrained ANM model
+    elif model.lower() in ('genanm', 'generalized', 'generalized_anm'):
+        # Generalized ANM model
         try:
-            from constrained_anm import cANM  # your local file
+            from generalized_anm import genANM  # your local file
         except ImportError:
-            # fallback if you later put constrained_anm inside the ProDy dynamics package
-            from .constrained_anm import cANM
-        canm = cANM(title)
+            from .generalized_anm import genANM
+        genanm = genANM(title)
 
-        # Extract constrained-ANM parameters, with defaults if missing
-        cutoff = kwargs.pop('cutoff', 15.0)       # your example value
-        k_theta = kwargs.pop('k_theta', 10.0)      # example
-        k_phi = kwargs.pop('k_phi', 1.0)           # example
-        kappa = kwargs.pop('kappa', 20.0)          # example
+        # Extract generalized-ANM parameters, with defaults if missing
+        cutoff = kwargs.pop('cutoff', 15.0)
+        k_theta = kwargs.pop('k_theta', 10.0)
+        k_phi = kwargs.pop('k_phi', 1.0)
+        kappa = kwargs.pop('kappa', 20.0)
         include_sequential = kwargs.pop('include_sequential', True)
         symmetrize = kwargs.pop('symmetrize', True)
 
-        # Build constrained Hessian
-        canm.buildHessian(atoms,
+        # Build generalized Hessian
+        genanm.buildHessian(atoms,
                           cutoff=cutoff,
                           gamma=gamma,
                           k_theta=k_theta,
@@ -861,9 +860,8 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
                           include_sequential=include_sequential,
                           symmetrize=symmetrize)
 
-        enm = canm
-
-        # Reuse the same masked model as ANM because cANM is a subclass of ANM
+        enm = genanm
+        # Reuse the same masked model as ANM because genANM is a subclass of ANM
         MaskedModel = MaskedANM
     else:
         raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
