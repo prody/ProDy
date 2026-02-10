@@ -1,7 +1,7 @@
 [![ProDy workflow status](https://img.shields.io/github/actions/workflow/status/prody/prody/main.yml)](https://github.com/prody/ProDy/actions/workflows/main.yml)
 [![ProDy conda-forge page](https://anaconda.org/conda-forge/prody/badges/version.svg)](https://anaconda.org/conda-forge/prody)
 [![ProDy pypi page](https://img.shields.io/pypi/v/ProDy.svg)](https://pypi.org/project/ProDy/)
-[![Docs](https://img.shields.io/readthedocs/prody.svg?logo=read-the-docs&logoColor=white)](https://prody.readthedocs.io/en/latest/)
+[![Docs](https://img.shields.io/readthedocs/prody-official.svg?logo=read-the-docs&logoColor=white)](https://prody-official.readthedocs.io/en/latest/)
 
 ## Synopsis
 
