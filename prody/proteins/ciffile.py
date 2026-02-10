@@ -339,7 +339,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 doneAtomBlock = True
                 stop = i
                 
-        if i == len(lines) - 1:
+        if i == len(lines) - 1 and line.strip() != "#":
             if foundAtomBlock:
                 doneAtomBlock = True
                 stop = i + 1

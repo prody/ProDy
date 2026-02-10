@@ -27,6 +27,7 @@ class TestParseMMCIF(unittest.TestCase):
         self.chimerax = DATA_FILES['chimerax_cif']
         self.pymol = DATA_FILES['pymol_cif']
         self.wrapped = DATA_FILES['boltz_wrapped_line_cif']
+        self.scipion = DATA_FILES['scipion_cif']
 
         self.altlocs = DATA_FILES['cif_6flr']
         self.his_selstr = 'resname HIS and chain B and resnum 234 and name CA'
@@ -369,3 +370,16 @@ class TestParseMMCIF(unittest.TestCase):
             'parsePDB failed to parse correct number of atoms for multi-model with altloc "all"')
         self.assertEqual(ag.numCoordsets(), self.multi['models'],
             'parsePDB failed to parse correct number of coordsets ({0}) with altloc "all"'.format(self.multi['models']))
+
+    def testStopScipion(self):
+        """Test number of coordinate sets and atoms for PyMOL CIF file with altloc='all'."""
+
+        path = pathDatafile(self.scipion['file'])
+
+        ag = parsePDB(path)
+        self.assertEqual(ag.numAtoms(), self.scipion['atoms'],
+            'parsePDB failed to parse correct number of atoms from pymol cif with altloc "all"')
+        self.assertEqual(ag.numCoordsets(), 1,
+            'parsePDB failed to parse correct number of coordsets (1) from pymol cif with altloc "all"')
+        assert_allclose(ag.getCoords()[-1], self.scipion['last_coords'],
+            err_msg='parsePDB failed to parse correct last coords from pymol cif with altloc "all"')
