@@ -297,9 +297,9 @@ from . import anm
 from .anm import *
 __all__.extend(anm.__all__)
 
-from . import constrained_anm
-from .constrained_anm import *
-__all__.extend(constrained_anm.__all__)
+from . import generalized_anm
+from .generalized_anm import *
+__all__.extend(generalized_anm.__all__)
 
 from . import rtb
 from .rtb import *
