@@ -12,4 +12,4 @@ Type an exact ProDy function name (for example ``parsePDB``).
      <button type="submit">Search</button>
    </form>
 
-   <script src="_static/smart_search.js"></script>
+   <div id="smartSearchResults" style="margin-top: 12px;"></div>
