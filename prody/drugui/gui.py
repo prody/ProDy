@@ -610,7 +610,7 @@ class DruGUI:
         lipid_help_button = tk.Button(mfasi, text="?", padx=0, pady=0, command=lipid_help)
         lipid_help_button.grid(row=1, column=3, sticky='w', padx=8)
 
-        lipid_label = tk.Label(mfasi, text="Enclosed in a lipid bilyar: ")
+        lipid_label = tk.Label(mfasi, text="Embedded in a bilayer membrane: ")
         lipid_label.grid(row=1, column=4, sticky='w')
 
         lipid_check = tk.Checkbutton(mfasi, variable=self.lipid)
