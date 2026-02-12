@@ -103,3 +103,12 @@ intersphinx_mapping = {
     'scipy': ('https://docs.scipy.org/doc/scipy/', None),
     'matplotlib': ('https://matplotlib.org/stable/', None),
 }
+if os.environ.get("READTHEDOCS") == "True":
+    import subprocess
+    try:
+        subprocess.check_call(
+            [sys.executable, "tools/build_api_index.py"],
+            cwd=os.path.dirname(__file__),
+        )
+    except Exception as e:
+        print("WARNING: API index generation failed:", e)
