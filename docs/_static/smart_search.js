@@ -1,53 +1,29 @@
-async function smartSearch() {
-  const q = document.getElementById("smart-search-input").value.trim();
+function runSmartSearch(query) {
+  const q = query.trim();
   if (!q) return;
 
-  // where RTD stores search index
-  const base = window.location.pathname.split("/").slice(0,3).join("/");
-  const indexUrl = base + "/_static/api_index.json";
+  const base = window.location.pathname.split("/").slice(0, 3).join("/");
 
-  try {
-    const res = await fetch(indexUrl);
-    const data = await res.json();
-
-    // EXACT match only
-    if (data[q] && data[q].length > 0) {
-      const target = data[q][0];
-      const parts = target.split(".");
-      const mod = parts.slice(1,-1).join("/");
-      window.location.href =
-        base + "/reference/" + mod + ".html#" + target;
-      return;
-    }
-  } catch (e) {
-    console.warn("Smart search fallback:", e);
-  }
-
-  // fallback to normal RTD search
+  // Redirect to normal RTD search
   window.location.href = base + "/search.html?q=" + encodeURIComponent(q);
 }
-document.addEventListener("DOMContentLoaded", () => {
-  const input = document.getElementById("smart-search-input");
-  if (!input) return;
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      smartSearch();
-    }
-  });
-});
 document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("smartSearchForm");
   const input = document.getElementById("smartSearchInput");
 
   if (!form || !input) return;
 
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    runSmartSearch(input.value);
+  });
+
+  // THIS makes Enter work
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (typeof form.requestSubmit === "function") form.requestSubmit();
-      else form.dispatchEvent(new Event("submit", { cancelable: true }));
+      runSmartSearch(input.value);
     }
   });
 });
