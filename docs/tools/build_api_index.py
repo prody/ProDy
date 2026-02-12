@@ -1,67 +1,76 @@
+# -*- coding: utf-8 -*-
 import json
 import os
-import pkgutil
+import sys
 import importlib
-import inspect
+from pathlib import Path
 
-def iter_modules(pkg, prefix):
-    # walk packages but skip tests (they cause side effects / missing files on RTD)
-    for m in pkgutil.walk_packages(pkg.__path__, prefix):
-        name = m.name
-        if name.startswith("prody.tests"):
+
+def iter_module_names(pkg_name: str, pkg_root: Path):
+    """
+    Walk the package directory on disk WITHOUT importing subpackages.
+    This avoids importing prody.tests.* which breaks on RTD.
+    """
+    for py in pkg_root.rglob("*.py"):
+        # Skip caches / hidden
+        if "__pycache__" in py.parts:
             continue
-        yield name
+
+        rel = py.relative_to(pkg_root)
+
+        # Skip tests entirely (this fixes your NRAS_BRAF_GDP_model_0.cif crash)
+        if "tests" in rel.parts:
+            continue
+
+        # Build module name
+        parts = list(rel.parts)
+        if parts[-1] == "__init__.py":
+            parts = parts[:-1]
+        else:
+            parts[-1] = parts[-1].replace(".py", "")
+
+        if not parts:
+            yield pkg_name
+        else:
+            yield pkg_name + "." + ".".join(parts)
+
 
 def main():
     import prody
 
-    out_path = os.path.join(os.path.dirname(__file__), "..", "_static", "api_index.json")
-    out_path = os.path.abspath(out_path)
+    pkg_name = "prody"
+    pkg_root = Path(prody.__file__).resolve().parent
 
-    entries = []
-    seen = set()
+    here = Path(__file__).resolve().parent.parent  # docs/
+    out_dir = here / "_static"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_file = out_dir / "api_index.json"
 
-    for modname in iter_modules(prody, "prody."):
+    results = []
+
+    for modname in sorted(set(iter_module_names(pkg_name, pkg_root))):
         try:
             mod = importlib.import_module(modname)
         except Exception:
-            # skip modules that fail to import on RTD
+            # Some modules may require optional deps or side effects.
+            # We skip them so docs build doesn't fail.
             continue
 
-        for attr_name, obj in vars(mod).items():
-            if attr_name.startswith("_"):
-                continue
-            if not inspect.isfunction(obj):
-                continue
-            if getattr(obj, "__module__", None) != modname:
-                continue
+        for name, obj in vars(mod).items():
+            if callable(obj) and getattr(obj, "__module__", "") == modname:
+                qual = f"{modname}.{name}"
+                results.append(
+                    {
+                        "name": name,          # parsePDB
+                        "qualname": qual,      # prody.proteins.pdbfile.parsePDB
+                    }
+                )
 
-            full = f"{modname}.{attr_name}"
-            if full in seen:
-                continue
-            seen.add(full)
+    with out_file.open("w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
 
-            # Guess the page path used by your docs:
-            # prody.proteins.pdbfile.parsePDB -> reference/proteins/pdbfile.html#prody.proteins.pdbfile.parsePDB
-            parts = modname.split(".")
-            if len(parts) >= 3:
-                section = parts[1]
-                page = parts[2]
-                url = f"reference/{section}/{page}.html#{full}"
-            else:
-                url = f"reference/index.html#{full}"
+    print(f"[smart_search] wrote {len(results)} entries to {out_file}")
 
-            entries.append({
-                "name": attr_name,
-                "full": full,
-                "url": url
-            })
-
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(entries, f, indent=2)
-
-    print(f"Wrote {len(entries)} entries -> {out_path}")
 
 if __name__ == "__main__":
     main()
