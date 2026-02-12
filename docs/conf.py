@@ -73,7 +73,13 @@ html_theme_options = {
 
 # Ensure this is set so Sphinx looks in the _static folder
 html_static_path = ['_static']
+html_js_files = [
+    "smart_search.js",
+]
 
+html_css_files = [
+    "smart_search.css",
+]
 # -- Extension Configuration -------------------------------------------------
 
 # 1. Napoleon Settings (for NumPy docstrings)
