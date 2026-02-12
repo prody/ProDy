@@ -77,9 +77,6 @@ html_js_files = [
     "smart_search.js",
 ]
 
-html_css_files = [
-    "smart_search.css",
-]
 # -- Extension Configuration -------------------------------------------------
 
 # 1. Napoleon Settings (for NumPy docstrings)
