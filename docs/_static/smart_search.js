@@ -37,3 +37,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("smartSearchForm");
+  const input = document.getElementById("smartSearchInput");
+
+  if (!form || !input) return;
+
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (typeof form.requestSubmit === "function") form.requestSubmit();
+      else form.dispatchEvent(new Event("submit", { cancelable: true }));
+    }
+  });
+});
