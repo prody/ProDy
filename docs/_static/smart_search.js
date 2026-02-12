@@ -26,3 +26,14 @@ async function smartSearch() {
   // fallback to normal RTD search
   window.location.href = base + "/search.html?q=" + encodeURIComponent(q);
 }
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("smart-search-input");
+  if (!input) return;
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      smartSearch();
+    }
+  });
+});
