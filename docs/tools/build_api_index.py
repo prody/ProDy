@@ -4,56 +4,64 @@ import pkgutil
 import importlib
 import inspect
 
-OUTFILE = os.path.join(os.path.dirname(__file__), "..", "_static", "api_index.json")
-
-def is_tests_module(modname: str) -> bool:
-    return modname.startswith("prody.tests")
-
-def module_to_html(modname: str) -> str:
-    # prody.proteins.pdbfile -> reference/proteins/pdbfile.html
-    parts = modname.split(".")
-    if parts[0] == "prody":
-        parts = parts[1:]
-    return "reference/" + "/".join(parts) + ".html"
+def iter_modules(pkg, prefix):
+    # walk packages but skip tests (they cause side effects / missing files on RTD)
+    for m in pkgutil.walk_packages(pkg.__path__, prefix):
+        name = m.name
+        if name.startswith("prody.tests"):
+            continue
+        yield name
 
 def main():
-    import prody  # must be importable during doc build
+    import prody
 
-    # We store a list so partial search can show multiple matches
-    entries = []  # {name, qual, url}
+    out_path = os.path.join(os.path.dirname(__file__), "..", "_static", "api_index.json")
+    out_path = os.path.abspath(out_path)
 
-    for m in pkgutil.walk_packages(prody.__path__, prefix="prody."):
-        modname = m.name
-        if is_tests_module(modname):
-            continue
+    entries = []
+    seen = set()
 
+    for modname in iter_modules(prody, "prody."):
         try:
             mod = importlib.import_module(modname)
         except Exception:
+            # skip modules that fail to import on RTD
             continue
 
-        html = module_to_html(modname)
-
-        for name, obj in inspect.getmembers(mod):
-            if name.startswith("_"):
+        for attr_name, obj in vars(mod).items():
+            if attr_name.startswith("_"):
+                continue
+            if not inspect.isfunction(obj):
+                continue
+            if getattr(obj, "__module__", None) != modname:
                 continue
 
-            try:
-                if getattr(obj, "__module__", None) != modname:
-                    continue
-            except Exception:
+            full = f"{modname}.{attr_name}"
+            if full in seen:
                 continue
+            seen.add(full)
 
-            if inspect.isfunction(obj) or inspect.isclass(obj):
-                qual = f"{modname}.{name}"
-                url = f"{html}#{qual}"
-                entries.append({"name": name, "qual": qual, "url": url})
+            # Guess the page path used by your docs:
+            # prody.proteins.pdbfile.parsePDB -> reference/proteins/pdbfile.html#prody.proteins.pdbfile.parsePDB
+            parts = modname.split(".")
+            if len(parts) >= 3:
+                section = parts[1]
+                page = parts[2]
+                url = f"reference/{section}/{page}.html#{full}"
+            else:
+                url = f"reference/index.html#{full}"
 
-    os.makedirs(os.path.dirname(OUTFILE), exist_ok=True)
-    with open(OUTFILE, "w", encoding="utf-8") as f:
+            entries.append({
+                "name": attr_name,
+                "full": full,
+                "url": url
+            })
+
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(entries, f, indent=2)
 
-    print(f"Wrote {len(entries)} entries to {OUTFILE}")
+    print(f"Wrote {len(entries)} entries -> {out_path}")
 
 if __name__ == "__main__":
     main()
