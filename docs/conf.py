@@ -110,7 +110,12 @@ import subprocess
 def _build_api_index(app):
     here = os.path.dirname(__file__)
     script = os.path.join(here, "tools", "build_api_index.py")
-    subprocess.check_call([sys.executable, script])
+
+    try:
+        subprocess.check_call([sys.executable, script])
+    except Exception as e:
+        # IMPORTANT: don't fail the docs build
+        print("WARNING: Smart Search API index generation failed:", repr(e))
 
 def setup(app):
     app.connect("builder-inited", _build_api_index)
