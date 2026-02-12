@@ -103,6 +103,8 @@ intersphinx_mapping = {
     'scipy': ('https://docs.scipy.org/doc/scipy/', None),
     'matplotlib': ('https://matplotlib.org/stable/', None),
 }
+import os
+import sys
 import subprocess
 
 def _build_api_index(app):
