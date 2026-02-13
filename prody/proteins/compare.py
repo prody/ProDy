@@ -1392,8 +1392,8 @@ def getAlignedMapping(target, chain, alignment=None):
             except StopIteration:
                 # Alignment string is longer than the actual sequence
                 # This can happen with different Biopython versions
-                LOGGER.warn('Alignment string longer than target sequence for {0}, '
-                            'truncating alignment at position {1}'.format(target.getTitle(), i))
+                LOGGER.warning('Alignment string longer than target sequence for {0}, '
+                               'truncating alignment at position {1}'.format(target.getTitle(), i))
                 break
             amatch.append(ares.getResidue())
             if b not in gap_chars:
@@ -1403,8 +1403,8 @@ def getAlignedMapping(target, chain, alignment=None):
                     # Chain sequence exhausted, need to remove the last target residue
                     # to keep amatch and bmatch synchronized
                     amatch.pop()
-                    LOGGER.warn('Alignment string longer than chain sequence for {0}, '
-                                'truncating alignment at position {1}'.format(chain.getTitle(), i))
+                    LOGGER.warning('Alignment string longer than chain sequence for {0}, '
+                                   'truncating alignment at position {1}'.format(chain.getTitle(), i))
                     break
                 bmatch.append(bres.getResidue())
                 if a == b:
@@ -1417,8 +1417,8 @@ def getAlignedMapping(target, chain, alignment=None):
                 bres = next(biter)
             except StopIteration:
                 # Chain sequence exhausted
-                LOGGER.warn('Alignment string longer than chain sequence for {0}, '
-                            'truncating alignment at position {1}'.format(chain.getTitle(), i))
+                LOGGER.warning('Alignment string longer than chain sequence for {0}, '
+                               'truncating alignment at position {1}'.format(chain.getTitle(), i))
                 break
     return amatch, bmatch, n_match, n_mapped
 
