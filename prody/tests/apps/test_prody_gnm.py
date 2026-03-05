@@ -20,7 +20,7 @@ class TestGNMCommand(TestCase):
 
         self.command = ('gnm -e -r -o {outdir} -v -z -t all '
                         '-f %8g -d , -x .dat '
-                        '-R -Q '
+                        '-R -Q -S '
                         '-F png -D 120 -W 5 -H 4 ').format(outdir=TEMPDIR)
         self.suffixes = [
             '_gnm_cc.png',

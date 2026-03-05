@@ -22,3 +22,4 @@ include prody/utilities/datafiles/*.txt
 include scripts/prody*
 include scripts/evol*
 include prody/protein/tabulated_energies.txt
+recursive-include prody/drugui/DruGUI-script *

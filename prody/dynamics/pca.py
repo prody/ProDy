@@ -56,7 +56,7 @@ class PCA(NMA):
         self._trace = self._cov.trace()
 
     def buildCovariance(self, coordsets, **kwargs):
-        """Build a covariance matrix for *coordsets* using mean coordinates
+        r"""Build a covariance matrix for *coordsets* using mean coordinates
         as the reference.  *coordsets* argument may be one of the following:
 
         * :class:`.Atomic`

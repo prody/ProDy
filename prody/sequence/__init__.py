@@ -70,3 +70,7 @@ from . import sequence
 from .sequence import *
 __all__.extend(sequence.__all__)
 
+from . import evo_from_msa
+from .evo_from_msa import *
+__all__.extend(evo_from_msa.__all__)
+

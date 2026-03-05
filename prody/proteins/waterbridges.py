@@ -613,6 +613,9 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
 
         atoms_copy = atoms.copy()
+
+        indices = None
+
         if selstr is not None:
             selection, indices = findCommonSelectionTraj(atoms, traj, selstr,
                                                          expand_selection=expand_selection,

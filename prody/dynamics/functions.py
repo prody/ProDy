@@ -5,30 +5,26 @@ from collections import OrderedDict
 import datetime
 
 import os
-from os.path import abspath, join, isfile, isdir, split, splitext
+from os.path import isdir, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS, PY3K
+from prody import LOGGER
 from prody.atomic import Atomic, AtomSubset
-from prody.utilities import openFile, openSQLite, isExecutable, which, PLATFORM, addext, wrapModes
-from prody.proteins import parseSTAR, writeSTAR, StarDict, alignChains, parsePDB
+from prody.utilities import openFile, openSQLite
+from prody.proteins import (parseSTAR, writeSTAR, StarDict, 
+                            alignChains, parsePDB)
+
 from prody.ensemble import PDBEnsemble
 
 from .nma import NMA, MaskedNMA
 from .anm import ANM, ANMBase, MaskedANM
-from .analysis import calcCollectivity, calcScipionScore
-from .analysis import calcProjection
-from .analysis import calcCollectivity
+from .analysis import calcProjection, calcCollectivity, calcScipionScore
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
-from .exgnm import exGNM
 from .rtb import RTB
 from .pca import PCA, EDA
-from .lda import LDA
-from .logistic import LRA
 from .imanm import imANM
-from .exanm import exANM
 from .mode import Vector, Mode, VectorBase
 from .modeset import ModeSet
 from .editing import sliceModel, reduceModel, trimModel
@@ -85,16 +81,6 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         type_ = 'EDA'
     elif isinstance(nma, PCA):
         type_ = 'PCA'
-    elif isinstance(nma, LDA):
-        type_ = 'LDA'
-        attr_list.append('_lda')
-        attr_list.append('_labels')
-        attr_list.append('_shuffled_ldas')
-    elif isinstance(nma, LRA):
-        type_ = 'LRA'
-        attr_list.append('_lra')
-        attr_list.append('_labels')
-        attr_list.append('_shuffled_lras')
     else:
         type_ = 'NMA'
 
@@ -127,9 +113,6 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
-
-    if isinstance(nma, exGNM):
-        attr_dict['type'] = 'exGNM'
 
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
@@ -189,16 +172,10 @@ def loadModel(filename, **kwargs):
             nma = exANM(title)
         elif type_ == 'imANM':
             nma = imANM(title)
-        elif type_ == 'exGNM':
-            nma = exGNM(title)
         elif type_ == 'NMA':
             nma = NMA(title)
         elif type_ == 'RTB':
             nma = RTB(title)
-        elif type_ == 'LDA':
-            nma = LDA(title)
-        elif type_ == 'LRA':
-            nma = LRA(title)
         else:
             raise IOError('NMA model type is not recognized: {0}'.format(type_))
 
@@ -219,11 +196,6 @@ def loadModel(filename, **kwargs):
                     dict_[attr] = attr_dict[attr]
             else:
                 dict_[attr] = attr_dict[attr]
-
-    if '_shuffled_ldas' in nma.__dict__:
-        nma._shuffled_ldas = [arr[0].getModel() for arr in nma._shuffled_ldas]
-    elif '_shuffled_lras' in nma.__dict__:
-        nma._shuffled_lras = [arr[0].getModel() for arr in nma._shuffled_lras]
 
     return nma
 
@@ -512,7 +484,7 @@ def parseScipionModes(metadata_file, title=None, pdb=None, parseIndices=False):
 
 
 def writeScipionModes(output_path, modes, write_star=False, scores=None,
-                      only_sqlite=False, collectivityThreshold=0., norm=True):
+                      only_sqlite=False, collectivityThreshold=0.):
     """Writes *modes* to a set of files that can be recognised by Scipion.
     A directory called **"modes"** will be created if it doesn't already exist. 
     Filenames inside will start with **"vec"** and have the mode number as the extension.
@@ -538,10 +510,6 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     :arg collectivityThreshold: collectivity threshold below which modes are not enabled
         Default is 0.
     :type collectivityThreshold: float
-
-    :arg norm: whether to normalize mode vectors before calculating collectivities
-        Default is **True**
-    :type norm: bool
     """
     if not isinstance(output_path, str):
         raise TypeError('output_path should be a string, not {0}'
@@ -571,10 +539,6 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         raise TypeError('collectivityThreshold should be float, not {0}'
                         .format(type(collectivityThreshold)))
 
-    if not isinstance(norm, bool):
-        raise TypeError('norm should be boolean, not {0}'
-                        .format(type(norm)))    
-
     if modes.numModes() == 1 and not isinstance(modes, (NMA, ModeSet)):
         old_modes = modes
         modes = NMA(old_modes)
@@ -594,17 +558,8 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
             modefiles.append(writeArray(modes_dir + 'vec.{0}'.format(mode_num),
                                         mode.getArray(), '%12.4e', ''))
 
-    if norm:
-        eigvecs = modes.getEigvecs()
-        eigvals = modes.getEigvals()
-        eigvecs /= np.array([((eigvecs[:, i]) ** 2).sum() ** 0.5
-                             for i in range(eigvecs.shape[1])])
-
-        if isinstance(modes, ModeSet):
-            modes = NMA()
-        modes.setEigens(eigvecs, eigvals)
-
     if modes.numModes() > 1:
+        order = modes.getIndices()
         collectivities = list(calcCollectivity(modes))
         eigvals = modes.getEigvals()
         enabled = [1 if eigval > ZERO and collectivities[i] > collectivityThreshold else -1
@@ -615,6 +570,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         mode = modes[0]
         eigvals = np.array([mode.getEigval()])
         collectivities = [calcCollectivity(mode)]
+        order = [mode.getIndex()]
         enabled = [1 if mode.getEigval() > ZERO and collectivities[0] > collectivityThreshold else -1]
         if scores is None:
             scores = [calcScipionScore(mode)[0]]
@@ -878,6 +834,35 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         exanm.buildHessian(atoms, gamma=gamma, **kwargs)
         enm = exanm
         MaskedModel = MaskedExANM
+    elif model.lower() in ('genanm', 'generalized', 'generalized_anm'):
+        # Generalized ANM model
+        try:
+            from generalized_anm import genANM  # your local file
+        except ImportError:
+            from .generalized_anm import genANM
+        genanm = genANM(title)
+
+        # Extract generalized-ANM parameters, with defaults if missing
+        cutoff = kwargs.pop('cutoff', 15.0)
+        k_theta = kwargs.pop('k_theta', 10.0)
+        k_phi = kwargs.pop('k_phi', 1.0)
+        kappa = kwargs.pop('kappa', 20.0)
+        include_sequential = kwargs.pop('include_sequential', True)
+        symmetrize = kwargs.pop('symmetrize', True)
+
+        # Build generalized Hessian
+        genanm.buildHessian(atoms,
+                          cutoff=cutoff,
+                          gamma=gamma,
+                          k_theta=k_theta,
+                          k_phi=k_phi,
+                          kappa=kappa,
+                          include_sequential=include_sequential,
+                          symmetrize=symmetrize)
+
+        enm = genanm
+        # Reuse the same masked model as ANM because genANM is a subclass of ANM
+        MaskedModel = MaskedANM
     else:
         raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
     
@@ -930,28 +915,21 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
         or ``"pca"``. If it is not changed to ``"pca"`` then ``"nma"`` will be assumed.
     :type model: str
 
-    :arg eigval_fname: filename or path for xvg file containing eigenvalues
+    :arg eigval_fname: filename for xvg file containing eigenvalues
         Default is ``"eigenval.xvg"`` as this is the default from Gromacs
     :type eigval_fname: str
 
-    :arg eigvec_fname: filename or path for trr file containing eigenvectors
+    :arg eigvec_fname: filename for trr file containing eigenvectors
         Default is ``"eigenvec.trr"`` as this is the default from Gromacs
     :type eigvec_fname: str
-
-    :arg pdb_fname: filename or path for pdb file containing the reference structure
-        Default is ``"average.pdb"`` although this is probably suboptimal
-    :type pdb_fname: str
     """ 
     try:
-        from mdtraj import load_trr
+        from MDAnalysis.coordinates import TRR
     except ImportError:
-        raise ImportError('Please install mdtraj in order to use parseGromacsModes.')
+        raise ImportError('Please install MDAnalysis in order to use parseGromacsModes.')
 
     if not isinstance(run_path, str):
         raise TypeError('run_path should be a string')
-
-    if not run_path.endswith('/'):
-        run_path += '/'
 
     if not isinstance(title, str):
         raise TypeError('title should be a string')
@@ -963,46 +941,15 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
             LOGGER.warn('model not recognised so using NMA')
         result = NMA(title)
 
-
     eigval_fname = kwargs.get('eigval_fname', 'eigenval.xvg')
     if not isinstance(eigval_fname, str):
         raise TypeError('eigval_fname should be a string')
 
-    if isfile(eigval_fname):
-        vals_fname = eigval_fname
-    elif isfile(join(run_path, eigval_fname)):
-        vals_fname = join(run_path, eigval_fname)
-    else:
-        raise ValueError('eigval_fname should point be a path to a file '
-                         'either relative to run_path or an absolute one')
-
-
     eigvec_fname = kwargs.get('eigvec_fname', 'eigenvec.trr')
     if not isinstance(eigvec_fname, str):
         raise TypeError('eigvec_fname should be a string')
-
-    if isfile(eigvec_fname):
-        vecs_fname = eigval_fname
-    elif isfile(join(run_path, eigvec_fname)):
-        vecs_fname = join(run_path, eigvec_fname)
-    else:
-        raise ValueError('eigvec_fname should point be a path to a file '
-                         'either relative to run_path or an absolute one')
-
-
-    pdb_fname = kwargs.get('pdb_fname', 'average.pdb')
-    if not isinstance(pdb_fname, str):
-        raise TypeError('pdb_fname should be a string')
-
-    if isfile(pdb_fname):
-        pdb = eigval_fname
-    elif isfile(join(run_path, pdb_fname)):
-        pdb = join(run_path, pdb_fname)
-    else:
-        raise ValueError('pdb_fname should point be a path to a file '
-                         'either relative to run_path or an absolute one')
     
-    
+    vals_fname = run_path + eigval_fname
     fi = open(vals_fname, 'r')
     lines = fi.readlines()
     fi.close()
@@ -1014,11 +961,12 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     eigvals = np.array(eigvals)
 
-    # Parse eigenvectors trr with mdtraj, which uses nm so doesn't rescale
-    vecs_traj = load_trr(vecs_fname, top=pdb)
+    # Parse eigenvectors trr with MDAnalysis, which assumes trajectory and multiplies by 10
+    # to get A even though actually they are unit vectors
+    vecs_traj = TRR.TRRReader(run_path + eigvec_fname)
 
-    # format vectors appropriately, skipping initial and average structures
-    vectors = np.array([frame.xyz.flatten() for frame in vecs_traj[2:]]).T
+    # format vectors appropriately, reversing *10 and skipping initial and average structures
+    vectors = np.array([frame.positions.flatten()/10 for frame in vecs_traj[2:]]).T
 
     result.setEigens(vectors, eigvals)
     return result

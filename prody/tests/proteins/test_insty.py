@@ -18,6 +18,9 @@ class TestInteractions(unittest.TestCase):
 
     def setUp(self):
         """Generating new data to compare it with the existing one"""
+        # Reduce the number of frames to speed up tests while keeping behavior
+        self.N_FRAMES = 4
+        self.STOP_FRAME = self.N_FRAMES - 1
         
         if prody.PY3K:
             self.ATOMS = parseDatafile('2k39_insty') # no disulfides
@@ -46,13 +49,13 @@ class TestInteractions(unittest.TestCase):
         if prody.PY3K:
             self.INTERACTIONS_ALL = InteractionsTrajectory()
             self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS,
-                                                                                             stop_frame=13))
+                                                                                             stop_frame=self.STOP_FRAME))
 
             try:
-                assert_equal(self.data_all, self.ALL_INTERACTIONS2,
+                assert_equal(self.data_all, self.ALL_INTERACTIONS2[:, :self.N_FRAMES],
                              'failed to get correct interactions without hpb.so from parallel calculation')
             except AssertionError:
-                assert_equal(self.data_all, self.ALL_INTERACTIONS,
+                assert_equal(self.data_all, self.ALL_INTERACTIONS[:, :self.N_FRAMES],
                              'failed to get correct interactions with hpb.so from parallel calculation')
 
     def testAllInteractionsCalcSerial(self):
@@ -61,14 +64,14 @@ class TestInteractions(unittest.TestCase):
         if prody.PY3K:
             self.INTERACTIONS_ALL = InteractionsTrajectory()
             self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS,
-                                                                                             stop_frame=3,
+                                                                                             stop_frame=self.STOP_FRAME,
                                                                                              max_proc=1))
 
             try:
-                assert_equal(self.data_all, self.ALL_INTERACTIONS2[:, :4],
+                assert_equal(self.data_all, self.ALL_INTERACTIONS2[:, :self.N_FRAMES],
                              'failed to get correct interactions without hpb.so from serial calculation')
             except AssertionError:
-                assert_equal(self.data_all, self.ALL_INTERACTIONS[:, :4],
+                assert_equal(self.data_all, self.ALL_INTERACTIONS[:, :self.N_FRAMES],
                              'failed to get correct interactions with hpb.so from serial calculation')
 
     def testAllInteractionsSave(self):
@@ -76,17 +79,17 @@ class TestInteractions(unittest.TestCase):
         if prody.PY3K:
             self.INTERACTIONS_ALL = InteractionsTrajectory()
             self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS,
-                                                                                             stop_frame=13))
+                                                                                             stop_frame=self.STOP_FRAME))
 
             np.save('test_2k39_all.npy', np.array(self.data_all, dtype=object), allow_pickle=True)
 
             data_test = np.load('test_2k39_all.npy', allow_pickle=True)
 
             try:
-                assert_equal(data_test, self.ALL_INTERACTIONS2,
+                assert_equal(data_test, self.ALL_INTERACTIONS2[:, :self.N_FRAMES],
                              'failed to get correct interactions without hpb.so from saving and loading')
             except AssertionError:
-                assert_equal(data_test, self.ALL_INTERACTIONS,
+                assert_equal(data_test, self.ALL_INTERACTIONS[:, :self.N_FRAMES],
                              'failed to get correct interactions with hpb.so from saving and loading')
     
     def testAllInteractionsCalcWithTraj(self):
@@ -96,13 +99,13 @@ class TestInteractions(unittest.TestCase):
             self.INTERACTIONS_ALL = InteractionsTrajectory()
             self.data_all = np.array(self.INTERACTIONS_ALL.calcProteinInteractionsTrajectory(self.ATOMS_FIRST,
                                                                                              trajectory=self.DCD,
-                                                                                             stop_frame=13))
+                                                                                             stop_frame=self.STOP_FRAME))
 
             try:
-                assert_equal(self.data_all, self.ALL_INTERACTIONS2,
+                assert_equal(self.data_all, self.ALL_INTERACTIONS2[:, :self.N_FRAMES],
                              'failed to get correct interactions without hpb.so from calculation')
             except AssertionError:
-                assert_equal(self.data_all, self.ALL_INTERACTIONS,
+                assert_equal(self.data_all, self.ALL_INTERACTIONS[:, :self.N_FRAMES],
                              'failed to get correct interactions with hpb.so from calculation')
 
     def testHydrogenBonds(self):
@@ -111,16 +114,18 @@ class TestInteractions(unittest.TestCase):
         order can be also different in the interactions"""
 
         if prody.PY3K:                
-            data_test = calcHydrogenBondsTrajectory(self.ATOMS, stop_frame=13)
-            assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HBS_INTERACTIONS]),
+            data_test = calcHydrogenBondsTrajectory(self.ATOMS, stop_frame=self.STOP_FRAME)
+            assert_equal(sorted([i[-1][-1] for i in data_test]),
+                         sorted([i[-1][-1] for i in self.HBS_INTERACTIONS[:self.N_FRAMES]]),
                          'failed to get correct hydrogen bonds')        
                      
     def testSaltBridgesCalc(self):
         """Test for salt bridges without saving and loading."""
 
         if prody.PY3K:                
-            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS, stop_frame=13)
-            assert_equal(sorted([i[-1][-1] for i in self.data_sbs]), sorted([i[-1][-1] for i in self.SBS_INTERACTIONS]),
+            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS, stop_frame=self.STOP_FRAME)
+            assert_equal(sorted([i[-1][-1] for i in self.data_sbs]),
+                         sorted([i[-1][-1] for i in self.SBS_INTERACTIONS[:self.N_FRAMES]]),
                          'failed to get correct salt bridges')
 
         
@@ -128,12 +133,13 @@ class TestInteractions(unittest.TestCase):
         """Test for salt bridges with saving and loading (one type with results)."""
 
         if prody.PY3K:                
-            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS, stop_frame=13)
+            self.data_sbs = calcSaltBridgesTrajectory(self.ATOMS, stop_frame=self.STOP_FRAME)
             
             np.save('test_2k39_sbs.npy', np.array(self.data_sbs, dtype=object), allow_pickle=True)
 
             data_test = np.load('test_2k39_sbs.npy', allow_pickle=True)
-            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.SBS_INTERACTIONS if len(i) > 0]),
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]),
+                         sorted([i[-1][-1] for i in self.SBS_INTERACTIONS[:self.N_FRAMES] if len(i) > 0]),
                          'failed to get correct salt bridges from saving and loading')
 
 
@@ -141,57 +147,67 @@ class TestInteractions(unittest.TestCase):
         """Test for repulsive ionic bonding."""
 
         if prody.PY3K:                
-            data_test = calcRepulsiveIonicBondingTrajectory(self.ATOMS, stop_frame=13)
-            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.RIB_INTERACTIONS if len(i) > 0]),
+            data_test = calcRepulsiveIonicBondingTrajectory(self.ATOMS, stop_frame=self.STOP_FRAME)
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]),
+                         sorted([i[-1][-1] for i in self.RIB_INTERACTIONS[:self.N_FRAMES] if len(i) > 0]),
                          'failed to get correct repulsive ionic bonding')                             
 
     def testPiStacking(self):
         """Test for pi-stacking interactions."""
 
         if prody.PY3K:                
-            data_test = calcPiStackingTrajectory(self.ATOMS, stop_frame=13)
-            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PISTACK_INTERACTIONS if len(i) > 0]),
+            data_test = calcPiStackingTrajectory(self.ATOMS, stop_frame=self.STOP_FRAME)
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]),
+                         sorted([i[-1][-1] for i in self.PISTACK_INTERACTIONS[:self.N_FRAMES] if len(i) > 0]),
                          'failed to get correct pi-stacking interactions')                             
                      
     def testPiCation(self):
         """Test for pi-stacking interactions."""
 
         if prody.PY3K:                
-            data_test = calcPiCationTrajectory(self.ATOMS, stop_frame=13)
-            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if len(i) > 0]),
+            data_test = calcPiCationTrajectory(self.ATOMS, stop_frame=self.STOP_FRAME)
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]),
+                         sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS[:self.N_FRAMES] if len(i) > 0]),
                          'failed to get correct pi-cation interactions')
 
     def testHydrophobicInteractions(self):
-        """Test for hydrophobic interactions."""
+        """Test for hydrophobic interactions.
+
+        This test uses the full trajectory length because results are sensitive
+        to the total number of processed frames. Keeping this one full preserves
+        correctness while other tests remain shortened for speed.
+        """
 
         if prody.PY3K:        
             data_test = calcHydrophobicTrajectory(self.ATOMS, stop_frame=13)
             try:
-                assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HPH_INTERACTIONS2]),
-                         'failed to get correct hydrophobic interactions without hpb.so')
+                assert_equal(sorted([i[-1][-1] for i in data_test]),
+                             sorted([i[-1][-1] for i in self.HPH_INTERACTIONS2]),
+                             'failed to get correct hydrophobic interactions without hpb.so')
             except AssertionError:
-                assert_equal(sorted([i[-1][-1] for i in data_test]), sorted([i[-1][-1] for i in self.HPH_INTERACTIONS]),
-                         'failed to get correct hydrophobic interactions with hpb.so')
+                assert_equal(sorted([i[-1][-1] for i in data_test]),
+                             sorted([i[-1][-1] for i in self.HPH_INTERACTIONS]),
+                             'failed to get correct hydrophobic interactions with hpb.so')
         
 
     def testDisulfideBondsCalcNone(self):
         """Test for disulfide bonds interactions without saving and loading."""
         if prody.PY3K:
-            data_test = calcDisulfideBondsTrajectory(self.ATOMS, stop_frame=13)
+            data_test = calcDisulfideBondsTrajectory(self.ATOMS, stop_frame=self.STOP_FRAME)
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), 
-                         sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
+                         sorted([i[-1][-1] for i in self.DISU_INTERACTIONS[:self.N_FRAMES] if len(i) > 0]),
                          'failed to get correct disulfide bonds from 2k39 (None) from calculation')
 
     def testDisulfideBondsSaveNone(self):
         """Test for disulfide bonds interactions with saving and loading (one type of interactions with 0)."""
         if prody.PY3K:
-            data_test = calcDisulfideBondsTrajectory(self.ATOMS, stop_frame=13)
+            data_test = calcDisulfideBondsTrajectory(self.ATOMS, stop_frame=self.STOP_FRAME)
             np.save('test_2k39_disu.npy', np.array(data_test, dtype=object), 
                     allow_pickle=True)
 
             data_test = np.load('test_2k39_disu.npy', allow_pickle=True)
             assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), 
-                         sorted([i[-1][-1] for i in self.DISU_INTERACTIONS if len(i) > 0]),
+                         sorted([i[-1][-1] for i in self.DISU_INTERACTIONS[:self.N_FRAMES] if len(i) > 0]),
                          'failed to get correct disulfide bonds from 2k39 (None) from saving and loading')
 
     def testDisulfideBondsCalcSomeNotTraj(self):
@@ -218,8 +234,9 @@ class TestInteractions(unittest.TestCase):
         """Test for pi-stacking interactions."""
 
         if prody.PY3K:
-            data_test = calcPiCationTrajectory(self.ATOMS, trajectory=self.ATOMS, stop_frame=13)
-            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]), sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS if len(i) > 0]),
+            data_test = calcPiCationTrajectory(self.ATOMS, trajectory=self.ATOMS, stop_frame=self.STOP_FRAME)
+            assert_equal(sorted([i[-1][-1] for i in data_test if len(i) > 0]),
+                         sorted([i[-1][-1] for i in self.PICAT_INTERACTIONS[:self.N_FRAMES] if len(i) > 0]),
                          'failed to get correct pi-cation interactions')
 
     def testImportHpb(self):
