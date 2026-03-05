@@ -463,7 +463,7 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
     
-    atoms = atoms.select('not hetero')
+    atoms = atoms.select('not hetero and noh') # Excluding hydrogens
     coords = atoms.getCoords()
     
     vdw_radii = calculator.get_vdw_radii(atoms.getElements())
