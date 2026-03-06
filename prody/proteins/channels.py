@@ -385,8 +385,8 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     in a single file.
 
     The implementation is inspired by the methods described in the publication:
-    "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by M. Berka, M. B. G. Czajka,
-    J. P. M. T. Doyle, and M. T. L. Smith, published in Nucleic Acids Research, 2014.
+    "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by D. Sehnal, et al., published in 
+    J Chemoinform, 5 (39) 2013.
 
     :param atoms: An object representing the molecular structure, typically containing atomic coordinates
         and element types.
