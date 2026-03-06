@@ -380,9 +380,9 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
     within the molecular structure. It employs Voronoi and Delaunay tessellations to identify these regions,
     then filters and refines the detected channels based on various parameters such as the minimum depth
-    and bottleneck size. The results can be saved to a PDB file if an output path is provided. The `separate` 
-    parameter controls whether each detected channel is saved to a separate file or if all channels are saved 
-    in a single file.
+    and bottleneck size. The results can be saved to a PQR file (PDB is optional) if an output path is provided. 
+    The `separate` parameter controls whether each detected channel is saved to a separate file or if all 
+    channels are saved in a single file.
 
     The implementation is inspired by the methods described in the publication:
     "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by D. Sehnal, et al., published in 
@@ -392,7 +392,7 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
         and element types.
     :type atoms: `Atoms` object
 
-    :param output_path: Optional path to save the resulting channels and associated data in PDB format.
+    :param output_path: Optional path to save the resulting channels and associated data in PQR (or PDB) format.
         If None, results are not saved. Default is None.
     :type output_path: str or None
 
@@ -436,6 +436,9 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
        saves the results to a PDB file or visualizes them based on the specified parameters.
        
     Example usage:
+    channels, surface = calcChannels(atoms, output_path="channels", separate=True)
+    
+    To save the results as PDB file:
     channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) """
     
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
