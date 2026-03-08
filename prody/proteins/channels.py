@@ -888,7 +888,7 @@ def getChannelResidueNames(atoms, channels, **kwargs):
 
 
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
-    """Select PDB files with channels that are having FIL residues within certain distance (distA) from 
+    """Select PQR files with channels that are having FIL residues within certain distance (distA) from 
     selected residue (temporarly one residue).
     If not all files should be included use pqr_files to provide the new list. 
     For example:
