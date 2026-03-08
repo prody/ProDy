@@ -1039,14 +1039,14 @@ def calcChannelSurfaceOverlaps(**kwargs):
     def loadPDBdata(filepath):
         """Parse a PQR file and return a list of atom dictionaries for lines containing 'FIL'."""
         atoms_set = []
-        FILatoms = parsePDB(filepath).select('resname FIL')
+        FILatoms = parsePQR(filepath).select('resname FIL')
         
         if FILatoms == None:
             pass
         else:
             for nr_i, i in enumerate(FILatoms):
                 FILatoms_coords = FILatoms.getCoords()[nr_i]
-                FILBetas_value = FILatoms.getBetas()[nr_i]
+                FILBetas_value = FILatoms.getRadii()[nr_i]
                 atoms_set.append({
                     'x': float(FILatoms_coords[0]),
                     'y': float(FILatoms_coords[1]),
