@@ -437,6 +437,8 @@ def calcWaterBridges(atoms, **kwargs):
     prefix = kwargs.pop('prefix', '')
     considered_atoms_sel = kwargs.pop('considered_atoms_sel', "protein")
 
+    indices = None
+
     if method not in ['chain', 'cluster']:
         raise TypeError('Method should be chain or cluster.')
     if outputType not in ['info', 'atomic', 'indices']:
@@ -598,6 +600,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     expand_selection = kwargs.pop('expand_selection', False)
     return_selection = kwargs.pop('return_selection', False)
     padding = kwargs.pop('padding', 0)
+
+    indices = None
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
