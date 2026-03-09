@@ -10,7 +10,7 @@ MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
 GAP_PENALTY = -1.
 GAP_EXT_PENALTY = -0.1
-ALIGNMENT_METHOD = 'local'
+ALIGNMENT_METHOD = 'global'
 
 SPLITLABEL = re.compile(r'[/-]+').split
 
