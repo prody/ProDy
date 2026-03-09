@@ -901,20 +901,24 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     :arg residue_sele: selection string
                         for example: 'resid 377 and chain A', 'resid 10 to 20'
     :type residue_sele: str
+   
+    :arg pqr_files: list of PQR files to analyze
+                    default is False, which means that all .pqr files from the current directory will be analyzed.
+    :type pqr_files: bool or list
     
     :arg folder_name: The name of the folder to which PDBs will be extracted
     :type folder_name: str
 
     :arg distA: non-zero value, maximal distance between donor and acceptor.
-        default is 5
+                default is 5
     :type distA: int, float 
         
     :arg residues_file: File with residues forming the channel created by getChannelResidues()
-        default is False 
+                        default is False 
     :type residues_file: bool
 
     :arg param_file: File with residues forming the channel created by getChannelParameters()
-        default is False
+                     default is False
     :type param_file: bool  """
 
     try:
@@ -946,7 +950,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         os.makedirs(folder_name)
 
     for i in pqr_files:
-        channel = parsePDB(i)
+        channel = parsePQR(i)
         if 'FIL' in np.unique(channel.getResnames()):
             sele_FIL = channel.select('same residue as exwithin '+str(distA)+' of center', center=residue_sele.getCoords())
         
