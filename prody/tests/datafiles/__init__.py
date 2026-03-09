@@ -4,15 +4,15 @@ models and/or header sections are removed for having a compact installation
 package that contains test modules and files as well."""
 
 
-from os.path import join, isfile, split, splitext
+from os.path import join, isfile, splitext
 from prody.tests import TestCase
 
 from numpy import array
 import numpy as np
 
 from prody import parsePDB, parseDCD, parseMMCIF, parseMMTF
-from prody import parseSparseMatrix, parseArray, loadModel
-from prody.tests import TEMPDIR, TESTDIR
+from prody import parseSparseMatrix, parseArray, parseTree, loadModel
+from prody.tests import TEMPDIR, TESTDIR # here for others to import
 
 
 DATA_FILES = {
@@ -453,6 +453,16 @@ DATA_FILES = {
         'n_atoms': 4,
         'long_resname': 'ACET',
         'short_resname': 'ACE'
+    },
+    'upgma_tree': {
+        'file': 'simple_tree_upgma.nwk',
+        'n_leaves': 4,
+        'n_top_clades': 2,
+    },
+    'nj_tree': {
+        'file': 'simple_tree_nj.nwk',
+        'n_leaves': 4,
+        'n_top_clades': 3,
     }
 }
 
@@ -463,7 +473,8 @@ PARSERS = {
     '.coo': parseSparseMatrix, '.dat': parseArray,
     '.txt': np.loadtxt,
     '.npy': lambda fn, **kwargs: np.load(fn, allow_pickle=True),
-    '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)
+    '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs),
+    '.nwk': parseTree
 }
 
 
