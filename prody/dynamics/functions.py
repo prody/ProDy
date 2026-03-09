@@ -24,6 +24,7 @@ from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
 from .rtb import RTB
 from .pca import PCA, EDA
+from .logistic import LRA
 from .imanm import imANM
 from .mode import Vector, Mode, VectorBase
 from .modeset import ModeSet
@@ -77,6 +78,14 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
             type_ = 'ANM'
         else:
             type_ = 'GNM'
+    elif isinstance(nma, LRA):
+        type_ = 'LRA'
+        attr_list.extend(['_labels',
+                          '_shuffled_lras',
+                          '_n_shuffles',
+                          '_coordsets_reshaped',
+                          '_projection', '_lra',
+                          '_array'])
     elif isinstance(nma, EDA):
         type_ = 'EDA'
     elif isinstance(nma, PCA):
@@ -113,6 +122,9 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
+
+    if isinstance(nma, LRA):
+        attr_dict['type'] = 'LRA'
 
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
@@ -176,6 +188,8 @@ def loadModel(filename, **kwargs):
             nma = NMA(title)
         elif type_ == 'RTB':
             nma = RTB(title)
+        elif type_ == 'LRA':
+            nma = LRA(title)
         else:
             raise IOError('NMA model type is not recognized: {0}'.format(type_))
 

@@ -8,6 +8,7 @@ import numpy as np
 from prody import LOGGER
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble
+from prody.trajectory import DCDFile
 from prody.utilities import isListLike
 
 from .nma import NMA
@@ -38,10 +39,11 @@ class LRA(NMA):
         :arg labels: a set of labels for discriminating classes
         :type labels: :class:`~numpy.ndarray`
 
-        :arg lasso: whether to use lasso regression (sets penalty='l1', solver='liblinear')
+        :arg lasso: whether to use lasso regression
+            This sets penalty='l1', solver='saga', max_iter=50000 if these are not set
             Default **True**
         :type lasso: bool
-        
+
         :arg n_shuffles: number of random shuffles of labels to assess variability
         :type n_shuffles: int
 
@@ -50,7 +52,7 @@ class LRA(NMA):
         try:
             from sklearn.linear_model import LogisticRegression
         except ImportError:
-            raise ImportError("Please install sklearn to use LogisticRegression")
+            raise ImportError("Please install scikit-learn to use LogisticRegression")
 
         start = time.time()
         self._clear()
@@ -60,10 +62,10 @@ class LRA(NMA):
                     coordsets.dtype not in (np.float32, float)):
                 raise ValueError('coordsets is not a valid coordinate array')
             self._coordsets = coordsets
-        elif isinstance(coordsets, Atomic):
+        elif isinstance(coordsets, (Atomic, Ensemble)):
             self._coordsets = coordsets._getCoordsets()
-        elif isinstance(coordsets, Ensemble):
-            self._coordsets = coordsets._getCoordsets()
+        elif isinstance(coordsets, DCDFile):
+            self._coordsets = coordsets.getCoordsets()
         else:
             raise TypeError('coordsets should be Atomic, Ensemble or numpy.ndarray, not {0}'
                             .format(type(coordsets)))
@@ -93,17 +95,27 @@ class LRA(NMA):
                 LOGGER.warn('using provided penalty kwarg instead of l1 from lasso')
 
             if 'solver' not in kwargs:
-                kwargs['solver'] ='liblinear'
+                kwargs['solver'] ='saga'
             else:
-                LOGGER.warn('using provided solver kwarg instead of liblinear from lasso')
+                LOGGER.warn('using provided solver kwarg instead of saga for lasso')
+
+            if 'max_iter' not in kwargs:
+                kwargs['max_iter'] = 50000
+            else:
+                LOGGER.warn('using provided max_iter kwarg instead of 50000 that works for lasso')
+
+        # The general multi-class case has one array per class
+        self._n_modes = len(set(labels))
+
+        if self._n_modes == 2:
+            # binary classification just has one
+            self._n_modes = 1
 
         self._lra = LogisticRegression(**kwargs)
         self._projection = self._lra.fit(self._coordsets, self._labels)
         self._array = self._lra.coef_.T/np.linalg.norm(self._lra.coef_)
-        self._eigvals = np.ones(1)
-        self._vars = np.ones(1)
-
-        self._n_modes = 1
+        self._eigvals = np.ones(self._n_modes)
+        self._vars = np.ones(self._n_modes)
 
         if not quiet:
             if self._n_modes > 1:
@@ -114,13 +126,15 @@ class LRA(NMA):
                         .format(self._n_modes, time.time()-start))
 
             if self._n_shuffles > 0:
-                if self._n_modes > 1:
+                if self._n_modes > 1 and self._n_shuffles > 1:
                     LOGGER.debug('Calculating {0} modes for {1} shuffles.'
                         .format(self._n_modes, self._n_shuffles))
+                elif self._n_modes > 1 and self._n_shuffles == 1:
+                    LOGGER.debug('Calculating {0} modes for 1 shuffle.'
+                        .format(self._n_modes))
                 else:
-                    LOGGER.debug('Calculating {0} mode for {1} shuffles.'
-                        .format(self._n_modes, self._n_shuffles))
-            
+                    LOGGER.debug('Calculating 1 mode for 1 shuffle.')
+
         self._shuffled_lras = [LRA('shuffle '+str(n)) for n in range(self._n_shuffles)]
         self._coordsets_reshaped = self._coordsets.reshape(self._coordsets.shape[0], self._n_atoms, -1)
 
