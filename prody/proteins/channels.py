@@ -16,7 +16,7 @@ from prody.atomic import flags, sliceAtomicData
 from prody.utilities import importLA, checkCoords, showFigure, getCoords
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
-from prody.proteins import writePDB, parsePDB
+from prody.proteins import writePDB, parsePDB, parsePQR
 from collections import Counter
 
 from prody.trajectory import TrajBase, Trajectory, Frame
