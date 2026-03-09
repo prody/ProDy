@@ -909,7 +909,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     :arg folder_name: The name of the folder to which PDBs will be extracted
     :type folder_name: str
 
-    :arg distA: non-zero value, maximal distance between donor and acceptor.
+    :arg distA: non-zero value, maximal distance from selected region to channel (FIL atoms)
                 default is 5
     :type distA: int, float 
         
