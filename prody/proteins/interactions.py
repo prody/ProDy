@@ -1505,7 +1505,7 @@ def calcHydrophobic(atoms, **kwargs):
                     sele2_filter = sele2_filter.select('all and not (resname TYR PHE TRP or resid '+str(i[0])+' and chain '+i[1]+')')
                 elif sele1_name[0] not in aromatic and i in sele2_nr:
                     # don't include same residue interactions but don't worry about double counting pi stacking
-                    sele2_filter = sele2_filter.select(sele2.select('all and not (resid '+str(i[0])+' and chain '+i[1]+')'))
+                    sele2_filter = sele2_filter.select('all and not (resid '+str(i[0])+' and chain '+i[1]+')')
 
                 if sele2_filter != None:
                     listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
