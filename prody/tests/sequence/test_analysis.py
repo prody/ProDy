@@ -1206,9 +1206,8 @@ class TestBuildMSA(TestCase):
                      ags[1].protein["A"].getSequence()]
 
         expect1 = parseMSA(pathDatafile('msa_3hsyA_3o21A.fasta'))
-        expect2 = parseMSA(pathDatafile('msa_3hsyA_3o21A_new.fasta'))
         result = buildMSA(sequences, method="local", labels=["A2", "A3"])
-        assert result in (expect1, expect2), "The list of expected buildMSA results did not contain " + result
+        assert result == expect1, "The list of expected buildMSA results did not contain " + result
 
     def testBuildMSAclustalw(self):
         sequences = [ags[0].protein["A"].getSequence(),
