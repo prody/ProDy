@@ -192,6 +192,7 @@ def showChannels(channels, model=None, surface=None):
     
     :arg model: An optional Open3D TriangleMesh object representing the molecular model, such as a protein.
         If provided, this model will be rendered in the visualization.
+        Model can be generated using getVmdModel() function.
     :type model: open3d.geometry.TriangleMesh, optional
     
     :arg surface: An optional list containing the surface data. The list should have two elements:
@@ -796,8 +797,9 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
 
 
 def getChannelResidueNames(atoms, channels, **kwargs):
-    '''Provides the resnames and resid of residues that are forming the channel(s). Residues are extracted based on distA
-    which is the distance between FIL atoms (channel atoms) and protein residues.
+    '''Provides the resnames and resid of residues that are forming the channel(s). 
+    Residues are extracted based on distA which is the distance between FIL atoms 
+    (channel atoms) and protein residues.
     Results could be save as txt file by providing the `residues_file_name` parameter.
     
     :arg atoms: an Atomic object from which residues are selected 
@@ -1018,7 +1020,7 @@ def calcChannelSurfaceOverlaps(**kwargs):
         when providing str, it will be treated as a folder path  
     :type pqr_files: bool, list or str
     
-    Examples: 
+    Example usage:
     calcChannelSurfaceOverlaps() - all the files in the current directory will be analyzed
     
     calcChannelSurfaceOverlaps(pqr_files='./DATA', output_file_name='results.pdb') - only files from 
