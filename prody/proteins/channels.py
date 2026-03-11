@@ -1017,6 +1017,16 @@ def calcChannelSurfaceOverlaps(**kwargs):
         when providing a list, only the PDBs from list will be analyzed
         when providing str, it will be treated as a folder path  
     :type pqr_files: bool, list or str
+    
+    Examples: 
+    calcChannelSurfaceOverlaps() - all the files in the current directory will be analyzed
+    
+    calcChannelSurfaceOverlaps(pqr_files='./DATA', output_file_name='results.pdb') - only files from 
+    the DATA folder will be analyzed and results will be saved as results.pdb
+    
+    list_of_files = ['file1.pqr', 'file2.pqr', 'file3.pqr', ..]
+    calcChannelSurfaceOverlaps(pqr_files=list_of_files, output_file_name='results.pdb') - files from 
+    the list will be analyzed and results will be saved as results.pdb
     """
     
     import os
