@@ -778,7 +778,7 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
     
     if protein is not None:
         protein_stream = io.StringIO()
-        writePDBStream(protein_stream, protein)
+        writePDBStream(protein_stream, protein, csets=[protein.getACSIndex()])
         
         protein_stream.seek(0)
 
