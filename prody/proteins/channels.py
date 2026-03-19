@@ -426,21 +426,22 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     :rtype: tuple (list, list)
 
     This function performs the following steps:
-    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, and performs
-       3D Delaunay triangulation and Voronoi tessellation on the coordinates.
-    2. **State Management:** Creates and updates different stages of channel detection of the protein structure to filter out simplices 
-        based on the given radii.
+    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, 
+        and performs 3D Delaunay triangulation and Voronoi tessellation on the coordinates.
+    2. **State Management:** Creates and updates different stages of channel detection of the protein structure 
+        to filter out simplices based on the given radii.
     3. **Surface Layer Calculation:** Determines the surface and second-layer simplices from the filtered results.
-    4. **Cavity and Channel Detection:** Finds and filters cavities based on their depth and calculates channels using
-       Dijkstra's algorithm.
-    5. **Visualization and Saving:** Generates meshes for the detected channels, filters them by bottleneck size, and either
-       saves the results to a PDB file or visualizes them based on the specified parameters.
+    4. **Cavity and Channel Detection:** Finds and filters cavities based on their depth and calculates channels 
+       using Dijkstra's algorithm.
+    5. **Visualization and Saving:** Generates meshes for the detected channels, filters them by bottleneck size, 
+       and either saves the results to a PDB file or visualizes them based on the specified parameters.
        
     Example usage:
     channels, surface = calcChannels(atoms, output_path="channels", separate=True)
     
     To save the results as PDB file:
-    channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) """
+    channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
+                                       bottleneck=1, sparsity=15) """
     
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
     missing = []
@@ -564,7 +565,8 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     :type separate: bool
 
     :param kwargs: Additional parameters required for channel calculation. This can include parameters such as
-        radius values, minimum depth, bottleneck values, etc.
+        radius values (r1, r2), minimum depth (min_depth), bottleneck values, etc. 
+        See the available parameters in calcChannels().
     :type kwargs: dict
 
     :returns: List of channels and surfaces computed for each frame or model. Each entry in the list corresponds
