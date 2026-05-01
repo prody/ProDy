@@ -184,6 +184,9 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     ftp_name, ftp_host, ftp_path = WWPDB_FTP_SERVERS[wwPDBServer() or 'us']
     LOGGER.debug('Connecting wwPDB FTP server {0}.'.format(ftp_name))
 
+    if format == 'emd' or format == 'map':
+        ftp_path = ftp_path.replace("/pdb", "")
+
     from ftplib import FTP
     try:
         ftp = FTP(ftp_host)
