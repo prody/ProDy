@@ -444,6 +444,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     Example usage:
     channels, surface = calcChannels(atoms, output_path="channels", separate=True)
     
+    channels, surface = calcChannels(atoms, output_path="all_channels.pdb", start_point=[-22.312, -20.065, -11.144])
+    
     To save the results as PDB file:
     channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
                                        bottleneck=1, sparsity=15) """
