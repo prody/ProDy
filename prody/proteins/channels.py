@@ -562,7 +562,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
             
-def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, **kwargs):
+def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, start_point=None, **kwargs):
     """Compute channels for each frame in a given trajectory or multi-model PDB file.
 
     This function calculates the channels for each frame in a trajectory or for each model
@@ -645,9 +645,9 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
             LOGGER.info("Frame: {0}".format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             if output_path:
-                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), separate, **kwargs)
+                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), separate, start_point=start_point, **kwargs)
             else:
-                channels, surfaces = calcChannels(atoms_copy, **kwargs)
+                channels, surfaces = calcChannels(atoms_copy, start_point=start_point, **kwargs)
             channels_all.append(channels)
             surfaces_all.append(surfaces)
         trajectory._nfi = nfi
@@ -658,9 +658,9 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
                 LOGGER.info("Model: {0}".format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
                 if output_path:
-                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, **kwargs)
+                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, start_point=start_point, **kwargs)
                 else:
-                    channels, surfaces = calcChannels(atoms, **kwargs)
+                    channels, surfaces = calcChannels(atoms, start_point=start_point, **kwargs)
                 channels_all.append(channels)
                 surfaces_all.append(surfaces)
         else:
