@@ -375,7 +375,7 @@ def showCavities(surface, show_surface=False):
     vis.destroy_window()
 
 
-def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
+def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -400,6 +400,11 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
         are saved in a single PDB file. Default is False.
     :type separate: bool
+
+    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
+        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
+        the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
+    :type start_point: array-like of shape (3,) or None 
 
     :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
         the outer surface of the channels. Default is 3.
@@ -509,6 +514,9 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     c_surface_cavities = calculator.get_surface_cavities(c_cavities, s_clr.simp, l_second_layer_simp, s_clr, coords, vdw_radii, sparsity)
         
     calculator.find_deepest_tetrahedra(c_surface_cavities, s_clr.neigh)
+    if start_point is not None:
+        calculator.set_starting_tetrahedra_from_point(c_surface_cavities, s_clr.verti, start_point)
+    
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
         
@@ -1588,7 +1596,21 @@ class ChannelCalculator:
         
         return total_volume
             
-    
+    def set_starting_tetrahedra_from_point(self, cavities, vertices, start_point):
+        # start_point: array-like (3,)
+        sp = np.asarray(start_point, dtype=float).reshape(3,)
+
+        for cavity in cavities:
+            tet = cavity.tetrahedra
+            if tet is None or len(tet) == 0:
+                continue
+
+            # Voronoi vertex per tetrahedron: vertices[tetra_id] -> (x,y,z)
+            v = vertices[tet]
+            d2 = np.sum((v - sp) ** 2, axis=1)
+            chosen = tet[int(np.argmin(d2))]
+
+            cavity.set_starting_tetrahedron(np.array([chosen]))
 
 
 
