@@ -584,6 +584,11 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
         If False, all channels for each frame/model are saved in a single file. Default is False.
     :type separate: bool
 
+    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
+        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
+        the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
+    :type start_point: array-like of shape (3,) or None 
+
     :param kwargs: Additional parameters required for channel calculation. This can include parameters such as
         radius values (r1, r2), minimum depth (min_depth), bottleneck values, etc. 
         See the available parameters in calcChannels().
@@ -595,7 +600,11 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
 
     Example usage:
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
-                                   separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) """
+                                   separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) 
+                                  
+    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
+                                   separate=False, start_point=[-10.353, -0.133, 5.608]) """
+
     
     if PY3K:
         if not checkAndImport('pathlib'):
