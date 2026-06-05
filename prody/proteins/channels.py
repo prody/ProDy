@@ -473,6 +473,16 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     else:
         from pathlib2 import Path
     
+    if start_point is not None:
+        if not isinstance(start_point, list) or len(start_point) != 3:
+            raise ValueError(
+                "start_point must be a list of three numbers, e.g. "
+                "start_point=[-12.312, 5.065, -1.144]")
+                
+        LOGGER.info("Using user-provided start_point for channel seed: [{:.3f}, {:.3f}, {:.3f}] Å"
+            .format(start_point[0], start_point[1], start_point[2]))
+
+
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
     
     atoms = atoms.select('not hetero and noh') # Excluding hydrogens
