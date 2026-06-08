@@ -404,7 +404,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
         the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
         the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
-    :type start_point: array-like of shape (3,) or None 
+    :type start_point: list, tuple, or ndarray (length 3), or None 
 
     :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
         the outer surface of the channels. Default is 3.
@@ -587,7 +587,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
         the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
         the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
-    :type start_point: array-like of shape (3,) or None 
+    :type start_point: list, tuple, or ndarray (length 3), or None 
 
     :param kwargs: Additional parameters required for channel calculation. This can include parameters such as
         radius values (r1, r2), minimum depth (min_depth), bottleneck values, etc. 
@@ -1618,7 +1618,14 @@ class ChannelCalculator:
         return total_volume
             
     def set_starting_tetrahedra_from_point(self, cavities, vertices, start_point):
-        # start_point: array-like (3,)
+        '''Set starting tetrahedra using a user-defined 3D point.
+        The starting tetrahedron is selected as the one whose Voronoi vertex is closest
+        to `start_point` (Euclidean distance).
+        
+        :arg cavities: list of cavity objects
+        :arg vertices: Voronoi vertices (array of shape (n, 3))
+        :arg start_point: point [x, y, z] in Å (list/tuple/ndarray of length 3)'''
+        
         sp = np.asarray(start_point, dtype=float).reshape(3,)
 
         for cavity in cavities:
