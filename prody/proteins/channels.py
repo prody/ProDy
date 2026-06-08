@@ -13,7 +13,7 @@ from numpy import *
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
 from prody.atomic import flags, sliceAtomicData
-from prody.utilities import importLA, checkCoords, showFigure, getCoords
+from prody.utilities import importLA, checkCoords, showFigure, getCoords, isListLike
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB, parsePDB, parsePQR
@@ -375,7 +375,7 @@ def showCavities(surface, show_surface=False):
     vis.destroy_window()
 
 
-def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
+def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -400,6 +400,11 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
         are saved in a single PDB file. Default is False.
     :type separate: bool
+
+    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
+        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
+        the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
+    :type start_point: list, tuple, or ndarray (length 3), or None 
 
     :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
         the outer surface of the channels. Default is 3.
@@ -439,6 +444,8 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     Example usage:
     channels, surface = calcChannels(atoms, output_path="channels", separate=True)
     
+    channels, surface = calcChannels(atoms, output_path="all_channels.pdb", start_point=[-22.312, -20.065, -11.144])
+    
     To save the results as PDB file:
     channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
                                        bottleneck=1, sparsity=15) """
@@ -466,6 +473,20 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     else:
         from pathlib2 import Path
     
+    if start_point is not None:
+        if not isListLike(start_point):
+            raise TypeError("start_point must be a list/tuple/ndarray with three numeric values")
+        if len(start_point) != 3:
+            raise ValueError(
+                "start_point must be a list of three numbers, e.g. "
+                "start_point=[-12.312, 5.065, -1.144]")
+        
+        start_point = np.array(start_point, dtype=float)        
+        
+        LOGGER.info("Using user-provided start_point for channel seed: [{:.3f}, {:.3f}, {:.3f}] Å"
+            .format(start_point[0], start_point[1], start_point[2]))
+
+
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
     
     atoms = atoms.select('not hetero and noh') # Excluding hydrogens
@@ -509,6 +530,9 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     c_surface_cavities = calculator.get_surface_cavities(c_cavities, s_clr.simp, l_second_layer_simp, s_clr, coords, vdw_radii, sparsity)
         
     calculator.find_deepest_tetrahedra(c_surface_cavities, s_clr.neigh)
+    if start_point is not None:
+        calculator.set_starting_tetrahedra_from_point(c_surface_cavities, s_clr.verti, start_point)
+    
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
         
@@ -542,7 +566,7 @@ def calcChannels(atoms, output_path=None, separate=False, r1=3, r2=1.25, min_dep
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
             
-def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, **kwargs):
+def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, start_point=None, **kwargs):
     """Compute channels for each frame in a given trajectory or multi-model PDB file.
 
     This function calculates the channels for each frame in a trajectory or for each model
@@ -564,6 +588,11 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
         If False, all channels for each frame/model are saved in a single file. Default is False.
     :type separate: bool
 
+    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
+        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
+        the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
+    :type start_point: list, tuple, or ndarray (length 3), or None 
+
     :param kwargs: Additional parameters required for channel calculation. This can include parameters such as
         radius values (r1, r2), minimum depth (min_depth), bottleneck values, etc. 
         See the available parameters in calcChannels().
@@ -575,7 +604,11 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
 
     Example usage:
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
-                                   separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) """
+                                   separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) 
+                                  
+    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
+                                   separate=False, start_point=[-10.353, -0.133, 5.608]) """
+
     
     if PY3K:
         if not checkAndImport('pathlib'):
@@ -625,9 +658,9 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
             LOGGER.info("Frame: {0}".format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             if output_path:
-                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), separate, **kwargs)
+                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), separate, start_point=start_point, **kwargs)
             else:
-                channels, surfaces = calcChannels(atoms_copy, **kwargs)
+                channels, surfaces = calcChannels(atoms_copy, start_point=start_point, **kwargs)
             channels_all.append(channels)
             surfaces_all.append(surfaces)
         trajectory._nfi = nfi
@@ -638,9 +671,9 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
                 LOGGER.info("Model: {0}".format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
                 if output_path:
-                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, **kwargs)
+                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, start_point=start_point, **kwargs)
                 else:
-                    channels, surfaces = calcChannels(atoms, **kwargs)
+                    channels, surfaces = calcChannels(atoms, start_point=start_point, **kwargs)
                 channels_all.append(channels)
                 surfaces_all.append(surfaces)
         else:
@@ -1588,7 +1621,28 @@ class ChannelCalculator:
         
         return total_volume
             
-    
+    def set_starting_tetrahedra_from_point(self, cavities, vertices, start_point):
+        '''Set starting tetrahedra using a user-defined 3D point.
+        The starting tetrahedron is selected as the one whose Voronoi vertex is closest
+        to `start_point` (Euclidean distance).
+        
+        :arg cavities: list of cavity objects
+        :arg vertices: Voronoi vertices (array of shape (n, 3))
+        :arg start_point: point [x, y, z] in Å (list/tuple/ndarray of length 3)'''
+        
+        sp = np.asarray(start_point, dtype=float).reshape(3,)
+
+        for cavity in cavities:
+            tet = cavity.tetrahedra
+            if tet is None or len(tet) == 0:
+                continue
+
+            # Voronoi vertex per tetrahedron: vertices[tetra_id] -> (x,y,z)
+            v = vertices[tet]
+            d2 = np.sum((v - sp) ** 2, axis=1)
+            chosen = tet[int(np.argmin(d2))]
+
+            cavity.set_starting_tetrahedron(np.array([chosen]))
 
 
 
