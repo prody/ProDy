@@ -13,7 +13,7 @@ from numpy import *
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
 from prody.atomic import flags, sliceAtomicData
-from prody.utilities import importLA, checkCoords, showFigure, getCoords
+from prody.utilities import importLA, checkCoords, showFigure, getCoords, isListLike
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB, parsePDB, parsePQR
@@ -474,11 +474,15 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         from pathlib2 import Path
     
     if start_point is not None:
-        if not isinstance(start_point, list) or len(start_point) != 3:
+        if not isListLike(start_point):
+            raise TypeError("start_point must be a list/tuple/ndarray with three numeric values")
+        if len(start_point) != 3:
             raise ValueError(
                 "start_point must be a list of three numbers, e.g. "
                 "start_point=[-12.312, 5.065, -1.144]")
-                
+        
+        start_point = np.array(start_point, dtype=float)        
+        
         LOGGER.info("Using user-provided start_point for channel seed: [{:.3f}, {:.3f}, {:.3f}] Å"
             .format(start_point[0], start_point[1], start_point[2]))
 
