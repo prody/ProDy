@@ -375,7 +375,7 @@ def showCavities(surface, show_surface=False):
     vis.destroy_window()
 
 
-def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15, cavities_only=False):
+def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, max_depth=None, bottleneck=1, sparsity=15, cavities_only=False):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -534,6 +534,10 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         calculator.set_starting_tetrahedra_from_point(c_surface_cavities, s_clr.verti, start_point)
     
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
+    
+    if cavities_only and max_depth is not None:
+        calculator.trim_cavities_by_depth(c_filtered_cavities, max_depth)
+    
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
     
     # Eraly-return for the calcSurfaceCavities function:
@@ -1155,13 +1159,14 @@ def calcChannelSurfaceOverlaps(**kwargs):
     write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
 
 
-def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, sparsity=15, separate=False):
+def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, max_depth=3, sparsity=15, separate=False):
     """Calculate surface cavities (pockets) on protein surface using CaviTracer approach."""
 
-    cavities, surface = calcChannels(atoms, r1=r1, r2=r2, min_depth=min_depth, sparsity=sparsity, cavities_only=True)
-
-    if output_path is not None:
-        save_cavities_to_pdb(cavities, surface, output_path, separate=separate)
+    cavities, surface = calcChannels(atoms, r1=r1, r2=r2, min_depth=min_depth, max_depth=max_depth, sparsity=sparsity, cavities_only=True)
+    
+    # Not yet available
+    #if output_path is not None:
+    #    save_cavities_to_pdb(cavities, surface, output_path, separate=separate)
 
     return cavities, surface
     
@@ -1208,6 +1213,7 @@ class Cavity:
         self.starting_tetrahedron = None
         self.channels = []
         self.depth = 0
+        self.tetrahedra_depths = {}
         
     def make_surface(self):
         self.is_connected_to_surface = True
@@ -1411,9 +1417,12 @@ class ChannelCalculator:
             queue = deque([(tetra, 0) for tetra in exit_tetrahedra])
             max_depth = -1
             deepest_tetrahedron = None
+            tetrahedra_depths = {}
 
             while queue:
                 current, depth = queue.popleft()
+                tetrahedra_depths[current] = depth
+                
                 if depth > max_depth:
                     max_depth = depth
                     deepest_tetrahedron = current
@@ -1425,6 +1434,7 @@ class ChannelCalculator:
 
             cavity.set_starting_tetrahedron(np.array([deepest_tetrahedron]))
             cavity.set_depth(max_depth)
+            cavity.tetrahedra_depths = tetrahedra_depths
             
     def dijkstra(self, cavity, simplices, neighbors, vertices, points, vdw_radii):
         import heapq
@@ -1662,4 +1672,10 @@ class ChannelCalculator:
             cavity.set_starting_tetrahedron(np.array([chosen]))
 
 
-
+    def trim_cavities_by_depth(self, cavities, max_depth):
+        """Filtering cavities by max_depth."""
+    
+        for cavity in cavities:
+            cavity.tetrahedra = np.array([
+                tetra for tetra in cavity.tetrahedra
+                if cavity.tetrahedra_depths.get(tetra, np.inf) <= max_depth])
