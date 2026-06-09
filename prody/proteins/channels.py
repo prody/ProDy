@@ -31,7 +31,7 @@ from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
            'selectChannelBySelection', 'getChannelResidueNames',
-           'calcChannelSurfaceOverlaps']
+           'calcChannelSurfaceOverlaps', 'calcSurfaceCavities']
 
 
 
@@ -375,7 +375,7 @@ def showCavities(surface, show_surface=False):
     vis.destroy_window()
 
 
-def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
+def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15, cavities_only=False):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -535,6 +535,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
+    
+    # Eraly-return for the calcSurfaceCavities function:
+    if cavities_only:
+        LOGGER.info("Returning surface cavities")
+        return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp]
         
     for cavity in c_filtered_cavities:
         #calculator.dijkstra(cavity, *(s_clr.get_state() + [coords, vdw_radii]))
@@ -1149,7 +1154,19 @@ def calcChannelSurfaceOverlaps(**kwargs):
     merged_surface = merge_surfaces(surfaces)
     write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
 
+
+def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, sparsity=15, separate=False):
+    """Calculate surface cavities (pockets) on protein surface using CaviTracer approach."""
+
+    cavities, surface = calcChannels(atoms, r1=r1, r2=r2, min_depth=min_depth, sparsity=sparsity, cavities_only=True)
+
+    if output_path is not None:
+        save_cavities_to_pdb(cavities, surface, output_path, separate=separate)
+
+    return cavities, surface
     
+
+
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
         self.tetrahedra = tetrahedra
