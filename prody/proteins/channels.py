@@ -543,7 +543,23 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     # Eraly-return for the calcSurfaceCavities function:
     if cavities_only:
         LOGGER.info("Returning surface cavities")
-        return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp]
+        
+        if output_path:
+            output_path = Path(output_path)
+            
+            if output_path.is_dir():
+                output_path = output_path / "surface_cavities.pqr"
+            elif not (output_path.suffix == ".pdb" or output_path.suffix == ".pqr"):
+                output_path = output_path.with_suffix(".pqr")
+
+            if not separate:
+                LOGGER.info("Saving surface cavities to " + str(output_path) + ".")
+            else:
+                LOGGER.info("Saving multiple surface cavities to directory " + str(output_path.parent) + ".")
+
+            calculator.save_cavities_to_pdb(c_filtered_cavities, s_clr.verti, output_path, separate)
+        
+        return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp, s_clr.verti]
         
     for cavity in c_filtered_cavities:
         #calculator.dijkstra(cavity, *(s_clr.get_state() + [coords, vdw_radii]))
@@ -1162,14 +1178,15 @@ def calcChannelSurfaceOverlaps(**kwargs):
 def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, max_depth=3, sparsity=15, separate=False):
     """Calculate surface cavities (pockets) on protein surface using CaviTracer approach."""
 
-    cavities, surface = calcChannels(atoms, r1=r1, r2=r2, min_depth=min_depth, max_depth=max_depth, sparsity=sparsity, cavities_only=True)
+    cavities, surface = calcChannels(
+            atoms, 
+            output_path=output_path,
+            separate=separate,
+            r1=r1, r2=r2, 
+            min_depth=min_depth, max_depth=max_depth, 
+            sparsity=sparsity, cavities_only=True)
     
-    # Not yet available
-    #if output_path is not None:
-    #    save_cavities_to_pdb(cavities, surface, output_path, separate=separate)
-
     return cavities, surface
-    
 
 
 class Channel:
@@ -1612,6 +1629,41 @@ class ChannelCalculator:
                         
                     channel_index += 1
 
+    def save_cavities_to_pdb(self, cavities, vertices, filename, separate=False):
+        """Save surface cavities to a PDB/PQR file as FIL pseudoatoms."""
+
+        filename = str(filename)
+        with open(filename, 'w') as pqr_file:
+            atom_index = 1
+            cavity_index = 0
+            for cavity in cavities:
+                tetrahedra = cavity.tetrahedra
+                if tetrahedra is None or len(tetrahedra) == 0:
+                    continue
+
+                points = vertices[tetrahedra]
+                for x, y, z in points:
+                    pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (atom_index, cavity_index + 1, x, y, z, 1.00, float(cavity.depth)))
+                    atom_index += 1
+                cavity_index += 1
+
+        if separate:
+            cavity_index = 0
+            for cavity in cavities:
+                tetrahedra = cavity.tetrahedra
+                if tetrahedra is None or len(tetrahedra) == 0:
+                    continue
+
+                points = vertices[tetrahedra]
+                cavity_filename = filename.replace('.pqr', '_cavity{0}.pqr'.format(cavity_index))
+                cavity_filename = cavity_filename.replace('.pdb', '_cavity{0}.pdb'.format(cavity_index))
+
+                with open(cavity_filename, 'w') as pqr_file:
+                    atom_index = 1
+                    for x, y, z in points:
+                        pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (atom_index, cavity_index + 1, x, y, z, 1.00, float(cavity.depth)))
+                        atom_index += 1
+                cavity_index += 1
 
     def calculate_channel_length(self, centerline_spline):
         t_values = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], len(centerline_spline.x) * 10)
