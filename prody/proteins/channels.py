@@ -30,7 +30,7 @@ from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
-           'selectChannelBySelection', 'getChannelResidueNames',
+           'showSurfaceCavities', 'selectChannelBySelection', 'getChannelResidueNames',
            'calcChannelSurfaceOverlaps', 'calcSurfaceCavities']
 
 
@@ -373,6 +373,71 @@ def showCavities(surface, show_surface=False):
     vis.update_renderer()
     vis.run()
     vis.destroy_window()
+
+
+def showSurfaceCavities(surface, model=None, show_surface=False):
+    """Visualize surface cavities together with an optional protein model."""
+
+    if not checkAndImport('open3d'):
+        raise ImportError('To run showSurfaceCavities, please install open3d.')
+
+    import open3d as o3d
+
+    points = surface[0]
+    surf_simp = surface[1]
+    simp_cavities = surface[2]
+
+    triangles = []
+    for tetra in simp_cavities:
+        triangles.extend([
+            sorted([tetra[0], tetra[1], tetra[2]]),
+            sorted([tetra[0], tetra[1], tetra[3]]),
+            sorted([tetra[0], tetra[2], tetra[3]]),
+            sorted([tetra[1], tetra[2], tetra[3]])
+        ])
+
+    surface_triangles = np.unique(np.array(triangles), axis=0, return_counts=True)[0]
+
+    cavity_mesh = o3d.geometry.TriangleMesh()
+    cavity_mesh.vertices = o3d.utility.Vector3dVector(points)
+    cavity_mesh.triangles = o3d.utility.Vector3iVector(surface_triangles)
+    cavity_mesh.compute_vertex_normals()
+    cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+
+    meshes_to_visualize = []
+    if model is not None:
+        model.compute_vertex_normals()
+        model.paint_uniform_color([0.8, 0.8, 0.8])
+        meshes_to_visualize.append(model)
+    meshes_to_visualize.append(cavity_mesh)
+
+    if show_surface == True:
+        triangles = []
+        for tetra in surf_simp:
+            triangles.extend([sorted([tetra[0], tetra[1], tetra[2]]),
+                                  sorted([tetra[0], tetra[1], tetra[3]]),
+                                  sorted([tetra[0], tetra[2], tetra[3]]),
+                                  sorted([tetra[1], tetra[2], tetra[3]])])
+            
+        triangles = np.array(triangles)
+        triangles.sort(axis=1)
+            
+        triangles_tuple = [tuple(tri) for tri in triangles]
+        unique_triangles, counts = np.unique(triangles_tuple, return_counts=True, axis=0)
+        surface_triangles = unique_triangles[counts == 1]
+            
+        lines = []
+        for simplex in surface_triangles:
+            for i in range(3):
+                for j in range(i + 1, 3):
+                    lines.append([simplex[i], simplex[j]])
+            
+        line_set = o3d.geometry.LineSet()
+        line_set.points = o3d.utility.Vector3dVector(points)
+        line_set.lines = o3d.utility.Vector2iVector(lines)
+        meshes_to_visualize.append(line_set)
+
+    o3d.visualization.draw_geometries(meshes_to_visualize)
 
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, max_depth=None, bottleneck=1, sparsity=15, cavities_only=False):
