@@ -8,13 +8,30 @@ from prody.utilities import importDec
 dec = importDec()
 
 from prody import fetchPDBClusters, loadPDBClusters, listPDBCluster
-from prody import LOGGER, getPackagePath
+from prody import LOGGER, SETTINGS, getPackagePath
 from prody.proteins import pdbclusters
-from prody.tests import unittest
+from prody.tests import unittest, TEMPDIR
 
 LOGGER.verbosity = 'none'
 
 SQID = 40
+
+# Cluster files are stored under getPackagePath(); when the package path is not
+# set/writable (e.g. a fresh CI environment) prody prompts for it via input(),
+# which fails under captured output ("reading from stdin while output is
+# captured!").  Point the package path at the writable test TEMPDIR so the tests
+# never block on a prompt; the original value is restored afterwards.
+_ORIGINAL_PACKAGE_PATH = None
+
+
+def setUpModule():
+    global _ORIGINAL_PACKAGE_PATH
+    _ORIGINAL_PACKAGE_PATH = SETTINGS.get('package_path', None)
+    SETTINGS['package_path'] = TEMPDIR
+
+
+def tearDownModule():
+    SETTINGS['package_path'] = _ORIGINAL_PACKAGE_PATH
 
 
 class TestFetchPDBClusters(unittest.TestCase):
