@@ -375,7 +375,7 @@ def showCavities(surface, show_surface=False):
     vis.destroy_window()
 
 
-def showSurfaceCavities(surface, model=None, show_surface=False):
+def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False, mode='tetra', alpha=4.0, smoothing=0):
     """Visualize surface cavities together with an optional protein model."""
 
     if not checkAndImport('open3d'):
@@ -386,31 +386,61 @@ def showSurfaceCavities(surface, model=None, show_surface=False):
     points = surface[0]
     surf_simp = surface[1]
     simp_cavities = surface[2]
-
-    triangles = []
-    for tetra in simp_cavities:
-        triangles.extend([
-            sorted([tetra[0], tetra[1], tetra[2]]),
-            sorted([tetra[0], tetra[1], tetra[3]]),
-            sorted([tetra[0], tetra[2], tetra[3]]),
-            sorted([tetra[1], tetra[2], tetra[3]])
-        ])
-
-    surface_triangles = np.unique(np.array(triangles), axis=0, return_counts=True)[0]
-
-    cavity_mesh = o3d.geometry.TriangleMesh()
-    cavity_mesh.vertices = o3d.utility.Vector3dVector(points)
-    cavity_mesh.triangles = o3d.utility.Vector3iVector(surface_triangles)
-    cavity_mesh.compute_vertex_normals()
-    cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+    
+    if mode not in ['tetra', 'smooth']:
+        raise ValueError("mode must be 'tetra' or 'smooth'")
 
     meshes_to_visualize = []
+
     if model is not None:
         model.compute_vertex_normals()
         model.paint_uniform_color([0.8, 0.8, 0.8])
         meshes_to_visualize.append(model)
-    meshes_to_visualize.append(cavity_mesh)
+    
+    if mode == 'tetra':
+        triangles = []
+        for tetra in simp_cavities:
+            triangles.extend([
+                sorted([tetra[0], tetra[1], tetra[2]]),
+                sorted([tetra[0], tetra[1], tetra[3]]),
+                sorted([tetra[0], tetra[2], tetra[3]]),
+                sorted([tetra[1], tetra[2], tetra[3]])
+            ])
 
+        surface_triangles = np.unique(np.array(triangles), axis=0, return_counts=True)[0]
+        cavity_mesh = o3d.geometry.TriangleMesh()
+        cavity_mesh.vertices = o3d.utility.Vector3dVector(points)
+        cavity_mesh.triangles = o3d.utility.Vector3iVector(surface_triangles)
+        cavity_mesh.compute_vertex_normals()
+        
+        if smoothing is not None and smoothing > 0:
+            cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
+            cavity_mesh.compute_vertex_normals()
+        
+        cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+        meshes_to_visualize.append(cavity_mesh)
+        
+    elif mode == 'smooth':
+        if cavities is None:
+            raise ValueError("cavities must be provided for mode='smooth'")
+        
+        verti = surface[4]
+        for cavity in cavities:
+            if cavity.tetrahedra is None or len(cavity.tetrahedra) < 4:
+                continue
+
+            pts = verti[cavity.tetrahedra]
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(pts)
+            cavity_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
+
+            if smoothing is not None and smoothing > 0:
+                cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
+
+            cavity_mesh.compute_vertex_normals()
+            cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+            meshes_to_visualize.append(cavity_mesh)
+        
     if show_surface == True:
         triangles = []
         for tetra in surf_simp:
