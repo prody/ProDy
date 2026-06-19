@@ -140,11 +140,11 @@ def _backbone_curvature_blocks(coords: np.ndarray, kappa: float) -> np.ndarray:
 
 def build_generalized_hessian(
     coords: np.ndarray,
-    cutoff: float = 10.0,
+    cutoff: float = 15.0,
     gamma: float = 1.0,
-    k_theta: float = 0.5,
-    k_phi: float = 0.2,
-    kappa: float = 0.8,
+    k_theta: float = 10.0,
+    k_phi: float = 1.0,
+    kappa: float = 20.0,
     include_sequential: bool = True,
     symmetrize: bool = True,
 ) -> np.ndarray:
@@ -174,9 +174,9 @@ class genANM(ANM):
         """Build generalized Hessian from coordinates or an object exposing getCoords().
 
         Additional keyword arguments (defaults shown):
-          k_theta=0.5
-          k_phi=0.2
-          kappa=0.8
+          k_theta=10.0
+          k_phi=1.0
+          kappa=20.0
           include_sequential=True
           symmetrize=True
 
@@ -193,9 +193,9 @@ class genANM(ANM):
         cutoff, g, gamma_func = checkENMParameters(cutoff, gamma)
 
         # generalized-specific parameters
-        k_theta = float(kwargs.pop('k_theta', 0.5))
-        k_phi = float(kwargs.pop('k_phi', 0.2))
-        kappa = float(kwargs.pop('kappa', 0.8))
+        k_theta = float(kwargs.pop('k_theta', 10.0))
+        k_phi = float(kwargs.pop('k_phi', 1.0))
+        kappa = float(kwargs.pop('kappa', 20.0))
         include_sequential = bool(kwargs.pop('include_sequential', True))
         symmetrize = bool(kwargs.pop('symmetrize', True))
 
