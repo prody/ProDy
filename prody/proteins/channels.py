@@ -470,7 +470,9 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False, 
     o3d.visualization.draw_geometries(meshes_to_visualize)
 
 
-def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, max_depth=None, bottleneck=1, sparsity=15, cavities_only=False):
+def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, 
+    min_volume=None, max_volume=None, max_depth=None, bottleneck=1, sparsity=15, 
+    min_tetrahedra=None, max_tetrahedra=None, cavities_only=False):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -516,6 +518,12 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
 
     :param bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
     :type bottleneck: float
+
+    :param min_volume: The minimum volume of a cavity. Default is None.
+    :type min_depth: float
+
+    :param max_volume: The maximum volume of a cavity. Default is None.
+    :type max_depth: float
 
     :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
         A higher value results in fewer sampling points. Default is 15.
@@ -636,6 +644,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     if cavities_only and max_depth is not None:
         calculator.trim_cavities_by_depth(c_filtered_cavities, max_depth)
     
+    if cavities_only and (min_tetrahedra is not None or max_tetrahedra is not None):
+        c_filtered_cavities = calculator.filter_cavities_by_tetrahedra(c_filtered_cavities, min_tetrahedra, max_tetrahedra)
+    
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
     
     # Eraly-return for the calcSurfaceCavities function:
@@ -664,6 +675,10 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         calculator.dijkstra(cavity, *(s_clr.get_state() + tuple([coords, vdw_radii])))
         
     calculator.filter_channels_by_bottleneck(c_filtered_cavities, bottleneck)
+    
+    if min_volume is not None or max_volume is not None:
+        calculator.filter_channels_by_volume(c_filtered_cavities, min_volume, max_volume)
+    
     channels = [channel for cavity in c_filtered_cavities for channel in cavity.channels]
         
     no_of_channels = len(channels)
@@ -1273,7 +1288,8 @@ def calcChannelSurfaceOverlaps(**kwargs):
     write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
 
 
-def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, max_depth=3, sparsity=15, separate=False):
+def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, max_depth=3, 
+    min_tetrahedra=None, max_tetrahedra=None, sparsity=15, separate=False):
     """Calculate surface cavities (pockets) on protein surface using CaviTracer approach.
 
     :param atoms: An object representing the molecular structure, typically containing atomic coordinates
@@ -1336,7 +1352,8 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, ma
             output_path=output_path,
             separate=separate,
             r1=r1, r2=r2, 
-            min_depth=min_depth, max_depth=max_depth, 
+            min_depth=min_depth, max_depth=max_depth,
+            min_tetrahedra=min_tetrahedra, max_tetrahedra=max_tetrahedra,
             sparsity=sparsity, cavities_only=True)
     
     return cavities, surface
@@ -1730,6 +1747,32 @@ class ChannelCalculator:
     def filter_channels_by_bottleneck(self, cavities, bottleneck):
         for cavity in cavities:
             cavity.channels = [channel for channel in cavity.channels if channel.bottleneck >= bottleneck]
+    
+    def filter_channels_by_volume(self, cavities, min_volume=None, max_volume=None):
+        """Filter channels by volume."""
+    
+        for cavity in cavities:
+            filtered_channels = []
+            for channel in cavity.channels:
+                if min_volume is not None and channel.volume < min_volume:
+                    continue
+                if max_volume is not None and channel.volume > max_volume:
+                    continue
+                filtered_channels.append(channel)
+            cavity.channels = filtered_channels
+
+    def filter_cavities_by_tetrahedra(self, cavities, min_tetrahedra=None, max_tetrahedra=None):
+        """Filter cavities by cavity volume."""
+    
+        filtered = []
+        for cavity in cavities:
+            n = len(cavity.tetrahedra)
+            if min_tetrahedra is not None and n < min_tetrahedra:
+                continue
+            if max_tetrahedra is not None and n > max_tetrahedra:
+                continue
+            filtered.append(cavity)
+        return filtered
 
     def save_channels_to_pdb(self, cavities, filename, separate=False, num_samples=5):
         filename = str(filename)
