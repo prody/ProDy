@@ -511,6 +511,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     :param min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
     :type min_depth: float
 
+    :param max_depth: The maximum depth a cavity must have to be considered as a channel. Default is None.
+    :type max_depth: float
+
     :param bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
     :type bottleneck: float
 
