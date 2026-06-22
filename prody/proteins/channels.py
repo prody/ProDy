@@ -1271,7 +1271,62 @@ def calcChannelSurfaceOverlaps(**kwargs):
 
 
 def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, max_depth=3, sparsity=15, separate=False):
-    """Calculate surface cavities (pockets) on protein surface using CaviTracer approach."""
+    """Calculate surface cavities (pockets) on protein surface using CaviTracer approach.
+
+    :param atoms: An object representing the molecular structure, typically containing atomic coordinates
+        and element types.
+    :type atoms: `Atoms` object
+
+    :param output_path: Optional path to save the resulting cavities and associated data in PQR (or PDB) format.
+        If None, results are not saved. Default is None.
+    :type output_path: str or None
+
+    :param separate: If True, each detected cavity is saved to a separate PQR file. If False, all cavities
+        are saved in a single PQR file. Default is False.
+    :type separate: bool
+
+    :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
+        the outer surface of the cavities. Default is 4.5.
+    :type r1: float
+
+    :param r2: The second radius threshold used to define the inner surface of the cavities. Default is 2.
+    :type r2: float
+
+    :param min_depth: The minimum depth a cavity must have to be considered as a cavity. Default is 2.
+    :type min_depth: float
+
+    :param max_depth: The maximum depth a cavity must have to be considered as a cavity. Default is 3.
+    :type max_depth: float
+
+    :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
+        A higher value results in fewer sampling points. Default is 15.
+    :type sparsity: int
+
+    :returns: A tuple containing two elements:
+        - `cavities`: A list of detected cavities, where each channel is an object containing information
+          about its path and geometry.
+        - `surface`: A list containing additional information for further visualization, including
+          the atomic coordinates, simplices defining the surface, and merged cavities.
+    :rtype: tuple (list, list)
+
+    This function performs the following steps:
+    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, 
+        and performs 3D Delaunay triangulation and Voronoi tessellation on the coordinates.
+    2. **Surface and Interior Filtering:** Iteratively removes simplices based on the user-defined radii 
+        (`r1` and `r2`) to distinguish the molecular surface from the internal void space.
+    3. **Surface Cavity Identification:** Detects connected void regions and identifies those that remain 
+        connected to the protein surface, corresponding to surface-accessible cavities and pockets.
+    4. **Depth Calculation and Filtering:** Estimates cavity depth using a graph-based traversal from the cavity 
+        openings, identifies the deepest tetrahedra, and filters cavities according to the specified depth criteria.
+    5. **Output Generation:** Optionally trims cavities exceeding the specified	maximum depth, saves detected 
+        cavities to PDB/PQR files, and returns cavity objects together with the surface representation for further 
+        analysis and visualization.
+       
+    Example usage:
+    p = parsePDB('1tqn')
+    protein = p.select('protein')
+    cavities, surface = calcSurfaceCavities(protein, output_path='test_surf_cav.pqr')   """
+
 
     cavities, surface = calcChannels(
             atoms, 
