@@ -1370,6 +1370,7 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, ma
             separate=separate,
             r1=r1, r2=r2, 
             min_depth=min_depth, max_depth=max_depth,
+            min_volume=min_volume, max_volume=max_volume,
             min_tetrahedra=min_tetrahedra, max_tetrahedra=max_tetrahedra,
             sparsity=sparsity, cavities_only=True)
     
