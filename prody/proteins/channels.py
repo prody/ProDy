@@ -1296,7 +1296,7 @@ def calcChannelSurfaceOverlaps(**kwargs):
 
 
 def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, max_depth=3, 
-    min_tetrahedra=None, max_tetrahedra=None, min_volume=None, max_volume=None,
+    min_tetrahedra=None, max_tetrahedra=None, min_volume=50, max_volume=None,
     sparsity=15, separate=False):
     """Calculate surface cavities (pockets) on protein surface using CaviTracer approach.
 
@@ -1337,6 +1337,12 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, ma
     :param max_tetrahedra: Maximum number of tetrahedra allowed for a cavity to be retained.
         Larger cavities are discarded. Default is None.
     :type max_tetrahedra: int
+
+    :param min_volume: Minimum volume required for a channel/cavity to be retained. Default is 50.
+    :type min_volume: float
+
+    :param max_volume: Maximum volume allowed for a channel/cavity to be retained. Default is None.
+    :type max_volume: float
 
     :returns: A tuple containing two elements:
         - `cavities`: A list of detected cavities, where each channel is an object containing information
