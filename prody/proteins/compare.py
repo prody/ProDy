@@ -1387,10 +1387,25 @@ def getAlignedMapping(target, chain, alignment=None):
         a = this[i]
         b = that[i]
         if a not in gap_chars:
-            ares = next(aiter)
+            try:
+                ares = next(aiter)
+            except StopIteration:
+                # Alignment string is longer than the actual sequence
+                # This can happen with different Biopython versions
+                LOGGER.warning('Alignment string longer than target sequence for {0}, '
+                               'truncating alignment at position {1}'.format(target.getTitle(), i))
+                break
             amatch.append(ares.getResidue())
             if b not in gap_chars:
-                bres = next(biter)
+                try:
+                    bres = next(biter)
+                except StopIteration:
+                    # Chain sequence exhausted, need to remove the last target residue
+                    # to keep amatch and bmatch synchronized
+                    amatch.pop()
+                    LOGGER.warning('Alignment string longer than chain sequence for {0}, '
+                                   'truncating alignment at position {1}'.format(chain.getTitle(), i))
+                    break
                 bmatch.append(bres.getResidue())
                 if a == b:
                     n_match += 1
@@ -1398,7 +1413,13 @@ def getAlignedMapping(target, chain, alignment=None):
             else:
                 bmatch.append(None)
         elif b not in gap_chars:
-            bres = next(biter)
+            try:
+                bres = next(biter)
+            except StopIteration:
+                # Chain sequence exhausted
+                LOGGER.warning('Alignment string longer than chain sequence for {0}, '
+                               'truncating alignment at position {1}'.format(chain.getTitle(), i))
+                break
     return amatch, bmatch, n_match, n_mapped
 
 def getCEAlignMapping(target, chain):
