@@ -1870,13 +1870,16 @@ class ChannelCalculator:
                         
                     channel_index += 1
 
+
     def save_cavities_to_pdb(self, cavities, vertices, filename, separate=False):
-        """Save surface cavities to a PDB/PQR file as FIL pseudoatoms."""
+        """Save surface cavities to a PDB/PQR file as dummy atoms."""
 
         filename = str(filename)
+
         with open(filename, 'w') as pqr_file:
             atom_index = 1
             cavity_index = 0
+
             for cavity in cavities:
                 tetrahedra = cavity.tetrahedra
                 if tetrahedra is None or len(tetrahedra) == 0:
@@ -1884,12 +1887,14 @@ class ChannelCalculator:
 
                 points = vertices[tetrahedra]
                 for x, y, z in points:
-                    pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (atom_index, cavity_index + 1, x, y, z, 1.00, float(cavity.depth)))
+                    pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+                        % (atom_index, cavity_index + 1, x, y, z, 1.00, 1.00))
                     atom_index += 1
                 cavity_index += 1
 
         if separate:
             cavity_index = 0
+
             for cavity in cavities:
                 tetrahedra = cavity.tetrahedra
                 if tetrahedra is None or len(tetrahedra) == 0:
@@ -1901,11 +1906,14 @@ class ChannelCalculator:
 
                 with open(cavity_filename, 'w') as pqr_file:
                     atom_index = 1
-                    for x, y, z in points:
-                        pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (atom_index, cavity_index + 1, x, y, z, 1.00, float(cavity.depth)))
-                        atom_index += 1
-                cavity_index += 1
 
+                    for x, y, z in points:
+                        pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+                            % (atom_index, cavity_index + 1, x, y, z, 1.00, 1.00))
+                        atom_index += 1
+
+                cavity_index += 1
+            
     def calculate_channel_length(self, centerline_spline):
         t_values = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], len(centerline_spline.x) * 10)
         points = centerline_spline(t_values)
