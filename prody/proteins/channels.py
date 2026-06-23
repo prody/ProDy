@@ -511,19 +511,20 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     :type r2: float
 
     :param min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
-    :type min_depth: float
+    :type min_depth: int
 
-    :param max_depth: The maximum depth a cavity must have to be considered as a channel. Default is None.
-    :type max_depth: float
+    :param max_depth: Maximum cavity depth. Cavities deeper than this value are trimmed to the specified depth. 
+        Default is None.
+    :type max_depth: int
 
     :param bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
     :type bottleneck: float
 
-    :param min_volume: The minimum volume of a cavity. Default is None.
-    :type min_depth: float
+    :param min_volume: Minimum volume required for a channel/cavity to be retained. Default is None.
+    :type min_volume: float
 
-    :param max_volume: The maximum volume of a cavity. Default is None.
-    :type max_depth: float
+    :param max_volume: Maximum volume allowed for a channel/cavity to be retained. Default is None.
+    :type max_volume: float
 
     :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
         A higher value results in fewer sampling points. Default is 15.
@@ -646,6 +647,12 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     
     if cavities_only and (min_tetrahedra is not None or max_tetrahedra is not None):
         c_filtered_cavities = calculator.filter_cavities_by_tetrahedra(c_filtered_cavities, min_tetrahedra, max_tetrahedra)
+    
+    if cavities_only:
+        calculator.calculate_cavity_volumes(c_filtered_cavities, s_clr.simp, coords)
+
+    if cavities_only and (min_volume is not None or max_volume is not None):
+        c_filtered_cavities = calculator.filter_cavities_by_volume(c_filtered_cavities, min_volume, max_volume)
     
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
     
@@ -1289,7 +1296,8 @@ def calcChannelSurfaceOverlaps(**kwargs):
 
 
 def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, max_depth=3, 
-    min_tetrahedra=None, max_tetrahedra=None, sparsity=15, separate=False):
+    min_tetrahedra=None, max_tetrahedra=None, min_volume=None, max_volume=None,
+    sparsity=15, separate=False):
     """Calculate surface cavities (pockets) on protein surface using CaviTracer approach.
 
     :param atoms: An object representing the molecular structure, typically containing atomic coordinates
@@ -1312,14 +1320,23 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, ma
     :type r2: float
 
     :param min_depth: The minimum depth a cavity must have to be considered as a cavity. Default is 2.
-    :type min_depth: float
+    :type min_depth: int
 
-    :param max_depth: The maximum depth a cavity must have to be considered as a cavity. Default is 3.
-    :type max_depth: float
+    :param max_depth: Maximum cavity depth. Cavities deeper than this value are trimmed to the specified depth. 
+        Default is 3.
+    :type max_depth: int
 
     :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
         A higher value results in fewer sampling points. Default is 15.
     :type sparsity: int
+
+    :param min_tetrahedra: Minimum number of tetrahedra required for a cavity to be retained. 
+        Smaller cavities are discarded. Default is None.
+    :type min_tetrahedra: int
+
+    :param max_tetrahedra: Maximum number of tetrahedra allowed for a cavity to be retained.
+        Larger cavities are discarded. Default is None.
+    :type max_tetrahedra: int
 
     :returns: A tuple containing two elements:
         - `cavities`: A list of detected cavities, where each channel is an object containing information
@@ -1401,6 +1418,7 @@ class Cavity:
         self.channels = []
         self.depth = 0
         self.tetrahedra_depths = {}
+        self.volume = 0.0
         
     def make_surface(self):
         self.is_connected_to_surface = True
@@ -1773,6 +1791,32 @@ class ChannelCalculator:
                 continue
             filtered.append(cavity)
         return filtered
+
+    def calculate_tetrahedron_volume(self, a, b, c, d):
+        return abs(np.dot(a - d, np.cross(b - d, c - d))) / 6.0
+
+    def calculate_cavity_volumes(self, cavities, simplices, coords):
+        """Calculate approximate cavity volumes from Delaunay tetrahedra."""
+
+        for cavity in cavities:
+            volume = 0.0
+            for tetra in cavity.tetrahedra:
+                atom_ids = simplices[tetra]
+                a, b, c, d = coords[atom_ids]
+                volume += self.calculate_tetrahedron_volume(a, b, c, d)
+            cavity.volume = volume
+
+    def filter_cavities_by_volume(self, cavities, min_volume=None, max_volume=None):
+        """Filter cavities by approximate volume."""
+
+        filtered_cavities = []
+        for cavity in cavities:
+            if min_volume is not None and cavity.volume < min_volume:
+                continue
+            if max_volume is not None and cavity.volume > max_volume:
+                continue
+            filtered_cavities.append(cavity)
+        return filtered_cavities
 
     def save_channels_to_pdb(self, cavities, filename, separate=False, num_samples=5):
         filename = str(filename)
