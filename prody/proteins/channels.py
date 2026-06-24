@@ -375,13 +375,84 @@ def showCavities(surface, show_surface=False):
     vis.destroy_window()
 
 
-def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False, mode='tetra', alpha=4.0, smoothing=0):
-    """Visualize surface cavities together with an optional protein model."""
+def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False, 
+    cavity_atoms=None, mode='tetra', alpha=4.0, smoothing=0):
+    """Visualize surface cavities together with an optional protein model.
+    
+    This function displays surface cavities calculated by :func:`calcSurfaceCavities`.
+    Cavities can be visualized either directly from the tetrahedral/Voronoi
+    representation returned by the calculation, or from pseudoatoms loaded from
+    a PDB/PQR file through `cavity_atoms`.
+
+    - `mode='tetra'` displays cavities as a tetrahedron-derived mesh.
+      This mode follows the original geometric representation most closely,
+      but the resulting surface may appear faceted.
+    - `mode='smooth'` builds a smoother surface from Voronoi vertices
+      assigned to each cavity using an alpha-shape reconstruction. This mode
+      requires `cavities` to be provided.
+
+    If `cavity_atoms` is provided, cavities are visualized from the
+    coordinates of the supplied pseudoatoms instead of from `surface[2]` or
+    `cavities`. 
+    
+    :param surface: Surface data returned by :func:`calcSurfaceCavities`.
+        Required for `mode='tetra'`, for `mode='smooth'` when
+        `cavity_atoms` is not provided, and for displaying the molecular
+        surface when `show_surface=True`. The expected list contains:
+
+        - `surface[0]`: atomic coordinates used for the calculation,
+        - `surface[1]`: simplices defining the molecular surface,
+        - `surface[2]`: merged cavity simplices,
+        - `surface[3]`: simplices after surface-layer removal,
+        - `surface[4]`: Voronoi vertices used to represent surface cavities.
+
+    :type surface: list or None
+
+    :param cavities: List of :class:`Cavity` objects returned by
+        :func:`calcSurfaceCavities`. Required when `mode='smooth'` and
+        `cavity_atoms` is not provided, because the function uses
+        `cavity.tetrahedra` to select the corresponding Voronoi vertices.
+    :type cavities: list or None
+
+    :param model: Optional Open3D `TriangleMesh` representing the protein or
+        another molecular model. The model can be generated with
+        :func:`getVmdModel`. If a list of Open3D meshes is supported in the
+        implementation, multiple models can be displayed together.
+    :type model: open3d.geometry.TriangleMesh, list, or None
+
+    :param show_surface: If `True`, display the molecular surface wireframe
+        derived from `surface[1]` in addition to the cavity representation.
+        This requires `surface` to be provided. Default is `False`.
+    :type show_surface: bool
+
+    :param mode: Visualization mode used when `cavity_atoms` is not provided.
+        Accepted values are `'tetra'` and `'smooth'`. Default is `'tetra'`.
+    :type mode: str
+
+    :param alpha: Alpha value used for alpha-shape surface reconstruction in
+        `mode='smooth'` and when visualizing `cavity_atoms`. Smaller values
+        produce tighter surfaces, while larger values may connect more distant
+        points and generate broader surfaces. Default is 4.0.
+    :type alpha: float
+
+    :param smoothing: Number of Taubin smoothing iterations applied to the
+        reconstructed cavity mesh. If `0` or `None`, no smoothing is
+        applied. Default is 0.
+    :type smoothing: int or None
+
+    :param cavity_atoms: Optional pseudoatom representation of surface
+        cavities. This can be either a path to a PDB/PQR file or a parsed ProDy
+        `AtomGroup`. If provided, the function builds cavity surfaces from
+        these atom coordinates, typically grouping pseudoatoms by residue number
+        so that different cavities are reconstructed separately.
+    :type cavity_atoms: str, :class:`.AtomGroup`, or None
+    """
 
     if not checkAndImport('open3d'):
         raise ImportError('To run showSurfaceCavities, please install open3d.')
 
     import open3d as o3d
+    import os
 
     points = surface[0]
     surf_simp = surface[1]
@@ -397,39 +468,25 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False, 
         model.paint_uniform_color([0.8, 0.8, 0.8])
         meshes_to_visualize.append(model)
     
-    if mode == 'tetra':
-        triangles = []
-        for tetra in simp_cavities:
-            triangles.extend([
-                sorted([tetra[0], tetra[1], tetra[2]]),
-                sorted([tetra[0], tetra[1], tetra[3]]),
-                sorted([tetra[0], tetra[2], tetra[3]]),
-                sorted([tetra[1], tetra[2], tetra[3]])
-            ])
+    if cavity_atoms is not None:
+        if isinstance(cavity_atoms, str):
+            ext = os.path.splitext(cavity_atoms)[1].lower()
+            if ext == '.pqr':
+                cavity_atoms = parsePQR(cavity_atoms)
+            else:
+                cavity_atoms = parsePDB(cavity_atoms)
 
-        surface_triangles = np.unique(np.array(triangles), axis=0, return_counts=True)[0]
-        cavity_mesh = o3d.geometry.TriangleMesh()
-        cavity_mesh.vertices = o3d.utility.Vector3dVector(points)
-        cavity_mesh.triangles = o3d.utility.Vector3iVector(surface_triangles)
-        cavity_mesh.compute_vertex_normals()
-        
-        if smoothing is not None and smoothing > 0:
-            cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
-            cavity_mesh.compute_vertex_normals()
-        
-        cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
-        meshes_to_visualize.append(cavity_mesh)
-        
-    elif mode == 'smooth':
-        if cavities is None:
-            raise ValueError("cavities must be provided for mode='smooth'")
-        
-        verti = surface[4]
-        for cavity in cavities:
-            if cavity.tetrahedra is None or len(cavity.tetrahedra) < 4:
+        resnums = np.unique(cavity_atoms.getResnums())
+
+        for resnum in resnums:
+            sele = cavity_atoms.select('resnum {0}'.format(resnum))
+            if sele is None:
                 continue
 
-            pts = verti[cavity.tetrahedra]
+            pts = sele.getCoords()
+            if pts is None or len(pts) < 4:
+                continue
+
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(pts)
             cavity_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
@@ -440,7 +497,58 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False, 
             cavity_mesh.compute_vertex_normals()
             cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
             meshes_to_visualize.append(cavity_mesh)
-        
+
+    else:
+        if surface is None:
+            raise ValueError("surface must be provided when cavity_atoms is not given")
+
+        points = surface[0]
+        surf_simp = surface[1]
+        simp_cavities = surface[2]
+    
+        if mode == 'tetra':
+            triangles = []
+            for tetra in simp_cavities:
+                triangles.extend([
+                    sorted([tetra[0], tetra[1], tetra[2]]),
+                    sorted([tetra[0], tetra[1], tetra[3]]),
+                    sorted([tetra[0], tetra[2], tetra[3]]),
+                    sorted([tetra[1], tetra[2], tetra[3]])])
+
+            surface_triangles = np.unique(np.array(triangles), axis=0, return_counts=True)[0]
+            cavity_mesh = o3d.geometry.TriangleMesh()
+            cavity_mesh.vertices = o3d.utility.Vector3dVector(points)
+            cavity_mesh.triangles = o3d.utility.Vector3iVector(surface_triangles)
+            cavity_mesh.compute_vertex_normals()
+            
+            if smoothing is not None and smoothing > 0:
+                cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
+                cavity_mesh.compute_vertex_normals()
+            
+            cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+            meshes_to_visualize.append(cavity_mesh)
+            
+        elif mode == 'smooth':
+            if cavities is None:
+                raise ValueError("cavities must be provided for mode='smooth'")
+            
+            verti = surface[4]
+            for cavity in cavities:
+                if cavity.tetrahedra is None or len(cavity.tetrahedra) < 4:
+                    continue
+
+                pts = verti[cavity.tetrahedra]
+                pcd = o3d.geometry.PointCloud()
+                pcd.points = o3d.utility.Vector3dVector(pts)
+                cavity_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
+
+                if smoothing is not None and smoothing > 0:
+                    cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
+
+                cavity_mesh.compute_vertex_normals()
+                cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+                meshes_to_visualize.append(cavity_mesh)
+
     if show_surface == True:
         triangles = []
         for tetra in surf_simp:
