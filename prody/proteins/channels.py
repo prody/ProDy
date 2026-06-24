@@ -431,9 +431,8 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
     :param model: Optional Open3D `TriangleMesh` representing the protein or
         another molecular model. The model can be generated with
-        :func:`getVmdModel`. If a list of Open3D meshes is supported in the
-        implementation, multiple models can be displayed together.
-    :type model: open3d.geometry.TriangleMesh, list, or None
+        :func:`getVmdModel`.
+    :type model: open3d.geometry.TriangleMesh, or None
 
     :param show_surface: If `True`, display the molecular surface wireframe
         derived from `surface[1]` in addition to the cavity representation.
@@ -457,10 +456,22 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
     :param cavity_atoms: Optional pseudoatom representation of surface
         cavities. This can be either a path to a PDB/PQR file or a parsed ProDy
-        `AtomGroup`. If provided, the function builds cavity surfaces from
-        these atom coordinates, typically grouping pseudoatoms by residue number
-        so that different cavities are reconstructed separately.
-    :type cavity_atoms: str, :class:`.AtomGroup`, or None
+        `AtomGroup`, or an Open3D `TriangleMesh` generated, for example, with 
+        :func:`getVmdModel`.
+    :type cavity_atoms: str, :class:`.AtomGroup`, open3d.geometry.TriangleMesh, or None
+    
+    Examples:
+    p = parsePDB('1tqn')
+    protein = p.select('protein')
+    cavities, surface = calcSurfaceCavities(protein, output_path='cavities.pqr')
+    model_protein = getVmdModel(vmd_path, protein)
+    cav_model = getVmdModel(vmd_path, parsePQR('cavities.pqr'), representation='QuickSurf')
+    
+    showSurfaceCavities(surface, model=model_protein, show_surface=True)
+    or
+    showSurfaceCavities(surface, model=model_protein, cavity_atoms='cavities.pqr', show_surface=True)
+    or
+    showSurfaceCavities(surface, model=model_protein, cavity_atoms=cav_model, show_surface=True)
     """
 
     if not checkAndImport('open3d'):
