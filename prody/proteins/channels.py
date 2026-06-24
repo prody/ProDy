@@ -64,7 +64,7 @@ def checkAndImport(package_name):
     return True
 
 
-def getVmdModel(vmd_path, atoms):
+def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
     """Generates a 3D model of molecular structures using VMD and returns it as an Open3D TriangleMesh.
 
     This function creates a temporary PDB file from the provided atomic data and uses VMD (Visual Molecular Dynamics)
@@ -111,6 +111,20 @@ def getVmdModel(vmd_path, atoms):
     import open3d as o3d
     import os
 
+    representation_map = {
+    'newcartoon': 'NewCartoon',
+    'cartoon': 'NewCartoon',
+    'vdw': 'VDW 1.0 20.0',
+    'surf': 'Surf',
+    'quicksurf': 'QuickSurf 1.0 0.5 1.0 1.0',
+    'cpk': 'CPK 1.0 0.3 20.0 20.0'}
+
+    rep_key = representation.lower()
+    if rep_key not in representation_map:
+        raise ValueError(
+            "representation must be one of: 'NewCartoon', 'VDW', 'Surf', 'QuickSurf', or 'CPK'")
+    representation_style = representation_map[rep_key]
+
     if PY3K:
         from pathlib import Path
     else:
@@ -133,7 +147,7 @@ def getVmdModel(vmd_path, atoms):
         set output_path [lindex $argv 1]
 
         mol new $file_path
-        mol modstyle 0 0 NewCartoon
+        mol modstyle 0 0 %s
 
         set id_matrix {{1 0 0 0} {0 1 0 0} {0 0 1 0} {0 0 0 1}}
         molinfo top set center_matrix [list $id_matrix]
@@ -144,7 +158,8 @@ def getVmdModel(vmd_path, atoms):
         render STL $output_path
 
         exit
-        """
+        """ % representation_style
+        
         temp_script.write(vmd_script.encode('utf-8'))
 
     command = [vmd_path, '-e', str(temp_script_path), '-args', str(temp_pdb_path), str(output_path)]
@@ -469,34 +484,46 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
         meshes_to_visualize.append(model)
     
     if cavity_atoms is not None:
-        if isinstance(cavity_atoms, str):
-            ext = os.path.splitext(cavity_atoms)[1].lower()
-            if ext == '.pqr':
-                cavity_atoms = parsePQR(cavity_atoms)
-            else:
-                cavity_atoms = parsePDB(cavity_atoms)
+        cavity_atoms_given = True
+    
+        if isinstance(cavity_atoms, o3d.geometry.TriangleMesh):
+            cavity_atoms.compute_vertex_normals()
+            cavity_atoms.paint_uniform_color([0.1, 0.7, 0.3])
+            meshes_to_visualize.append(cavity_atoms)
+        
+        else:  
+            if isinstance(cavity_atoms, str):
+                ext = os.path.splitext(cavity_atoms)[1].lower()
+                if ext == '.pqr':
+                    cavity_atoms = parsePQR(cavity_atoms)
+                else:
+                    cavity_atoms = parsePDB(cavity_atoms)
 
-        resnums = np.unique(cavity_atoms.getResnums())
+            if not hasattr(cavity_atoms, 'getCoords'):
+                raise TypeError("cavity_atoms must be a PDB/PQR filename, a ProDy AtomGroup, "
+                                "or an Open3D TriangleMesh.")
 
-        for resnum in resnums:
-            sele = cavity_atoms.select('resnum {0}'.format(resnum))
-            if sele is None:
-                continue
+            resnums = np.unique(cavity_atoms.getResnums())
 
-            pts = sele.getCoords()
-            if pts is None or len(pts) < 4:
-                continue
+            for resnum in resnums:
+                sele = cavity_atoms.select('resnum {0}'.format(resnum))
+                if sele is None:
+                    continue
 
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(pts)
-            cavity_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
+                pts = sele.getCoords()
+                if pts is None or len(pts) < 4:
+                    continue
 
-            if smoothing is not None and smoothing > 0:
-                cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
+                pcd = o3d.geometry.PointCloud()
+                pcd.points = o3d.utility.Vector3dVector(pts)
+                cavity_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
 
-            cavity_mesh.compute_vertex_normals()
-            cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
-            meshes_to_visualize.append(cavity_mesh)
+                if smoothing is not None and smoothing > 0:
+                    cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
+
+                cavity_mesh.compute_vertex_normals()
+                cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+                meshes_to_visualize.append(cavity_mesh)
 
     else:
         if surface is None:
