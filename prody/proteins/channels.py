@@ -116,7 +116,7 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
     'cartoon': 'NewCartoon',
     'vdw': 'VDW 1.0 20.0',
     'surf': 'Surf',
-    'quicksurf': 'QuickSurf 1.0 0.5 1.0 1.0',
+    'quicksurf': 'QuickSurf 1.0 0.5 0.25 2.0',
     'cpk': 'CPK 1.0 0.3 20.0 20.0'}
 
     rep_key = representation.lower()
