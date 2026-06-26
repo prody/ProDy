@@ -27,6 +27,8 @@ from .fixer import *
 from .compare import *
 from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 
+import builtins
+sum = builtins.sum
 
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
