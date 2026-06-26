@@ -1406,40 +1406,46 @@ class ChannelCalculator:
         return np.array([vdw_radii_dict[atom] for atom in atoms])
 
     def surface_layer(self, shape_simplices, filtered_simplices, shape_neighbors):
-        surface_simplices, surface_neighbors = [], []
-        interior_simplices = []
-        
-        for i in range(len(shape_simplices)): 
-            if -1 in shape_neighbors[i]:
-                surface_simplices.append(shape_simplices[i])
-                surface_neighbors.append(shape_neighbors[i])
-            else:
-                interior_simplices.append(shape_simplices[i])
-        
-        surface_simplices = np.array(surface_simplices)
-        surface_neighbors = np.array(surface_neighbors)
-        interior_simplices = np.array(interior_simplices)
-        
-        filtered_surface_simplices = surface_simplices[
-            np.any(np.all(surface_simplices[:, None] == filtered_simplices, axis=2), axis=1)
-        ]
-        filtered_surface_neighbors = surface_neighbors[
-            np.any(np.all(surface_simplices[:, None] == filtered_simplices, axis=2), axis=1)
-        ]
-        
+    
+        surface_mask = np.any(shape_neighbors == -1, axis=1)
+    
+        surface_simplices = shape_simplices[surface_mask]
+        surface_neighbors = shape_neighbors[surface_mask]
+        interior_simplices = shape_simplices[~surface_mask]
+    
+        row_dtype = np.dtype(
+            (np.void,shape_simplices.dtype.itemsize * shape_simplices.shape[1]))
+    
+        filtered_view = (
+            np.ascontiguousarray(filtered_simplices).view(row_dtype).ravel())
+    
+        surface_view = (
+            np.ascontiguousarray(surface_simplices).view(row_dtype).ravel())
+    
+        surface_filter_mask = np.isin(surface_view, filtered_view)
+    
+        filtered_surface_simplices = surface_simplices[surface_filter_mask]
+        filtered_surface_neighbors = surface_neighbors[surface_filter_mask]
+
         filtered_surface_neighbors = np.unique(filtered_surface_neighbors)
-        filtered_surface_neighbors = filtered_surface_neighbors[filtered_surface_neighbors != 0]
-        
-        filtered_interior_simplices = interior_simplices[
-            np.any(np.all(interior_simplices[:, None] == filtered_simplices, axis=2), axis=1)
-        ]
-
-        surface_layer_neighbor_simplices = shape_simplices[filtered_surface_neighbors]
-        
-        second_layer = filtered_interior_simplices[
-            np.any(np.all(filtered_interior_simplices[:, None] == surface_layer_neighbor_simplices, axis=2), axis=1)
-        ]
-
+        filtered_surface_neighbors = filtered_surface_neighbors[filtered_surface_neighbors >= 0]
+    
+        interior_view = (np.ascontiguousarray(interior_simplices).view(row_dtype).ravel())
+    
+        interior_filter_mask = np.isin(interior_view, filtered_view)
+    
+        filtered_interior_simplices = interior_simplices[interior_filter_mask]
+    
+        surface_layer_neighbor_simplices = (shape_simplices[filtered_surface_neighbors])
+    
+        neighbor_view = (np.ascontiguousarray(surface_layer_neighbor_simplices).view(row_dtype).ravel())
+    
+        filtered_interior_view = (np.ascontiguousarray(filtered_interior_simplices).view(row_dtype).ravel())
+    
+        second_layer_mask = np.isin(filtered_interior_view,neighbor_view)
+    
+        second_layer = filtered_interior_simplices[second_layer_mask]
+    
         return filtered_surface_simplices, second_layer
 
             
