@@ -16,6 +16,8 @@ from prody.atomic import flags, sliceAtomicData
 from prody.utilities import importLA, checkCoords, showFigure, getCoords, isListLike
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
+from prody.dynamics.sampling import traverseMode
+from prody.dynamics.anm import ANM
 from prody.proteins import writePDB, parsePDB, parsePQR
 from collections import Counter
 
@@ -574,6 +576,7 @@ def calcChannels(atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15, 
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
 def _ag_worker(args):
+    """Process a single atomgroup for calcChannelsMultipleAtomsGroups"""
     atoms,kwargs,i,filename= args
     # LOGGER.info("Processing atom group " + str(filename))
     start = time.perf_counter()
@@ -588,6 +591,76 @@ def _ag_worker(args):
 
 
 def calcChannelsMultipleAtomGroups(atomgroups, **kwargs):
+    """"Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
+
+    This function analyzes the provided atomic structure to detect channels, which are voids or pathways
+    within the molecular structure. It employs Voronoi and Delaunay tessellations to identify these regions,
+    then filters and refines the detected channels based on various parameters such as the minimum depth
+    and bottleneck size. The results can be saved to a PQR file (PDB is optional) if an output path is provided. 
+    The `separate` parameter controls whether each detected channel is saved to a separate file or if all 
+    channels are saved in a single file.
+
+    The implementation is inspired by the methods described in the publication:
+    "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by D. Sehnal, et al., published in 
+    J Chemoinform, 5 (39) 2013.
+
+    :param atoms: An object representing the molecular structure, typically containing atomic coordinates
+        and element types.
+    :type atoms: `Atoms` object
+
+    :param output_path: Optional path to save the resulting channels and associated data in PQR (or PDB) format.
+        If None, results are not saved. Default is None.
+    :type output_path: str or None
+
+    :param filenames: A list of filenames for the output files. If None, the default filenames will be used.
+    :type filenames: list of str or None
+
+    :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
+        are saved in a single PDB file. Default is False.
+    :type separate: bool
+
+    :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
+        the outer surface of the channels. Default is 3.
+    :type r1: float
+
+    :param r2: The second radius threshold used to define the inner surface of the channels. Default is 1.25.
+    :type r2: float
+
+    :param min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
+    :type min_depth: float
+
+    :param bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
+    :type bottleneck: float
+
+    :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
+        A higher value results in fewer sampling points. Default is 15.
+    :type sparsity: int
+
+    :returns: A tuple containing two elements:
+        - `channels`: A list of detected channels, where each channel is an object containing information
+          about its path and geometry.
+        - `surface`: A list containing additional information for further visualization, including
+          the atomic coordinates, simplices defining the surface, and merged cavities.
+    :rtype: tuple (list, list)
+
+    This function performs the following steps:
+    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, 
+        and performs 3D Delaunay triangulation and Voronoi tessellation on the coordinates.
+    2. **State Management:** Creates and updates different stages of channel detection of the protein structure 
+        to filter out simplices based on the given radii.
+    3. **Surface Layer Calculation:** Determines the surface and second-layer simplices from the filtered results.
+    4. **Cavity and Channel Detection:** Finds and filters cavities based on their depth and calculates channels 
+       using Dijkstra's algorithm.
+    5. **Visualization and Saving:** Generates meshes for the detected channels, filters them by bottleneck size, 
+       and either saves the results to a PDB file or visualizes them based on the specified parameters.
+       
+    Example usage:
+    channels, surface = calcChannels(atoms, output_path="channels", separate=True)
+    
+    To save the results as PDB file:
+    channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
+                                       bottleneck=1, sparsity=15) """
+    
     from multiprocessing import Pool, cpu_count
     filenames = kwargs.pop('filenames',[None]*len(atomgroups))
     max_proc = kwargs.pop('max_proc',None)
@@ -615,13 +688,14 @@ def calcChannelsMultipleAtomGroups(atomgroups, **kwargs):
     return channels_all, surfaces_all, times_all
             
 def _frame_worker(args):
-    atoms, coords, kwargs, frame_id = args
-
+    """Process a single frame for calcChannelsMultipleFrames"""
+    atoms, coords, kwargs, frame_id, filename = args
+    
     atoms_local = atoms.copy()
     atoms_local.setCoords(coords)
 
     try:
-        channels, surfaces = calcChannels(atoms_local, **kwargs)
+        channels, surfaces = calcChannels(atoms_local, filename=filename, **kwargs)
         if not channels:
             return frame_id,[],[]
     except:
@@ -629,8 +703,8 @@ def _frame_worker(args):
     return frame_id, channels, surfaces
 
 def _model_worker(args):
-    """Process a single model from multi-model PDB"""
-    atoms, kwargs, frame_id = args
+    """Process a single model for calcChannelsMultipleFrames"""
+    atoms, kwargs, frame_id, filename = args
     start_frame = kwargs.pop(0,"start_frame")
     frame_idx = frame_id + start_frame
     LOGGER.info("Model: {0}".format(frame_idx))
@@ -639,7 +713,7 @@ def _model_worker(args):
     atoms_copy.setACSIndex(frame_idx)
 
     try:
-        channels, surfaces = calcChannels(atoms_copy, **kwargs)
+        channels, surfaces = calcChannels(atoms_copy, filename=filename, **kwargs)
         if not channels:
             return frame_id,[],[]
     except:
@@ -668,6 +742,9 @@ def calcChannelsMultipleFrames(atoms, trajectory, **kwargs):
     :param output_path: Optional path to save the resulting channels and associated data in PQR (or PDB) format.
         If None, results are not saved. Default is None.
     :type output_path: str or None
+
+    :param filenames: A list of filenames for the output files. If None, the default filenames will be used.
+    :type filenames: list of str or None
 
     :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
         are saved in a single PDB file. Default is False.
@@ -727,7 +804,7 @@ def calcChannelsMultipleFrames(atoms, trajectory, **kwargs):
     max_proc = kwargs.pop('max_proc',None)
     if max_proc is None:
         max_proc = max(1, cpu_count()//2)
-
+    
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
 
@@ -739,11 +816,11 @@ def calcChannelsMultipleFrames(atoms, trajectory, **kwargs):
             traj = trajectory[start_frame:]
         else:
             traj = trajectory[start_frame:stop_frame+1]
-
+        filenames = kwargs.pop('filenames',[None]*len(traj))
         if max_proc == 1:
-            results = [_frame_worker((atoms,frame.getCoords(),kwargs,i)) for i, frame in enumerate(traj)]
+            results = [_frame_worker((atoms,frame.getCoords(),kwargs,i,filenames[i])) for i, frame in enumerate(traj)]
         else:
-            tasks = ((atoms,frame.getCoords(),kwargs,i) for i, frame in enumerate(trajectory))
+            tasks = ((atoms,frame.getCoords(),kwargs,i,filenames[i]) for i, frame in enumerate(trajectory))
             with Pool(processes=max_proc) as pool:
                 results = pool.map(_frame_worker, tasks,chunksize=builtins.max(1, len(traj)//(max_proc*4)))
 
@@ -760,11 +837,11 @@ def calcChannelsMultipleFrames(atoms, trajectory, **kwargs):
                 num_models = len(atoms.getCoordsets()[start_frame:])
             else:
                 num_models = len(atoms.getCoordsets()[start_frame:stop_frame+1])
-
+            filenames = kwargs.pop('filenames',[None]*len(num_models))
             if max_proc == 1:
-                results = [_model_worker((atoms,kwargs,i)) for i in range(num_models)]
+                results = [_model_worker((atoms,kwargs,i,filenames[i])) for i in range(num_models)]
             else:
-                tasks = ((atoms,kwargs,i) for i in range(num_models))
+                tasks = ((atoms,kwargs,i,filenames[i]) for i in range(num_models))
 
                 with Pool(processes=max_proc) as pool:
                     results = pool.map(_model_worker, tasks,chunksize=builtins.max(1, len(traj)//(max_proc*4)))
@@ -1248,6 +1325,46 @@ def calcChannelSurfaceOverlaps(**kwargs):
     merged_surface = merge_surfaces(surfaces)
     write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
 
+def normalModeCavityAnalysis(structure,num_modes=20,scale=2,n_steps=20,**kwargs):
+
+    if isinstance(structure, str) or hasattr(structure, '__fspath__'):
+        ag = parsePDB(str(structure))
+    elif isinstance(structure, AtomGroup):
+        ag = structure.copy()
+    else:     
+        raise ValueError("structure must be a file path or AtomGroup")
+    title = kwargs.pop('title',ag.getTitle())
+    if (nma := kwargs.pop('nma', None)):
+        if not isinstance(nma, NMA):
+            raise ValueError("nma must be an instance of prody.NMA")
+    else:
+        nma = ANM()
+        if (selection := kwargs.pop('selection', 'calpha')):
+            ag_cg = ag.select(selection)
+        nma.buildHessian(ag)
+        nma.calcModes(n_modes=num_modes)
+        if (extend := kwargs.pop('extend', 'all')):
+            if extend == 'all':
+                ext_nma, ext_ag = nma.extendModel(nma,ag_cg,ag)
+            elif extend:
+                ext_nma, ext_ag = nma.extendModel(nma,ag_cg,ag.select(extend))
+        else:
+            ext_nma, ext_ag = nma, ag_cg
+    
+    agc = ext_ag.copy()
+    calcMap=[f"{ag.getTitle()}"]
+    for mode in range(num_modes):
+        trav_ens = traverseMode(ext_nma[mode],ext_ag,n_steps,rmsd=scale)
+        agc.addCoordset(trav_ens[:n_steps//2])
+        agc.addCoordset(trav_ens[(n_steps//2)+1:])
+        for n in range(n_steps*2+1):
+            if n == n_steps:
+                continue
+            else:
+                output = f"{title}_mode{mode+1}_step{n-n_steps}"
+                calcMap.append(f"{output}")
+    channels, surfaces = calcChannelsMultipleFrames(agc,output_path=output,separate=kwargs.get('separate', False),filenames=calcMap)
+    return channels,surfaces
     
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume, centers, radii):
@@ -1522,7 +1639,6 @@ class ChannelCalculator:
             cavity.set_depth(max_depth)
             
     def build_sparse_graph(self, simplices, neighbors, vertices, points, vdw_radii):
-
         import numpy as np
         from scipy.sparse import csr_matrix
 
