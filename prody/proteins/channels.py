@@ -377,7 +377,7 @@ def showCavities(surface, show_surface=False):
     vis.destroy_window()
 
 
-def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
+def calcChannels(atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15, start_point=None, **kwargs):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -402,11 +402,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
         are saved in a single PDB file. Default is False.
     :type separate: bool
-
-    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
-        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
-        the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
-    :type start_point: list, tuple, or ndarray (length 3), or None 
 
     :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
         the outer surface of the channels. Default is 3.
@@ -446,8 +441,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     Example usage:
     channels, surface = calcChannels(atoms, output_path="channels", separate=True)
     
-    channels, surface = calcChannels(atoms, output_path="all_channels.pdb", start_point=[-22.312, -20.065, -11.144])
-    
     To save the results as PDB file:
     channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
                                        bottleneck=1, sparsity=15) """
@@ -474,7 +467,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         from pathlib import Path
     else:
         from pathlib2 import Path
-    
+
     if start_point is not None:
         if not isListLike(start_point):
             raise TypeError("start_point must be a list/tuple/ndarray with three numeric values")
@@ -487,19 +480,24 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         
         LOGGER.info("Using user-provided start_point for channel seed: [{:.3f}, {:.3f}, {:.3f}] Å"
             .format(start_point[0], start_point[1], start_point[2]))
-
-
+        
+    output_path = kwargs.pop('output_path',None)
+    separate = kwargs.pop('separate',False)
+    filename = kwargs.pop('filename',None)
+    # Initialize the channel detection helper with the provided parameters.
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
     
+    # Filter the input atoms to exclude heteroatoms and hydrogens, since channels are defined by the protein backbone.
     atoms = atoms.select('not hetero and noh') # Excluding hydrogens
     coords = atoms.getCoords()
     
     vdw_radii = calculator.get_vdw_radii(atoms.getElements())
-        
+    
+    # Compute Delaunay triangulation and Voronoi tessellation from the atomic coordinates.
     dela = Delaunay(coords)
-    voro = Voronoi(coords)
-        
-    s_prt = State(dela.simplices, dela.neighbors, voro.vertices)
+    verts = calculator.calc_circumcenters(dela)
+    # The state object holds the current simplices, neighbor relations, and Voronoi vertices.
+    s_prt = State(dela.simplices, dela.neighbors, verts) #voro.vertices)
     
     if PY3K:
         s_tmp = State(*s_prt.get_state())
@@ -507,12 +505,14 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     else:
         s_tmp = apply(State, s_prt.get_state())
         s_prv = State(None, None, None) 
-        
+
+    # Iteratively delete simplices until the surface state converges.
+
     while True:
         s_prv.set_state(*s_tmp.get_state())
         
         if PY3K:
-            #s_tmp.set_state(*calculator.delete_simplices3d(coords, *(s_tmp.get_state() + [vdw_radii, r1, True])))
+            # Remove simplices that are outside the molecule surface for the outer radius threshold.
             s_tmp.set_state(*calculator.delete_simplices3d(coords, *(s_tmp.get_state() + tuple([vdw_radii, r1, True]))))
         else:
             tmp_state = calculator.delete_simplices3d(coords, *(s_tmp.get_state() + [vdw_radii, r1, True]))
@@ -520,35 +520,41 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
 
         if s_tmp == s_prv:
             break
-        
+    # State after surface deletion is the outer surface state.
     s_srf = State(*s_tmp.get_state())
-    #s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + [vdw_radii, r2, False])))
+    # Perform a second deletion with the inner radius threshold to identify inner surface simplices.
     s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + tuple([vdw_radii, r2, False]))))
 
+    # Separate the first surface layer and the second interior layer for cavity detection.
     l_first_layer_simp, l_second_layer_simp = calculator.surface_layer(s_srf.simp, s_inr.simp, s_srf.neigh)
     s_clr = State(*calculator.delete_section(l_first_layer_simp, *s_inr.get_state()))
-        
+    # Find connected regions of tetrahedra, then identify cavities connected to the surface.
     c_cavities = calculator.find_groups(s_clr.neigh)
     c_surface_cavities = calculator.get_surface_cavities(c_cavities, s_clr.simp, l_second_layer_simp, s_clr, coords, vdw_radii, sparsity)
-        
+    # Determine the deepest entry points and filter by minimum depth.
     calculator.find_deepest_tetrahedra(c_surface_cavities, s_clr.neigh)
-    if start_point is not None:
-        calculator.set_starting_tetrahedra_from_point(c_surface_cavities, s_clr.verti, start_point)
-    
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
+    if not c_filtered_cavities:
+        LOGGER.warning("No cavities found.")
+        return [], []
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
-        
+    
+    # For each cavity, run Dijkstra search to find probable channel paths.
+    simplices, neighbors, vertices = s_clr.get_state()
+    #build graph for dijkstra
+    graph = calculator.build_sparse_graph(simplices, neighbors, vertices, coords, vdw_radii)
     for cavity in c_filtered_cavities:
-        #calculator.dijkstra(cavity, *(s_clr.get_state() + [coords, vdw_radii]))
-        calculator.dijkstra(cavity, *(s_clr.get_state() + tuple([coords, vdw_radii])))
-        
+        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices, coords, vdw_radii)
+    # Remove channels narrower than the specified bottleneck radius.
     calculator.filter_channels_by_bottleneck(c_filtered_cavities, bottleneck)
     channels = [channel for cavity in c_filtered_cavities for channel in cavity.channels]
-        
+    
     no_of_channels = len(channels)
     LOGGER.info("Detected " + str(no_of_channels) + " channels.")
-        
+    
     if output_path:
+        if filename:
+            output_path = output_path + filename
         output_path = Path(output_path)
         
         if output_path.is_dir():
@@ -564,7 +570,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         calculator.save_channels_to_pdb(c_filtered_cavities, output_path, separate)
     else:
         LOGGER.info("No output path given.")
-                
+    # Return the detected channels and surface state data for further analysis or visualization.
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
             
