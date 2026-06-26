@@ -1633,7 +1633,7 @@ class ChannelCalculator:
         length = self.calculate_channel_length(centerline_spline)
         volume = self.calculate_channel_volume(centerline_spline, radius_spline)
         
-        return centerline_spline, radius_spline, length, bottleneck, volume
+        return centerline_spline, radius_spline, length, bottleneck, volume,centers, radii
 
     def find_biggest_tetrahedron(self, tetrahedra, voronoi_vertices, points, vdw_radii, simp):
         radii = np.array([self.calculate_max_radius(voronoi_vertices[tetra], points, vdw_radii, simp[tetra]) for tetra in tetrahedra])
