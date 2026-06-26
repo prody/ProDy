@@ -13,9 +13,12 @@ from numpy import *
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
 from prody.atomic import flags, sliceAtomicData
+from prody.dynamics.nma import NMA
 from prody.utilities import importLA, checkCoords, showFigure, getCoords, isListLike
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
+from prody.dynamics.sampling import traverseMode
+from prody.dynamics.anm import ANM
 from prody.proteins import writePDB, parsePDB, parsePQR
 from collections import Counter
 
@@ -27,6 +30,8 @@ from .fixer import *
 from .compare import *
 from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 
+import builtins
+sum = builtins.sum
 
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
@@ -375,7 +380,7 @@ def showCavities(surface, show_surface=False):
     vis.destroy_window()
 
 
-def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
+def calcChannels(atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15, start_point=None, **kwargs):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -400,11 +405,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
         are saved in a single PDB file. Default is False.
     :type separate: bool
-
-    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
-        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
-        the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
-    :type start_point: list, tuple, or ndarray (length 3), or None 
 
     :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
         the outer surface of the channels. Default is 3.
@@ -444,8 +444,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     Example usage:
     channels, surface = calcChannels(atoms, output_path="channels", separate=True)
     
-    channels, surface = calcChannels(atoms, output_path="all_channels.pdb", start_point=[-22.312, -20.065, -11.144])
-    
     To save the results as PDB file:
     channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
                                        bottleneck=1, sparsity=15) """
@@ -472,7 +470,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         from pathlib import Path
     else:
         from pathlib2 import Path
-    
+
     if start_point is not None:
         if not isListLike(start_point):
             raise TypeError("start_point must be a list/tuple/ndarray with three numeric values")
@@ -485,19 +483,24 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         
         LOGGER.info("Using user-provided start_point for channel seed: [{:.3f}, {:.3f}, {:.3f}] Å"
             .format(start_point[0], start_point[1], start_point[2]))
-
-
+        
+    output_path = kwargs.pop('output_path',None)
+    separate = kwargs.pop('separate',False)
+    filename = kwargs.pop('filename',None)
+    # Initialize the channel detection helper with the provided parameters.
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
     
+    # Filter the input atoms to exclude heteroatoms and hydrogens, since channels are defined by the protein backbone.
     atoms = atoms.select('not hetero and noh') # Excluding hydrogens
     coords = atoms.getCoords()
     
     vdw_radii = calculator.get_vdw_radii(atoms.getElements())
-        
+    
+    # Compute Delaunay triangulation and Voronoi tessellation from the atomic coordinates.
     dela = Delaunay(coords)
-    voro = Voronoi(coords)
-        
-    s_prt = State(dela.simplices, dela.neighbors, voro.vertices)
+    verts = calculator.calc_circumcenters(dela)
+    # The state object holds the current simplices, neighbor relations, and Voronoi vertices.
+    s_prt = State(dela.simplices, dela.neighbors, verts) #voro.vertices)
     
     if PY3K:
         s_tmp = State(*s_prt.get_state())
@@ -505,12 +508,14 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     else:
         s_tmp = apply(State, s_prt.get_state())
         s_prv = State(None, None, None) 
-        
+
+    # Iteratively delete simplices until the surface state converges.
+
     while True:
         s_prv.set_state(*s_tmp.get_state())
         
         if PY3K:
-            #s_tmp.set_state(*calculator.delete_simplices3d(coords, *(s_tmp.get_state() + [vdw_radii, r1, True])))
+            # Remove simplices that are outside the molecule surface for the outer radius threshold.
             s_tmp.set_state(*calculator.delete_simplices3d(coords, *(s_tmp.get_state() + tuple([vdw_radii, r1, True]))))
         else:
             tmp_state = calculator.delete_simplices3d(coords, *(s_tmp.get_state() + [vdw_radii, r1, True]))
@@ -518,35 +523,41 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
 
         if s_tmp == s_prv:
             break
-        
+    # State after surface deletion is the outer surface state.
     s_srf = State(*s_tmp.get_state())
-    #s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + [vdw_radii, r2, False])))
+    # Perform a second deletion with the inner radius threshold to identify inner surface simplices.
     s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + tuple([vdw_radii, r2, False]))))
 
+    # Separate the first surface layer and the second interior layer for cavity detection.
     l_first_layer_simp, l_second_layer_simp = calculator.surface_layer(s_srf.simp, s_inr.simp, s_srf.neigh)
     s_clr = State(*calculator.delete_section(l_first_layer_simp, *s_inr.get_state()))
-        
+    # Find connected regions of tetrahedra, then identify cavities connected to the surface.
     c_cavities = calculator.find_groups(s_clr.neigh)
     c_surface_cavities = calculator.get_surface_cavities(c_cavities, s_clr.simp, l_second_layer_simp, s_clr, coords, vdw_radii, sparsity)
-        
+    # Determine the deepest entry points and filter by minimum depth.
     calculator.find_deepest_tetrahedra(c_surface_cavities, s_clr.neigh)
-    if start_point is not None:
-        calculator.set_starting_tetrahedra_from_point(c_surface_cavities, s_clr.verti, start_point)
-    
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
+    if not c_filtered_cavities:
+        LOGGER.warning("No cavities found.")
+        return [], []
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
-        
+    
+    # For each cavity, run Dijkstra search to find probable channel paths.
+    simplices, neighbors, vertices = s_clr.get_state()
+    #build graph for dijkstra
+    graph = calculator.build_sparse_graph(simplices, neighbors, vertices, coords, vdw_radii)
     for cavity in c_filtered_cavities:
-        #calculator.dijkstra(cavity, *(s_clr.get_state() + [coords, vdw_radii]))
-        calculator.dijkstra(cavity, *(s_clr.get_state() + tuple([coords, vdw_radii])))
-        
+        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices, coords, vdw_radii)
+    # Remove channels narrower than the specified bottleneck radius.
     calculator.filter_channels_by_bottleneck(c_filtered_cavities, bottleneck)
     channels = [channel for cavity in c_filtered_cavities for channel in cavity.channels]
-        
+    
     no_of_channels = len(channels)
     LOGGER.info("Detected " + str(no_of_channels) + " channels.")
-        
+    
     if output_path:
+        if filename:
+            output_path = output_path + filename
         output_path = Path(output_path)
         
         if output_path.is_dir():
@@ -562,124 +573,324 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         calculator.save_channels_to_pdb(c_filtered_cavities, output_path, separate)
     else:
         LOGGER.info("No output path given.")
-                
+    # Return the detected channels and surface state data for further analysis or visualization.
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
-            
-def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, start_point=None, **kwargs):
-    """Compute channels for each frame in a given trajectory or multi-model PDB file.
+def _ag_worker(args):
+    """Process a single atomgroup for calcChannelsMultipleAtomsGroups"""
+    atoms,kwargs,i,filename= args
+    # LOGGER.info("Processing atom group " + str(filename))
+    try:
+        channels, surfaces = calcChannels(atoms,filename = filename, **kwargs)
+        if not channels:
+            return i,[],[],0
+        return i, channels, surfaces
+    except:
+        return i, [], [], 0
 
-    This function calculates the channels for each frame in a trajectory or for each model
-    in a multi-model PDB file. The `kwargs` can include parameters necessary for channel calculation.
-    If the `separate` parameter is set to True, each detected channel will be saved in a separate PDB file.
+def _run_with_pool(_worker,tasks, max_proc,chunksize,start_method=None):
+    from multiprocessing import Pool
+    if start_method:
+        ctx = multiprocessing.get_context(start_method)
+        PoolClass = ctx.Pool
+    else:
+        PoolClass = Pool
+    
+    with PoolClass(processes=max_proc) as pool:
+        return pool.map(_worker, tasks,chunksize=chunksize)
+    
+def calcChannelsMultipleAtomGroups(atomgroups, **kwargs):
+    """"Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
-    :param atoms: Atomic data or object containing atomic coordinates and methods for accessing them.
-    :type atoms: object
+    This function analyzes the provided atomic structure to detect channels, which are voids or pathways
+    within the molecular structure. It employs Voronoi and Delaunay tessellations to identify these regions,
+    then filters and refines the detected channels based on various parameters such as the minimum depth
+    and bottleneck size. The results can be saved to a PQR file (PDB is optional) if an output path is provided. 
+    The `separate` parameter controls whether each detected channel is saved to a separate file or if all 
+    channels are saved in a single file.
 
-    :param trajectory: Trajectory object containing multiple frames or a multi-model PDB file.
-    :type trajectory: Atomic or Ensemble object
+    The implementation is inspired by the methods described in the publication:
+    "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by D. Sehnal, et al., published in 
+    J Chemoinform, 5 (39) 2013.
 
-    :param output_path: Optional path to save the resulting channels and associated data in PDB format.
-        If a directory is specified, each frame/model will have its results saved in separate files. 
+    :param atoms: An object representing the molecular structure, typically containing atomic coordinates
+        and element types.
+    :type atoms: `Atoms` object
+
+    :param output_path: Optional path to save the resulting channels and associated data in PQR (or PDB) format.
         If None, results are not saved. Default is None.
     :type output_path: str or None
 
-    :param separate: If True, each detected channel is saved to a separate PDB file for each frame/model.
-        If False, all channels for each frame/model are saved in a single file. Default is False.
+    :param filenames: A list of filenames for the output files. If None, the default filenames will be used.
+    :type filenames: list of str or None
+
+    :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
+        are saved in a single PDB file. Default is False.
     :type separate: bool
 
-    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
-        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
-        the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
-    :type start_point: list, tuple, or ndarray (length 3), or None 
+    :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
+        the outer surface of the channels. Default is 3.
+    :type r1: float
 
-    :param kwargs: Additional parameters required for channel calculation. This can include parameters such as
-        radius values (r1, r2), minimum depth (min_depth), bottleneck values, etc. 
-        See the available parameters in calcChannels().
-    :type kwargs: dict
+    :param r2: The second radius threshold used to define the inner surface of the channels. Default is 1.25.
+    :type r2: float
 
-    :returns: List of channels and surfaces computed for each frame or model. Each entry in the list corresponds
-        to a specific frame or model.
-    :rtype: list of lists
+    :param min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
+    :type min_depth: float
 
+    :param bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
+    :type bottleneck: float
+
+    :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
+        A higher value results in fewer sampling points. Default is 15.
+    :type sparsity: int
+
+    :returns: A tuple containing two elements:
+        - `channels`: A list of detected channels, where each channel is an object containing information
+          about its path and geometry.
+        - `surface`: A list containing additional information for further visualization, including
+          the atomic coordinates, simplices defining the surface, and merged cavities.
+    :rtype: tuple (list, list)
+
+    This function performs the following steps:
+    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, 
+        and performs 3D Delaunay triangulation and Voronoi tessellation on the coordinates.
+    2. **State Management:** Creates and updates different stages of channel detection of the protein structure 
+        to filter out simplices based on the given radii.
+    3. **Surface Layer Calculation:** Determines the surface and second-layer simplices from the filtered results.
+    4. **Cavity and Channel Detection:** Finds and filters cavities based on their depth and calculates channels 
+       using Dijkstra's algorithm.
+    5. **Visualization and Saving:** Generates meshes for the detected channels, filters them by bottleneck size, 
+       and either saves the results to a PDB file or visualizes them based on the specified parameters.
+       
     Example usage:
-    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
-                                   separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) 
-                                  
-    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
-                                   separate=False, start_point=[-10.353, -0.133, 5.608]) """
-
+    channels, surface = calcChannels(atoms, output_path="channels", separate=True)
     
-    if PY3K:
-        if not checkAndImport('pathlib'):
-            errorMsg = 'To run showChannels, please install open3d.'
-            raise ImportError(errorMsg)
-                
-        from pathlib import Path
+    To save the results as PDB file:
+    channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
+                                       bottleneck=1, sparsity=15) """
+    
+    from multiprocessing import Pool, cpu_count
+    filenames = kwargs.pop('filenames',[None]*len(atomgroups))
+    max_proc = kwargs.pop('max_proc',None)
+    if max_proc is None:
+        max_proc = builtins.max(1, cpu_count()//2)
+
+    if max_proc == 1:
+        results = [_ag_worker((ag,kwargs,i,filenames[i])) for i, ag in enumerate(atomgroups)]
     else:
-        if not checkAndImport('pathlib2'):
-            errorMsg = 'To run showChannels, please install pathlib2 for Python 2.7.'
-            raise ImportError(errorMsg)
-        
-        from pathlib2 import Path
-        
+        tasks = ((ag,kwargs,i,filenames[i]) for i, ag in enumerate(atomgroups))
+        chunksize = builtins.max(1, len(atomgroups)//(max_proc*4))
+        try:
+            results = _run_with_pool(_ag_worker,tasks,max_proc,chunksize)
+        except (OSError,EOFError):
+            try:
+                results = _run_with_pool(_ag_worker,tasks,max_proc,chunksize,'fork')
+            except (OSError, EOFError):
+                try:
+                    results = _run_with_pool(_ag_worker,tasks,max_proc,chunksize,'spawn')
+                except Exception as e:
+                    raise RuntimeError("Multiprocessing failed with all start methods. "
+                               "Try running with max_proc=1.") from e
+
+    results.sort(key=lambda x: x[0])
+
+    channels_all = [r[1] for r in results]
+    for channels in channels_all:
+        for channel in channels:
+            channel.build_splines()
+    surfaces_all = [r[2] for r in results]
+    failed = [filenames[r[0]] for r in results if (not r[1]  and not r[2])]
+    if failed:
+        LOGGER.warning(f"WARNING: {len(failed)} proteins failed or No Channels Detected: {', '.join(str(f) for f in failed)}")
+    return channels_all, surfaces_all
+            
+def _frame_worker(args):
+    """Process a single frame for calcChannelsMultipleFrames"""
+    atoms, coords, kwargs, frame_id, filename = args
+    
+    atoms_local = atoms.copy()
+    atoms_local.setCoords(coords)
+
+    try:
+        channels, surfaces = calcChannels(atoms_local, filename=filename, **kwargs)
+        if not channels:
+            return frame_id,[],[]
+    except:
+        return frame_id, [], []
+    return frame_id, channels, surfaces
+
+def _model_worker(args):
+    """Process a single model for calcChannelsMultipleFrames"""
+    atoms, kwargs, frame_id, filename = args
+    start_frame = kwargs.pop("start_frame",0)
+    frame_idx = frame_id + start_frame
+    LOGGER.info("Model: {0}".format(frame_idx))
+    # Make a copy to avoid state conflicts
+    atoms_copy = atoms.copy()
+    atoms_copy.setACSIndex(frame_idx)
+
+    try:
+        channels, surfaces = calcChannels(atoms_copy, filename=filename, **kwargs)
+        if not channels:
+            return frame_id,[],[]
+    except:
+        return frame_id, [], []
+
+    return frame_id, channels, surfaces
+
+def calcChannelsMultipleFrames(atoms, trajectory=None, **kwargs):
+    """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
+
+    This function analyzes the provided atomic structure to detect channels, which are voids or pathways
+    within the molecular structure. It employs Voronoi and Delaunay tessellations to identify these regions,
+    then filters and refines the detected channels based on various parameters such as the minimum depth
+    and bottleneck size. The results can be saved to a PQR file (PDB is optional) if an output path is provided. 
+    The `separate` parameter controls whether each detected channel is saved to a separate file or if all 
+    channels are saved in a single file.
+
+    The implementation is inspired by the methods described in the publication:
+    "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by D. Sehnal, et al., published in 
+    J Chemoinform, 5 (39) 2013.
+
+    :param atoms: An object representing the molecular structure, typically containing atomic coordinates
+        and element types.
+    :type atoms: `Atoms` object
+
+    :param output_path: Optional path to save the resulting channels and associated data in PQR (or PDB) format.
+        If None, results are not saved. Default is None.
+    :type output_path: str or None
+
+    :param filenames: A list of filenames for the output files. If None, the default filenames will be used.
+    :type filenames: list of str or None
+
+    :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
+        are saved in a single PDB file. Default is False.
+    :type separate: bool
+
+    :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
+        the outer surface of the channels. Default is 3.
+    :type r1: float
+
+    :param r2: The second radius threshold used to define the inner surface of the channels. Default is 1.25.
+    :type r2: float
+
+    :param min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
+    :type min_depth: float
+
+    :param bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
+    :type bottleneck: float
+
+    :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
+        A higher value results in fewer sampling points. Default is 15.
+    :type sparsity: int
+
+    :returns: A tuple containing two elements:
+        - `channels`: A list of detected channels, where each channel is an object containing information
+          about its path and geometry.
+        - `surface`: A list containing additional information for further visualization, including
+          the atomic coordinates, simplices defining the surface, and merged cavities.
+    :rtype: tuple (list, list)
+
+    This function performs the following steps:
+    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, 
+        and performs 3D Delaunay triangulation and Voronoi tessellation on the coordinates.
+    2. **State Management:** Creates and updates different stages of channel detection of the protein structure 
+        to filter out simplices based on the given radii.
+    3. **Surface Layer Calculation:** Determines the surface and second-layer simplices from the filtered results.
+    4. **Cavity and Channel Detection:** Finds and filters cavities based on their depth and calculates channels 
+       using Dijkstra's algorithm.
+    5. **Visualization and Saving:** Generates meshes for the detected channels, filters them by bottleneck size, 
+       and either saves the results to a PDB file or visualizes them based on the specified parameters.
+       
+    Example usage:
+    channels, surface = calcChannels(atoms, output_path="channels", separate=True)
+    
+    To save the results as PDB file:
+    channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
+                                       bottleneck=1, sparsity=15) """
+    from multiprocessing import Pool, cpu_count
+      
     try:
         coords = getCoords(atoms)
     except AttributeError:
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object with `getCoords` method')    
+            raise TypeError('coords must be an object with `getCoords` method')  
 
-    channels_all = []
-    surfaces_all = []
+    max_proc = kwargs.pop('max_proc',None)
+    if max_proc is None:
+        max_proc = builtins.max(1, cpu_count()//2)
+    
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
-    
-    if output_path:
-        output_path = Path(output_path)
-        if output_path.suffix == ".pqr":
-            output_path = output_path.with_suffix('')
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
-
-        nfi = trajectory._nfi
-        trajectory.reset()
-
+        traj=None
         if stop_frame == -1:
             traj = trajectory[start_frame:]
         else:
             traj = trajectory[start_frame:stop_frame+1]
+        filenames = kwargs.pop('filenames',[None]*len(traj))
+        if max_proc == 1:
+            results = [_frame_worker((atoms,frame.getCoords(),kwargs,i,filenames[i])) for i, frame in enumerate(traj)]
+        else:
+            tasks = ((atoms,frame.getCoords(),kwargs,i,filenames[i]) for i, frame in enumerate(traj))
+            chunksize = builtins.max(1, len(traj)//(max_proc*4))
+            try:
+                results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize)
+            except (OSError,EOFError):
+                try:
+                    results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize,'fork')
+                except (OSError, EOFError):
+                    try:
+                        results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize,'spawn')
+                    except Exception as e:
+                        raise RuntimeError("Multiprocessing failed with all start methods. "
+                                "Try running with max_proc=1.") from e
 
-        atoms_copy = atoms.copy()
-        for j0, frame0 in enumerate(traj, start=start_frame):
-            LOGGER.info("Frame: {0}".format(j0))
-            atoms_copy.setCoords(frame0.getCoords())
-            if output_path:
-                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), separate, start_point=start_point, **kwargs)
-            else:
-                channels, surfaces = calcChannels(atoms_copy, start_point=start_point, **kwargs)
-            channels_all.append(channels)
-            surfaces_all.append(surfaces)
-        trajectory._nfi = nfi
+        results.sort(key=lambda x: x[0])
 
+        channels_all = [r[1] for r in results]
+        surfaces_all = [r[2] for r in results]
+
+        return channels_all, surfaces_all
     else:
-        if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info("Model: {0}".format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                if output_path:
-                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, start_point=start_point, **kwargs)
-                else:
-                    channels, surfaces = calcChannels(atoms, start_point=start_point, **kwargs)
-                channels_all.append(channels)
-                surfaces_all.append(surfaces)
+        if  atoms.numCoordsets() > 1:
+            if stop_frame == -1:
+                num_models = len(atoms.getCoordsets()[start_frame:])
+            else:
+                num_models = len(atoms.getCoordsets()[start_frame:stop_frame+1])
+            filenames = kwargs.pop('filenames',[None]*num_models)
+            if max_proc == 1:
+                results = [_model_worker((atoms,kwargs,i,filenames[i])) for i in range(num_models)]
+            else:
+                tasks = ((atoms,kwargs,i,filenames[i]) for i in range(num_models))
+                chunksize = builtins.max(1, num_models//(max_proc*4))
+                try:
+                    results = _run_with_pool(_model_worker,tasks,max_proc,chunksize)
+                except (OSError,EOFError):
+                    try:
+                        results = _run_with_pool(_model_worker,tasks,max_proc,chunksize,'fork')
+                    except (OSError, EOFError):
+                        try:
+                            results = _run_with_pool(_model_worker,tasks,max_proc,chunksize,'spawn')
+                        except Exception as e:
+                            raise RuntimeError("Multiprocessing failed with all start methods. "
+                                    "Try running with max_proc=1.") from e
+
+            results.sort(key=lambda x: x[0])
+
+            channels_all = [r[1] for r in results]
+            surfaces_all = [r[2] for r in results]
+
+            return channels_all, surfaces_all
+    
         else:
             LOGGER.info("Include trajectory or use multi-model PDB file.")
-
-    return channels_all, surfaces_all
 
 
 def parseParameters(channels, **kwargs):
@@ -1148,19 +1359,36 @@ def calcChannelSurfaceOverlaps(**kwargs):
     nr_pdbs = nr_pdbs+1
     merged_surface = merge_surfaces(surfaces)
     write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
-
     
 class Channel:
-    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
+    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume, centers, radii):
+        # A detected channel path through the interior of the protein.
         self.tetrahedra = tetrahedra
         self.centerline_spline = centerline_spline
         self.radius_spline = radius_spline
         self.length = length
         self.bottleneck = bottleneck
         self.volume = volume
-            
+        self.centers = centers
+        self.radii = radii
+        
     def get_splines(self):
+        # Return the parametric centerline and radius curves for visualization or analysis.
         return self.centerline_spline, self.radius_spline
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["centerline_spline"] = None
+        state["radius_spline"] = None
+        return state
+    
+    def build_splines(self):
+        from scipy.interpolate import CubicSpline
+        centers = self.centers
+        radii = self.radii
+        t = np.arange(len(centers))
+        self.centerline_spline = CubicSpline(t, centers, bc_type='natural')
+        self.radius_spline = CubicSpline(t, radii, bc_type='natural')
     
     
 class State:
@@ -1218,68 +1446,57 @@ class ChannelCalculator:
         self.bottleneck = bottleneck
         self.sparsity = sparsity
         
-    def sphere_fit(self, vertices, tetrahedron, vertice, vdw_radii, r):
-        center = vertice
-        d_sum = sum(np.linalg.norm(center - vertices[atom]) for atom in tetrahedron)
-        r_sum = sum(r + vdw_radii[atom] for atom in tetrahedron)
-        
+    def sphere_fit(self,points, vertices, simplices, vdw_radii, r):
+        d = np.linalg.norm(points[simplices]-vertices[:,None,:],axis=-1)
+        d_sum = np.sum(d, axis=1)
+        r_sum = 4*r + np.sum(vdw_radii[simplices], axis=1)
+    
         return d_sum >= r_sum
+    
 
     def delete_simplices3d(self, points, simplices, neighbors, vertices, vdw_radii, r, surface):
-        simp, neigh, verti, deleted = [], [], [], []
+
+        simplices = np.ascontiguousarray(simplices)
+        vertices  = np.ascontiguousarray(vertices)
+        n = len(simplices)
+        if surface:
+            boundary = np.any(neighbors == -1, axis=1)
+            keep_mask = np.ones(n, dtype=bool)
+            keep_mask[boundary] = ~self.sphere_fit(points,vertices[boundary],simplices[boundary],vdw_radii,r)
+        else:
+            keep_mask = self.sphere_fit(points,vertices,simplices,vdw_radii,r)
+        simp = simplices[keep_mask]
+        neigh = neighbors[keep_mask]
+        verti = vertices[keep_mask]
         
-        for i, tetrahedron in enumerate(simplices):
-            should_delete = (-1 in neighbors[i] and self.sphere_fit(points, tetrahedron, vertices[i], vdw_radii, r)) if surface else not self.sphere_fit(points, tetrahedron, vertices[i], vdw_radii, r)
-            
-            if should_delete:
-                deleted.append(i)
-            else:
-                simp.append(simplices[i])
-                neigh.append(neighbors[i])
-                verti.append(vertices[i])
-        
-        simp = np.array(simp)
-        neigh = np.array(neigh)
-        verti = np.array(verti)
-        deleted = np.array(deleted)
-        
-        mask = np.isin(neigh, deleted)
-        neigh[mask] = -1
-        
-        for i in reversed(deleted):
-            mask = (neigh > i) & (neigh != -1)
-            neigh[mask] -= 1
-        
+        mapping = -np.ones(n, dtype=int)
+        mapping[np.where(keep_mask)[0]] = np.arange(np.sum(keep_mask))
+        mask = neigh != -1
+        neigh[mask] = mapping[neigh[mask]]
+
         return simp, neigh, verti
 
     def delete_section(self, simplices_subset, simplices, neighbors, vertices, reverse=False):
-        simp, neigh, verti, deleted = [], [], [], []
-      
-        for i, tetrahedron in enumerate(simplices): 
-            match = any((simplices_subset == tetrahedron).all(axis=1))
-            if reverse:
-                if match:
-                    simp.append(tetrahedron)
-                    neigh.append(neighbors[i])
-                    verti.append(vertices[i])
-                else:
-                    deleted.append(i)
-            else:
-                if match:
-                    deleted.append(i)
-                else:
-                    simp.append(tetrahedron)
-                    neigh.append(neighbors[i])
-                    verti.append(vertices[i])
+        matches = (simplices[:, None,:] == simplices_subset[None,:,:]).all(axis=2).any(axis=1)
+        if reverse:
+            keep_mask = matches
+        else:
+            keep_mask = ~matches
+        
+        delete_mask = ~keep_mask
 
-        simp, neigh, verti = map(np.array, [simp, neigh, verti])
-        deleted = np.array(deleted)
+        simp = simplices[keep_mask]
+        neigh = neighbors[keep_mask]
+        verti = vertices[keep_mask]
+        
+        deleted = np.flatnonzero(delete_mask)
         
         mask = np.isin(neigh, deleted)
         neigh[mask] = -1
         
-        for i in reversed(deleted):
-            neigh = np.where((neigh > i) & (neigh != -1), neigh - 1, neigh)
+        valid = neigh >= 0
+        
+        neigh[valid] -= np.searchsorted(deleted, neigh[valid])
         
         return simp, neigh, verti
 
@@ -1300,40 +1517,46 @@ class ChannelCalculator:
         return np.array([vdw_radii_dict[atom] for atom in atoms])
 
     def surface_layer(self, shape_simplices, filtered_simplices, shape_neighbors):
-        surface_simplices, surface_neighbors = [], []
-        interior_simplices = []
-        
-        for i in range(len(shape_simplices)): 
-            if -1 in shape_neighbors[i]:
-                surface_simplices.append(shape_simplices[i])
-                surface_neighbors.append(shape_neighbors[i])
-            else:
-                interior_simplices.append(shape_simplices[i])
-        
-        surface_simplices = np.array(surface_simplices)
-        surface_neighbors = np.array(surface_neighbors)
-        interior_simplices = np.array(interior_simplices)
-        
-        filtered_surface_simplices = surface_simplices[
-            np.any(np.all(surface_simplices[:, None] == filtered_simplices, axis=2), axis=1)
-        ]
-        filtered_surface_neighbors = surface_neighbors[
-            np.any(np.all(surface_simplices[:, None] == filtered_simplices, axis=2), axis=1)
-        ]
-        
+    
+        surface_mask = np.any(shape_neighbors == -1, axis=1)
+    
+        surface_simplices = shape_simplices[surface_mask]
+        surface_neighbors = shape_neighbors[surface_mask]
+        interior_simplices = shape_simplices[~surface_mask]
+    
+        row_dtype = np.dtype(
+            (np.void,shape_simplices.dtype.itemsize * shape_simplices.shape[1]))
+    
+        filtered_view = (
+            np.ascontiguousarray(filtered_simplices).view(row_dtype).ravel())
+    
+        surface_view = (
+            np.ascontiguousarray(surface_simplices).view(row_dtype).ravel())
+    
+        surface_filter_mask = np.isin(surface_view, filtered_view)
+    
+        filtered_surface_simplices = surface_simplices[surface_filter_mask]
+        filtered_surface_neighbors = surface_neighbors[surface_filter_mask]
+
         filtered_surface_neighbors = np.unique(filtered_surface_neighbors)
-        filtered_surface_neighbors = filtered_surface_neighbors[filtered_surface_neighbors != 0]
-        
-        filtered_interior_simplices = interior_simplices[
-            np.any(np.all(interior_simplices[:, None] == filtered_simplices, axis=2), axis=1)
-        ]
-
-        surface_layer_neighbor_simplices = shape_simplices[filtered_surface_neighbors]
-        
-        second_layer = filtered_interior_simplices[
-            np.any(np.all(filtered_interior_simplices[:, None] == surface_layer_neighbor_simplices, axis=2), axis=1)
-        ]
-
+        filtered_surface_neighbors = filtered_surface_neighbors[filtered_surface_neighbors >= 0]
+    
+        interior_view = (np.ascontiguousarray(interior_simplices).view(row_dtype).ravel())
+    
+        interior_filter_mask = np.isin(interior_view, filtered_view)
+    
+        filtered_interior_simplices = interior_simplices[interior_filter_mask]
+    
+        surface_layer_neighbor_simplices = (shape_simplices[filtered_surface_neighbors])
+    
+        neighbor_view = (np.ascontiguousarray(surface_layer_neighbor_simplices).view(row_dtype).ravel())
+    
+        filtered_interior_view = (np.ascontiguousarray(filtered_interior_simplices).view(row_dtype).ravel())
+    
+        second_layer_mask = np.isin(filtered_interior_view,neighbor_view)
+    
+        second_layer = filtered_interior_simplices[second_layer_mask]
+    
         return filtered_surface_simplices, second_layer
 
             
@@ -1409,61 +1632,92 @@ class ChannelCalculator:
             cavity.set_starting_tetrahedron(np.array([deepest_tetrahedron]))
             cavity.set_depth(max_depth)
             
-    def dijkstra(self, cavity, simplices, neighbors, vertices, points, vdw_radii):
-        import heapq
-        
-        def calculate_weight(current_tetra, neighbor_tetra):
-            current_vertex = vertices[current_tetra]
-            neighbor_vertex = vertices[neighbor_tetra]
-            l = np.linalg.norm(current_vertex - neighbor_vertex)
-            
-            d = np.inf
-            for atom, radius in zip(points[simplices[neighbor_tetra]], vdw_radii[simplices[neighbor_tetra]]):
-                dist = np.linalg.norm(neighbor_vertex - atom) - radius
-                if dist < d:
-                    d = dist
-            
-            b = 1e-3
-            return l / (d**2 + b)
-        
-        def dijkstra_algorithm(start, goal, tetrahedra_set):
-            pq = [(0, start)]
-            distances = {start: 0}
-            previous = {start: None}
+    def build_sparse_graph(self, simplices, neighbors, vertices, points, vdw_radii):
+        import numpy as np
+        from scipy.sparse import csr_matrix
 
-            while pq:
-                current_distance, current_tetra = heapq.heappop(pq)
-                
-                if current_tetra == goal:
-                    path = []
-                    while current_tetra is not None:
-                        path.append(current_tetra)
-                        current_tetra = previous[current_tetra]
-                    return path[::-1]
-                
-                if current_distance > distances[current_tetra]:
+        tetra_points = points[simplices]
+        distances = np.linalg.norm(
+            tetra_points - vertices[:, None, :],
+            axis=2)
+        bottleneck = np.min(distances - vdw_radii[simplices],axis=1)
+
+        rows = []
+        cols = []
+        data = []
+
+        b = 1e-3
+        for tetra, neighs in enumerate(neighbors):
+            for neigh in neighs:
+                if neigh == -1:
+                    continue
+                l = np.linalg.norm(
+                    vertices[tetra] - vertices[neigh])
+                d = bottleneck[neigh]
+                weight = l / (d * d + b)
+                rows.append(tetra)
+                cols.append(neigh)
+                data.append(weight)
+        graph = csr_matrix((data, (rows, cols)),shape=(len(simplices), len(simplices)))
+        return graph
+            
+    def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points, vdw_radii):
+
+        import numpy as np
+        from scipy.sparse.csgraph import dijkstra
+        from collections import defaultdict
+
+        cavity_tetra = np.asarray(cavity.tetrahedra)
+        if len(cavity_tetra) == 0:
+            return
+        global_to_local = {tetra: i for i, tetra in enumerate(cavity_tetra)}
+        cavity_graph = graph[np.ix_(cavity_tetra, cavity_tetra)]
+    
+        for start_global in cavity.starting_tetrahedron:
+            if start_global not in global_to_local:
+                continue
+            start_local = global_to_local[start_global]
+            distances, predecessors = dijkstra(cavity_graph,directed=False,indices=start_local,return_predecessors=True)
+            parent_to_children = defaultdict(list)
+
+            for node, parent in enumerate(predecessors):
+                if parent >= 0:
+                    parent_to_children[parent].append(node)
+            
+            paths = {}
+            stack = [(start_local, [start_local])]
+
+            while stack:
+                node, path = stack.pop()
+                paths[node] = path
+
+                for child in parent_to_children.get(node, []):
+                    stack.append((child, path + [child]))
+
+            for exit_global in cavity.end_tetrahedra:
+                if exit_global == start_global:
+                    continue
+                if exit_global not in global_to_local:
+                    continue
+                exit_local = global_to_local[exit_global]
+                if np.isinf(distances[exit_local]):
                     continue
                 
-                for neighbor in neighbors[current_tetra]:
-                    if neighbor in tetrahedra_set:
-                        weight = calculate_weight(current_tetra, neighbor)
-                        distance = current_distance + weight
-                        if distance < distances.get(neighbor, float('inf')):
-                            distances[neighbor] = distance
-                            previous[neighbor] = current_tetra
-                            heapq.heappush(pq, (distance, neighbor))
-            
-            return None
+                path_local = paths.get(exit_local)
+                if path_local is None:
+                    continue
 
-        tetrahedra_set = set(cavity.tetrahedra)
-        for exit_tetrahedron in cavity.end_tetrahedra:
-            for starting_tetrahedron in cavity.starting_tetrahedron:
-                if exit_tetrahedron != starting_tetrahedron:
-                    path = dijkstra_algorithm(starting_tetrahedron, exit_tetrahedron, tetrahedra_set)
-                    if path:
-                        path_tetrahedra = np.array(path)
-                        channel = Channel(path_tetrahedra, *self.process_channel(path_tetrahedra, vertices, points, vdw_radii, simplices))
-                        cavity.add_channel(channel)
+                path_global = cavity_tetra[path_local]
+
+                node = exit_local
+    
+                channel = Channel(path_global,*self.process_channel(
+                        path_global,
+                        vertices,
+                        points,
+                        vdw_radii,
+                        simplices))
+                cavity.add_channel(channel)
 
     def calculate_max_radius(self, vertice, points, vdw_radii, simp):
         atom_positions = points[simp]
@@ -1489,7 +1743,7 @@ class ChannelCalculator:
         length = self.calculate_channel_length(centerline_spline)
         volume = self.calculate_channel_volume(centerline_spline, radius_spline)
         
-        return centerline_spline, radius_spline, length, bottleneck, volume
+        return centerline_spline, radius_spline, length, bottleneck, volume,centers, radii
 
     def find_biggest_tetrahedron(self, tetrahedra, voronoi_vertices, points, vdw_radii, simp):
         radii = np.array([self.calculate_max_radius(voronoi_vertices[tetra], points, vdw_radii, simp[tetra]) for tetra in tetrahedra])
@@ -1645,4 +1899,9 @@ class ChannelCalculator:
             cavity.set_starting_tetrahedron(np.array([chosen]))
 
 
+    def calc_circumcenters(self, dela):
+        eq = dela.equations
+        scale = dela.paraboloid_scale
+        centers = -eq[:, :-2] / (2 * scale * eq[:, -2][:, None])
 
+        return centers
