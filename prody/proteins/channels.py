@@ -1335,38 +1335,34 @@ class ChannelCalculator:
         self.bottleneck = bottleneck
         self.sparsity = sparsity
         
-    def sphere_fit(self, vertices, tetrahedron, vertice, vdw_radii, r):
-        center = vertice
-        d_sum = sum(np.linalg.norm(center - vertices[atom]) for atom in tetrahedron)
-        r_sum = sum(r + vdw_radii[atom] for atom in tetrahedron)
-        
+    def sphere_fit(self,points, vertices, simplices, vdw_radii, r):
+        d = np.linalg.norm(points[simplices]-vertices[:,None,:],axis=-1)
+        d_sum = np.sum(d, axis=1)
+        r_sum = 4*r + np.sum(vdw_radii[simplices], axis=1)
+    
         return d_sum >= r_sum
+    
 
     def delete_simplices3d(self, points, simplices, neighbors, vertices, vdw_radii, r, surface):
-        simp, neigh, verti, deleted = [], [], [], []
+
+        simplices = np.ascontiguousarray(simplices)
+        vertices  = np.ascontiguousarray(vertices)
+        n = len(simplices)
+        if surface:
+            boundary = np.any(neighbors == -1, axis=1)
+            keep_mask = np.ones(n, dtype=bool)
+            keep_mask[boundary] = ~self.sphere_fit(points,vertices[boundary],simplices[boundary],vdw_radii,r)
+        else:
+            keep_mask = self.sphere_fit(points,vertices,simplices,vdw_radii,r)
+        simp = simplices[keep_mask]
+        neigh = neighbors[keep_mask]
+        verti = vertices[keep_mask]
         
-        for i, tetrahedron in enumerate(simplices):
-            should_delete = (-1 in neighbors[i] and self.sphere_fit(points, tetrahedron, vertices[i], vdw_radii, r)) if surface else not self.sphere_fit(points, tetrahedron, vertices[i], vdw_radii, r)
-            
-            if should_delete:
-                deleted.append(i)
-            else:
-                simp.append(simplices[i])
-                neigh.append(neighbors[i])
-                verti.append(vertices[i])
-        
-        simp = np.array(simp)
-        neigh = np.array(neigh)
-        verti = np.array(verti)
-        deleted = np.array(deleted)
-        
-        mask = np.isin(neigh, deleted)
-        neigh[mask] = -1
-        
-        for i in reversed(deleted):
-            mask = (neigh > i) & (neigh != -1)
-            neigh[mask] -= 1
-        
+        mapping = -np.ones(n, dtype=int)
+        mapping[np.where(keep_mask)[0]] = np.arange(np.sum(keep_mask))
+        mask = neigh != -1
+        neigh[mask] = mapping[neigh[mask]]
+
         return simp, neigh, verti
 
     def delete_section(self, simplices_subset, simplices, neighbors, vertices, reverse=False):
