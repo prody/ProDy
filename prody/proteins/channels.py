@@ -1366,33 +1366,26 @@ class ChannelCalculator:
         return simp, neigh, verti
 
     def delete_section(self, simplices_subset, simplices, neighbors, vertices, reverse=False):
-        simp, neigh, verti, deleted = [], [], [], []
-      
-        for i, tetrahedron in enumerate(simplices): 
-            match = any((simplices_subset == tetrahedron).all(axis=1))
-            if reverse:
-                if match:
-                    simp.append(tetrahedron)
-                    neigh.append(neighbors[i])
-                    verti.append(vertices[i])
-                else:
-                    deleted.append(i)
-            else:
-                if match:
-                    deleted.append(i)
-                else:
-                    simp.append(tetrahedron)
-                    neigh.append(neighbors[i])
-                    verti.append(vertices[i])
+        matches = (simplices[:, None,:] == simplices_subset[None,:,:]).all(axis=2).any(axis=1)
+        if reverse:
+            keep_mask = matches
+        else:
+            keep_mask = ~matches
+        
+        delete_mask = ~keep_mask
 
-        simp, neigh, verti = map(np.array, [simp, neigh, verti])
-        deleted = np.array(deleted)
+        simp = simplices[keep_mask]
+        neigh = neighbors[keep_mask]
+        verti = vertices[keep_mask]
+        
+        deleted = np.flatnonzero(delete_mask)
         
         mask = np.isin(neigh, deleted)
         neigh[mask] = -1
         
-        for i in reversed(deleted):
-            neigh = np.where((neigh > i) & (neigh != -1), neigh - 1, neigh)
+        valid = neigh >= 0
+        
+        neigh[valid] -= np.searchsorted(deleted, neigh[valid])
         
         return simp, neigh, verti
 
