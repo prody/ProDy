@@ -573,6 +573,46 @@ def calcChannels(atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15, 
     # Return the detected channels and surface state data for further analysis or visualization.
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
+def _ag_worker(args):
+    atoms,kwargs,i,filename= args
+    # LOGGER.info("Processing atom group " + str(filename))
+    start = time.perf_counter()
+    try:
+        channels, surfaces = calcChannels(atoms,filename = filename, **kwargs)
+        if not channels:
+            return i,[],[],0
+        total = time.perf_counter() - start
+        return i, channels, surfaces, total
+    except:
+        return i, [], [], 0
+
+
+def calcChannelsMultipleAtomGroups(atomgroups, **kwargs):
+    from multiprocessing import Pool, cpu_count
+    filenames = kwargs.pop('filenames',[None]*len(atomgroups))
+    max_proc = kwargs.pop('max_proc',None)
+    if max_proc is None:
+        max_proc = max(1, cpu_count()//2)
+
+    if max_proc == 1:
+        results = [_ag_worker((ag,kwargs,i,filenames[i])) for i, ag in enumerate(atomgroups)]
+    else:
+        tasks = ((ag,kwargs,i,filenames[i]) for i, ag in enumerate(atomgroups))
+        with Pool(processes=max_proc) as pool:
+            results = pool.map(_ag_worker, tasks,chunksize=builtins.max(1, len(atomgroups)//(max_proc*4)))
+
+    results.sort(key=lambda x: x[0])
+
+    channels_all = [r[1] for r in results]
+    for channels in channels_all:
+        for channel in channels:
+            channel.build_splines()
+    surfaces_all = [r[2] for r in results]
+    times_all = [r[3] for r in results]
+    failed = [filenames[r[0]] for r in results if (not r[1]  and not r[2])]
+    if failed:
+        LOGGER.warning(f"WARNING: {len(failed)} proteins failed or No Channels Detected: {', '.join(str(f) for f in failed)}")
+    return channels_all, surfaces_all, times_all
             
 def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, start_point=None, **kwargs):
     """Compute channels for each frame in a given trajectory or multi-model PDB file.
