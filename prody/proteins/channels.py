@@ -1521,61 +1521,93 @@ class ChannelCalculator:
             cavity.set_starting_tetrahedron(np.array([deepest_tetrahedron]))
             cavity.set_depth(max_depth)
             
-    def dijkstra(self, cavity, simplices, neighbors, vertices, points, vdw_radii):
-        import heapq
-        
-        def calculate_weight(current_tetra, neighbor_tetra):
-            current_vertex = vertices[current_tetra]
-            neighbor_vertex = vertices[neighbor_tetra]
-            l = np.linalg.norm(current_vertex - neighbor_vertex)
-            
-            d = np.inf
-            for atom, radius in zip(points[simplices[neighbor_tetra]], vdw_radii[simplices[neighbor_tetra]]):
-                dist = np.linalg.norm(neighbor_vertex - atom) - radius
-                if dist < d:
-                    d = dist
-            
-            b = 1e-3
-            return l / (d**2 + b)
-        
-        def dijkstra_algorithm(start, goal, tetrahedra_set):
-            pq = [(0, start)]
-            distances = {start: 0}
-            previous = {start: None}
+    def build_sparse_graph(self, simplices, neighbors, vertices, points, vdw_radii):
 
-            while pq:
-                current_distance, current_tetra = heapq.heappop(pq)
-                
-                if current_tetra == goal:
-                    path = []
-                    while current_tetra is not None:
-                        path.append(current_tetra)
-                        current_tetra = previous[current_tetra]
-                    return path[::-1]
-                
-                if current_distance > distances[current_tetra]:
+        import numpy as np
+        from scipy.sparse import csr_matrix
+
+        tetra_points = points[simplices]
+        distances = np.linalg.norm(
+            tetra_points - vertices[:, None, :],
+            axis=2)
+        bottleneck = np.min(distances - vdw_radii[simplices],axis=1)
+
+        rows = []
+        cols = []
+        data = []
+
+        b = 1e-3
+        for tetra, neighs in enumerate(neighbors):
+            for neigh in neighs:
+                if neigh == -1:
+                    continue
+                l = np.linalg.norm(
+                    vertices[tetra] - vertices[neigh])
+                d = bottleneck[neigh]
+                weight = l / (d * d + b)
+                rows.append(tetra)
+                cols.append(neigh)
+                data.append(weight)
+        graph = csr_matrix((data, (rows, cols)),shape=(len(simplices), len(simplices)))
+        return graph
+            
+    def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points, vdw_radii):
+
+        import numpy as np
+        from scipy.sparse.csgraph import dijkstra
+        from collections import defaultdict
+
+        cavity_tetra = np.asarray(cavity.tetrahedra)
+        if len(cavity_tetra) == 0:
+            return
+        global_to_local = {tetra: i for i, tetra in enumerate(cavity_tetra)}
+        cavity_graph = graph[np.ix_(cavity_tetra, cavity_tetra)]
+    
+        for start_global in cavity.starting_tetrahedron:
+            if start_global not in global_to_local:
+                continue
+            start_local = global_to_local[start_global]
+            distances, predecessors = dijkstra(cavity_graph,directed=False,indices=start_local,return_predecessors=True)
+            parent_to_children = defaultdict(list)
+
+            for node, parent in enumerate(predecessors):
+                if parent >= 0:
+                    parent_to_children[parent].append(node)
+            
+            paths = {}
+            stack = [(start_local, [start_local])]
+
+            while stack:
+                node, path = stack.pop()
+                paths[node] = path
+
+                for child in parent_to_children.get(node, []):
+                    stack.append((child, path + [child]))
+
+            for exit_global in cavity.end_tetrahedra:
+                if exit_global == start_global:
+                    continue
+                if exit_global not in global_to_local:
+                    continue
+                exit_local = global_to_local[exit_global]
+                if np.isinf(distances[exit_local]):
                     continue
                 
-                for neighbor in neighbors[current_tetra]:
-                    if neighbor in tetrahedra_set:
-                        weight = calculate_weight(current_tetra, neighbor)
-                        distance = current_distance + weight
-                        if distance < distances.get(neighbor, float('inf')):
-                            distances[neighbor] = distance
-                            previous[neighbor] = current_tetra
-                            heapq.heappush(pq, (distance, neighbor))
-            
-            return None
+                path_local = paths.get(exit_local)
+                if path_local is None:
+                    continue
 
-        tetrahedra_set = set(cavity.tetrahedra)
-        for exit_tetrahedron in cavity.end_tetrahedra:
-            for starting_tetrahedron in cavity.starting_tetrahedron:
-                if exit_tetrahedron != starting_tetrahedron:
-                    path = dijkstra_algorithm(starting_tetrahedron, exit_tetrahedron, tetrahedra_set)
-                    if path:
-                        path_tetrahedra = np.array(path)
-                        channel = Channel(path_tetrahedra, *self.process_channel(path_tetrahedra, vertices, points, vdw_radii, simplices))
-                        cavity.add_channel(channel)
+                path_global = cavity_tetra[path_local]
+
+                node = exit_local
+    
+                channel = Channel(path_global,*self.process_channel(
+                        path_global,
+                        vertices,
+                        points,
+                        vdw_radii,
+                        simplices))
+                cavity.add_channel(channel)
 
     def calculate_max_radius(self, vertice, points, vdw_radii, simp):
         atom_positions = points[simp]
