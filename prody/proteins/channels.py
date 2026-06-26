@@ -13,6 +13,7 @@ from numpy import *
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
 from prody.atomic import flags, sliceAtomicData
+from prody.dynamics.nma import NMA
 from prody.utilities import importLA, checkCoords, showFigure, getCoords, isListLike
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
@@ -1325,46 +1326,7 @@ def calcChannelSurfaceOverlaps(**kwargs):
     merged_surface = merge_surfaces(surfaces)
     write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
 
-def normalModeCavityAnalysis(structure,num_modes=20,scale=2,n_steps=20,**kwargs):
 
-    if isinstance(structure, str) or hasattr(structure, '__fspath__'):
-        ag = parsePDB(str(structure))
-    elif isinstance(structure, AtomGroup):
-        ag = structure.copy()
-    else:     
-        raise ValueError("structure must be a file path or AtomGroup")
-    title = kwargs.pop('title',ag.getTitle())
-    if (nma := kwargs.pop('nma', None)):
-        if not isinstance(nma, NMA):
-            raise ValueError("nma must be an instance of prody.NMA")
-    else:
-        nma = ANM()
-        if (selection := kwargs.pop('selection', 'calpha')):
-            ag_cg = ag.select(selection)
-        nma.buildHessian(ag)
-        nma.calcModes(n_modes=num_modes)
-        if (extend := kwargs.pop('extend', 'all')):
-            if extend == 'all':
-                ext_nma, ext_ag = nma.extendModel(nma,ag_cg,ag)
-            elif extend:
-                ext_nma, ext_ag = nma.extendModel(nma,ag_cg,ag.select(extend))
-        else:
-            ext_nma, ext_ag = nma, ag_cg
-    
-    agc = ext_ag.copy()
-    calcMap=[f"{ag.getTitle()}"]
-    for mode in range(num_modes):
-        trav_ens = traverseMode(ext_nma[mode],ext_ag,n_steps,rmsd=scale)
-        agc.addCoordset(trav_ens[:n_steps//2])
-        agc.addCoordset(trav_ens[(n_steps//2)+1:])
-        for n in range(n_steps*2+1):
-            if n == n_steps:
-                continue
-            else:
-                output = f"{title}_mode{mode+1}_step{n-n_steps}"
-                calcMap.append(f"{output}")
-    channels, surfaces = calcChannelsMultipleFrames(agc,output_path=output,separate=kwargs.get('separate', False),filenames=calcMap)
-    return channels,surfaces
     
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume, centers, radii):
