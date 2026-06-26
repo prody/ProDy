@@ -1789,4 +1789,9 @@ class ChannelCalculator:
             cavity.set_starting_tetrahedron(np.array([chosen]))
 
 
+    def calc_circumcenters(self, dela):
+        eq = dela.equations
+        scale = dela.paraboloid_scale
+        centers = -eq[:, :-2] / (2 * scale * eq[:, -2][:, None])
 
+        return centers
