@@ -1250,16 +1250,34 @@ def calcChannelSurfaceOverlaps(**kwargs):
 
     
 class Channel:
-    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
+    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume, centers, radii):
+        # A detected channel path through the interior of the protein.
         self.tetrahedra = tetrahedra
         self.centerline_spline = centerline_spline
         self.radius_spline = radius_spline
         self.length = length
         self.bottleneck = bottleneck
         self.volume = volume
-            
+        self.centers = centers
+        self.radii = radii
+        
     def get_splines(self):
+        # Return the parametric centerline and radius curves for visualization or analysis.
         return self.centerline_spline, self.radius_spline
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["centerline_spline"] = None
+        state["radius_spline"] = None
+        return state
+    
+    def build_splines(self):
+        from scipy.interpolate import CubicSpline
+        centers = self.centers
+        radii = self.radii
+        t = np.arange(len(centers))
+        self.centerline_spline = CubicSpline(t, centers, bc_type='natural')
+        self.radius_spline = CubicSpline(t, radii, bc_type='natural')
     
     
 class State:
