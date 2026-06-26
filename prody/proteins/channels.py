@@ -580,17 +580,25 @@ def _ag_worker(args):
     """Process a single atomgroup for calcChannelsMultipleAtomsGroups"""
     atoms,kwargs,i,filename= args
     # LOGGER.info("Processing atom group " + str(filename))
-    start = time.perf_counter()
     try:
         channels, surfaces = calcChannels(atoms,filename = filename, **kwargs)
         if not channels:
             return i,[],[],0
-        total = time.perf_counter() - start
-        return i, channels, surfaces, total
+        return i, channels, surfaces
     except:
         return i, [], [], 0
 
-
+def _run_with_pool(_worker,tasks, max_proc,chunksize,start_method=None):
+    from multiprocessing import Pool
+    if start_method:
+        ctx = multiprocessing.get_context(start_method)
+        PoolClass = ctx.Pool
+    else:
+        PoolClass = Pool
+    
+    with PoolClass(processes=max_proc) as pool:
+        return pool.map(_worker, tasks,chunksize=chunksize)
+    
 def calcChannelsMultipleAtomGroups(atomgroups, **kwargs):
     """"Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
@@ -666,14 +674,24 @@ def calcChannelsMultipleAtomGroups(atomgroups, **kwargs):
     filenames = kwargs.pop('filenames',[None]*len(atomgroups))
     max_proc = kwargs.pop('max_proc',None)
     if max_proc is None:
-        max_proc = max(1, cpu_count()//2)
+        max_proc = builtins.max(1, cpu_count()//2)
 
     if max_proc == 1:
         results = [_ag_worker((ag,kwargs,i,filenames[i])) for i, ag in enumerate(atomgroups)]
     else:
         tasks = ((ag,kwargs,i,filenames[i]) for i, ag in enumerate(atomgroups))
-        with Pool(processes=max_proc) as pool:
-            results = pool.map(_ag_worker, tasks,chunksize=builtins.max(1, len(atomgroups)//(max_proc*4)))
+        chunksize = builtins.max(1, len(atomgroups)//(max_proc*4))
+        try:
+            results = _run_with_pool(_ag_worker,tasks,max_proc,chunksize)
+        except (OSError,EOFError):
+            try:
+                results = _run_with_pool(_ag_worker,tasks,max_proc,chunksize,'fork')
+            except (OSError, EOFError):
+                try:
+                    results = _run_with_pool(_ag_worker,tasks,max_proc,chunksize,'spawn')
+                except Exception as e:
+                    raise RuntimeError("Multiprocessing failed with all start methods. "
+                               "Try running with max_proc=1.") from e
 
     results.sort(key=lambda x: x[0])
 
@@ -682,11 +700,10 @@ def calcChannelsMultipleAtomGroups(atomgroups, **kwargs):
         for channel in channels:
             channel.build_splines()
     surfaces_all = [r[2] for r in results]
-    times_all = [r[3] for r in results]
     failed = [filenames[r[0]] for r in results if (not r[1]  and not r[2])]
     if failed:
         LOGGER.warning(f"WARNING: {len(failed)} proteins failed or No Channels Detected: {', '.join(str(f) for f in failed)}")
-    return channels_all, surfaces_all, times_all
+    return channels_all, surfaces_all
             
 def _frame_worker(args):
     """Process a single frame for calcChannelsMultipleFrames"""
@@ -706,7 +723,7 @@ def _frame_worker(args):
 def _model_worker(args):
     """Process a single model for calcChannelsMultipleFrames"""
     atoms, kwargs, frame_id, filename = args
-    start_frame = kwargs.pop(0,"start_frame")
+    start_frame = kwargs.pop("start_frame",0)
     frame_idx = frame_id + start_frame
     LOGGER.info("Model: {0}".format(frame_idx))
     # Make a copy to avoid state conflicts
@@ -722,7 +739,7 @@ def _model_worker(args):
 
     return frame_id, channels, surfaces
 
-def calcChannelsMultipleFrames(atoms, trajectory, **kwargs):
+def calcChannelsMultipleFrames(atoms, trajectory=None, **kwargs):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -804,7 +821,7 @@ def calcChannelsMultipleFrames(atoms, trajectory, **kwargs):
 
     max_proc = kwargs.pop('max_proc',None)
     if max_proc is None:
-        max_proc = max(1, cpu_count()//2)
+        max_proc = builtins.max(1, cpu_count()//2)
     
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
@@ -812,7 +829,7 @@ def calcChannelsMultipleFrames(atoms, trajectory, **kwargs):
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
-
+        traj=None
         if stop_frame == -1:
             traj = trajectory[start_frame:]
         else:
@@ -821,39 +838,56 @@ def calcChannelsMultipleFrames(atoms, trajectory, **kwargs):
         if max_proc == 1:
             results = [_frame_worker((atoms,frame.getCoords(),kwargs,i,filenames[i])) for i, frame in enumerate(traj)]
         else:
-            tasks = ((atoms,frame.getCoords(),kwargs,i,filenames[i]) for i, frame in enumerate(trajectory))
-            with Pool(processes=max_proc) as pool:
-                results = pool.map(_frame_worker, tasks,chunksize=builtins.max(1, len(traj)//(max_proc*4)))
+            tasks = ((atoms,frame.getCoords(),kwargs,i,filenames[i]) for i, frame in enumerate(traj))
+            chunksize = builtins.max(1, len(traj)//(max_proc*4))
+            try:
+                results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize)
+            except (OSError,EOFError):
+                try:
+                    results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize,'fork')
+                except (OSError, EOFError):
+                    try:
+                        results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize,'spawn')
+                    except Exception as e:
+                        raise RuntimeError("Multiprocessing failed with all start methods. "
+                                "Try running with max_proc=1.") from e
 
         results.sort(key=lambda x: x[0])
 
         channels_all = [r[1] for r in results]
         surfaces_all = [r[2] for r in results]
-        times_all = [r[3] for r in results]
 
-        return channels_all, surfaces_all, times_all
+        return channels_all, surfaces_all
     else:
         if  atoms.numCoordsets() > 1:
             if stop_frame == -1:
                 num_models = len(atoms.getCoordsets()[start_frame:])
             else:
                 num_models = len(atoms.getCoordsets()[start_frame:stop_frame+1])
-            filenames = kwargs.pop('filenames',[None]*len(num_models))
+            filenames = kwargs.pop('filenames',[None]*num_models)
             if max_proc == 1:
                 results = [_model_worker((atoms,kwargs,i,filenames[i])) for i in range(num_models)]
             else:
                 tasks = ((atoms,kwargs,i,filenames[i]) for i in range(num_models))
-
-                with Pool(processes=max_proc) as pool:
-                    results = pool.map(_model_worker, tasks,chunksize=builtins.max(1, len(traj)//(max_proc*4)))
+                chunksize = builtins.max(1, num_models//(max_proc*4))
+                try:
+                    results = _run_with_pool(_model_worker,tasks,max_proc,chunksize)
+                except (OSError,EOFError):
+                    try:
+                        results = _run_with_pool(_model_worker,tasks,max_proc,chunksize,'fork')
+                    except (OSError, EOFError):
+                        try:
+                            results = _run_with_pool(_model_worker,tasks,max_proc,chunksize,'spawn')
+                        except Exception as e:
+                            raise RuntimeError("Multiprocessing failed with all start methods. "
+                                    "Try running with max_proc=1.") from e
 
             results.sort(key=lambda x: x[0])
 
             channels_all = [r[1] for r in results]
             surfaces_all = [r[2] for r in results]
-            times_all = [r[3] for r in results]
 
-            return channels_all, surfaces_all, times_all
+            return channels_all, surfaces_all
     
         else:
             LOGGER.info("Include trajectory or use multi-model PDB file.")
@@ -1325,8 +1359,6 @@ def calcChannelSurfaceOverlaps(**kwargs):
     nr_pdbs = nr_pdbs+1
     merged_surface = merge_surfaces(surfaces)
     write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
-
-
     
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume, centers, radii):
