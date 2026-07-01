@@ -70,6 +70,10 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
     This function creates a temporary PDB file from the provided atomic data and uses VMD (Visual Molecular Dynamics)
     to render this data into an STL file, which is then loaded into Open3D as a TriangleMesh. The function handles
     the creation and cleanup of temporary files and manages the subprocess call to VMD.
+    
+    To install Open3D use: 
+    conda install open3d (for Anaconda users; version open3d-0.19.0 was used during the developement)
+    or pip install open3d
 
     :param vmd_path: Path to the VMD executable. This is required to run VMD and execute the TCL script.
     :type vmd_path: str
@@ -200,6 +204,10 @@ def showChannels(channels, model=None, surface=None):
     This function renders a 3D visualization of molecular channels based on their spline representations.
     It can also display a molecular model (e.g., the protein structure) and a surface (e.g., cavity surface)
     in the same visualization. The function utilizes the Open3D library to create and render the 3D meshes.
+
+    To install Open3D use: 
+    conda install open3d (for Anaconda users; version open3d-0.19.0 was used during the developement)
+    or pip install open3d
     
     :arg channels: A list of channel objects or a single channel object. Each channel should have a 
         `get_splines()` method that returns two CubicSpline objects: one for the centerline and one for the radii.
@@ -225,7 +233,7 @@ def showChannels(channels, model=None, surface=None):
     showChannels(channels, model=protein_mesh, surface=surface_data) """
     
     if not checkAndImport('open3d'):
-        errorMsg = 'To run showChannels, please install open3d.'
+        errorMsg = 'To run showChannels, please install open3d (version 0.19.0).'
         raise ImportError(errorMsg)
             
     import open3d as o3d
@@ -305,6 +313,10 @@ def showCavities(surface, show_surface=False):
     This function displays a 3D visualization of cavities detected in a molecular structure.
     It uses the Open3D library to render the cavities as a triangle mesh. Optionally, it can also
     display the molecular surface as a wireframe overlay.
+
+    To install Open3D use: 
+    conda install open3d (for Anaconda users; version open3d-0.19.0 was used during the developement)
+    or pip install open3d
 
     :arg surface: A list containing three elements:
         - `points`: The coordinates of the vertices (atoms) in the molecular structure.
