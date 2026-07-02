@@ -10,16 +10,10 @@ __email__ = ['karolamik@fizyka.umk.pl']
 
 import numpy as np
 from numpy import *
-from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
-from prody.atomic import flags, sliceAtomicData
-from prody.utilities import importLA, checkCoords, showFigure, getCoords, isListLike
-from prody.measure import calcDistance, calcAngle, calcCenter
-from prody.measure.contacts import findNeighbors
+from prody import LOGGER, PY3K
+from prody.atomic import Atomic
+from prody.utilities import checkCoords, getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
-from collections import Counter
-
-from prody.trajectory import TrajBase, Trajectory, Frame
 from prody.ensemble import Ensemble
 
 import multiprocessing
