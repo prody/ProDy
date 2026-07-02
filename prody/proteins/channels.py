@@ -25,7 +25,7 @@ from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
            'showSurfaceCavities', 'selectChannelBySelection', 'getChannelResidueNames',
-           'calcChannelSurfaceOverlaps', 'calcSurfaceCavities']
+           'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 'calcSurfaceCavitiesMultipleFrames']
 
 
 
@@ -794,7 +794,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
     
-    
     if cavities_only:
         if max_depth is not None:
             calculator.trim_cavities_by_depth(c_filtered_cavities, max_depth)
@@ -978,6 +977,147 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
             LOGGER.info("Include trajectory or use multi-model PDB file.")
 
     return channels_all, surfaces_all
+
+
+def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, **kwargs):
+    """Compute surface cavities for each frame in a trajectory or multi-model PDB.
+
+    This function calculates surface cavities for each frame of a trajectory or
+    for each model of a multi-model PDB structure. For every frame/model, it
+    calls :func:`calcSurfaceCavities` and stores the detected cavities together
+    with the corresponding surface representation. The `kwargs` argument is
+    passed directly to :func:`calcSurfaceCavities` and can include parameters
+    controlling cavity detection, filtering, and output generation.
+
+    :param atoms: Atomic object containing the molecular structure. For trajectory 
+        analysis, this object provides the reference topology and is updated with 
+        coordinates from each frame. For multi-model PDB files, the individual 
+        coordinate sets are analyzed one by one.
+    :type atoms: :class:`.Atomic`
+
+    :param trajectory: Optional trajectory or ensemble object containing multiple
+        coordinate frames. If provided, surface cavities are calculated for each
+        selected trajectory frame. If not provided, the function attempts to use
+        multiple coordinate sets stored in `atoms`.
+    :type trajectory: :class:`.Atomic`, :class:`.Ensemble`, or trajectory-like object
+
+    :param output_path: Optional filename used to save detected surface cavities.
+        If provided, one output file is generated for each frame/model by
+        appending the frame/model index to the file name. If `None`, results are
+        returned but not written in the folder. Default is `None`.
+    :type output_path: str or None
+
+    :param separate: If `True`, each detected surface cavity is saved as a separate 
+        PQR/PDB file for each frame/model. If `False`, all cavities detected 
+        in a given frame/model are saved in a single file. Default is `False`.
+    :type separate: bool
+
+    :param kwargs: Additional parameters passed to :func:`calcSurfaceCavities`.
+        These can include `r1`, `r2`, `min_depth`, `max_depth`,
+        `min_tetrahedra`, `max_tetrahedra`, `min_volume`, `max_volume`,
+        `sparsity`, `start_frame`, and `stop_frame`.
+    :type kwargs: dict
+
+    :returns: Two lists:
+        - `cavities_all`: a list containing detected surface cavities for each
+          analyzed frame/model,
+        - `surfaces_all`: a list containing the corresponding surface representations 
+          for each analyzed frame/model.
+    :rtype: tuple (list, list)
+
+    Example usage:
+    protein = parsePDB('1tqn').select('protein')
+    cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, trajectory=traj, output_path="surface_cavities",
+        r1=4.5, r2=2.0, min_depth=2, max_depth=3, min_volume=50)
+
+    cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, start_frame=0, stop_frame=10, r1=4.5, r2=2.0) """
+
+    if PY3K:
+        if not checkAndImport('pathlib'):
+            raise ImportError('To run calcSurfaceCavitiesMultipleFrames, please install pathlib.')
+        from pathlib import Path
+    else:
+        if not checkAndImport('pathlib2'):
+            raise ImportError('To run calcSurfaceCavitiesMultipleFrames, please install pathlib2 for Python 2.7.')
+        from pathlib2 import Path
+
+    try:
+        coords = getCoords(atoms)
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object with `getCoords` method')
+
+    cavities_all = []
+    surfaces_all = []
+
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+
+    if output_path:
+        output_path = Path(output_path)
+        if output_path.suffix == ".pqr":
+            output_path = output_path.with_suffix('')
+
+    if trajectory is not None:
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)
+
+        nfi = trajectory._nfi
+        trajectory.reset()
+        if stop_frame == -1:
+            traj = trajectory[start_frame:]
+        else:
+            traj = trajectory[start_frame:stop_frame + 1]
+
+        atoms_copy = atoms.copy()
+        for j0, frame0 in enumerate(traj, start=start_frame):
+            LOGGER.info("Frame: {0}".format(j0))
+            atoms_copy.setCoords(frame0.getCoords())
+
+            if output_path:
+                cavities, surface = calcSurfaceCavities(atoms_copy,
+                    output_path=str(output_path) + "{0}.pqr".format(j0), separate=separate, **kwargs)
+            else:
+                cavities, surface = calcSurfaceCavities(atoms_copy, separate=separate, **kwargs)
+
+            cavities_all.append(cavities)
+            surfaces_all.append(surface)
+
+        trajectory._nfi = nfi
+
+    else:
+        if atoms.numCoordsets() > 1:
+            coordsets = atoms.getCoordsets()
+
+            if stop_frame == -1:
+                model_indices = range(start_frame, len(coordsets))
+            else:
+                model_indices = range(start_frame, stop_frame + 1)
+
+            for i in model_indices:
+                LOGGER.info("Model: {0}".format(i))
+                atoms.setACSIndex(i)
+
+                if output_path:
+                    cavities, surface = calcSurfaceCavities(
+                        atoms,
+                        output_path=str(output_path) + "{0}.pqr".format(i),
+                        separate=separate,
+                        **kwargs)
+                else:
+                    cavities, surface = calcSurfaceCavities(
+                        atoms,
+                        separate=separate,
+                        **kwargs)
+
+                cavities_all.append(cavities)
+                surfaces_all.append(surface)
+        else:
+            LOGGER.info("Include trajectory or use multi-model PDB file.")
+
+    return cavities_all, surfaces_all
 
 
 def parseParameters(channels, **kwargs):
