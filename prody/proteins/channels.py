@@ -26,7 +26,8 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
            'showSurfaceCavities', 'selectChannelBySelection', 'getChannelResidueNames',
            'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 
-           'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters']
+           'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters',
+           'getSurfaceCavityResidueNames']
 
 
 
@@ -1448,6 +1449,107 @@ def getChannelResidueNames(atoms, channels, **kwargs):
                 f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
                 
     return selected_residues_ch
+
+
+def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
+    '''Provides the resnames and resid of residues that form surface cavities.
+
+    Residues are extracted based on distA, which is the distance between surface
+    cavity points and protein residues. Surface cavity points are taken from
+    Voronoi vertices assigned to each cavity. Results can be saved as a txt file 
+    by providing the `residues_file_name` parameter.
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+
+    :arg cavities: A list of surface cavity objects returned by :func:`calcSurfaceCavities`.
+    :type cavities: list
+
+    :arg surface: Surface data returned by :func:`calcSurfaceCavities`.
+        The function uses `surface[4]`, which contains Voronoi vertices assigned
+        to surface cavities.
+    :type surface: list
+
+    :arg distA: Residues will be provided based on this value.
+        Default is 4 [Ang].
+    :type distA: int, float
+
+    :arg residues_file_name: The file with residues will be saved in a text file
+        with the provided name. The suffix '_Residues_All_surface_cavities.txt' will be added.
+    :type residues_file_name: str
+
+    :arg one_letter_aa: Whether to apply one-letter code to residue names.
+        Default is False.
+    :type one_letter_aa: bool
+
+    :returns: A list of residue names and residue numbers for each surface cavity.
+    :rtype: list
+    '''
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                  atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    distA = kwargs.pop('distA', 4)
+    residues_file_name = kwargs.pop('residues_file_name', None)
+
+    one_letter_aa = kwargs.pop('one_letter_aa', False)
+    if one_letter_aa == True:
+        from prody.atomic.atomic import AAMAP
+
+    if surface is None or len(surface) < 5:
+        raise ValueError('surface must contain Voronoi vertices in surface[4]')
+
+    vertices = surface[4]
+    if not isinstance(cavities, list):
+        cavities = [cavities]
+
+    selected_residues_cav = []
+
+    for i, cavity in enumerate(cavities):
+        if cavity.tetrahedra is None or len(cavity.tetrahedra) == 0:
+            selected_residues_cav.append('cavity' + str(i) + ': None')
+            continue
+
+        points = vertices[cavity.tetrahedra]
+        residues = atoms.select('same residue as exwithin ' + str(distA) + ' of center', center=points)
+
+        if residues is not None:
+            ca_residues = residues.select('name CA')
+
+            if ca_residues is not None:
+                resnames = ca_residues.getResnames()
+
+                if one_letter_aa == True:
+                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSE", "HSP", "HID", "HIE", "HIP")
+                        else AAMAP.get(aa, aa) for aa in resnames]
+                    resnames = resnames_1letter
+
+                resnums = ca_residues.getResnums()
+                residues_info = ["{}{}".format(resname, resnum)
+                    for resname, resnum in zip(resnames, resnums)]
+
+                residues_list = 'cavity' + str(i) + ': ' + ", ".join(residues_info)
+                selected_residues_cav.append(residues_list)
+
+            else:
+                selected_residues_cav.append('cavity' + str(i) + ': None')
+        else:
+            selected_residues_cav.append('cavity' + str(i) + ': None')
+
+    if residues_file_name is not None:
+        with open(residues_file_name + '_Residues_All_surface_cavities.txt', "w") as f_res:
+            f_res.write("# cavity_id residues_within_" + str(distA) + "_A\n")
+            for k in selected_residues_cav:
+                f_res.write("{0}_{1}\n".format(residues_file_name, k))
+
+    return selected_residues_cav
 
 
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
