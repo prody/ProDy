@@ -25,7 +25,8 @@ from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
            'showSurfaceCavities', 'selectChannelBySelection', 'getChannelResidueNames',
-           'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 'calcSurfaceCavitiesMultipleFrames']
+           'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 
+           'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters']
 
 
 
@@ -1187,6 +1188,93 @@ def getChannelParameters(channels, **kwargs):
             LOGGER.info("Frame {0}".format(frame_nr))
             for i in range(len(lengths)):
                 LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
+        return multi_model_param
+
+
+def parseSurfaceCavityParameters(cavities, **kwargs):
+    """Extract depths, volumes, and tetrahedra counts for surface cavities."""
+
+    depths = []
+    volumes = []
+    tetrahedra_counts = []
+    param_file_name = kwargs.pop('param_file_name', None)
+    lines = []
+    
+    if param_file_name is not None:
+        lines.append("# Cavity_id Volume [Å³] Depth [Å] Tetrahedra_count\n")
+    
+    for nr_cav, cavity in enumerate(cavities):
+        depth = cavity.depth
+        volume = cavity.volume
+        tetrahedra_count = len(cavity.tetrahedra)
+        depths.append(depth)
+        volumes.append(volume)
+        tetrahedra_counts.append(tetrahedra_count)
+
+        if param_file_name is not None:
+            lines.append("{0}_cavity{1}: {2:.3f} {3} {4}\n".format(
+                param_file_name, nr_cav, volume, depth, tetrahedra_count))
+
+    if param_file_name is not None:
+        with open(param_file_name + '_Parameters_All_surface_cavities.txt', "w") as f_par:
+            f_par.writelines(lines)
+    
+    return volumes, depths, tetrahedra_counts
+
+
+def getSurfaceCavityParameters(cavities, **kwargs):
+    """Extract volumes, depths, and tetrahedra counts of surface cavities.
+
+    This function iterates through a list of surface cavity objects and extracts
+    the volume, depth, and number of tetrahedra assigned to each cavity. These
+    values are returned as separate lists and can optionally be saved to a text file.
+
+    :arg cavities: A list of surface cavity objects returned by :func:`calcSurfaceCavities`.
+    :type cavities: list
+
+    :arg param_file_name: Optional name used to save cavity parameters to a text file. 
+        The suffix '_Parameters_All_surface_cavities.txt' will be added.
+    :type param_file_name: str
+
+    :returns: Three lists containing volumes, depths, and tetrahedra counts.
+    :rtype: tuple (list, list, list)
+
+    Example usage:
+    volumes, depths, tetrahedra_counts = getSurfaceCavityParameters(cavities)
+    """
+
+    multi_model_param = []
+    param_file_name = kwargs.get('param_file_name', None)
+
+    try:
+        results_V_D_T = parseSurfaceCavityParameters(cavities, **kwargs)
+        volumes, depths, tetrahedra_counts = results_V_D_T
+
+        LOGGER.info("Cavity {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Depth [Å]', 'Tetrahedra count'))
+
+        for i in range(len(volumes)):
+            LOGGER.info("cavity {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i], 2), np.round(depths[i], 2),
+                tetrahedra_counts[i]))
+
+        return results_V_D_T
+
+    except:
+        for nr_i, i in enumerate(cavities):
+            safe_param_file_name = param_file_name if param_file_name is not None else ""
+            results = parseSurfaceCavityParameters(cavities[nr_i],
+                param_file_name=safe_param_file_name + str(nr_i))
+            multi_model_param.append(results)
+
+        LOGGER.info("Cavity {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Depth [Å]', 'Tetrahedra count'))
+
+        for frame_nr, frame in enumerate(multi_model_param):
+            volumes, depths, tetrahedra_counts = frame
+            LOGGER.info("Frame {0}".format(frame_nr))
+
+            for i in range(len(volumes)):
+                LOGGER.info("cavity {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i], 2), np.round(depths[i], 2),
+                    tetrahedra_counts[i]))
+
         return multi_model_param
 
 
