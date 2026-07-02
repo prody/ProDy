@@ -809,7 +809,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
     
-    # Eraly-return for the calcSurfaceCavities function:
+    # Early-return for the calcSurfaceCavities function:
     if cavities_only:
         LOGGER.info("Returning surface cavities")
         
