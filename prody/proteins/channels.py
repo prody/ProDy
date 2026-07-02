@@ -794,17 +794,18 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
     
-    if cavities_only and max_depth is not None:
-        calculator.trim_cavities_by_depth(c_filtered_cavities, max_depth)
-    
-    if cavities_only and (min_tetrahedra is not None or max_tetrahedra is not None):
-        c_filtered_cavities = calculator.filter_cavities_by_tetrahedra(c_filtered_cavities, min_tetrahedra, max_tetrahedra)
     
     if cavities_only:
+        if max_depth is not None:
+            calculator.trim_cavities_by_depth(c_filtered_cavities, max_depth)
+
+        if min_tetrahedra is not None or max_tetrahedra is not None:
+            c_filtered_cavities = calculator.filter_cavities_by_tetrahedra(c_filtered_cavities, min_tetrahedra, max_tetrahedra)
+
         calculator.calculate_cavity_volumes(c_filtered_cavities, s_clr.simp, coords)
 
-    if cavities_only and (min_volume is not None or max_volume is not None):
-        c_filtered_cavities = calculator.filter_cavities_by_volume(c_filtered_cavities, min_volume, max_volume)
+        if min_volume is not None or max_volume is not None:
+            c_filtered_cavities = calculator.filter_cavities_by_volume(c_filtered_cavities, min_volume, max_volume)
     
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
     
