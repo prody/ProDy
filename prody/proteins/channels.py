@@ -1561,6 +1561,8 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
             f_res.write("# cavity_id residues_within_" + str(distA) + "_A\n")
             for k in selected_residues_cav:
                 f_res.write("{0}_{1}\n".format(residues_file_name, k))
+                
+        LOGGER.info("Surface cavity residues were saved to: {0}".format(output_file))
 
     return selected_residues_cav
 
