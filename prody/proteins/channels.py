@@ -15,6 +15,7 @@ from prody.atomic import Atomic
 from prody.utilities import checkCoords, getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
 from prody.ensemble import Ensemble
+from prody.measure import calcCenter
 
 import multiprocessing
 from .fixer import *
@@ -652,10 +653,12 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         are saved in a single PDB file. Default is False.
     :type separate: bool
 
-    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
-        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
+    :param start_point: Optional starting point for channel search. This can be either a 3D coordinate point or
+        an atomic selection/AtomGroup. If the 3D coordinate point will be provided, the algorithm will use the 
+        tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
         the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
-    :type start_point: list, tuple, or ndarray (length 3), or None 
+        If an atomic selection is provided, its geometric center is used as the starting point.
+    :type start_point: list, tuple, or ndarray (length 3), :class:`.Atomic`, or None 
 
     :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
         the outer surface of the channels. Default is 3.
@@ -735,18 +738,25 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         from pathlib2 import Path
     
     if start_point is not None:
-        if not isListLike(start_point):
-            raise TypeError("start_point must be a list/tuple/ndarray with three numeric values")
+    
+        if hasattr(start_point, 'getCoords'):
+            if start_point.numAtoms() == 0:
+                raise ValueError("start_point selection contains no atoms")
+            start_point = calcCenter(start_point)
+
+        elif not isListLike(start_point):
+            raise TypeError("start_point must be a selection/AtomGroup or a list/tuple/ndarray "
+                "with three numeric values")
+
         if len(start_point) != 3:
             raise ValueError(
-                "start_point must be a list of three numbers, e.g. "
+                "start_point must be a selection/AtomGroup or a list of three numbers, e.g. "
                 "start_point=[-12.312, 5.065, -1.144]")
         
         start_point = np.array(start_point, dtype=float)        
         
         LOGGER.info("Using user-provided start_point for channel seed: [{:.3f}, {:.3f}, {:.3f}] Å"
             .format(start_point[0], start_point[1], start_point[2]))
-
 
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
     
