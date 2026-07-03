@@ -1457,9 +1457,12 @@ def getChannelResidueNames(atoms, channels, **kwargs):
             residues_list = "None"
 
     if residues_file_name is not None:
-        with open(residues_file_name+'_Residues_All_channels.txt', "a") as f_res:
+        output_file = residues_file_name + '_Residues_All_channels.txt'
+        with open(output_file, "a") as f_res:
             for k in selected_residues_ch:
                 f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
+        
+        LOGGER.info("Channel residues were saved to: {0}".format(output_file))
                 
     return selected_residues_ch
 
