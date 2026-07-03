@@ -1560,7 +1560,8 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
             selected_residues_cav.append('cavity' + str(i) + ': None')
 
     if residues_file_name is not None:
-        with open(residues_file_name + '_Residues_All_surface_cavities.txt', "w") as f_res:
+        output_file = residues_file_name + '_Residues_All_surface_cavities.txt'
+        with open(output_file, "w") as f_res:
             f_res.write("# cavity_id residues_within_" + str(distA) + "_A\n")
             for k in selected_residues_cav:
                 f_res.write("{0}_{1}\n".format(residues_file_name, k))
