@@ -1572,7 +1572,52 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
 
 
 def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all, surfaces_all, trajectory=None, **kwargs):
-    """Provides residue names for surface cavities calculated for multiple frames/models."""
+    """Provides residue names for surface cavities calculated for multiple frames/models.
+
+    This function is a multi-frame wrapper for :func:`getSurfaceCavityResidueNames`. 
+    For each model or trajectory frame, the atomic coordinates are matched with the 
+    corresponding surface cavity prediction. Thus, cavities calculated for frame/model ``i`` 
+    are analyzed against the protein coordinates from frame/model ``i``.
+
+    This function should be used with results returned by :func:`calcSurfaceCavitiesMultipleFrames`.
+
+    :arg atoms: an Atomic object from which residues are selected.
+    :type atoms: :class:`.Atomic`
+
+    :arg cavities_all: list of surface cavity lists returned by
+        :func:`calcSurfaceCavitiesMultipleFrames`. Each element corresponds
+        to one model or trajectory frame.
+    :type cavities_all: list
+
+    :arg surfaces_all: list of surface data objects returned by
+        :func:`calcSurfaceCavitiesMultipleFrames`. Each element corresponds
+        to one model or trajectory frame and must contain Voronoi vertices in
+        ``surface[4]``.
+    :type surfaces_all: list
+
+    :arg trajectory: optional trajectory object. If provided, coordinates are
+        taken from trajectory frames. If None, a multi-model PDB is assumed.
+    :type trajectory: :class:`.Trajectory` or None
+
+    :arg start_frame: first frame/model index to analyze. Default is 0.
+    :type start_frame: int
+
+    :arg stop_frame: last frame/model index to analyze. Default is -1, meaning
+        all available frames/models in ``cavities_all`` and ``surfaces_all``.
+    :type stop_frame: int
+
+    :arg residues_file_name: base name for output residue files. If provided,
+        one file will be written for each model/frame with ``_modelX`` or
+        ``_frameX`` added to the file name.
+    :type residues_file_name: str
+
+    :arg distA: maximal distance between surface cavity points and protein
+        residues. Default is 4 Å.
+    :type distA: int, float
+
+    :arg one_letter_aa: whether to apply one-letter code to residue names.
+        Default is False.
+    :type one_letter_aa: bool  """
 
     start_frame = kwargs.pop('start_frame', 0)
     residues_file_name = kwargs.pop('residues_file_name', None)
