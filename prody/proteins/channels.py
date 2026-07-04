@@ -29,7 +29,8 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 
            'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters',
            'getSurfaceCavityResidueNames', 'selectSurfaceCavityBySelection',
-           'calcSurfaceCavityOverlaps','getSurfaceCavityResidueNamesMultipleFrames']
+           'calcSurfaceCavityOverlaps','getSurfaceCavityResidueNamesMultipleFrames',
+           'getSurfaceCavityParametersMultipleFrames']
 
 
 def checkAndImport(package_name):
@@ -1290,6 +1291,34 @@ def getSurfaceCavityParameters(cavities, **kwargs):
                     tetrahedra_counts[i]))
 
         return multi_model_param
+
+
+def getSurfaceCavityParametersMultipleFrames(cavities_all, **kwargs):
+    """Provides surface cavity parameters for multiple frames or models.
+
+    It analyzes surface cavities calculated for multi-model PDB files or
+    trajectories and returns cavity parameters for each model/frame.
+
+    :arg cavities_all: list of surface cavity lists returned by
+        :func:`calcSurfaceCavitiesMultipleFrames`.
+    :type cavities_all: list
+    
+    :arg param_file_name: base name for the output parameter files. If provided,
+        one file will be written for each model/frame with the frame/model index
+        added to the file name.
+    :type param_file_name: str
+
+    :returns: A list with surface cavity parameters for each frame/model.
+    :rtype: list """
+
+    parameters_all = []
+
+    for i, cavities in enumerate(cavities_all):
+        LOGGER.info("Model/frame: {0}".format(i))
+        params = getSurfaceCavityParameters(cavities, **kwargs)
+        parameters_all.append(params)
+
+    return parameters_all
 
 
 def getChannelAtoms(channels, protein=None, num_samples=5):
