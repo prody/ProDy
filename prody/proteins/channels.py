@@ -29,7 +29,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 
            'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters',
            'getSurfaceCavityResidueNames', 'selectSurfaceCavityBySelection',
-           'calcSurfaceCavityOverlaps']
+           'calcSurfaceCavityOverlaps','getSurfaceCavityResidueNamesMultipleFrames']
 
 
 def checkAndImport(package_name):
@@ -1569,6 +1569,53 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
         LOGGER.info("Surface cavity residues were saved to: {0}".format(output_file))
 
     return selected_residues_cav
+
+
+def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all, surfaces_all, trajectory=None, **kwargs):
+    """Provides residue names for surface cavities calculated for multiple frames/models."""
+
+    start_frame = kwargs.pop('start_frame', 0)
+    residues_file_name = kwargs.pop('residues_file_name', None)
+
+    selected_residues_all = []
+    
+    if trajectory is None:
+        # multi-model PDB
+        for frame_pos, (cavities, surface) in enumerate(zip(cavities_all, surfaces_all)):
+            model_index = start_frame + frame_pos
+            atoms.setACSIndex(model_index)
+
+            if residues_file_name is not None:
+                frame_residues_file_name = residues_file_name + "_model{}".format(model_index)
+            else:
+                frame_residues_file_name = None
+
+            residues = getSurfaceCavityResidueNames(atoms, cavities, surface,
+                residues_file_name=frame_residues_file_name, **kwargs)
+
+            selected_residues_all.append(residues)
+
+    else:
+        # trajectory / DCD
+        if hasattr(trajectory, 'reset'):
+            trajectory.reset()
+
+        atoms_copy = atoms.copy()
+        for frame_pos, frame in enumerate(trajectory):
+            frame_index = start_frame + frame_pos
+            atoms_copy.setCoords(frame.getCoords())
+
+            if residues_file_name is not None:
+                frame_residues_file_name = residues_file_name + "_frame{}".format(frame_index)
+            else:
+                frame_residues_file_name = None
+
+            residues = getSurfaceCavityResidueNames(atoms_copy, cavities_all[frame_pos], surfaces_all[frame_pos],
+                residues_file_name=frame_residues_file_name, **kwargs)
+
+            selected_residues_all.append(residues)
+
+    return selected_residues_all
 
 
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
