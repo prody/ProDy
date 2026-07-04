@@ -30,7 +30,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters',
            'getSurfaceCavityResidueNames', 'selectSurfaceCavityBySelection',
            'calcSurfaceCavityOverlaps','getSurfaceCavityResidueNamesMultipleFrames',
-           'getSurfaceCavityParametersMultipleFrames']
+           'getSurfaceCavityParametersMultipleFrames', 'getChannelParametersMultipleFrames']
 
 
 def checkAndImport(package_name):
@@ -1204,6 +1204,40 @@ def getChannelParameters(channels, **kwargs):
             for i in range(len(lengths)):
                 LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
         return multi_model_param
+
+
+def getChannelParametersMultipleFrames(channels_all, **kwargs):
+    """Extract channel parameters for multiple frames or models.
+
+    This function is a multi-frame wrapper for :func:`getChannelParameters`.
+    It extracts channel parameters for each model or trajectory frame separately.
+    Each element of ``channels_all`` is treated as the list of channels calculated
+    for one frame/model.
+
+    This function should be used with channels returned by
+    :func:`calcChannelsMultipleFrames`.
+
+    :arg channels_all: list of channel lists returned by
+        :func:`calcChannelsMultipleFrames`. Each element corresponds to one
+        model or trajectory frame.
+    :type channels_all: list
+
+    :arg param_file_name: base name for the output parameter files. If provided,
+        one file will be written for each model/frame with the frame/model index
+        added to the file name.
+    :type param_file_name: str
+
+    :returns: A list of parameter tuples for each model/frame. Each tuple contains
+        channel lengths, bottlenecks, and volumes.
+    :rtype: list  """
+
+    parameters_all = []
+    for frame_nr, channels in enumerate(channels_all):
+        LOGGER.info("Frame/model: {0}".format(frame_nr))
+        params = getChannelParameters(channels, **kwargs)
+        parameters_all.append(params)
+
+    return parameters_all
 
 
 def parseSurfaceCavityParameters(cavities, **kwargs):
