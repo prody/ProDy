@@ -30,7 +30,8 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters',
            'getSurfaceCavityResidueNames', 'selectSurfaceCavityBySelection',
            'calcSurfaceCavityOverlaps','getSurfaceCavityResidueNamesMultipleFrames',
-           'getSurfaceCavityParametersMultipleFrames', 'getChannelParametersMultipleFrames']
+           'getSurfaceCavityParametersMultipleFrames', 'getChannelParametersMultipleFrames',
+           'getChannelResidueNamesMultipleFrames']
 
 
 def checkAndImport(package_name):
@@ -1528,6 +1529,110 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         LOGGER.info("Channel residues were saved to: {0}".format(output_file))
                 
     return selected_residues_ch
+
+
+def getChannelResidueNamesMultipleFrames(atoms, channels_all, trajectory=None, **kwargs):
+    """Provides residue names for channels calculated for multiple frames/models.
+
+    This function is a multi-frame wrapper for :func:`getChannelResidueNames`.
+    For each model/frame, the atomic coordinates are matched with the
+    corresponding channel prediction.
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+
+    :arg channels_all: list of channel lists returned by :func:`calcChannelsMultipleFrames`.
+    :type channels_all: list
+
+    :arg trajectory: optional trajectory object. If provided, coordinates are
+        taken from trajectory frames. If None, a multi-model PDB is assumed and
+        models are selected using ``setACSIndex``.
+    :type trajectory: :class:`.Trajectory` or None
+
+    :arg start_frame: first frame/model index. Default is 0.
+    :type start_frame: int
+
+    :arg stop_frame: last frame/model index. Default is -1, meaning all available
+        frames/models in ``channels_all``.
+    :type stop_frame: int
+
+    :arg residues_file_name: base name for output residue files. If provided,
+        one file will be written for each frame/model.
+    :type residues_file_name: str
+
+    :arg distA: maximal distance between channel FIL atoms and protein residues.
+        Default is 4 Å.
+    :type distA: int, float
+
+    :arg one_letter_aa: whether to apply one-letter code to residue names.
+        Default is False.
+    :type one_letter_aa: bool
+
+    :returns: A list of residue-name lists for each frame/model.
+    :rtype: list  """
+
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+    residues_file_name = kwargs.pop('residues_file_name', None)
+    selected_residues_all = []
+
+    if trajectory is None:
+        # multi-model PDB
+        for frame_pos, channels in enumerate(channels_all):
+            model_index = start_frame + frame_pos
+
+            if stop_frame != -1 and model_index > stop_frame:
+                break
+
+            LOGGER.info("Model: {0}".format(model_index))
+            atoms.setACSIndex(model_index)
+
+            if residues_file_name is not None:
+                frame_residues_file_name = residues_file_name + "_model{}".format(model_index)
+            else:
+                frame_residues_file_name = None
+
+            residues = getChannelResidueNames(atoms, channels,
+                residues_file_name=frame_residues_file_name, **kwargs)
+
+            selected_residues_all.append(residues)
+
+    else:
+        # trajectory / DCD
+        nfi = getattr(trajectory, '_nfi', None)
+
+        if hasattr(trajectory, 'reset'):
+            trajectory.reset()
+
+        if stop_frame == -1:
+            traj = trajectory[start_frame:]
+        else:
+            traj = trajectory[start_frame:stop_frame + 1]
+
+        atoms_copy = atoms.copy()
+        for frame_pos, frame in enumerate(traj):
+            frame_index = start_frame + frame_pos
+
+            if frame_pos >= len(channels_all):
+                break
+
+            LOGGER.info("Frame: {0}".format(frame_index))
+            atoms_copy.setCoords(frame.getCoords())
+
+            if residues_file_name is not None:
+                frame_residues_file_name = residues_file_name + "_frame{}".format(frame_index)
+            else:
+                frame_residues_file_name = None
+
+            residues = getChannelResidueNames(atoms_copy, channels_all[frame_pos],
+                residues_file_name=frame_residues_file_name, **kwargs)
+
+            selected_residues_all.append(residues)
+
+        if nfi is not None:
+            trajectory._nfi = nfi
+
+    return selected_residues_all
 
 
 def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
