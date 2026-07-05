@@ -13,7 +13,6 @@ from numpy import *
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
 from prody.atomic import flags, sliceAtomicData
-from prody.dynamics.nma import NMA
 from prody.utilities import importLA, checkCoords, showFigure, getCoords, isListLike
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
@@ -677,18 +676,37 @@ def calcChannelsMultipleAtomGroups(atomgroups, **kwargs):
         max_proc = builtins.max(1, cpu_count()//2)
 
     if max_proc == 1:
-        results = [_ag_worker((ag,kwargs,i,filenames[i])) for i, ag in enumerate(atomgroups)]
+        results = [_ag_worker((ag,kwargs,i,filenames[i])) 
+                    for i, ag in enumerate(atomgroups)]
     else:
-        tasks = ((ag,kwargs,i,filenames[i]) for i, ag in enumerate(atomgroups))
+        tasks = ((ag,kwargs,i,filenames[i])
+                  for i, ag in enumerate(atomgroups))
         chunksize = builtins.max(1, len(atomgroups)//(max_proc*4))
         try:
-            results = _run_with_pool(_ag_worker,tasks,max_proc,chunksize)
+            results = _run_with_pool(
+                _ag_worker,
+                tasks
+                ,max_proc,
+                chunksize
+                )
         except (OSError,EOFError):
             try:
-                results = _run_with_pool(_ag_worker,tasks,max_proc,chunksize,'fork')
+                results = _run_with_pool(
+                    _ag_worker,
+                    tasks,
+                    max_proc,
+                    chunksize,
+                    'fork'
+                    )
             except (OSError, EOFError):
                 try:
-                    results = _run_with_pool(_ag_worker,tasks,max_proc,chunksize,'spawn')
+                    results = _run_with_pool(
+                        _ag_worker,
+                        tasks,
+                        max_proc,
+                        chunksize,
+                        'spawn'
+                        )
                 except Exception as e:
                     raise RuntimeError("Multiprocessing failed with all start methods. "
                                "Try running with max_proc=1.") from e
@@ -700,7 +718,8 @@ def calcChannelsMultipleAtomGroups(atomgroups, **kwargs):
         for channel in channels:
             channel.build_splines()
     surfaces_all = [r[2] for r in results]
-    failed = [filenames[r[0]] for r in results if (not r[1]  and not r[2])]
+    failed = [filenames[r[0]] 
+                    for r in results if (not r[1]  and not r[2])]
     if failed:
         LOGGER.warning(f"WARNING: {len(failed)} proteins failed or No Channels Detected: {', '.join(str(f) for f in failed)}")
     return channels_all, surfaces_all
@@ -812,12 +831,14 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, **kwargs):
     from multiprocessing import Pool, cpu_count
       
     try:
-        coords = getCoords(atoms)
+        coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
+                    coords.getCoords())
     except AttributeError:
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object with `getCoords` method')  
+            raise TypeError('coords must be a Numpy array or an object '
+                            'with `getCoords` method') 
 
     max_proc = kwargs.pop('max_proc',None)
     if max_proc is None:
@@ -836,9 +857,24 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, **kwargs):
             traj = trajectory[start_frame:stop_frame+1]
         filenames = kwargs.pop('filenames',[None]*len(traj))
         if max_proc == 1:
-            results = [_frame_worker((atoms,frame.getCoords(),kwargs,i,filenames[i])) for i, frame in enumerate(traj)]
+            results = [_frame_worker(
+                            (atoms,
+                            frame.getCoords(),
+                            kwargs,
+                            i,
+                            filenames[i])
+                            ) for i, frame in enumerate(traj)]
+            
         else:
-            tasks = ((atoms,frame.getCoords(),kwargs,i,filenames[i]) for i, frame in enumerate(traj))
+            tasks = (
+                (atoms,
+                 frame.getCoords(),
+                 kwargs,
+                 i,
+                 filenames[i]) 
+                for i, frame in enumerate(traj)
+                )
+            
             chunksize = builtins.max(1, len(traj)//(max_proc*4))
             try:
                 results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize)
@@ -866,18 +902,37 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, **kwargs):
                 num_models = len(atoms.getCoordsets()[start_frame:stop_frame+1])
             filenames = kwargs.pop('filenames',[None]*num_models)
             if max_proc == 1:
-                results = [_model_worker((atoms,kwargs,i,filenames[i])) for i in range(num_models)]
+                results = [_model_worker((atoms,kwargs,i,filenames[i]))
+                            for i in range(num_models)]
             else:
-                tasks = ((atoms,kwargs,i,filenames[i]) for i in range(num_models))
+                tasks = ((atoms,kwargs,i,filenames[i]) 
+                        for i in range(num_models))
                 chunksize = builtins.max(1, num_models//(max_proc*4))
                 try:
-                    results = _run_with_pool(_model_worker,tasks,max_proc,chunksize)
+                    results = _run_with_pool(
+                        _model_worker,
+                        tasks,
+                        max_proc,
+                        chunksize
+                        )
                 except (OSError,EOFError):
                     try:
-                        results = _run_with_pool(_model_worker,tasks,max_proc,chunksize,'fork')
+                        results = _run_with_pool(
+                            _model_worker,
+                            tasks,
+                            max_proc,
+                            chunksize,
+                            'fork'
+                            )
                     except (OSError, EOFError):
                         try:
-                            results = _run_with_pool(_model_worker,tasks,max_proc,chunksize,'spawn')
+                            results = _run_with_pool(
+                                _model_worker,
+                                tasks,
+                                max_proc,
+                                chunksize,
+                                'spawn'
+                                )
                         except Exception as e:
                             raise RuntimeError("Multiprocessing failed with all start methods. "
                                     "Try running with max_proc=1.") from e
@@ -959,7 +1014,7 @@ def getChannelParameters(channels, **kwargs):
             lengths, bottlenecks, volumes = frame
             LOGGER.info("Frame {0}".format(frame_nr))
             for i in range(len(lengths)):
-                LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
+                LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2),np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
         return multi_model_param
 
 
@@ -1573,7 +1628,9 @@ class ChannelCalculator:
                 if not visited[index]:
                     visited[index] = True
                     current_group.append(index)
-                    stack.extend(neighbor for neighbor in neigh[index] if neighbor != -1 and not visited[neighbor])
+                    stack.extend(neighbor for 
+                                 neighbor in neigh[index] 
+                                 if neighbor != -1 and not visited[neighbor])
             return np.array(current_group)
 
         for i in range(x):
@@ -1604,7 +1661,8 @@ class ChannelCalculator:
 
 
     def merge_cavities(self, cavities, simplices):
-        merged_tetrahedra = np.concatenate([cavity.tetrahedra for cavity in cavities])
+        merged_tetrahedra = np.concatenate([cavity.tetrahedra 
+                                                for cavity in cavities])
         return simplices[merged_tetrahedra]
 
     def find_deepest_tetrahedra(self, cavities, neighbors):
