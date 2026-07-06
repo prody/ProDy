@@ -877,13 +877,29 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, **kwargs):
             
             chunksize = builtins.max(1, len(traj)//(max_proc*4))
             try:
-                results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize)
+                results = _run_with_pool(
+                                _frame_worker,
+                                tasks,
+                                max_proc,
+                                chunksize
+                                )
             except (OSError,EOFError):
                 try:
-                    results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize,'fork')
+                    results = _run_with_pool(
+                        _frame_worker,
+                        tasks,
+                        max_proc,
+                        chunksize,
+                        'fork')
                 except (OSError, EOFError):
                     try:
-                        results = _run_with_pool(_frame_worker,tasks,max_proc,chunksize,'spawn')
+                        results = _run_with_pool(
+                                        _frame_worker,
+                                        tasks,
+                                        max_proc,
+                                        chunksize,
+                                        'spawn'
+                                        )
                     except Exception as e:
                         raise RuntimeError("Multiprocessing failed with all start methods. "
                                 "Try running with max_proc=1.") from e
@@ -902,37 +918,39 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, **kwargs):
                 num_models = len(atoms.getCoordsets()[start_frame:stop_frame+1])
             filenames = kwargs.pop('filenames',[None]*num_models)
             if max_proc == 1:
-                results = [_model_worker((atoms,kwargs,i,filenames[i]))
-                            for i in range(num_models)]
+                results = [
+                    _model_worker((atoms,kwargs,i,filenames[i]))
+                            for i in range(num_models)
+                            ]
             else:
                 tasks = ((atoms,kwargs,i,filenames[i]) 
                         for i in range(num_models))
                 chunksize = builtins.max(1, num_models//(max_proc*4))
                 try:
                     results = _run_with_pool(
-                        _model_worker,
-                        tasks,
-                        max_proc,
-                        chunksize
-                        )
-                except (OSError,EOFError):
-                    try:
-                        results = _run_with_pool(
-                            _model_worker,
-                            tasks,
-                            max_proc,
-                            chunksize,
-                            'fork'
-                            )
-                    except (OSError, EOFError):
-                        try:
-                            results = _run_with_pool(
                                 _model_worker,
                                 tasks,
                                 max_proc,
-                                chunksize,
-                                'spawn'
+                                chunksize
                                 )
+                except (OSError,EOFError):
+                    try:
+                        results = _run_with_pool(
+                                        _model_worker,
+                                        tasks,
+                                        max_proc,
+                                        chunksize,
+                                        'fork'
+                                        )
+                    except (OSError, EOFError):
+                        try:
+                            results = _run_with_pool(
+                                            _model_worker,
+                                            tasks,
+                                            max_proc,
+                                            chunksize,
+                                            'spawn'
+                                            )
                         except Exception as e:
                             raise RuntimeError("Multiprocessing failed with all start methods. "
                                     "Try running with max_proc=1.") from e
@@ -941,6 +959,9 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, **kwargs):
 
             channels_all = [r[1] for r in results]
             surfaces_all = [r[2] for r in results]
+            for channels in channels_all:
+                for channel in channels:
+                    channel.build_splines()
 
             return channels_all, surfaces_all
     
@@ -1014,7 +1035,7 @@ def getChannelParameters(channels, **kwargs):
             lengths, bottlenecks, volumes = frame
             LOGGER.info("Frame {0}".format(frame_nr))
             for i in range(len(lengths)):
-                LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2),np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
+                LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2),np.round(lengths[i], 2),np.round(bottlenecks[i], 2)))
         return multi_model_param
 
 
@@ -1131,8 +1152,8 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError('coords must be a Numpy array or an object '
+                            'with `getCoords` method') 
 
     distA = kwargs.pop('distA', 4)
     residues_file_name = kwargs.pop('residues_file_name', None) 
@@ -1231,8 +1252,8 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         try:
             checkCoords(coords)
         except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+            raise TypeError('coords must be a Numpy array or an object '
+                            'with `getCoords` method') 
     
     import os, shutil
     import numpy as np
