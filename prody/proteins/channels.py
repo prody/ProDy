@@ -627,7 +627,8 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
     o3d.visualization.draw_geometries(meshes_to_visualize)
 
 
-def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, 
+def calcChannels(atoms, output_path=None, separate=False, start_point=None,
+    restrict_channels_to_start_point=False, r1=3, r2=1.25, min_depth=10, 
     min_volume=None, max_volume=None, max_depth=None, bottleneck=1, sparsity=15, 
     min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, homogenize=True,
     max_deviation=0.2):
@@ -661,7 +662,14 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
         the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
         If an atomic selection is provided, its geometric center is used as the starting point.
-    :type start_point: list, tuple, or ndarray (length 3), :class:`.Atomic`, or None 
+    :type start_point: list, tuple, or ndarray (length 3), :class:`.Atomic`, or None
+
+    :param restrict_channels_to_start_point: Only used when ``start_point`` is provided. If True, the channel
+        search is restricted to the single cavity whose closest tetrahedron is globally nearest to
+        ``start_point``, so channels are computed only for the region around that point instead of one channel
+        bundle per detected cavity. If False (default), ``start_point`` merely overrides the seed (starting)
+        tetrahedron of every cavity and channels are still computed for all cavities.
+    :type restrict_channels_to_start_point: bool 
 
     :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
         the outer surface of the channels. Default is 3.
@@ -851,7 +859,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
 
     calculator.find_deepest_tetrahedra(c_surface_cavities, s_clr.neigh)
     if start_point is not None:
-        calculator.set_starting_tetrahedra_from_point(c_surface_cavities, s_clr.verti, start_point)
+        c_surface_cavities = calculator.set_starting_tetrahedra_from_point(
+            c_surface_cavities, s_clr.verti, start_point, restrict_channels_to_start_point)
 
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
     LOGGER.report('{0} surface cavities detected and filtered in %.2fs.'.format(
@@ -3016,16 +3025,29 @@ class ChannelCalculator:
 
         return total_volume
             
-    def set_starting_tetrahedra_from_point(self, cavities, vertices, start_point):
+    def set_starting_tetrahedra_from_point(self, cavities, vertices, start_point, restrict=False):
         '''Set starting tetrahedra using a user-defined 3D point.
-        The starting tetrahedron is selected as the one whose Voronoi vertex is closest
+        The starting tetrahedron of a cavity is the one whose Voronoi vertex is closest
         to `start_point` (Euclidean distance).
         
         :arg cavities: list of cavity objects
         :arg vertices: Voronoi vertices (array of shape (n, 3))
-        :arg start_point: point [x, y, z] in Å (list/tuple/ndarray of length 3)'''
+        :arg start_point: point [x, y, z] in Å (list/tuple/ndarray of length 3)
+        :arg restrict: if True, only the single cavity whose closest tetrahedron is
+            globally nearest to `start_point` is seeded and returned, so channels are
+            computed exclusively for the region around `start_point`. If False (default),
+            every cavity is seeded with its own closest tetrahedron and all cavities are
+            returned unchanged.
+        :type restrict: bool
+        :returns: list of cavities to search: all cavities when `restrict` is False, the
+            single selected cavity when `restrict` is True, or an empty list if no cavity
+            has any tetrahedra'''
         
         sp = np.asarray(start_point, dtype=float).reshape(3,)
+
+        best_cavity = None
+        best_tetra = None
+        best_d2 = np.inf
 
         for cavity in cavities:
             tet = cavity.tetrahedra
@@ -3035,9 +3057,30 @@ class ChannelCalculator:
             # Voronoi vertex per tetrahedron: vertices[tetra_id] -> (x,y,z)
             v = vertices[tet]
             d2 = np.sum((v - sp) ** 2, axis=1)
-            chosen = tet[int(np.argmin(d2))]
+            idx = int(np.argmin(d2))
 
-            cavity.set_starting_tetrahedron(np.array([chosen]))
+            if not restrict:
+                cavity.set_starting_tetrahedron(np.array([tet[idx]]))
+
+            if d2[idx] < best_d2:
+                best_d2 = d2[idx]
+                best_tetra = tet[idx]
+                best_cavity = cavity
+
+        if not restrict:
+            return cavities
+
+        if best_cavity is None:
+            LOGGER.warn("start_point was provided but no cavity contains any "
+                "tetrahedron; no channels will be computed.")
+            return []
+
+        best_cavity.set_starting_tetrahedron(np.array([best_tetra]))
+        LOGGER.info("start_point mapped to tetrahedron {0} (Voronoi vertex {1:.3f} A "
+            "away); restricting channel search to the cavity that contains it."
+            .format(int(best_tetra), float(np.sqrt(best_d2))))
+
+        return [best_cavity]
 
 
     def trim_cavities_by_depth(self, cavities, max_depth):
