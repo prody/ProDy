@@ -787,6 +787,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         LOGGER.info("Using user-provided start_point for channel seed: [{:.3f}, {:.3f}, {:.3f}] Å"
             .format(start_point[0], start_point[1], start_point[2]))
 
+    LOGGER.timeit('_prody_calcChannels')
+
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
 
     # TODO in fact we should perhaps do the filtering outside, as you might want heteroatoms too, e.g., HEM in CYPs
@@ -796,12 +798,23 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     vdw_radii = calculator.get_vdw_radii(atoms.getElements())
 
     if homogenize:
+        LOGGER.timeit('_prody_channels_homogenize')
         coords, vdw_radii = calculator.homogenize_atoms(coords, vdw_radii, max_deviation)
+        LOGGER.report("Substituted {0} atoms with {1} homogeneous balls of radius {2:.2f} A in %.2fs.".format(
+            atoms.numAtoms(), len(coords), float(vdw_radii[0])), '_prody_channels_homogenize')
+
+
+
+    LOGGER.timeit('_prody_channels_tessellation')
     dela = Delaunay(coords)
     # circumcenters straight from the Delaunay paraboloid lifting, so we
     # skip the redundant second Qhull pass (scipy Voronoi). Numerically identical
     # to voro.vertices for points in general position.
     verts = calculator.calc_circumcenters(dela)
+    LOGGER.report('Delaunay tessellation of {0} points constructed in %.2fs.'.format(
+        len(coords)), '_prody_channels_tessellation')
+
+    LOGGER.timeit('_prody_channels_surface')
     s_prt = State(dela.simplices, dela.neighbors, verts)
     
     if PY3K:
@@ -830,7 +843,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
 
     l_first_layer_simp, l_second_layer_simp = calculator.surface_layer(s_srf.simp, s_inr.simp, s_srf.neigh)
     s_clr = State(*calculator.delete_section(l_first_layer_simp, *s_inr.get_state()))
-        
+    LOGGER.report('Surface and inner simplices filtered in %.2fs.', '_prody_channels_surface')
+
+    LOGGER.timeit('_prody_channels_cavities')
     c_cavities = calculator.find_groups(s_clr.neigh)
     c_surface_cavities = calculator.get_surface_cavities(c_cavities, s_clr.simp, l_second_layer_simp, s_clr, coords, vdw_radii, sparsity)
 
@@ -839,6 +854,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         calculator.set_starting_tetrahedra_from_point(c_surface_cavities, s_clr.verti, start_point)
 
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
+    LOGGER.report('{0} surface cavities detected and filtered in %.2fs.'.format(
+        len(c_filtered_cavities)), '_prody_channels_cavities')
     
     if cavities_only:
         if max_depth is not None:
@@ -872,18 +889,21 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
                 LOGGER.info("Saving multiple surface cavities to directory " + str(output_path.parent) + ".")
 
             calculator.save_cavities_to_pdb(c_filtered_cavities, s_clr.verti, output_path, separate)
-        
+
+        LOGGER.report('Surface cavity calculation completed in %.2fs.', '_prody_calcChannels')
         return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp, s_clr.verti]
         
+    LOGGER.timeit('_prody_channels_pathfinding')
     # build the weighted adjacency matrix once for the whole cleared
     # state, then run a single multi-target Dijkstra per cavity (scipy csgraph),
     # instead of one heap Dijkstra per (seed, exit) pair.
     simplices, neighbors, vertices = s_clr.get_state()
     graph = calculator.build_sparse_graph(simplices, neighbors, vertices, coords, vdw_radii)
     for cavity in c_filtered_cavities:
-        #calculator.dijkstra(cavity, *(s_clr.get_state() + [coords, vdw_radii]))
-        calculator.dijkstra(cavity, *(s_clr.get_state() + tuple([coords, vdw_radii])))
-        
+        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices, coords, vdw_radii)
+    LOGGER.report('Channel pathfinding (graph Dijkstra) over {0} cavities completed in %.2fs.'.format(
+        len(c_filtered_cavities)), '_prody_channels_pathfinding')
+
     calculator.filter_channels_by_bottleneck(c_filtered_cavities, bottleneck)
     
     if min_volume is not None or max_volume is not None:
@@ -910,7 +930,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         calculator.save_channels_to_pdb(c_filtered_cavities, output_path, separate)
     else:
         LOGGER.info("No output path given.")
-                
+
+    LOGGER.report('Channel calculation completed in %.2fs.', '_prody_calcChannels')
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
             
