@@ -2400,18 +2400,26 @@ class ChannelCalculator:
         if n == 0:
             return simplices, neighbors, vertices
 
-        # Vectorized sphere_fit over every tetrahedron at once: for each
-        # tetrahedron compare the sum of distances from its Voronoi vertex to its
-        # 4 atoms against the sum of (r + vdw_radius) over those atoms.
-        atom_coords = points[simplices]                                 # (n, 4, 3)
-        d_sum = np.linalg.norm(atom_coords - vertices[:, None, :], axis=2).sum(axis=1)
-        r_sum = (r + vdw_radii[simplices]).sum(axis=1)
-        fit = d_sum >= r_sum
-
+        # Vectorized sphere_fit: for each tetrahedron compare the sum of distances
+        # from its Voronoi vertex to its 4 atoms against the sum of (r + vdw_radius)
+        # over those atoms. In the surface pass only boundary tetrahedra (those with
+        # a -1 neighbour) can ever be deleted, so restrict the expensive norm to that
+        # shell (~n^(2/3) rows) instead of evaluating it over every tetrahedron on
+        # each erosion iteration.
         if surface:
-            should_delete = (neighbors == -1).any(axis=1) & fit
+            boundary = (neighbors == -1).any(axis=1)
+            should_delete = np.zeros(n, dtype=bool)
+            if boundary.any():
+                atom_coords = points[simplices[boundary]]               # (m, 4, 3)
+                d_sum = np.linalg.norm(
+                    atom_coords - vertices[boundary][:, None, :], axis=2).sum(axis=1)
+                r_sum = (r + vdw_radii[simplices[boundary]]).sum(axis=1)
+                should_delete[boundary] = d_sum >= r_sum
         else:
-            should_delete = ~fit
+            atom_coords = points[simplices]                             # (n, 4, 3)
+            d_sum = np.linalg.norm(atom_coords - vertices[:, None, :], axis=2).sum(axis=1)
+            r_sum = (r + vdw_radii[simplices]).sum(axis=1)
+            should_delete = d_sum < r_sum
 
         keep = ~should_delete
         simp = simplices[keep]
