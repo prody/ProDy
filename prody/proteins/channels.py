@@ -792,7 +792,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
 
     # TODO in fact we should perhaps do the filtering outside, as you might want heteroatoms too, e.g., HEM in CYPs
-    # for now commenting and asuming users provide what they want to analyze
+    # for now commenting and asuming users provide what they want to analyze - adjust in documentation/tutorial
     #atoms = atoms.select('not hetero and noh') # Excluding hydrogens
     coords = atoms.getCoords()
     vdw_radii = calculator.get_vdw_radii(atoms.getElements())
@@ -2672,20 +2672,18 @@ class ChannelCalculator:
             cavity.tetrahedra_depths = tetrahedra_depths
             
     def calc_circumcenters(self, dela):
-        # HYBRID (from the alternative): per-simplex circumcenters recovered
-        # analytically from the Delaunay paraboloid lifting, avoiding a second
-        # Qhull pass. Identical to scipy Voronoi vertices in general position.
+        # per-simplex circumcenters recovered analytically from the Delaunay paraboloid lifting,
+        # avoiding a second Qhull pass. Identical to scipy Voronoi vertices in general position.
         eq = dela.equations
         scale = dela.paraboloid_scale
         centers = -eq[:, :-2] / (2 * scale * eq[:, -2][:, None])
         return centers
 
     def build_sparse_graph(self, simplices, neighbors, vertices, points, vdw_radii):
-        # HYBRID (from the alternative): one weighted CSR adjacency matrix for the
-        # whole cleared state. Edge (tetra -> neigh) weight is l / (d**2 + b) where
+        # one weighted CSR adjacency matrix for the whole cleared state.
+        # Edge (tetra -> neigh) weight is l / (d**2 + b) where
         # l is the vertex-to-vertex distance and d is the neighbour's clearance
-        # (min over its 4 atoms of |vertex - atom| - vdw_radius) - the same cost
-        # model as the current heap Dijkstra, just assembled once.
+        # (min over its 4 atoms of |vertex - atom| - vdw_radius)
         from scipy.sparse import csr_matrix
 
         tetra_points = points[simplices]
@@ -2711,11 +2709,9 @@ class ChannelCalculator:
         return graph
 
     def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points, vdw_radii):
-        # HYBRID (from the alternative): a single multi-target Dijkstra from the
-        # seed over the cavity subgraph, then every exit path reconstructed from
+        # a single multi-target Dijkstra from the seed over the cavity subgraph, then every exit path reconstructed from
         # the predecessor tree - instead of one heap search per (seed, exit) pair.
-        # Channel geometry still goes through the current process_channel/Channel
-        # (Simpson-based volume).
+        # Channel geometry still goes through the current process_channel/Channel (Simpson-based volume).
         from scipy.sparse.csgraph import dijkstra
         from collections import defaultdict
 
