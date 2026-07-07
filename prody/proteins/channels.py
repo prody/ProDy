@@ -919,7 +919,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         calculator.filter_channels_by_volume(c_filtered_cavities, min_volume, max_volume)
     
     channels = [channel for cavity in c_filtered_cavities for channel in cavity.channels]
-        
+    # Order channels by ascending Dijkstra cost so that channel 0 is the best
+    # tunnel (a short path through wide tetrahedra). This ordering drives both
+    # the returned list and the channel numbering in the saved PQR/PDB files.
+    channels.sort(key=lambda ch: ch.cost if ch.cost is not None else float('inf'))
+
     no_of_channels = len(channels)
     LOGGER.info("Detected " + str(no_of_channels) + " channels.")
         
@@ -936,7 +940,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             LOGGER.info("Saving results to " + str(output_path) + ".")
         else:
             LOGGER.info("Saving multiple results to directory " + str(output_path.parent) + ".")
-        calculator.save_channels_to_pdb(c_filtered_cavities, output_path, separate)
+        calculator.save_channels_to_pdb(channels, output_path, separate)
     else:
         LOGGER.info("No output path given.")
 
@@ -2296,14 +2300,31 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, ma
 
 
 class Channel:
-    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
+    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume, cost=None):
         self.tetrahedra = tetrahedra
         self.centerline_spline = centerline_spline
         self.radius_spline = radius_spline
         self.length = length
         self.bottleneck = bottleneck
         self.volume = volume
-            
+        # cost: accumulated Dijkstra path weight (sum of l / (d**2 + b) edge
+        # costs) from the seed to the exit. Lower is better - a short path
+        # through wide tetrahedra. Set by dijkstra(); None when not computed.
+        self.cost = cost
+        # curvature: path length / straight-line end-to-end distance
+        # (dimensionless, >= 1; 1.0 == perfectly straight).
+        self.curvature = self._compute_curvature()
+
+    def _compute_curvature(self):
+        """Path length divided by straight-line end-to-end distance."""
+        x = self.centerline_spline.x
+        start = np.asarray(self.centerline_spline(x[0]))
+        end = np.asarray(self.centerline_spline(x[-1]))
+        straight = float(np.linalg.norm(end - start))
+        if straight <= 1e-9:
+            return float('nan')
+        return float(self.length / straight)
+
     def get_splines(self):
         return self.centerline_spline, self.radius_spline
     
@@ -2778,7 +2799,8 @@ class ChannelCalculator:
 
                 path_global = cavity_tetra[path_local]
                 channel = Channel(path_global, *self.process_channel(
-                    path_global, vertices, points, vdw_radii, simplices))
+                    path_global, vertices, points, vdw_radii, simplices),
+                    cost=float(distances[exit_local]))
                 cavity.add_channel(channel)
 
     def calculate_max_radius(self, vertice, points, vdw_radii, simp):
@@ -2902,56 +2924,68 @@ class ChannelCalculator:
             filtered_cavities.append(cavity)
         return filtered_cavities
 
-    def save_channels_to_pdb(self, cavities, filename, separate=False, num_samples=5):
+    def save_channels_to_pdb(self, channels, filename, separate=False, num_samples=5):
+        # ``channels`` is a flat list, already ordered by cost - that order is
+        # the order they are written and numbered here. Each channel is preceded
+        # by a REMARK reporting its length, bottleneck radius, curvature and cost.
         filename = str(filename)
-        
-        # All channels will be provided always when PDB/PQR will be created
+
+        # All channels in a single file, one after another in list (cost) order.
         with open(filename, 'w') as pqr_file:
             atom_index = 1
-            for cavity in cavities:
-                for channel in cavity.channels:
+            for channel_index, channel in enumerate(channels):
+                centerline_spline, radius_spline = channel.get_splines()
+                samples = len(channel.tetrahedra) * num_samples
+                t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
+                centers = centerline_spline(t)
+                radii = radius_spline(t)
+
+                pqr_file.write(self._channel_remark(channel_index, channel))
+                pdb_lines = []
+                for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
+                    pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
+
+                for i in range(1, samples):
+                    pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
+
+                pqr_file.writelines(pdb_lines)
+                pqr_file.write("\n")
+                atom_index += samples
+
+        # When separate is set to True also separate PDB/PQR files will be
+        # created, one per channel, numbered by the same cost order.
+        if separate:
+            for channel_index, channel in enumerate(channels):
+                channel_filename = filename.replace('.pqr', '_channel{0}.pqr'.format(channel_index))
+                channel_filename = channel_filename.replace('.pdb', '_channel{0}.pdb'.format(channel_index))
+
+                with open(channel_filename, 'w') as pqr_file:
+                    atom_index = 1
                     centerline_spline, radius_spline = channel.get_splines()
                     samples = len(channel.tetrahedra) * num_samples
                     t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
                     centers = centerline_spline(t)
                     radii = radius_spline(t)
 
+                    pqr_file.write(self._channel_remark(channel_index, channel))
                     pdb_lines = []
                     for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
                         pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
 
                     for i in range(1, samples):
                         pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
-                        
+
                     pqr_file.writelines(pdb_lines)
-                    pqr_file.write("\n")
-                    atom_index += samples
-        
-        # When separate is set to True also separate PDB/PQR files will be created
-        if separate:
-            channel_index = 0
-            for cavity in cavities:
-                for channel in cavity.channels:
-                    channel_filename = filename.replace('.pqr', '_channel{0}.pqr'.format(channel_index))
-                    
-                    with open(channel_filename, 'w') as pqr_file:
-                        atom_index = 1
-                        centerline_spline, radius_spline = channel.get_splines()
-                        samples = len(channel.tetrahedra) * num_samples
-                        t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
-                        centers = centerline_spline(t)
-                        radii = radius_spline(t)
-    
-                        pdb_lines = []
-                        for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                            pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
-    
-                        for i in range(1, samples):
-                            pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
-                            
-                        pqr_file.writelines(pdb_lines)
-                        
-                    channel_index += 1
+
+    @staticmethod
+    def _channel_remark(channel_index, channel):
+        """One-line PQR/PDB REMARK with a channel's basic geometry:
+        length, bottleneck radius, curvature and Dijkstra cost."""
+        curv = 'n/a' if np.isnan(channel.curvature) else "%.3f" % channel.curvature
+        cost = 'n/a' if channel.cost is None else "%.4g" % channel.cost
+        return ("REMARK   Channel %d  length=%.3f A  bottleneck=%.3f A  "
+                "curvature=%s  cost=%s\n" % (
+                    channel_index, channel.length, channel.bottleneck, curv, cost))
 
 
     def save_cavities_to_pdb(self, cavities, vertices, filename, separate=False):
