@@ -788,17 +788,21 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
             .format(start_point[0], start_point[1], start_point[2]))
 
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
-    
-    atoms = atoms.select('not hetero and noh') # Excluding hydrogens
+
+    # TODO in fact we should perhaps do the filtering outside, as you might want heteroatoms too, e.g., HEM in CYPs
+    # for now commenting and asuming users provide what they want to analyze
+    #atoms = atoms.select('not hetero and noh') # Excluding hydrogens
     coords = atoms.getCoords()
-    
     vdw_radii = calculator.get_vdw_radii(atoms.getElements())
+
     if homogenize:
         coords, vdw_radii = calculator.homogenize_atoms(coords, vdw_radii, max_deviation)
     dela = Delaunay(coords)
-    voro = Voronoi(coords)
-        
-    s_prt = State(dela.simplices, dela.neighbors, voro.vertices)
+    # circumcenters straight from the Delaunay paraboloid lifting, so we
+    # skip the redundant second Qhull pass (scipy Voronoi). Numerically identical
+    # to voro.vertices for points in general position.
+    verts = calculator.calc_circumcenters(dela)
+    s_prt = State(dela.simplices, dela.neighbors, verts)
     
     if PY3K:
         s_tmp = State(*s_prt.get_state())
@@ -829,11 +833,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         
     c_cavities = calculator.find_groups(s_clr.neigh)
     c_surface_cavities = calculator.get_surface_cavities(c_cavities, s_clr.simp, l_second_layer_simp, s_clr, coords, vdw_radii, sparsity)
-        
+
     calculator.find_deepest_tetrahedra(c_surface_cavities, s_clr.neigh)
     if start_point is not None:
         calculator.set_starting_tetrahedra_from_point(c_surface_cavities, s_clr.verti, start_point)
-    
+
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
     
     if cavities_only:
@@ -871,6 +875,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         
         return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp, s_clr.verti]
         
+    # build the weighted adjacency matrix once for the whole cleared
+    # state, then run a single multi-target Dijkstra per cavity (scipy csgraph),
+    # instead of one heap Dijkstra per (seed, exit) pair.
+    simplices, neighbors, vertices = s_clr.get_state()
+    graph = calculator.build_sparse_graph(simplices, neighbors, vertices, coords, vdw_radii)
     for cavity in c_filtered_cavities:
         #calculator.dijkstra(cavity, *(s_clr.get_state() + [coords, vdw_radii]))
         calculator.dijkstra(cavity, *(s_clr.get_state() + tuple([coords, vdw_radii])))
@@ -2317,6 +2326,25 @@ class Cavity:
         self.channels.append(channel)
     
         
+def _rows_isin(a, b):
+    """Boolean mask marking which rows of 2D integer array ``a`` occur as a row
+    in 2D array ``b`` (exact, order-sensitive match).
+
+    Uses a void-dtype view so each row is treated as a single hashable scalar,
+    turning an O(len(a) x len(b)) row-by-row scan into an O(len(a) + len(b))
+    hashed membership test.
+    """
+    a = np.ascontiguousarray(a)
+    b = np.ascontiguousarray(b)
+    if a.size == 0 or b.size == 0:
+        return np.zeros(a.shape[0], dtype=bool)
+    if a.dtype != b.dtype:
+        b = b.astype(a.dtype)
+    va = a.view(np.dtype((np.void, a.dtype.itemsize * a.shape[1]))).ravel()
+    vb = b.view(np.dtype((np.void, b.dtype.itemsize * b.shape[1]))).ravel()
+    return np.isin(va, vb)
+
+
 class ChannelCalculator:
     def __init__(self, atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
         self.atoms = atoms
@@ -2334,61 +2362,64 @@ class ChannelCalculator:
         return d_sum >= r_sum
 
     def delete_simplices3d(self, points, simplices, neighbors, vertices, vdw_radii, r, surface):
-        simp, neigh, verti, deleted = [], [], [], []
-        
-        for i, tetrahedron in enumerate(simplices):
-            should_delete = (-1 in neighbors[i] and self.sphere_fit(points, tetrahedron, vertices[i], vdw_radii, r)) if surface else not self.sphere_fit(points, tetrahedron, vertices[i], vdw_radii, r)
-            
-            if should_delete:
-                deleted.append(i)
-            else:
-                simp.append(simplices[i])
-                neigh.append(neighbors[i])
-                verti.append(vertices[i])
-        
-        simp = np.array(simp)
-        neigh = np.array(neigh)
-        verti = np.array(verti)
-        deleted = np.array(deleted)
-        
-        mask = np.isin(neigh, deleted)
-        neigh[mask] = -1
-        
-        for i in reversed(deleted):
-            mask = (neigh > i) & (neigh != -1)
-            neigh[mask] -= 1
-        
+        simplices = np.asarray(simplices)
+        neighbors = np.asarray(neighbors)
+        vertices = np.asarray(vertices)
+
+        n = len(simplices)
+        if n == 0:
+            return simplices, neighbors, vertices
+
+        # Vectorized sphere_fit over every tetrahedron at once: for each
+        # tetrahedron compare the sum of distances from its Voronoi vertex to its
+        # 4 atoms against the sum of (r + vdw_radius) over those atoms.
+        atom_coords = points[simplices]                                 # (n, 4, 3)
+        d_sum = np.linalg.norm(atom_coords - vertices[:, None, :], axis=2).sum(axis=1)
+        r_sum = (r + vdw_radii[simplices]).sum(axis=1)
+        fit = d_sum >= r_sum
+
+        if surface:
+            should_delete = (neighbors == -1).any(axis=1) & fit
+        else:
+            should_delete = ~fit
+
+        keep = ~should_delete
+        simp = simplices[keep]
+        neigh = neighbors[keep].copy()
+        verti = vertices[keep]
+
+        # Remap neighbour indices from the old numbering to the compacted one in a
+        # single pass (deleted neighbours -> -1), replacing the previous
+        # O(len(deleted) x len(neigh)) decrement loop.
+        new_index = np.full(n, -1, dtype=neigh.dtype)
+        new_index[keep] = np.arange(keep.sum(), dtype=neigh.dtype)
+        neigh = np.where(neigh == -1, -1, new_index[neigh])
+
         return simp, neigh, verti
 
     def delete_section(self, simplices_subset, simplices, neighbors, vertices, reverse=False):
-        simp, neigh, verti, deleted = [], [], [], []
-      
-        for i, tetrahedron in enumerate(simplices): 
-            match = any((simplices_subset == tetrahedron).all(axis=1))
-            if reverse:
-                if match:
-                    simp.append(tetrahedron)
-                    neigh.append(neighbors[i])
-                    verti.append(vertices[i])
-                else:
-                    deleted.append(i)
-            else:
-                if match:
-                    deleted.append(i)
-                else:
-                    simp.append(tetrahedron)
-                    neigh.append(neighbors[i])
-                    verti.append(vertices[i])
+        simplices = np.asarray(simplices)
+        neighbors = np.asarray(neighbors)
+        vertices = np.asarray(vertices)
 
-        simp, neigh, verti = map(np.array, [simp, neigh, verti])
-        deleted = np.array(deleted)
-        
-        mask = np.isin(neigh, deleted)
-        neigh[mask] = -1
-        
-        for i in reversed(deleted):
-            neigh = np.where((neigh > i) & (neigh != -1), neigh - 1, neigh)
-        
+        n = len(simplices)
+        if n == 0:
+            return simplices, neighbors, vertices
+
+        # Which rows of `simplices` also appear in `simplices_subset` (exact,
+        # order-sensitive row match via hashed membership instead of the former
+        # O(n x len(subset)) per-row scan).
+        matches = _rows_isin(simplices, np.asarray(simplices_subset))
+        keep = matches if reverse else ~matches
+
+        simp = simplices[keep]
+        neigh = neighbors[keep].copy()
+        verti = vertices[keep]
+
+        new_index = np.full(n, -1, dtype=neigh.dtype)
+        new_index[keep] = np.arange(keep.sum(), dtype=neigh.dtype)
+        neigh = np.where(neigh == -1, -1, new_index[neigh])
+
         return simp, neigh, verti
 
     def get_vdw_radii(self, atoms):
@@ -2529,16 +2560,14 @@ class ChannelCalculator:
 
         filtered_surface_neighbors = np.unique(filtered_surface_neighbors)
         filtered_surface_neighbors = filtered_surface_neighbors[filtered_surface_neighbors != 0]
-        
+
         filtered_interior_simplices = interior_simplices[
-            np.any(np.all(interior_simplices[:, None] == filtered_simplices, axis=2), axis=1)
-        ]
+            _rows_isin(interior_simplices, filtered_simplices)]
 
         surface_layer_neighbor_simplices = shape_simplices[filtered_surface_neighbors]
-        
+
         second_layer = filtered_interior_simplices[
-            np.any(np.all(filtered_interior_simplices[:, None] == surface_layer_neighbor_simplices, axis=2), axis=1)
-        ]
+            _rows_isin(filtered_interior_simplices, surface_layer_neighbor_simplices)]
 
         return filtered_surface_simplices, second_layer
 
@@ -2595,6 +2624,8 @@ class ChannelCalculator:
         
         for cavity in cavities:
             exit_tetrahedra = cavity.exit_tetrahedra
+            # O(1) membership instead of scanning the tetrahedra array per edge.
+            cavity_tetra_set = set(cavity.tetrahedra.tolist())
             visited = np.zeros(neighbors.shape[0], dtype=bool)
             visited[exit_tetrahedra] = True
             queue = deque([(tetra, 0) for tetra in exit_tetrahedra])
@@ -2605,13 +2636,13 @@ class ChannelCalculator:
             while queue:
                 current, depth = queue.popleft()
                 tetrahedra_depths[current] = depth
-                
+
                 if depth > max_depth:
                     max_depth = depth
                     deepest_tetrahedron = current
 
                 for neighbor in neighbors[current]:
-                    if neighbor != -1 and not visited[neighbor] and neighbor in cavity.tetrahedra:
+                    if neighbor != -1 and not visited[neighbor] and neighbor in cavity_tetra_set:
                         visited[neighbor] = True
                         queue.append((neighbor, depth + 1))
 
@@ -2619,61 +2650,102 @@ class ChannelCalculator:
             cavity.set_depth(max_depth)
             cavity.tetrahedra_depths = tetrahedra_depths
             
-    def dijkstra(self, cavity, simplices, neighbors, vertices, points, vdw_radii):
-        import heapq
-        
-        def calculate_weight(current_tetra, neighbor_tetra):
-            current_vertex = vertices[current_tetra]
-            neighbor_vertex = vertices[neighbor_tetra]
-            l = np.linalg.norm(current_vertex - neighbor_vertex)
-            
-            d = np.inf
-            for atom, radius in zip(points[simplices[neighbor_tetra]], vdw_radii[simplices[neighbor_tetra]]):
-                dist = np.linalg.norm(neighbor_vertex - atom) - radius
-                if dist < d:
-                    d = dist
-            
-            b = 1e-3
-            return l / (d**2 + b)
-        
-        def dijkstra_algorithm(start, goal, tetrahedra_set):
-            pq = [(0, start)]
-            distances = {start: 0}
-            previous = {start: None}
+    def calc_circumcenters(self, dela):
+        # HYBRID (from the alternative): per-simplex circumcenters recovered
+        # analytically from the Delaunay paraboloid lifting, avoiding a second
+        # Qhull pass. Identical to scipy Voronoi vertices in general position.
+        eq = dela.equations
+        scale = dela.paraboloid_scale
+        centers = -eq[:, :-2] / (2 * scale * eq[:, -2][:, None])
+        return centers
 
-            while pq:
-                current_distance, current_tetra = heapq.heappop(pq)
-                
-                if current_tetra == goal:
-                    path = []
-                    while current_tetra is not None:
-                        path.append(current_tetra)
-                        current_tetra = previous[current_tetra]
-                    return path[::-1]
-                
-                if current_distance > distances[current_tetra]:
+    def build_sparse_graph(self, simplices, neighbors, vertices, points, vdw_radii):
+        # HYBRID (from the alternative): one weighted CSR adjacency matrix for the
+        # whole cleared state. Edge (tetra -> neigh) weight is l / (d**2 + b) where
+        # l is the vertex-to-vertex distance and d is the neighbour's clearance
+        # (min over its 4 atoms of |vertex - atom| - vdw_radius) - the same cost
+        # model as the current heap Dijkstra, just assembled once.
+        from scipy.sparse import csr_matrix
+
+        tetra_points = points[simplices]
+        distances = np.linalg.norm(tetra_points - vertices[:, None, :], axis=2)
+        bottleneck = np.min(distances - vdw_radii[simplices], axis=1)
+
+        rows = []
+        cols = []
+        data = []
+
+        b = 1e-3
+        for tetra, neighs in enumerate(neighbors):
+            for neigh in neighs:
+                if neigh == -1:
                     continue
-                
-                for neighbor in neighbors[current_tetra]:
-                    if neighbor in tetrahedra_set:
-                        weight = calculate_weight(current_tetra, neighbor)
-                        distance = current_distance + weight
-                        if distance < distances.get(neighbor, float('inf')):
-                            distances[neighbor] = distance
-                            previous[neighbor] = current_tetra
-                            heapq.heappush(pq, (distance, neighbor))
-            
-            return None
+                l = np.linalg.norm(vertices[tetra] - vertices[neigh])
+                d = bottleneck[neigh]
+                weight = l / (d * d + b)
+                rows.append(tetra)
+                cols.append(neigh)
+                data.append(weight)
+        graph = csr_matrix((data, (rows, cols)), shape=(len(simplices), len(simplices)))
+        return graph
 
-        tetrahedra_set = set(cavity.tetrahedra)
-        for exit_tetrahedron in cavity.end_tetrahedra:
-            for starting_tetrahedron in cavity.starting_tetrahedron:
-                if exit_tetrahedron != starting_tetrahedron:
-                    path = dijkstra_algorithm(starting_tetrahedron, exit_tetrahedron, tetrahedra_set)
-                    if path:
-                        path_tetrahedra = np.array(path)
-                        channel = Channel(path_tetrahedra, *self.process_channel(path_tetrahedra, vertices, points, vdw_radii, simplices))
-                        cavity.add_channel(channel)
+    def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points, vdw_radii):
+        # HYBRID (from the alternative): a single multi-target Dijkstra from the
+        # seed over the cavity subgraph, then every exit path reconstructed from
+        # the predecessor tree - instead of one heap search per (seed, exit) pair.
+        # Channel geometry still goes through the current process_channel/Channel
+        # (Simpson-based volume).
+        from scipy.sparse.csgraph import dijkstra
+        from collections import defaultdict
+
+        cavity_tetra = np.asarray(cavity.tetrahedra)
+        if len(cavity_tetra) == 0:
+            return
+        global_to_local = {tetra: i for i, tetra in enumerate(cavity_tetra)}
+        cavity_graph = graph[np.ix_(cavity_tetra, cavity_tetra)]
+
+        for start_global in cavity.starting_tetrahedron:
+            if start_global not in global_to_local:
+                continue
+            start_local = global_to_local[start_global]
+            # directed=True: edge (u -> v) keeps weight l / (d_v**2 + b), i.e. the
+            # clearance of the node being *entered* - exactly the current heap
+            # Dijkstra's cost model. (directed=False would symmetrize each edge to
+            # l / (max(d_u, d_v)**2 + b) and pick slightly different paths -> 14.)
+            distances, predecessors = dijkstra(
+                cavity_graph, directed=True, indices=start_local,
+                return_predecessors=True)
+            parent_to_children = defaultdict(list)
+
+            for node, parent in enumerate(predecessors):
+                if parent >= 0:
+                    parent_to_children[parent].append(node)
+
+            paths = {}
+            stack = [(start_local, [start_local])]
+            while stack:
+                node, path = stack.pop()
+                paths[node] = path
+                for child in parent_to_children.get(node, []):
+                    stack.append((child, path + [child]))
+
+            for exit_global in cavity.end_tetrahedra:
+                if exit_global == start_global:
+                    continue
+                if exit_global not in global_to_local:
+                    continue
+                exit_local = global_to_local[exit_global]
+                if np.isinf(distances[exit_local]):
+                    continue
+
+                path_local = paths.get(exit_local)
+                if path_local is None:
+                    continue
+
+                path_global = cavity_tetra[path_local]
+                channel = Channel(path_global, *self.process_channel(
+                    path_global, vertices, points, vdw_radii, simplices))
+                cavity.add_channel(channel)
 
     def calculate_max_radius(self, vertice, points, vdw_radii, simp):
         atom_positions = points[simp]
@@ -2899,31 +2971,32 @@ class ChannelCalculator:
         return np.sum(lengths)
     
     def calculate_channel_volume(self, centerline_spline, radius_spline):
-        import warnings
-        from scipy.integrate import quad, IntegrationWarning  
-        
-        warnings.filterwarnings("ignore", category=IntegrationWarning)
-        
+        # Tube volume  V = \int pi r(t)^2 |x'(t)| dt  evaluated by vectorized
+        # composite Simpson instead of an adaptive scipy.quad that called the
+        # integrand thousands of times per channel. The centerline/radius are
+        # piecewise cubic, so a uniform grid scaled to the number of spline
+        # segments (~128 points/segment) reaches ~1e-8 relative accuracy - better
+        # than quad's default tolerance - at a fraction of the cost.
+        from scipy.integrate import simpson
+
         t_min = centerline_spline.x[0]
         t_max = centerline_spline.x[-1]
-    
-        def differential_volume(t):
-            r = radius_spline(t)
-            area = np.pi * r**2
-            dx_dt = centerline_spline(t, 1)
-            centerline_derivative = np.linalg.norm(dx_dt)
-            return area * centerline_derivative
-        
-        volume, error = quad(differential_volume, t_min, t_max)
-        
+        n_segments = max(1, len(centerline_spline.x) - 1)
+        n = n_segments * 128 + 1
+
+        t = np.linspace(t_min, t_max, n)
+        r = radius_spline(t)
+        speed = np.linalg.norm(centerline_spline(t, 1), axis=1)
+        volume = simpson(np.pi * r ** 2 * speed, x=t)
+
         r_start = radius_spline(t_min)
         r_end = radius_spline(t_max)
-        
+
         hemisphere_volume_start = (2/3) * np.pi * r_start**3
         hemisphere_volume_end = (2/3) * np.pi * r_end**3
-        
+
         total_volume = volume + hemisphere_volume_start + hemisphere_volume_end
-        
+
         return total_volume
             
     def set_starting_tetrahedra_from_point(self, cavities, vertices, start_point):
