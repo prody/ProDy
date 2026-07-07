@@ -629,7 +629,8 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, 
     min_volume=None, max_volume=None, max_depth=None, bottleneck=1, sparsity=15, 
-    min_tetrahedra=None, max_tetrahedra=None, cavities_only=False):
+    min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, homogenize=True,
+    max_deviation=0.2):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -688,6 +689,27 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
         A higher value results in fewer sampling points. Default is 15.
     :type sparsity: int
+    
+    :param homogenize: If True (default), every atom is substituted by a set of homogeneous balls whose common
+        radius equals the smallest van der Waals radius present in the structure, before building the Voronoi
+        and Delaunay tessellations. This yields an accurate estimate of the additively weighted (power) Voronoi
+        diagram from an ordinary one, as done in MolAxis and CAVER 3, instead of discarding the smaller (e.g.
+        hydrogen) atoms. If False, the original atoms are used with their individual van der Waals radii.
+    :type homogenize: bool
+
+    :param max_deviation: Maximum tolerated deviation, in Angstrom, between the union surface of the substitute
+        balls and the original van der Waals surface when ``homogenize`` is True. It controls the trade-off
+        between surface accuracy and the number of balls generated: an atom whose radius exceeds the smallest
+        radius (``rho``) by more than ``max_deviation`` is filled with several balls, otherwise it is kept as a
+        single ``rho`` ball. Default is 0.2. Guideline values:
+
+        * ``0.2`` (default) - balanced; e.g. carbon fills to ~15 balls when hydrogens are present (``rho``=1.2).
+        * ``0.15``  - CAVER3-like.
+        * ``0.05`` - ``0.1`` - finer surface; noticeably more balls (e.g. in heavy-atom-only structures it starts
+          filling carbon, which is otherwise left as a single ball with a uniform ~0.18 A inset).
+
+        Only used when ``homogenize`` is True.
+    :type max_deviation: float
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an object containing information
@@ -697,8 +719,10 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     :rtype: tuple (list, list)
 
     This function performs the following steps:
-    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, 
-        and performs 3D Delaunay triangulation and Voronoi tessellation on the coordinates.
+    1. **Selection and Filtering:** Selects non-hetero atoms from the protein and calculates van der Waals radii. When
+       ``homogenize`` is True, each atom is replaced by homogeneous balls of the smallest radius present (MolAxis /
+       CAVER 3 approach) so that an ordinary tessellation approximates the additively weighted Voronoi diagram. It then
+       performs 3D Delaunay triangulation and Voronoi tessellation on the resulting coordinates.
     2. **State Management:** Creates and updates different stages of channel detection of the protein structure 
         to filter out simplices based on the given radii.
     3. **Surface Layer Calculation:** Determines the surface and second-layer simplices from the filtered results.
@@ -769,7 +793,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     coords = atoms.getCoords()
     
     vdw_radii = calculator.get_vdw_radii(atoms.getElements())
-        
+    if homogenize:
+        coords, vdw_radii = calculator.homogenize_atoms(coords, vdw_radii, max_deviation)
     dela = Delaunay(coords)
     voro = Voronoi(coords)
         
@@ -2382,28 +2407,126 @@ class ChannelCalculator:
         
         return np.array([vdw_radii_dict[atom] for atom in atoms])
 
+    def _fibonacci_sphere(self, n):
+        """Return ``n`` roughly evenly distributed unit vectors on a sphere using
+        the Fibonacci (golden spiral) lattice."""
+        # np.maximum (elementwise, no axis arg) rather than builtin max(): the
+        # module's `from numpy import *` shadows max() with np.max, whose second
+        # positional arg is an axis and crashes under numpy >= 2.0.
+        n = int(np.maximum(1, n))
+        indices = np.arange(n) + 0.5
+        phi = np.arccos(1.0 - 2.0 * indices / n)
+        theta = np.pi * (1.0 + 5.0 ** 0.5) * indices
+        x = np.sin(phi) * np.cos(theta)
+        y = np.sin(phi) * np.sin(theta)
+        z = np.cos(phi)
+        return np.stack([x, y, z], axis=1)
+
+    def _shell_point_count(self, rad, rho, max_deviation):
+        """Number of equal balls of radius ``rho`` to place on a shell of radius
+        ``rad`` so that the outer envelope of their union stays within
+        ``max_deviation`` of ``rad + rho``.
+
+        A ball centered at radius ``rad`` only touches the target sphere of radius
+        ``rad + rho`` at a single point, so the shell must be sampled densely
+        enough that the "valleys" between neighbouring balls do not dip more than
+        ``max_deviation``. Each ball covers a spherical cap of half-angle
+        ``alpha`` on the ``rad + rho - max_deviation`` sphere; the count is the
+        number of such caps needed to tile the sphere (with an overlap factor).
+        """
+        r = rad + rho - max_deviation
+        cos_alpha = (rad * rad + r * r - rho * rho) / (2.0 * rad * r)
+        # Use np.clip rather than builtin min/max: `from numpy import *` shadows
+        # the builtins with numpy reductions, whose second positional arg is an
+        # axis, which crashes on a float under numpy >= 2.0.
+        cos_alpha = float(np.clip(cos_alpha, -1.0, 1.0))
+        if cos_alpha >= 1.0:
+            return 1
+        # The exact number of caps to tile the sphere is 2 / (1 - cos_alpha); we use
+        # a factor of 4 (a ~2x overlap margin). This is NOT slack to be trimmed: the
+        # Fibonacci lattice is not an optimal packing and its coverage efficiency
+        # degrades as the shell (and count) grows, so the factor needed to actually
+        # hold the max_deviation bound increases with atom size. A single constant
+        # must therefore be sized for the largest atoms (e.g. metals); 4 keeps the
+        # measured dip below max_deviation across the whole range, whereas 3 already
+        # fails for anything larger than the thinnest shell. Lowering it silently
+        # breaks large-atom accuracy - tune max_deviation instead to change cost.
+        return int(np.ceil(4.0 / (1.0 - cos_alpha)))
+
+    def homogenize_atoms(self, coords, vdw_radii, max_deviation=0.2):
+        """Substitute every atom by a set of homogeneous balls whose common radius
+        equals the smallest van der Waals radius present in the structure.
+
+        Each atom of radius ``R`` is replaced by a collection of overlapping balls
+        of radius ``rho = min(vdw_radii)`` arranged on concentric shells (plus a
+        central ball) so that their union approximates the original atomic sphere
+        to within ``max_deviation``. Because all resulting balls share the same
+        radius, an ordinary Voronoi / Delaunay tessellation of their centers yields
+        an accurate estimate of the additively weighted (power) Voronoi diagram of
+        the original atoms. This is the approach used by MolAxis and CAVER 3 and
+        avoids simply discarding the smaller (e.g. hydrogen) atoms.
+
+        Atoms whose radius is within ``max_deviation`` of ``rho`` are kept as a
+        single ball, so a structure of similarly sized atoms is left essentially
+        unchanged while a structure containing hydrogens (small ``rho``) fills its
+        larger atoms with several balls.
+
+        :arg coords: atomic coordinates, shape ``(N, 3)``
+        :arg vdw_radii: per-atom van der Waals radii, shape ``(N,)``
+        :arg max_deviation: maximum tolerated deviation (in Angstrom) between the
+            union surface of the substitute balls and the original atomic surface.
+            Smaller values are more accurate but generate more balls. Default 0.2.
+        :returns: a tuple ``(new_coords, new_radii)`` where every entry of
+            ``new_radii`` equals ``rho``.
+        """
+        coords = np.asarray(coords, dtype=float)
+        vdw_radii = np.asarray(vdw_radii, dtype=float)
+
+        rho = float(np.min(vdw_radii))
+        tol = 1e-6
+        new_points = []
+
+        for center, R in zip(coords, vdw_radii):
+            # Atoms within max_deviation of the smallest radius stay a single ball.
+            if R - rho <= max_deviation + tol:
+                new_points.append(center)
+                continue
+
+            # Central ball plus concentric shells stepped by rho, with the
+            # outermost shell at (R - rho) so the union surface reaches R.
+            new_points.append(center)
+            shell_radii = list(np.arange(rho, R - rho, rho))
+            if not shell_radii or (R - rho) - shell_radii[-1] > tol:
+                shell_radii.append(R - rho)
+
+            for rad in shell_radii:
+                if rad <= tol:
+                    continue
+                n = self._shell_point_count(rad, rho, max_deviation)
+                new_points.extend(center + rad * self._fibonacci_sphere(n))
+
+        new_points = np.array(new_points)
+        new_radii = np.full(len(new_points), rho)
+
+        return new_points, new_radii
+    
     def surface_layer(self, shape_simplices, filtered_simplices, shape_neighbors):
-        surface_simplices, surface_neighbors = [], []
-        interior_simplices = []
-        
-        for i in range(len(shape_simplices)): 
-            if -1 in shape_neighbors[i]:
-                surface_simplices.append(shape_simplices[i])
-                surface_neighbors.append(shape_neighbors[i])
-            else:
-                interior_simplices.append(shape_simplices[i])
-        
-        surface_simplices = np.array(surface_simplices)
-        surface_neighbors = np.array(surface_neighbors)
-        interior_simplices = np.array(interior_simplices)
-        
-        filtered_surface_simplices = surface_simplices[
-            np.any(np.all(surface_simplices[:, None] == filtered_simplices, axis=2), axis=1)
-        ]
-        filtered_surface_neighbors = surface_neighbors[
-            np.any(np.all(surface_simplices[:, None] == filtered_simplices, axis=2), axis=1)
-        ]
-        
+        shape_simplices = np.asarray(shape_simplices)
+        shape_neighbors = np.asarray(shape_neighbors)
+        filtered_simplices = np.asarray(filtered_simplices)
+
+        # Split simplices into those touching the boundary (a -1 neighbour) and
+        # the interior ones, preserving order.
+        boundary = (shape_neighbors == -1).any(axis=1)
+        surface_simplices = shape_simplices[boundary]
+        surface_neighbors = shape_neighbors[boundary]
+        interior_simplices = shape_simplices[~boundary]
+
+        # Row-membership tests replace the former (N, M, 4) broadcast temporaries.
+        surf_keep = _rows_isin(surface_simplices, filtered_simplices)
+        filtered_surface_simplices = surface_simplices[surf_keep]
+        filtered_surface_neighbors = surface_neighbors[surf_keep]
+
         filtered_surface_neighbors = np.unique(filtered_surface_neighbors)
         filtered_surface_neighbors = filtered_surface_neighbors[filtered_surface_neighbors != 0]
         
