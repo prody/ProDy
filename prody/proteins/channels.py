@@ -631,7 +631,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     restrict_channels_to_start_point=False, r1=3, r2=1.25, min_depth=10, 
     min_volume=None, max_volume=None, max_depth=None, bottleneck=1, sparsity=15, 
     min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, homogenize=True,
-    max_deviation=0.2):
+    max_deviation=0.2, truncate_at_surface=True, similarity=0.8):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -718,6 +718,22 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
         Only used when ``homogenize`` is True.
     :type max_deviation: float
+
+    :param truncate_at_surface: If True (default), each channel is terminated at the first surface (exit)
+        tetrahedron it reaches whose inscribed radius is at least ``bottleneck``, instead of running all the
+        way to its assigned end tetrahedron. This prevents a cheapest path from surfacing at one mouth and
+        continuing on to another, and de-duplicates the channels that collapse onto a shared mouth (keeping
+        the cheapest per terminal). If False, the original behaviour is kept (paths run to the end tetrahedra).
+    :type truncate_at_surface: bool
+
+    :param similarity: Only used when ``truncate_at_surface`` is True. Fraction (0-1) of the shorter path that
+        two channels must share, as a common prefix from the seed, to be treated as the same tunnel when they
+        leave through the same surface opening. Two channels are merged (cheapest kept) only if their exit
+        points coincide (the mouth spheres they leave through overlap) AND their shared-prefix fraction is at
+        least ``similarity``; channels that exit at distinct mouths, or reach one exit by genuinely different
+        corridors (diverging early, sharing little), are kept as separate tunnels. ``1.0`` merges only paths
+        that share an exit and are otherwise identical; ``0.0`` keeps one channel per distinct exit. Default is 0.8.
+    :type similarity: float
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an object containing information
@@ -909,7 +925,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     simplices, neighbors, vertices = s_clr.get_state()
     graph = calculator.build_sparse_graph(simplices, neighbors, vertices, coords, vdw_radii)
     for cavity in c_filtered_cavities:
-        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices, coords, vdw_radii)
+        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices, coords, vdw_radii,
+                            truncate_at_surface, similarity)
     LOGGER.report('Channel pathfinding (graph Dijkstra) over {0} cavities completed in %.2fs.'.format(
         len(c_filtered_cavities)), '_prody_channels_pathfinding')
 
@@ -2675,6 +2692,12 @@ class ChannelCalculator:
 
 
     def merge_cavities(self, cavities, simplices):
+        if not cavities:
+            # No cavities survived filtering (e.g. restrict_channels_to_start_point
+            # selected a single cavity shallower than min_depth). Return an empty
+            # (0, 4) slice so the pipeline yields zero channels instead of crashing
+            # in np.concatenate on an empty list.
+            return simplices[np.empty(0, dtype=np.intp)]
         merged_tetrahedra = np.concatenate([cavity.tetrahedra for cavity in cavities])
         return simplices[merged_tetrahedra]
 
@@ -2746,7 +2769,8 @@ class ChannelCalculator:
         graph = csr_matrix((data, (rows, cols)), shape=(len(simplices), len(simplices)))
         return graph
 
-    def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points, vdw_radii):
+    def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points, vdw_radii,
+                 truncate_at_surface=True, similarity=0.8):
         # a single multi-target Dijkstra from the seed over the cavity subgraph, then every exit path reconstructed from
         # the predecessor tree - instead of one heap search per (seed, exit) pair.
         # Channel geometry still goes through the current process_channel/Channel (Simpson-based volume).
@@ -2758,6 +2782,33 @@ class ChannelCalculator:
             return
         global_to_local = {tetra: i for i, tetra in enumerate(cavity_tetra)}
         cavity_graph = graph[np.ix_(cavity_tetra, cavity_tetra)]
+
+        # A tunnel physically ends at the surface, but the Dijkstra cost has no such
+        # term (it rewards width, and mouths are wide), so a cheapest path to a far
+        # exit can run through/past a nearer mouth. When truncate_at_surface is set we
+        # cut each reconstructed path at the first qualified mouth it reaches. A mouth
+        # is a surface (exit) tetrahedron whose inscribed clearance (min over its 4
+        # atoms of |vertex - atom| - vdw) is >= bottleneck - one a probe of that radius
+        # can leave through. We test the Voronoi vertices geometrically, not tetra
+        # identity: near the surface many distinct exit tetra share almost the same
+        # circumcenter, so a path can be inside a mouth while its node is a neighbour,
+        # which a tetra-identity test would miss. Two truncated paths are then treated
+        # as the same channel only if they leave through overlapping mouths AND share
+        # most of their route (see _add_deduped_channels); distinct exits are kept.
+        mouth_xyz = np.empty((0, 3))
+        mouth_r = np.empty(0)
+        if truncate_at_surface:
+            exit_tetra = np.asarray(getattr(cavity, 'exit_tetrahedra', np.empty(0, dtype=np.intp)))
+            if len(exit_tetra):
+                verts = vertices[exit_tetra]
+                atom_pos = points[simplices[exit_tetra]]
+                atom_rad = vdw_radii[simplices[exit_tetra]]
+                clearance = (np.linalg.norm(atom_pos - verts[:, None, :], axis=2) - atom_rad).min(axis=1)
+                q = clearance >= self.bottleneck
+                mouth_xyz = verts[q]
+                mouth_r = clearance[q]
+
+        candidates = []
 
         for start_global in cavity.starting_tetrahedron:
             if start_global not in global_to_local:
@@ -2797,11 +2848,74 @@ class ChannelCalculator:
                 if path_local is None:
                     continue
 
+                term_xyz = None
+                term_r = 0.0
+                if len(mouth_xyz):
+                    # walk seed->exit; stop at the first tetra whose Voronoi vertex
+                    # lies inside some qualified mouth's sphere (skip the seed). Record
+                    # that entry point and the radius of the mouth entered - the tunnel
+                    # physically leaves the protein there.
+                    for j in range(1, len(path_local)):
+                        cc = vertices[cavity_tetra[path_local[j]]]
+                        d = np.linalg.norm(mouth_xyz - cc, axis=1)
+                        hit = np.nonzero(d < mouth_r)[0]
+                        if len(hit):
+                            path_local = path_local[:j + 1]
+                            term_xyz = cc.copy()
+                            term_r = float(mouth_r[hit[np.argmin(d[hit])]])
+                            break
+
                 path_global = cavity_tetra[path_local]
                 channel = Channel(path_global, *self.process_channel(
                     path_global, vertices, points, vdw_radii, simplices),
-                    cost=float(distances[exit_local]))
+                    cost=float(distances[path_local[-1]]))
+                candidates.append((channel, term_xyz, term_r, list(path_local)))
+
+        if truncate_at_surface:
+            self._add_deduped_channels(cavity, candidates, similarity)
+        else:
+            for channel, _t, _r, _path in candidates:
                 cavity.add_channel(channel)
+
+    def _add_deduped_channels(self, cavity, candidates, similarity):
+        # Keep one channel per (surface exit, distinct route). Two truncated channels
+        # are the same tunnel only if they leave through overlapping mouths (their exit
+        # spheres intersect, |Ti - Tj| < ri + rj) AND share most of their route (diverge
+        # late). Exits farther apart than their mouth radii are distinct openings and
+        # kept, even when the paths share a long trunk and split only near the surface;
+        # different corridors to one exit diverge early (low shared prefix) and are also
+        # kept. Comparing the two actual exit points avoids the single-linkage chaining
+        # of a mouth-cluster label, which can span many A and merge distinct exits.
+        # Cost-sorted greedy, so the kept representative is always the cheapest and the
+        # outcome is order-independent.
+        kept = []  # (channel, term_xyz, term_r, path)
+        for channel, term_xyz, term_r, path in sorted(candidates, key=lambda c: c[0].cost):
+            duplicate = False
+            if term_xyz is not None:
+                for _kc, kxyz, kr, kpath in kept:
+                    if kxyz is not None and \
+                            np.linalg.norm(term_xyz - kxyz) < term_r + kr and \
+                            self._shared_prefix_fraction(path, kpath) >= similarity:
+                        duplicate = True
+                        break
+            if not duplicate:
+                kept.append((channel, term_xyz, term_r, path))
+        for channel, _t, _r, _path in kept:
+            cavity.add_channel(channel)
+
+    @staticmethod
+    def _shared_prefix_fraction(a, b):
+        # Fraction of the shorter path shared as a common prefix from the seed. Robust
+        # to trunk-sharing: distinct tunnels share only the early trunk (small), a
+        # redundant wiggle shares almost everything (~1.0).
+        n = 0
+        for x, y in zip(a, b):
+            if x == y:
+                n += 1
+            else:
+                break
+        m = min(len(a), len(b))
+        return n / m if m else 0.0
 
     def calculate_max_radius(self, vertice, points, vdw_radii, simp):
         atom_positions = points[simp]
@@ -2835,35 +2949,47 @@ class ChannelCalculator:
         return tetrahedra[max_radius_index]
 
     def get_end_tetrahedra(self, tetrahedra, voronoi_vertices, points, vdw_radii, simp, sparsity):
-        end_tetrahedra = []
-        current_tetrahedron = self.find_biggest_tetrahedron(tetrahedra, voronoi_vertices, points, vdw_radii, simp)
-        end_tetrahedra.append(current_tetrahedron)
-        end_tetrahedra_set = {current_tetrahedron}
-        
+        # Greedy sparse sampling of the mouth (exit) tetrahedra: seed with the
+        # widest tetrahedron, then repeatedly add the widest tetrahedron that is
+        # still at least `sparsity` away from every already-selected one, until
+        # none qualify. Vectorized rewrite of the former O(N_exit x M^2) double
+        # loop (which called np.linalg.norm once per candidate/selected pair and
+        # re-scanned radii via find_biggest_tetrahedron every pass):
+        #   * the "far enough from all selected" test is exactly "running min
+        #     distance to the selected set >= sparsity", so keep one min_dist
+        #     array and fold in each new pick with a single vectorized norm;
+        #   * inscribed radii are geometry-only, so precompute them once instead
+        #     of recomputing find_biggest over the shrinking candidate set.
+        # Selection order and argmax first-tie-break match the original, so the
+        # returned end tetrahedra are identical.
+        tetrahedra = np.asarray(tetrahedra)
+        n = len(tetrahedra)
+        if n == 0:
+            return tetrahedra
+
+        verts = voronoi_vertices[tetrahedra]                     # (n, 3) circumcenters
+        radii = np.array([
+            self.calculate_max_radius(voronoi_vertices[tetra], points, vdw_radii, simp[tetra])
+            for tetra in tetrahedra])
+
+        min_dist = np.full(n, np.inf)
+        selected = np.zeros(n, dtype=bool)
+        order = []
+
+        current = int(np.argmax(radii))                          # widest tetrahedron (seed)
         while True:
-            found_tetrahedra = []
-            for tetra in tetrahedra:
-                if tetra in end_tetrahedra_set:
-                    continue
+            order.append(current)
+            selected[current] = True
+            min_dist = np.minimum(min_dist, np.linalg.norm(verts - verts[current], axis=1))
 
-                all_far_enough = True  
-                for selected_tetra in end_tetrahedra:
-                    distance = np.linalg.norm(voronoi_vertices[selected_tetra] - voronoi_vertices[tetra])
-                    if distance < sparsity:
-                        all_far_enough = False
-                        break
-                
-                if all_far_enough:
-                    found_tetrahedra.append(tetra)
-
-            if not found_tetrahedra:
+            feasible = (min_dist >= sparsity) & ~selected        # >= sparsity from every pick
+            if not feasible.any():
                 break
-            
-            biggest_tetrahedron = self.find_biggest_tetrahedron(found_tetrahedra, voronoi_vertices, points, vdw_radii, simp)
-            end_tetrahedra.append(biggest_tetrahedron)
-            end_tetrahedra_set.add(biggest_tetrahedron)
+            # widest feasible tetrahedron; np.argmax breaks ties toward the
+            # lowest index, matching the original input-order scan.
+            current = int(np.argmax(np.where(feasible, radii, -np.inf)))
 
-        return np.array(end_tetrahedra)
+        return tetrahedra[order]
 
     def filter_cavities(self, cavities, min_depth):
         return [cavity for cavity in cavities if cavity.depth >= min_depth]
