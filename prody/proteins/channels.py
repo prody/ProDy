@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-"""This module called CaviFinder and defines functions for calculating channels, tunnels and pores
-within protein structure.
+"""This module is called CaviFinder and defines functions for calculating 
+channels, tunnels and pores within protein structure.
 """
 
 __author__ = 'Karolina Mikulska-Ruminska', 'Eryk Trzcinski'
@@ -9,7 +9,6 @@ __credits__ = ['Karolina Mikulska-Ruminska', 'Eryk Trzcinski']
 __email__ = ['karolamik@fizyka.umk.pl']
 
 import numpy as np
-from numpy import *
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
 from prody.utilities import checkCoords, getCoords, isListLike
@@ -17,20 +16,22 @@ from prody.proteins import writePDB, parsePDB, parsePQR
 from prody.ensemble import Ensemble
 from prody.measure import calcCenter
 
-import multiprocessing
 from .fixer import *
 from .compare import *
 from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 
 
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
-           'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
-           'showSurfaceCavities', 'selectChannelBySelection', 'getChannelResidueNames',
+           'getChannelParameters', 'getChannelAtoms', 'showChannels', 
+           'showCavities', 'showSurfaceCavities', 'selectChannelBySelection', 
+           'getChannelResidueNames',
            'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 
            'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters',
            'getSurfaceCavityResidueNames', 'selectSurfaceCavityBySelection',
-           'calcSurfaceCavityOverlaps','getSurfaceCavityResidueNamesMultipleFrames',
-           'getSurfaceCavityParametersMultipleFrames', 'getChannelParametersMultipleFrames',
+           'calcSurfaceCavityOverlaps',
+           'getSurfaceCavityResidueNamesMultipleFrames',
+           'getSurfaceCavityParametersMultipleFrames', 
+           'getChannelParametersMultipleFrames',
            'getChannelResidueNamesMultipleFrames']
 
 
@@ -51,43 +52,53 @@ def checkAndImport(package_name):
     if PY3K:
         import importlib.util
         if importlib.util.find_spec(package_name) is None:
-            LOGGER.warn("Package " + str(package_name) + " is not installed. Please install it to use this function.")
+            LOGGER.warn("Package " + str(package_name) + " is not installed. "
+            "Please install it to use this function.")
             return False
     else:
         try:
             __import__(package_name)
         except ImportError:
-            LOGGER.warn("Package " + str(package_name) + " is not installed. Please install it to use this function.")
+            LOGGER.warn("Package " + str(package_name) + " is not installed. "
+            "Please install it to use this function.")
             return False
     
     return True
 
 
 def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
-    """Generates a 3D model of molecular structures using VMD and returns it as an Open3D TriangleMesh.
+    """Generates a 3D model of molecular structures using VMD and returns it as
+      an Open3D TriangleMesh.
 
-    This function creates a temporary PDB file from the provided atomic data and uses VMD (Visual Molecular Dynamics)
-    to render this data into an STL file, which is then loaded into Open3D as a TriangleMesh. The function handles
-    the creation and cleanup of temporary files and manages the subprocess call to VMD.
+    This function creates a temporary PDB file from the provided atomic data a
+    nd uses VMD (Visual Molecular Dynamics) to render this data into an STL 
+    file, which is then loaded into Open3D as a TriangleMesh. The function 
+    handles the creation and cleanup of temporary files and manages the 
+    subprocess call to VMD.
     
     To install Open3D use: 
-    conda install open3d (for Anaconda users; version open3d-0.19.0 was used during the developement)
-    or pip install open3d
+    conda install open3d (for Anaconda users; version open3d-0.19.0 was used 
+    during the developement) or pip install open3d
 
-    :param vmd_path: Path to the VMD executable. This is required to run VMD and execute the TCL script.
+    :arg vmd_path: Path to the VMD executable. This is required to run VMD and 
+    execute the TCL script.
     :type vmd_path: str
 
-    :param atoms: Atomic data to be written to a PDB file. This should be an object or data structure
+    :arg atoms: Atomic data to be written to a PDB file. This should be an 
+    object or data structure
         that is compatible with the `writePDB` function.
     :type atoms: object
 
-    :raises ImportError: If required libraries ('subprocess', 'pathlib', 'tempfile', 'open3d') are not installed,
-        an ImportError is raised, specifying which libraries are missing.
+    :raises ImportError: If required libraries ('subprocess', 'pathlib', 
+    'tempfile', 'open3d') are not installed, an ImportError is raised, 
+    specifying which libraries are missing.
 
-    :raises ValueError: If the STL file is not created or is empty, or if the STL file cannot be read as a TriangleMesh,
+    :raises ValueError: If the STL file is not created or is empty, or if the 
+    STL file cannot be read as a TriangleMesh,
         a ValueError is raised.
 
-    :returns: An Open3D TriangleMesh object representing the 3D model generated from the PDB data.
+    :returns: An Open3D TriangleMesh object representing the 3D model generated
+      from the PDB data.
     :rtype: open3d.geometry.TriangleMesh
 
     Example usage:
@@ -100,7 +111,8 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
         if not checkAndImport(name):
             missing.append(name)
             if errorMsg is None:
-                errorMsg = 'To run getVmdModel, please install {0}'.format(missing[0])
+                errorMsg = 'To run getVmdModel, ' \
+                'please install {0}'.format(missing[0])
             else:
                 errorMsg += ', ' + name
 
@@ -125,7 +137,8 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
     rep_key = representation.lower()
     if rep_key not in representation_map:
         raise ValueError(
-            "representation must be one of: 'NewCartoon', 'VDW', 'Surf', 'QuickSurf', or 'CPK'")
+            "representation must be one of: 'NewCartoon', 'VDW', 'Surf', " \
+            "'QuickSurf', or 'CPK'")
     representation_style = representation_map[rep_key]
 
     if PY3K:
@@ -143,7 +156,8 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
         if PY3K:
             output_path = temp_script_path.parent / "output.stl"
         else:
-            output_path = os.path.join(os.path.dirname(temp_script.name), "output.stl")
+            output_path = os.path.join(os.path.dirname(temp_script.name), 
+                                       "output.stl")
 
         vmd_script = """
         set file_path [lindex $argv 0]
@@ -165,7 +179,8 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
         
         temp_script.write(vmd_script.encode('utf-8'))
 
-    command = [vmd_path, '-e', str(temp_script_path), '-args', str(temp_pdb_path), str(output_path)]
+    command = [vmd_path, '-e', str(temp_script_path), '-args', 
+               str(temp_pdb_path), str(output_path)]
 
     try:
         if PY3K:
@@ -198,33 +213,41 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
 
 
 def showChannels(channels, model=None, surface=None):
-    """Visualizes the channels, and optionally, the molecular model and surface, using Open3D.
+    """Visualizes the channels, and optionally, the molecular model and 
+        surface, using Open3D.
     
-    This function renders a 3D visualization of molecular channels based on their spline representations.
-    It can also display a molecular model (e.g., the protein structure) and a surface (e.g., cavity surface)
-    in the same visualization. The function utilizes the Open3D library to create and render the 3D meshes.
+    This function renders a 3D visualization of molecular channels based on 
+    their spline representations. It can also display a molecular model (e.g., 
+    the protein structure) and a surface (e.g., cavity surface) in the same 
+    visualization. The function utilizes the Open3D library to create and 
+    render the 3D meshes.
 
     To install Open3D use: 
-    conda install open3d (for Anaconda users; version open3d-0.19.0 was used during the developement)
-    or pip install open3d
+    conda install open3d (for Anaconda users; version open3d-0.19.0 was used 
+    during the developement) or pip install open3d
     
-    :arg channels: A list of channel objects or a single channel object. Each channel should have a 
-        `get_splines()` method that returns two CubicSpline objects: one for the centerline and one for the radii.
+    :arg channels: A list of channel objects or a single channel object. Each 
+        channel should have a `getSplines()` method that returns two 
+        CubicSpline objects: one for the centerline and one for the radii.
     :type channels: list or single channel object
     
-    :arg model: An optional Open3D TriangleMesh object representing the molecular model, such as a protein.
-        If provided, this model will be rendered in the visualization.
+    :arg model: An optional Open3D TriangleMesh object representing the 
+        molecular model, such as a protein. If provided, this model will be 
+        rendered in the visualization.
         Model can be generated using getVmdModel() function.
     :type model: open3d.geometry.TriangleMesh, optional
     
-    :arg surface: An optional list containing the surface data. The list should have two elements:
+    :arg surface: An optional list containing the surface data. The list should
+         have two elements:
         - `points`: The coordinates of the vertices on the surface.
-        - `simp`: The simplices that define the surface (e.g., triangles or tetrahedra).
-        If provided, the surface will be rendered as a wireframe overlay in the visualization.
+        - `simp`: The simplices that define the surface (e.g., triangles or 
+           tetrahedra).
+        If provided, the surface will be rendered as a wireframe overlay in the
+         visualization.
     :type surface: list (with two numpy arrays), optional
     
-    :raises ImportError: If the Open3D library is not installed, an ImportError is raised,
-        prompting the user to install Open3D.
+    :raises ImportError: If the Open3D library is not installed, an ImportError
+        is raised, prompting the user to install Open3D.
     
     :returns: None. This function only renders the visualization.
     
@@ -243,7 +266,8 @@ def showChannels(channels, model=None, surface=None):
         centers = centerline_spline(t)
         radii = radius_spline(t)
 
-        spheres = [o3d.geometry.TriangleMesh.create_sphere(radius=r, resolution=20).translate(c) for r, c in zip(radii, centers)]
+        spheres = [o3d.geometry.TriangleMesh.create_sphere(radius=r, 
+                                                           resolution=20).translate(c) for r, c in zip(radii, centers)]
         mesh = spheres[0]
         for sphere in spheres[1:]:
             mesh += sphere
@@ -253,7 +277,7 @@ def showChannels(channels, model=None, surface=None):
     if not isinstance(channels, list):
         channels = [channels]
     
-    channel_meshes = [create_mesh_from_spline(*channel.get_splines()) for channel in channels]
+    channel_meshes = [create_mesh_from_spline(*channel.getSplines()) for channel in channels]
     meshes_to_visualize = [o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1, origin=[0, 0, 0])]
 
     if model is not None:
@@ -284,7 +308,8 @@ def showChannels(channels, model=None, surface=None):
         triangles.sort(axis=1)
             
         triangles_tuple = [tuple(tri) for tri in triangles]
-        unique_triangles, counts = np.unique(triangles_tuple, return_counts=True, axis=0)
+        unique_triangles, counts = np.unique(triangles_tuple, 
+                                             return_counts=True, axis=0)
             
         surface_triangles = unique_triangles[counts == 1]
             
@@ -309,26 +334,31 @@ def showChannels(channels, model=None, surface=None):
 def showCavities(surface, show_surface=False):
     """Visualizes the cavities within a molecular surface using Open3D.
 
-    This function displays a 3D visualization of cavities detected in a molecular structure.
-    It uses the Open3D library to render the cavities as a triangle mesh. Optionally, it can also
-    display the molecular surface as a wireframe overlay.
+    This function displays a 3D visualization of cavities detected in a 
+    molecular structure.
+    It uses the Open3D library to render the cavities as a triangle mesh. 
+    Optionally, it can also display the molecular surface as a wireframe 
+    overlay.
 
     To install Open3D use: 
-    conda install open3d (for Anaconda users; version open3d-0.19.0 was used during the developement)
-    or pip install open3d
+    conda install open3d (for Anaconda users; version open3d-0.19.0 was used 
+    during the developement) or pip install open3d
 
     :arg surface: A list containing three elements:
-        - `points`: The coordinates of the vertices (atoms) in the molecular structure.
+        - `points`: The coordinates of the vertices (atoms) in the molecular 
+        structure.
         - `surf_simp`: The simplices that define the molecular surface.
         - `simp_cavities`: The simplices corresponding to the detected cavities.
     :type surface: list (with three numpy arrays)
 
-    :arg show_surface: A boolean flag indicating whether to display the molecular surface
-        as a wireframe overlay in the visualization. If True, the surface will be displayed
-        in addition to the cavities. Default is False.
+    :arg show_surface: A boolean flag indicating whether to display the 
+        molecular surface
+        as a wireframe overlay in the visualization. If True, the surface will 
+        be displayed in addition to the cavities. Default is False.
     :type show_surface: bool
 
-    :raises ImportError: If the Open3D library is not installed, an ImportError is raised,
+    :raises ImportError: If the Open3D library is not installed, an ImportError
+      is raised,
         prompting the user to install Open3D.
 
     :returns: None
@@ -353,7 +383,8 @@ def showCavities(surface, show_surface=False):
                           sorted([tetra[0], tetra[2], tetra[3]]),
                           sorted([tetra[1], tetra[2], tetra[3]])])
         
-    surface_triangles = np.unique(np.array(triangles), axis=0, return_counts=True)[0]
+    surface_triangles = np.unique(np.array(triangles), axis=0, 
+                                  return_counts=True)[0]
         
     mesh = o3d.geometry.TriangleMesh()
     mesh.vertices = o3d.utility.Vector3dVector(points)
@@ -378,7 +409,8 @@ def showCavities(surface, show_surface=False):
         triangles.sort(axis=1)
             
         triangles_tuple = [tuple(tri) for tri in triangles]
-        unique_triangles, counts = np.unique(triangles_tuple, return_counts=True, axis=0)
+        unique_triangles, counts = np.unique(triangles_tuple, 
+                                             return_counts=True, axis=0)
             
         surface_triangles = unique_triangles[counts == 1]
             
@@ -421,7 +453,7 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
     coordinates of the supplied pseudoatoms instead of from `surface[2]` or
     `cavities`. 
     
-    :param surface: Surface data returned by :func:`calcSurfaceCavities`.
+    :arg surface: Surface data returned by :func:`calcSurfaceCavities`.
         Required for `mode='tetra'`, for `mode='smooth'` when
         `cavity_atoms` is not provided, and for displaying the molecular
         surface when `show_surface=True`. The expected list contains:
@@ -434,42 +466,43 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
     :type surface: list or None
 
-    :param cavities: List of :class:`Cavity` objects returned by
+    :arg cavities: List of :class:`Cavity` objects returned by
         :func:`calcSurfaceCavities`. Required when `mode='smooth'` and
         `cavity_atoms` is not provided, because the function uses
         `cavity.tetrahedra` to select the corresponding Voronoi vertices.
     :type cavities: list or None
 
-    :param model: Optional Open3D `TriangleMesh` representing the protein or
+    :arg model: Optional Open3D `TriangleMesh` representing the protein or
         another molecular model. The model can be generated with
         :func:`getVmdModel`.
     :type model: open3d.geometry.TriangleMesh, or None
 
-    :param show_surface: If `True`, display the molecular surface wireframe
+    :arg show_surface: If `True`, display the molecular surface wireframe
         derived from `surface[1]` in addition to the cavity representation.
         This requires `surface` to be provided. Default is `False`.
     :type show_surface: bool
 
-    :param mode: Visualization mode used when `cavity_atoms` is not provided.
+    :arg mode: Visualization mode used when `cavity_atoms` is not provided.
         Accepted values are `'tetra'` and `'smooth'`. Default is `'tetra'`.
     :type mode: str
 
-    :param alpha: Alpha value used for alpha-shape surface reconstruction in
+    :arg alpha: Alpha value used for alpha-shape surface reconstruction in
         `mode='smooth'` and when visualizing `cavity_atoms`. Smaller values
         produce tighter surfaces, while larger values may connect more distant
         points and generate broader surfaces. Default is 4.0.
     :type alpha: float
 
-    :param smoothing: Number of Taubin smoothing iterations applied to the
+    :arg smoothing: Number of Taubin smoothing iterations applied to the
         reconstructed cavity mesh. If `0` or `None`, no smoothing is
         applied. Default is 0.
     :type smoothing: int or None
 
-    :param cavity_atoms: Optional pseudoatom representation of surface
+    :arg cavity_atoms: Optional pseudoatom representation of surface
         cavities. This can be either a path to a PDB/PQR file or a parsed ProDy
         `AtomGroup`, or an Open3D `TriangleMesh` generated, for example, with 
         :func:`getVmdModel`.
-    :type cavity_atoms: str, :class:`.AtomGroup`, open3d.geometry.TriangleMesh, or None
+    :type cavity_atoms: str, :class:`.AtomGroup`, open3d.geometry.TriangleMesh,
+         or None
     
     Examples:
     p = parsePDB('1tqn')
@@ -522,8 +555,8 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
                     cavity_atoms = parsePDB(cavity_atoms)
 
             if not hasattr(cavity_atoms, 'getCoords'):
-                raise TypeError("cavity_atoms must be a PDB/PQR filename, a ProDy AtomGroup, "
-                                "or an Open3D TriangleMesh.")
+                raise TypeError("cavity_atoms must be a PDB/PQR filename, a " 
+                                "ProDy AtomGroup,or an Open3D TriangleMesh.")
 
             resnums = np.unique(cavity_atoms.getResnums())
 
@@ -564,7 +597,8 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
                     sorted([tetra[0], tetra[2], tetra[3]]),
                     sorted([tetra[1], tetra[2], tetra[3]])])
 
-            surface_triangles = np.unique(np.array(triangles), axis=0, return_counts=True)[0]
+            surface_triangles = np.unique(np.array(triangles), axis=0, 
+                                          eturn_counts=True)[0]
             cavity_mesh = o3d.geometry.TriangleMesh()
             cavity_mesh.vertices = o3d.utility.Vector3dVector(points)
             cavity_mesh.triangles = o3d.utility.Vector3iVector(surface_triangles)
@@ -610,7 +644,8 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
         triangles.sort(axis=1)
             
         triangles_tuple = [tuple(tri) for tri in triangles]
-        unique_triangles, counts = np.unique(triangles_tuple, return_counts=True, axis=0)
+        unique_triangles, counts = np.unique(triangles_tuple, 
+                                             return_counts=True, axis=0)
         surface_triangles = unique_triangles[counts == 1]
             
         lines = []
@@ -629,160 +664,201 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     restrict_channels_to_start_point=False, r1=3, r2=0.9, min_depth=10, 
-    min_volume=None, max_volume=None, max_depth=None, bottleneck=0.9, sparsity=1, 
-    min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, diagram="homogenized",
-    max_deviation=0.1, truncate_at_surface=True, similarity=0.8, max_peel_depth=None):
-    """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
+    min_volume=None, max_volume=None, max_depth=None, bottleneck=0.9, 
+    sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, 
+    diagram="homogenized", max_deviation=0.1, truncate_at_surface=True, 
+    similarity=0.8, max_peel_depth=None):
+    """Computes and identifies channels within a molecular structure using 
+    Voronoi and Delaunay tessellations.
 
-    This function analyzes the provided atomic structure to detect channels, which are voids or pathways
-    within the molecular structure. It employs Voronoi and Delaunay tessellations to identify these regions,
-    then filters and refines the detected channels based on various parameters such as the minimum depth
-    and bottleneck size. The results can be saved to a PQR file (PDB is optional) if an output path is provided. 
-    The `separate` parameter controls whether each detected channel is saved to a separate file or if all 
+    This function analyzes the provided atomic structure to detect channels, 
+    which are voids or pathways within the molecular structure. It employs 
+    Voronoi and Delaunay tessellations to identify these regions, then filters
+    and refines the detected channels based on various parameters such as the 
+    minimum depth and bottleneck size. The results can be saved to a PQR file 
+    (PDB is optional) if an output path is provided. The `separate` parameter 
+    controls whether each detected channel is saved to a separate file or if all 
     channels are saved in a single file.
 
     The implementation is inspired by the methods described in the publication:
-    "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by D. Sehnal, et al., published in 
-    J Chemoinform, 5 (39) 2013.
+    "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by
+     D. Sehnal, et al., published in J Chemoinform, 5 (39) 2013.
 
-    :param atoms: An object representing the molecular structure, typically containing atomic coordinates
-        and element types.
+    :arg atoms: An object representing the molecular structure, typically 
+        containing atomic coordinates and element types.
     :type atoms: `Atoms` object
 
-    :param output_path: Optional path to save the resulting channels and associated data in PQR (or PDB) format.
-        If None, results are not saved. Default is None.
+    :arg output_path: Optional path to save the resulting channels and 
+        associated data in PQR (or PDB) format. If None, results are not saved. 
+        Default is None.
     :type output_path: str or None
 
-    :param separate: If True, each detected channel is saved to a separate PDB file. If False, all channels
-        are saved in a single PDB file. Default is False.
+    :arg separate: If True, each detected channel is saved to a separate PDB 
+        file. If False, all channels are saved in a single PDB file. Default is
+         False.
     :type separate: bool
 
-    :param start_point: Optional starting point for channel search. This can be either a 3D coordinate point or
-        an atomic selection/AtomGroup. If the 3D coordinate point will be provided, the algorithm will use the 
-        tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
-        the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
-        If an atomic selection is provided, its geometric center is used as the starting point.
+    :arg start_point: Optional starting point for channel search. This can be 
+        either a 3D coordinate point or an atomic selection/AtomGroup. If the 
+        3D coordinate point will be provided, the algorithm will use the 
+        tetrahedron whose Voronoi vertex is closest to this point as the 
+        starting tetrahedron (overriding the default automatic seed selection 
+        based on the deepest tetrahedron). Coordinates must be given in Å.
+        If an atomic selection is provided, its geometric center is used as the
+         starting point.
     :type start_point: list, tuple, or ndarray (length 3), :class:`.Atomic`, or None
 
-    :param restrict_channels_to_start_point: Only used when ``start_point`` is provided. If True, the channel
-        search is restricted to the single cavity whose closest tetrahedron is globally nearest to
-        ``start_point``, so channels are computed only for the region around that point instead of one channel
-        bundle per detected cavity. If False (default), ``start_point`` merely overrides the seed (starting)
-        tetrahedron of every cavity and channels are still computed for all cavities.
+    :arg restrict_channels_to_start_point: Only used when ``start_point`` is 
+        provided. If True, the channel search is restricted to the single cavity
+         whose closest tetrahedron is globally nearest to ``start_point``, so 
+        channels are computed only for the region around that point instead of 
+        one channel bundle per detected cavity. If False (default), 
+        ``start_point`` merely overrides the seed (starting) tetrahedron of 
+        every cavity and channels are still computed for all cavities.
     :type restrict_channels_to_start_point: bool 
 
-    :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
-        the outer surface of the channels. Default is 3.
+    :arg r1: The first radius threshold used during the deletion of simplices, 
+        which is used to define the outer surface of the channels. Default is 3
     :type r1: float
 
-    :arg r2: The second radius threshold used to define the inner surface of the channels. Default is 0.9.
+    :arg r2: The second radius threshold used to define the inner surface of 
+        the channels. Default is 0.9.
     :type r2: float
 
-    :param min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
+    :arg min_depth: The minimum depth a cavity must have to be considered as a 
+        channel. Default is 10.
     :type min_depth: int
 
-    :param max_depth: Maximum cavity depth. Cavities deeper than this value are trimmed to the specified depth. 
-        Default is None.
+    :arg max_depth: Maximum cavity depth. Cavities deeper than this value are 
+        trimmed to the specified depth. Default is None.
     :type max_depth: int
 
-    :arg bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 0.9.
+    :arg bottleneck: The minimum allowed bottleneck size (narrowest point) for 
+        the channels. Default is 0.9.
     :type bottleneck: float
 
-    :param min_volume: Minimum volume required for a channel/cavity to be retained. Default is None.
+    :arg min_volume: Minimum volume required for a channel/cavity to be 
+        retained. Default is None.
     :type min_volume: float
 
-    :param max_volume: Maximum volume allowed for a channel/cavity to be retained. Default is None.
+    :arg max_volume: Maximum volume allowed for a channel/cavity to be 
+        retained. Default is None.
     :type max_volume: float
 
-    :arg sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
-        A higher value results in fewer sampling points. Default is 1, which enables detection of most relevant 
-        channel branches.
+    :arg sparsity: The sparsity parameter controls the sampling density when 
+        analyzing the molecular surface. A higher value results in fewer 
+        sampling points. Default is 1, which enables detection of most relevant 
+         channel branches.
     :type sparsity: int
     
-    :param diagram: 
-        "homogenized" (default) - every atom is substituted by a set of homogeneous balls whose common
-        radius equals the smallest van der Waals radius present in the structure, before building the Voronoi
-        and Delaunay tessellations. This yields an accurate estimate of the additively weighted (power) Voronoi
-        diagram from an ordinary one, as done in MolAxis and CAVER 3, instead of discarding the smaller (e.g.
-        hydrogen) atoms. 
-        "simple" - the original atoms are used with their individual van der Waals radii directly. This is very 
-        inaccurate and should be avoided at almost all cases.
+    :arg diagram: 
+        "homogenized" (default) - every atom is substituted by a set of 
+        homogeneous balls whose common radius equals the smallest van der Waals
+          radius present in the structure, before building the Voronoi and 
+          Delaunay tessellations. This yields an accurate estimate of the 
+        additively weighted Voronoi diagram from an ordinary one, as done in 
+        MolAxis and CAVER 3
+        "simple" - the original atoms are used with their individual van der 
+        Waals radii directly. This is very inaccurate and should be avoided in 
+        almost all cases.
         "weighted" - TODO
 
     :type diagram: str
 
-    :param max_deviation: Maximum tolerated deviation, in Angstrom, between the union surface of the substitute
-        balls and the original van der Waals surface when ``diagram = homogenized`` . It controls the trade-off
-        between surface accuracy and the number of balls generated: an atom whose radius exceeds the smallest
-        radius (``rho``) by more than ``max_deviation`` is filled with several balls, otherwise it is kept as a
-        single ``rho`` ball. Default is 0.1. Guideline values:
+    :arg max_deviation: Maximum tolerated deviation, in Angstrom, between the 
+        union surface of the substitute balls and the original van der Waals 
+        surface when ``diagram = homogenized`` . It controls the trade-off
+        between surface accuracy and the number of balls generated: an atom 
+        whose radius exceeds the smallest radius (``rho``) by more than 
+        ``max_deviation`` is filled with several balls, otherwise it is kept as
+         a single ``rho`` ball. Default is 0.1. Guideline values:
 
-        * ``0.1`` fine accurate surface with minimal errors, but on average 15 times more balls than original
-        * ``0.15`` in heavy-atom-only structures it startsfilling carbon, which is otherwise left as a single 
-        ball with a uniform ~0.18 A inset).
-        * ``0.2`` speed optimized ; e.g. carbon fills to ~15 balls when hydrogens are present (``rho``=1.2), 
-        resulting roughly to ~8 times more balls. Without hydrogens, carbons are single balls => 
-        only very minor expansion.
+        * ``0.1`` fine accurate surface with minimal errors, but on average 15 
+            times more balls than original
+        * ``0.15`` in heavy-atom-only structures it startsfilling carbon, which
+             is otherwise left as a single ball with a uniform ~0.18 A inset).
+        * ``0.2`` speed optimized ; e.g. carbon fills to ~15 balls when 
+            hydrogens are present (``rho``=1.2), resulting roughly to ~8 times 
+            more balls. Without hydrogens, carbons are single balls.
 
         Only used when ``diagram = homogenized``.
     :type max_deviation: float
 
-    :param truncate_at_surface: If True (default), each channel is terminated at the first surface (exit)
-        tetrahedron it reaches whose inscribed radius is at least ``bottleneck``, instead of running all the
-        way to its assigned end tetrahedron. This prevents a cheapest path from surfacing at one mouth and
-        continuing on to another, and de-duplicates the channels that collapse onto a shared mouth (keeping
-        the cheapest per terminal). If False, the original behaviour is kept (paths run to the end tetrahedra).
+    :arg truncate_at_surface: If True (default), each channel is terminated at 
+        the first surface (exit)tetrahedron it reaches whose inscribed radius 
+        is at least ``bottleneck``, instead of running all the way to its 
+        assigned end tetrahedron. This prevents a cheapest path from surfacing 
+        at one mouth and continuing on to another, and de-duplicates the 
+        channels that collapse onto a shared mouth (keeping the cheapest per 
+        terminal). If False, the original behaviour is kept (paths run to the 
+        end tetrahedra).
     :type truncate_at_surface: bool
 
-    :param similarity: Only used when ``truncate_at_surface`` is True. Fraction (0-1) of the shorter path that
-        two channels must share, as a common prefix from the seed, to be treated as the same tunnel when they
-        leave through the same surface opening. Two channels are merged (cheapest kept) only if their exit
-        points coincide (the mouth spheres they leave through overlap) AND their shared-prefix fraction is at
-        least ``similarity``; channels that exit at distinct mouths, or reach one exit by genuinely different
-        corridors (diverging early, sharing little), are kept as separate tunnels. ``1.0`` merges only paths
-        that share an exit and are otherwise identical; ``0.0`` keeps one channel per distinct exit. Default is 0.8.
+    :arg similarity: Only used when ``truncate_at_surface`` is True. Fraction 
+        (0-1) of the shorter path that two channels must share, as a common 
+        prefix from the seed, to be treated as the same tunnel when they leave
+         through the same surface opening. Two channels are merged (cheapest 
+         kept) only if their exit points coincide (the mouth spheres they leave
+         through overlap) AND their shared-prefix fraction is at least 
+         ``similarity``; channels that exit at distinct mouths, or reach one 
+        exit by genuinely different corridors (diverging early, sharing a bit),
+         are kept as separate tunnels. ``1.0`` merges only paths that share an 
+         exit and are otherwise identical; ``0.0`` keeps one channel per 
+         distinct exit. Default is 0.8.
     :type similarity: float
 
-    :param max_peel_depth: Safety cap on the bounded surface peel. After the r1 surface is built, it is eroded
-        inward with the r2 probe by ``round(r1 - r2)`` layers to strip the wide former-exterior shell (the
-        "moat") that a large r1 probe bridges over; that shell would otherwise act as a low-cost path on which
-        channels truncate and collapse. The peel is near-inert at the default ``r1``/``r2`` and grows with the
-        gap ``r1 - r2``. ``max_peel_depth`` limits the number of eroded layers, as a guard against over-peeling
-        into the interior at very large ``r1``; ``None`` (default) leaves the peel uncapped. Erosion also stops
-        early on its own once no boundary tetrahedron wider than ``r2`` remains.
+    :arg max_peel_depth: Safety cap on the bounded surface peel. After the r1 
+        surface is built, it is eroded inward with the r2 probe by 
+        ``round(r1 - r2)`` layers to strip the wide former-exterior shell (the
+        "moat") that a large r1 probe bridges over; that shell would otherwise 
+        act as a low-cost path on which channels truncate and collapse. The 
+        peel is near-inert at the default ``r1``/``r2`` and grows with the
+        gap ``r1 - r2``. ``max_peel_depth`` limits the number of eroded layers,
+         as a guard against over-peeling into the interior at large ``r1``; 
+         ``None`` (default) leaves the peel uncapped. Erosion also stops early
+        on its own once no boundary tetrahedron wider than ``r2`` remains.
     :type max_peel_depth: int or None
 
     :returns: A tuple containing two elements:
-        - `channels`: A list of detected channels, where each channel is an object containing information
-          about its path and geometry.
-        - `surface`: A list containing additional information for further visualization, including
-          the atomic coordinates, simplices defining the surface, and merged cavities.
+        - `channels`: A list of detected channels, where each channel is an 
+          object containing informationabout its path and geometry.
+        - `surface`: A list containing additional information for further 
+          visualization, including the atomic coordinates, simplices defining 
+          the surface, and merged cavities.
     :rtype: tuple (list, list)
 
     This function performs the following steps:
-    1. **Selection and Filtering:** Selects non-hetero atoms from the protein and calculates van der Waals radii. When
-       ``homogenize`` is True, each atom is replaced by homogeneous balls of the smallest radius present (MolAxis /
-       CAVER 3 approach) so that an ordinary tessellation approximates the additively weighted Voronoi diagram. It then
-       performs 3D Delaunay triangulation and Voronoi tessellation on the resulting coordinates.
-    2. **State Management:** Creates and updates different stages of channel detection of the protein structure 
-        to filter out simplices based on the given radii.
-    3. **Surface Layer Calculation:** Determines the surface and second-layer simplices from the filtered results.
-    4. **Cavity and Channel Detection:** Finds and filters cavities based on their depth and calculates channels 
-       using Dijkstra's algorithm.
-    5. **Visualization and Saving:** Generates meshes for the detected channels, filters them by bottleneck size, 
-       and either saves the results to a PDB file or visualizes them based on the specified parameters.
+    1. **Selection and Filtering:** Selects non-hetero atoms from the protein 
+        and calculates van der Waals radii. When ``homogenize`` is True, each 
+        atom is replaced by homogeneous balls of the smallest radius present 
+        so that an ordinary tessellation approximates the additively weighted 
+        Voronoi diagram. It then performs 3D Delaunay triangulation and Voronoi
+         tessellation on the resulting coordinates.
+    2. **State Management:** Creates and updates different stages of channel 
+        detection of the protein structure to filter out simplices based on the
+         given radii.
+    3. **Surface Layer Calculation:** Determines the surface and second-layer 
+        simplices from the filtered results.
+    4. **Cavity and Channel Detection:** Finds and filters cavities based on 
+        their depth and calculates channels using Dijkstra's algorithm.
+    5. **Visualization and Saving:** Generates meshes for  detected channels, 
+        filters them by bottleneck size, and either saves the results to a PDB 
+        file or visualizes them based on the specified parameters.
        
     Example usage:
     channels, surface = calcChannels(atoms, output_path="channels", separate=True)
     
-    channels, surface = calcChannels(atoms, output_path="all_channels.pdb", start_point=[-22.312, -20.065, -11.144])
+    channels, surface = calcChannels(atoms, output_path="all_channels.pdb", 
+                                     start_point=[-22.312, -20.065, -11.144])
     
     start_sel = protein.select('resid 212 309 483')
-    channels, surface = calcChannels(atoms, output_path="all_channels.pdb", start_point=start_sel)
+    channels, surface = calcChannels(atoms, output_path="all_channels.pdb", 
+                                     start_point=start_sel)
     
     To save the results as PDB file:
-    channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
-                                       bottleneck=1, sparsity=15) """
+    channels, surface = calcChannels(atoms, output_path="channels.pdb", 
+                                     separate=False, r1=3, r2=1.25, min_depth=10, 
+                                     bottleneck=1, sparsity=15) """
     
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
     missing = []
@@ -800,7 +876,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             errorMsg = ', '.join(errorMsg.split(', ')[:-1]) + ' and ' + errorMsg.split(', ')[-1]
         raise ImportError(errorMsg)
 
-    from scipy.spatial import Voronoi, Delaunay
+    from scipy.spatial import Delaunay
     
     if PY3K:
         from pathlib import Path
@@ -834,15 +910,15 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     if diagram not in ["homogenized", "weighted"]:
         atoms = atoms.select('not hetero and noh') # Excluding hydrogens
-        # TODO in fact we should perhaps do the filtering outside, as you might want heteroatoms too, e.g., HEM in CYPs
-        # for now commenting and asuming users provide what they want to analyze - adjust in documentation/tutorial
+        # TODO in fact we should perhaps do the filtering outside, as you might
+        #  want heteroatoms too, e.g., HEM in CYPs 
 
     coords = atoms.getCoords()
-    vdw_radii = calculator.get_vdw_radii(atoms.getElements())
+    vdw_radii = calculator.getVdwRadii(atoms.getElements())
 
     if diagram == "homogenized":
         LOGGER.timeit('_prody_channels_homogenize')
-        coords, vdw_radii = calculator.homogenize_atoms(coords, vdw_radii, max_deviation)
+        coords, vdw_radii = calculator.homogenizeAtoms(coords, vdw_radii, max_deviation)
         LOGGER.report("Substituted {0} atoms with {1} homogeneous balls of radius {2:.2f} A in %.2fs.".format(
             atoms.numAtoms(), len(coords), float(vdw_radii[0])), '_prody_channels_homogenize')
 
@@ -855,7 +931,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # circumcenters straight from the Delaunay paraboloid lifting, so we
     # skip the redundant second Qhull pass (scipy Voronoi). Numerically identical
     # to voro.vertices for points in general position.
-    verts = calculator.calc_circumcenters(dela)
+    verts = calculator.calcCircumcenters(dela)
     LOGGER.report('Delaunay tessellation of {0} points constructed in %.2fs.'.format(
         len(coords)), '_prody_channels_tessellation')
 
@@ -863,26 +939,26 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     s_prt = State(dela.simplices, dela.neighbors, verts)
     
     if PY3K:
-        s_tmp = State(*s_prt.get_state())
+        s_tmp = State(*s_prt.getState())
         s_prv = State(None, None, None)
     else:
-        s_tmp = apply(State, s_prt.get_state())
+        s_tmp = apply(State, s_prt.getState())
         s_prv = State(None, None, None) 
         
     while True:
-        s_prv.set_state(*s_tmp.get_state())
+        s_prv.setState(*s_tmp.getState())
         
         if PY3K:
-            #s_tmp.set_state(*calculator.delete_simplices3d(coords, *(s_tmp.get_state() + [vdw_radii, r1, True])))
-            s_tmp.set_state(*calculator.delete_simplices3d(coords, *(s_tmp.get_state() + tuple([vdw_radii, r1, True]))))
+            #s_tmp.setState(*calculator.deleteSimplices3d(coords, *(s_tmp.getState() + [vdw_radii, r1, True])))
+            s_tmp.setState(*calculator.deleteSimplices3d(coords, *(s_tmp.getState() + tuple([vdw_radii, r1, True]))))
         else:
-            tmp_state = calculator.delete_simplices3d(coords, *(s_tmp.get_state() + [vdw_radii, r1, True]))
-            s_tmp.set_state(*tmp_state)
+            tmp_state = calculator.deleteSimplices3d(coords, *(s_tmp.getState() + [vdw_radii, r1, True]))
+            s_tmp.setState(*tmp_state)
 
         if s_tmp == s_prv:
             break
         
-    s_srf = State(*s_tmp.get_state())
+    s_srf = State(*s_tmp.getState())
 
     # Bounded r2 peel (moat removal): erode the r1 surface inward with the r2 probe
     # by round(r1 - r2) layers, stripping the wide former-exterior "moat" shell that
@@ -892,44 +968,49 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     if max_peel_depth is not None:
         peel_depth = min(peel_depth, max_peel_depth)
     for _ in range(peel_depth):
-        s_next = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + tuple([vdw_radii, r2, True]))))
+        s_next = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + tuple([vdw_radii, r2, True]))))
         if s_next == s_srf:
             break
         s_srf = s_next
 
-    #s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + [vdw_radii, r2, False])))
-    s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + tuple([vdw_radii, r2, False]))))
+    #s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + [vdw_radii, r2, False])))
+    s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + tuple([vdw_radii, r2, False]))))
 
-    l_first_layer_simp, l_second_layer_simp = calculator.surface_layer(s_srf.simp, s_inr.simp, s_srf.neigh)
-    s_clr = State(*calculator.delete_section(l_first_layer_simp, *s_inr.get_state()))
+    l_first_layer_simp, l_second_layer_simp = calculator.surfaceLayer(s_srf.simp, s_inr.simp, s_srf.neigh)
+    s_clr = State(*calculator.deleteSection(l_first_layer_simp, *s_inr.getState()))
     LOGGER.report('Surface and inner simplices filtered in %.2fs.', '_prody_channels_surface')
 
     LOGGER.timeit('_prody_channels_cavities')
-    c_cavities = calculator.find_groups(s_clr.neigh)
-    c_surface_cavities = calculator.get_surface_cavities(c_cavities, s_clr.simp, l_second_layer_simp, s_clr, coords, vdw_radii, sparsity)
+    c_cavities = calculator.findGroups(s_clr.neigh)
+    c_surface_cavities = calculator.getSurfaceCavities(c_cavities, s_clr.simp, 
+                                                       l_second_layer_simp, 
+                                                       s_clr, coords, 
+                                                       vdw_radii, sparsity)
 
-    calculator.find_deepest_tetrahedra(c_surface_cavities, s_clr.neigh)
+    calculator.findDeepestTetrahedra(c_surface_cavities, s_clr.neigh)
     if start_point is not None:
-        c_surface_cavities = calculator.set_starting_tetrahedra_from_point(
+        c_surface_cavities = calculator.setStartingTetrahedraFromPoint(
             c_surface_cavities, s_clr.verti, start_point, restrict_channels_to_start_point)
 
-    c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
+    c_filtered_cavities = calculator.filterCavities(c_surface_cavities, min_depth)
     LOGGER.report('{0} surface cavities detected and filtered in %.2fs.'.format(
         len(c_filtered_cavities)), '_prody_channels_cavities')
     
     if cavities_only:
         if max_depth is not None:
-            calculator.trim_cavities_by_depth(c_filtered_cavities, max_depth)
+            calculator.trimCavitiesByDepth(c_filtered_cavities, max_depth)
 
         if min_tetrahedra is not None or max_tetrahedra is not None:
-            c_filtered_cavities = calculator.filter_cavities_by_tetrahedra(c_filtered_cavities, min_tetrahedra, max_tetrahedra)
+            c_filtered_cavities = calculator.filterCavitiesByTetrahedra(
+                c_filtered_cavities, min_tetrahedra, max_tetrahedra)
 
         calculator.calculate_cavity_volumes(c_filtered_cavities, s_clr.simp, coords)
 
         if min_volume is not None or max_volume is not None:
-            c_filtered_cavities = calculator.filter_cavities_by_volume(c_filtered_cavities, min_volume, max_volume)
+            c_filtered_cavities = calculator.filterCavitiesByVolume(
+                c_filtered_cavities, min_volume, max_volume)
     
-    merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
+    merged_cavities = calculator.mergeCavities(c_filtered_cavities, s_clr.simp)
     
     # Early-return for the calcSurfaceCavities function:
     if cavities_only:
@@ -948,7 +1029,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             else:
                 LOGGER.info("Saving multiple surface cavities to directory " + str(output_path.parent) + ".")
 
-            calculator.save_cavities_to_pdb(c_filtered_cavities, s_clr.verti, output_path, separate)
+            calculator.saveCavitiesToPdb(c_filtered_cavities, s_clr.verti, 
+                                         output_path, separate)
 
         LOGGER.report('Surface cavity calculation completed in %.2fs.', '_prody_calcChannels')
         return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp, s_clr.verti]
@@ -957,18 +1039,21 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # build the weighted adjacency matrix once for the whole cleared
     # state, then run a single multi-target Dijkstra per cavity (scipy csgraph),
     # instead of one heap Dijkstra per (seed, exit) pair.
-    simplices, neighbors, vertices = s_clr.get_state()
-    graph = calculator.build_sparse_graph(simplices, neighbors, vertices, coords, vdw_radii)
+    simplices, neighbors, vertices = s_clr.getState()
+    graph = calculator.buildSparseGraph(simplices, neighbors, vertices, coords,
+                                         vdw_radii)
     for cavity in c_filtered_cavities:
-        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices, coords, vdw_radii,
+        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices, 
+                            coords, vdw_radii,
                             truncate_at_surface, similarity)
     LOGGER.report('Channel pathfinding (graph Dijkstra) over {0} cavities completed in %.2fs.'.format(
         len(c_filtered_cavities)), '_prody_channels_pathfinding')
 
-    calculator.filter_channels_by_bottleneck(c_filtered_cavities, bottleneck)
+    calculator.filterChannelsByBottleneck(c_filtered_cavities, bottleneck)
     
     if min_volume is not None or max_volume is not None:
-        calculator.filter_channels_by_volume(c_filtered_cavities, min_volume, max_volume)
+        calculator.filterChannelsByVolume(c_filtered_cavities, min_volume, 
+                                          max_volume)
     
     channels = [channel for cavity in c_filtered_cavities for channel in cavity.channels]
     # Order channels by ascending Dijkstra cost so that channel 0 is the best
@@ -992,7 +1077,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             LOGGER.info("Saving results to " + str(output_path) + ".")
         else:
             LOGGER.info("Saving multiple results to directory " + str(output_path.parent) + ".")
-        calculator.save_channels_to_pdb(channels, output_path, separate)
+        calculator.saveChannelsToPdb(channels, output_path, separate)
     else:
         LOGGER.info("No output path given.")
 
@@ -1001,33 +1086,37 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
             
 def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, start_point=None, **kwargs):
-    """Compute channels for each frame in a given trajectory or multi-model PDB file.
+    """Compute channels for each frame in a given trajectory or multi-model PDB
+      file.
 
-    This function calculates the channels for each frame in a trajectory or for each model
-    in a multi-model PDB file. The `kwargs` can include parameters necessary for channel calculation.
-    If the `separate` parameter is set to True, each detected channel will be saved in a separate PDB file.
+    This function calculates the channels for each frame in a trajectory or for
+     each model in a multi-model PDB file. The `kwargs` can include parameters 
+     necessary for channel calculation. If the `separate` parameter is set to 
+     True, each detected channel will be saved in a separate PDB file.
 
-    :param atoms: Atomic data or object containing atomic coordinates and methods for accessing them.
+    :arg atoms: Atomic data or object containing atomic coordinates and methods for accessing them.
     :type atoms: object
 
-    :param trajectory: Trajectory object containing multiple frames or a multi-model PDB file.
+    :arg trajectory: Trajectory object containing multiple frames or a 
+        multi-model PDB file.
     :type trajectory: Atomic or Ensemble object
 
-    :param output_path: Optional path to save the resulting channels and associated data in PDB format.
-        If a directory is specified, each frame/model will have its results saved in separate files. 
-        If None, results are not saved. Default is None.
+    :arg output_path: Optional path to save the resulting channels and 
+        associated data in PDB format. If a directory is specified, each 
+        frame/model will have its results saved in separate files. If None, 
+        results are not saved. Default is None.
     :type output_path: str or None
 
-    :param separate: If True, each detected channel is saved to a separate PDB file for each frame/model.
+    :arg separate: If True, each detected channel is saved to a separate PDB file for each frame/model.
         If False, all channels for each frame/model are saved in a single file. Default is False.
     :type separate: bool
 
-    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
+    :arg start_point: Optional starting point for channel search. If provided, the algorithm will use 
         the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
         the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
     :type start_point: list, tuple, or ndarray (length 3), or None 
 
-    :param kwargs: Additional parameters required for channel calculation. This can include parameters such as
+    :arg kwargs: Additional parameters required for channel calculation. This can include parameters such as
         radius values (r1, r2), minimum depth (min_depth), bottleneck values, etc. 
         See the available parameters in calcChannels().
     :type kwargs: dict
@@ -1126,30 +1215,30 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, 
     passed directly to :func:`calcSurfaceCavities` and can include parameters
     controlling cavity detection, filtering, and output generation.
 
-    :param atoms: Atomic object containing the molecular structure. For trajectory 
+    :arg atoms: Atomic object containing the molecular structure. For trajectory 
         analysis, this object provides the reference topology and is updated with 
         coordinates from each frame. For multi-model PDB files, the individual 
         coordinate sets are analyzed one by one.
     :type atoms: :class:`.Atomic`
 
-    :param trajectory: Optional trajectory or ensemble object containing multiple
+    :arg trajectory: Optional trajectory or ensemble object containing multiple
         coordinate frames. If provided, surface cavities are calculated for each
         selected trajectory frame. If not provided, the function attempts to use
         multiple coordinate sets stored in `atoms`.
     :type trajectory: :class:`.Atomic`, :class:`.Ensemble`, or trajectory-like object
 
-    :param output_path: Optional filename used to save detected surface cavities.
+    :arg output_path: Optional filename used to save detected surface cavities.
         If provided, one output file is generated for each frame/model by
         appending the frame/model index to the file name. If `None`, results are
         returned but not written in the folder. Default is `None`.
     :type output_path: str or None
 
-    :param separate: If `True`, each detected surface cavity is saved as a separate 
+    :arg separate: If `True`, each detected surface cavity is saved as a separate 
         PQR/PDB file for each frame/model. If `False`, all cavities detected 
         in a given frame/model are saved in a single file. Default is `False`.
     :type separate: bool
 
-    :param kwargs: Additional parameters passed to :func:`calcSurfaceCavities`.
+    :arg kwargs: Additional parameters passed to :func:`calcSurfaceCavities`.
         These can include `r1`, `r2`, `min_depth`, `max_depth`,
         `min_tetrahedra`, `max_tetrahedra`, `min_volume`, `max_volume`,
         `sparsity`, `start_frame`, and `stop_frame`.
@@ -1215,9 +1304,12 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, 
 
             if output_path:
                 cavities, surface = calcSurfaceCavities(atoms_copy,
-                    output_path=str(output_path) + "{0}.pqr".format(j0), separate=separate, **kwargs)
+                    output_path=str(output_path) + "{0}.pqr".format(j0), 
+                    separate=separate, **kwargs)
             else:
-                cavities, surface = calcSurfaceCavities(atoms_copy, separate=separate, **kwargs)
+                cavities, surface = calcSurfaceCavities(atoms_copy, 
+                                                        separate=separate, 
+                                                        **kwargs)
 
             cavities_all.append(cavities)
             surfaces_all.append(surface)
@@ -1258,7 +1350,8 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, 
 
 
 def parseParameters(channels, **kwargs):
-    """Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels. """
+    """Extracts and returns the lengths, bottlenecks, and volumes of each 
+    channel in a given list of channels. """
     
     lengths = []
     bottlenecks = []
@@ -1278,24 +1371,28 @@ def parseParameters(channels, **kwargs):
 
 
 def getChannelParameters(channels, **kwargs):
-    """Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels.
+    """Extracts and returns the lengths, bottlenecks, and volumes of each 
+    channel in a given list of channels.
 
-    This functaaion iterates through a list of channel objects, extracting the length, bottleneck, 
-    and volume of each channel. These values are collected into separate lists, which are returned 
-    as a tuple for further use.
+    This functaaion iterates through a list of channel objects, extracting the 
+    length, bottleneck,and volume of each channel. These values are collected 
+    into separate lists, which are returned as a tuple for further use.
 
-    :arg channels: A list of channel objects, where each channel has attributes `length`, `bottleneck`, 
-        and `volume`. These attributes represent the length of the channel, the minimum radius 
-        (bottleneck) along its path, and the total volume of the channel, respectively.
+    :arg channels: A list of channel objects, where each channel has attributes
+      `length`, `bottleneck`,and `volume`. These attributes represent the 
+      length of the channel, the minimum radius (bottleneck) along its path, 
+      and the total volume of the channel, respectively.
     :type channels: list
 
-    :arg param_file_name: The files with parameters will be saved in a text file with the provided name.
-        Use one word which will be added to '_Parameters_All_channels.txt' sufix.
-        If further analysis will be performed with selectChannelBySelection() function, the preferable 
+    :arg param_file_name: The files with parameters will be saved in a text 
+        file with the provided name.Use one word which will be added to 
+        '_Parameters_All_channels.txt' sufix. If further analysis will be 
+        performed with selectChannelBySelection() function, the preferable 
         param_file_name is PDB+chain for example: '1bbhA'.
     :type param_file_name: str 
 
-    :returns: Three lists containing the lengths, bottlenecks, and volumes of the channels.
+    :returns: Three lists containing the lengths, bottlenecks, and volumes of 
+        the channels.
     :rtype: tuple (list, list, list)
 
     Example usage:
@@ -1307,7 +1404,9 @@ def getChannelParameters(channels, **kwargs):
     try:
         results_L_B_V = parseParameters(channels, **kwargs)
         lengths, bottlenecks, volumes = results_L_B_V
-        LOGGER.info("Channel {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Length [Å]', 'Bottleneck [Å]'))
+        LOGGER.info("Channel {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]',
+                                                             'Length [Å]', 
+                                                             'Bottleneck [Å]'))
         for i in range(len(lengths)):
             LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
         return results_L_B_V
@@ -1318,7 +1417,9 @@ def getChannelParameters(channels, **kwargs):
             results = parseParameters(channels[nr_i], param_file_name=safe_param_file_name + str(nr_i))
             multi_model_param.append(results) 
             
-        LOGGER.info("Channel {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Length [Å]', 'Bottleneck [Å]'))
+        LOGGER.info("Channel {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 
+                                                            'Length [Å]', 
+                                                            'Bottleneck [Å]'))
         for frame_nr, frame in enumerate(multi_model_param):
             lengths, bottlenecks, volumes = frame
             LOGGER.info("Frame {0}".format(frame_nr))
@@ -1420,7 +1521,9 @@ def getSurfaceCavityParameters(cavities, **kwargs):
         results_V_D_T = parseSurfaceCavityParameters(cavities, **kwargs)
         volumes, depths, tetrahedra_counts = results_V_D_T
 
-        LOGGER.info("Cavity {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Depth [Å]', 'Tetrahedra count'))
+        LOGGER.info("Cavity {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 
+                                                           'Depth [Å]', 
+                                                           'Tetrahedra count'))
 
         for i in range(len(volumes)):
             LOGGER.info("cavity {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i], 2), np.round(depths[i], 2),
@@ -1435,7 +1538,9 @@ def getSurfaceCavityParameters(cavities, **kwargs):
                 param_file_name=safe_param_file_name + str(nr_i))
             multi_model_param.append(results)
 
-        LOGGER.info("Cavity {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Depth [Å]', 'Tetrahedra count'))
+        LOGGER.info("Cavity {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 
+                                                           'Depth [Å]', 
+                                                           'Tetrahedra count'))
 
         for frame_nr, frame in enumerate(multi_model_param):
             volumes, depths, tetrahedra_counts = frame
@@ -1477,30 +1582,35 @@ def getSurfaceCavityParametersMultipleFrames(cavities_all, **kwargs):
 
 
 def getChannelAtoms(channels, protein=None, num_samples=5):
-    """Generates an AtomGroup object representing the atoms along the paths of the given channels
-    and optionally combines them with an existing protein structure.
+    """Generates an AtomGroup object representing the atoms along the paths of 
+    the given channels and optionally combines them with an existing protein 
+    structure.
 
-    This function takes a list of channel objects and generates atomic representations of the
-    channels based on their centerline splines and radius splines. The function samples points
-    along each channel's centerline and assigns atom positions at these points with corresponding
-    radii, creating a list of PDB-formatted lines. These lines are then converted into an AtomGroup
-    object using the ProDy library. If a protein structure is provided, it is combined with the
-    generated channel atoms by merging their respective PDB streams.
+    This function takes a list of channel objects and generates atomic 
+    representations of the channels based on their centerline splines and 
+    radius splines. The function samples points along each channel's centerline
+     and assigns atom positions at these points with corresponding radii, 
+    creating a list of PDB-formatted lines. These lines are then converted 
+    into an AtomGroup object using the ProDy library. If a protein structure is
+     provided, it is combined with the generated channel atoms by merging their
+     respective PDB streams.
 
-    :param channels: A list of channel objects. Each channel has a method `get_splines()` that
+    :arg channels: A list of channel objects. Each channel has a method 
+        `getSplines()` that
         returns the centerline spline and radius spline of the channel.
     :type channels: list
 
-    :param protein: An optional AtomGroup object representing a protein structure. If provided, 
-        it will be combined with the generated channel atoms.
+    :arg protein: An optional AtomGroup object representing a protein structure.
+        If provided, it will be combined with the generated channel atoms.
     :type protein: prody.atomic.AtomGroup or None
 
-    :param num_samples: The number of atom samples to generate along each segment of the channel.
-        More samples result in a finer representation of the channel. Default is 5.
+    :arg num_samples: The number of atom samples to generate along each segment
+         of the channel.More samples result in a finer representation of the 
+         channel. Default is 5.
     :type num_samples: int
 
-    :returns: An AtomGroup object representing the combined atoms of the channels and the protein,
-        if a protein is provided.
+    :returns: An AtomGroup object representing the combined atoms of the 
+        channels and the protein, if a protein is provided.
     :rtype: prody.atomic.AtomGroup
 
     Example usage:
@@ -1526,13 +1636,15 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
         channels = [channels]
     
     for channel in channels:
-        centerline_spline, radius_spline = channel.get_splines()
+        centerline_spline, radius_spline = channel.getSplines()
         samples = len(channel.tetrahedra) * num_samples
         t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
         centers = centerline_spline(t)
         radii = radius_spline(t)
 
-        for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
+        for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], 
+                                                  centers[:, 2], radii), 
+                                                  start=atom_index):
             pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
     
     if protein is not None:
@@ -1564,17 +1676,19 @@ def getChannelResidueNames(atoms, channels, **kwargs):
     :arg atoms: an Atomic object from which residues are selected 
     :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
 
-    :param channels: A list of channel objects. Each channel has a method `get_splines()` that
-        returns the centerline spline and radius spline of the channel.
+    :arg channels: A list of channel objects. Each channel has a method 
+        `getSplines()` that returns the centerline spline and radius spline of 
+        the channel.
     :type channels: list
 
     :arg distA: Residues will be provided based on this value.
         default is 4 [Ang]
     :type distA: int, float 
     
-    :arg residues_file_name: The file with residues will be saved in a text file with the provided name.
-        Use one word which will be added to '_Residues_All_channels.txt' sufix.
-        If further analysis will be performed with selectChannelBySelection() function, the preferable 
+    :arg residues_file_name: The file with residues will be saved in a text 
+        file with the provided name. Use one word which will be added to 
+        '_Residues_All_channels.txt' sufix. If further analysis will be 
+        performed with selectChannelBySelection() function, the preferable 
         residues_file_name is PDB+chain for example: '1bbhA'.
     :type residues_file_name: str  
     
@@ -1779,7 +1893,8 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     :type distA: int, float
 
     :arg residues_file_name: The file with residues will be saved in a text file
-        with the provided name. The suffix '_Residues_All_surface_cavities.txt' will be added.
+        with the provided name. The suffix '_Residues_All_surface_cavities.txt' 
+        will be added.
     :type residues_file_name: str
 
     :arg one_letter_aa: Whether to apply one-letter code to residue names.
@@ -1859,13 +1974,17 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     return selected_residues_cav
 
 
-def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all, surfaces_all, trajectory=None, **kwargs):
-    """Provides residue names for surface cavities calculated for multiple frames/models.
+def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all, 
+                                               surfaces_all, 
+                                               trajectory=None, **kwargs):
+    """Provides residue names for surface cavities calculated for multiple 
+    frames/models.
 
     This function is a multi-frame wrapper for :func:`getSurfaceCavityResidueNames`. 
-    For each model or trajectory frame, the atomic coordinates are matched with the 
-    corresponding surface cavity prediction. Thus, cavities calculated for frame/model ``i`` 
-    are analyzed against the protein coordinates from frame/model ``i``.
+    For each model or trajectory frame, the atomic coordinates are matched with
+      the corresponding surface cavity prediction. Thus, cavities calculated 
+    for frame/model ``i`` are analyzed against the protein coordinates from 
+    frame/model ``i``.
 
     This function should be used with results returned by :func:`calcSurfaceCavitiesMultipleFrames`.
 
@@ -1914,7 +2033,8 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all, surfaces_all
     
     if trajectory is None:
         # multi-model PDB
-        for frame_pos, (cavities, surface) in enumerate(zip(cavities_all, surfaces_all)):
+        for frame_pos, (cavities, surface) in enumerate(zip(cavities_all, 
+                                                            surfaces_all)):
             model_index = start_frame + frame_pos
             atoms.setACSIndex(model_index)
 
@@ -1952,8 +2072,8 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all, surfaces_all
 
 
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
-    """Select PQR files with channels that are having FIL residues within certain distance (distA) from 
-    selected residue (temporarly one residue).
+    """Select PQR files with channels that are having FIL residues within 
+    certain distance (distA) from selected residue (temporarly one residue).
     If not all files should be included use pqr_files to provide the new list. 
     For example:
     pqr_files = [file for file in os.listdir('.') if file.startswith('7lafA_') and file.endswith('.pqr')]
@@ -1967,18 +2087,19 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     :type residue_sele: str
    
     :arg pqr_files: list of PQR files to analyze
-                    default is False, which means that all .pqr files from the current directory will be analyzed.
+                    default is False, which means that all .pqr files from the 
+                    current directory will be analyzed.
     :type pqr_files: bool or list
     
     :arg folder_name: The name of the folder to which PDBs will be extracted
     :type folder_name: str
 
-    :arg distA: non-zero value, maximal distance from selected region to channel (FIL atoms)
-                default is 5
+    :arg distA: non-zero value, maximal distance from selected region to 
+        channel (FIL atoms)default is 5
     :type distA: int, float 
         
-    :arg residues_file: File with residues forming the channel created by getChannelResidues()
-                        default is False 
+    :arg residues_file: File with residues forming the channel created by 
+        getChannelResidues(), default is False 
     :type residues_file: bool
 
     :arg param_file: File with residues forming the channel created by getChannelParameters()
@@ -1996,7 +2117,6 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
                             'with `getCoords` method')
     
     import os, shutil
-    import numpy as np
     
     pqr_files = kwargs.pop('pqr_files', False)
     distA = kwargs.pop('distA', 5)
@@ -2007,8 +2127,10 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     object_name = kwargs.pop('object_name', 'channel')
     residues_suffix = kwargs.pop('residues_suffix', '_Residues_All_channels.txt')
     parameters_suffix = kwargs.pop('parameters_suffix', '_Parameters_All_channels.txt')
-    selected_residues_output = kwargs.pop('selected_residues_output', 'Selected_channel_residues.txt')
-    selected_parameters_output = kwargs.pop('selected_parameters_output', 'Selected_channel_parameters.txt')
+    selected_residues_output = kwargs.pop('selected_residues_output', 
+                                          'Selected_channel_residues.txt')
+    selected_parameters_output = kwargs.pop('selected_parameters_output', 
+                                            'Selected_channel_parameters.txt')
 
     copied_files_list = []
     
@@ -2118,15 +2240,17 @@ def selectSurfaceCavityBySelection(atoms, residue_sele, **kwargs):
     kwargs.setdefault('object_name', 'cavity')
     kwargs.setdefault('residues_suffix', '_Residues_All_surface_cavities.txt')
     kwargs.setdefault('parameters_suffix', '_Parameters_All_surface_cavities.txt')
-    kwargs.setdefault('selected_residues_output', 'Selected_surface_cavity_residues.txt')
-    kwargs.setdefault('selected_parameters_output', 'Selected_surface_cavity_parameters.txt')
+    kwargs.setdefault('selected_residues_output', 
+                      'Selected_surface_cavity_residues.txt')
+    kwargs.setdefault('selected_parameters_output', 
+                      'Selected_surface_cavity_parameters.txt')
 
     return selectChannelBySelection(atoms, residue_sele, **kwargs)
 
 
 def calcChannelSurfaceOverlaps(**kwargs):
-    """Calculate overlapping parts of the predicted channels, tunnels, and pores denote as 'FIL' atoms.
-    Results are normalized within [0,1].
+    """Calculate overlapping parts of the predicted channels, tunnels, and 
+    pores denote as 'FIL' atoms. Results are normalized within [0,1].
 
     :arg resolution: Surface sampling resolution.
         default is 0.5
@@ -2135,14 +2259,16 @@ def calcChannelSurfaceOverlaps(**kwargs):
     :arg output_file_name: The name of the PDB file with overlapping surfaces.
     :type output_file_name: str
 
-    :arg pqr_files: File with residues forming the channel created by getChannelResidues()
-        default is False (then all the files from the current directory will be analyzed)
-        when providing a list, only the PDBs from list will be analyzed
-        when providing str, it will be treated as a folder path  
+    :arg pqr_files: File with residues forming the channel created by 
+        getChannelResidues() default is False (then all the files from the 
+        current directory will be analyzed)when providing a list, only the PDBs
+         from list will be analyzedwhen providing str, it will be treated as a 
+        folder path  
     :type pqr_files: bool, list or str
     
     Example usage:
-    calcChannelSurfaceOverlaps() - all the files in the current directory will be analyzed
+    calcChannelSurfaceOverlaps() - all the files in the current directory will 
+    be analyzed
     
     calcChannelSurfaceOverlaps(pqr_files='./DATA', output_file_name='results.pdb') - only files from 
     the DATA folder will be analyzed and results will be saved as results.pdb
@@ -2263,73 +2389,88 @@ def calcSurfaceCavityOverlaps(**kwargs):
     return calcChannelSurfaceOverlaps(**kwargs)
 
 
-def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, max_depth=3, 
-    min_tetrahedra=None, max_tetrahedra=None, min_volume=50, max_volume=None,
-    sparsity=15, separate=False):
-    """Calculate surface cavities (pockets) on protein surface using CaviTracer approach.
+def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, 
+                        max_depth=3, min_tetrahedra=None, max_tetrahedra=None, 
+                        min_volume=50, max_volume=None, sparsity=15, 
+                        separate=False):
+    """Calculate surface cavities (pockets) on protein surface using CaviTracer 
+    approach.
 
-    :param atoms: An object representing the molecular structure, typically containing atomic coordinates
-        and element types.
+    :arg atoms: An object representing the molecular structure, typically 
+        containing atomic coordinates and element types.
     :type atoms: `Atoms` object
 
-    :param output_path: Optional path to save the resulting cavities and associated data in PQR (or PDB) format.
-        If None, results are not saved. Default is None.
+    :arg output_path: Optional path to save the resulting cavities and 
+        associated data in PQR (or PDB) format. If None, results are not saved.
+         Default is None.
     :type output_path: str or None
 
-    :param separate: If True, each detected cavity is saved to a separate PQR file. If False, all cavities
-        are saved in a single PQR file. Default is False.
+    :arg separate: If True, each detected cavity is saved to a separate PQR 
+        file. If False, all cavities are saved in a single PQR file. Default is
+         False.
     :type separate: bool
 
-    :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
-        the outer surface of the cavities. Default is 4.5.
+    :arg r1: The first radius threshold used during the deletion of simplices, 
+        which is used to define the outer surface of the cavities. Default is 4.5.
     :type r1: float
 
-    :param r2: The second radius threshold used to define the inner surface of the cavities. Default is 2.
+    :arg r2: The second radius threshold used to define the inner surface of 
+        the cavities. Default is 2.
     :type r2: float
 
-    :param min_depth: The minimum depth a cavity must have to be considered as a cavity. Default is 2.
+    :arg min_depth: The minimum depth a cavity must have to be considered as a 
+        cavity. Default is 2.
     :type min_depth: int
 
-    :param max_depth: Maximum cavity depth. Cavities deeper than this value are trimmed to the specified depth. 
-        Default is 3.
+    :arg max_depth: Maximum cavity depth. Cavities deeper than this value are 
+        trimmed to the specified depth. Default is 3.
     :type max_depth: int
 
-    :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
-        A higher value results in fewer sampling points. Default is 15.
+    :arg sparsity: The sparsity parameter controls the sampling density when 
+        analyzing the molecular surface.A higher value results in fewer 
+        sampling points. Default is 15.
     :type sparsity: int
 
-    :param min_tetrahedra: Minimum number of tetrahedra required for a cavity to be retained. 
-        Smaller cavities are discarded. Default is None.
+    :arg min_tetrahedra: Minimum number of tetrahedra required for a cavity to 
+        be retained. Smaller cavities are discarded. Default is None.
     :type min_tetrahedra: int
 
-    :param max_tetrahedra: Maximum number of tetrahedra allowed for a cavity to be retained.
-        Larger cavities are discarded. Default is None.
+    :arg max_tetrahedra: Maximum number of tetrahedra allowed for a cavity to 
+        be retained. Larger cavities are discarded. Default is None.
     :type max_tetrahedra: int
 
-    :param min_volume: Minimum volume required for a channel/cavity to be retained. Default is 50.
+    :arg min_volume: Minimum volume required for a channel/cavity to be 
+        retained. Default is 50.
     :type min_volume: float
 
-    :param max_volume: Maximum volume allowed for a channel/cavity to be retained. Default is None.
+    :arg max_volume: Maximum volume allowed for a channel/cavity to be 
+        retained. Default is None.
     :type max_volume: float
 
     :returns: A tuple containing two elements:
-        - `cavities`: A list of detected cavities, where each channel is an object containing information
-          about its path and geometry.
-        - `surface`: A list containing additional information for further visualization, including
-          the atomic coordinates, simplices defining the surface, and merged cavities.
+        - `cavities`: A list of detected cavities, where each channel is an 
+            object containing information about its path and geometry.
+        - `surface`: A list containing additional information for further 
+            visualization, includingthe atomic coordinates, simplices defining 
+            the surface, and merged cavities.
     :rtype: tuple (list, list)
 
     This function performs the following steps:
-    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, 
-        and performs 3D Delaunay triangulation and Voronoi tessellation on the coordinates.
-    2. **Surface and Interior Filtering:** Iteratively removes simplices based on the user-defined radii 
-        (`r1` and `r2`) to distinguish the molecular surface from the internal void space.
-    3. **Surface Cavity Identification:** Detects connected void regions and identifies those that remain 
-        connected to the protein surface, corresponding to surface-accessible cavities and pockets.
-    4. **Depth Calculation and Filtering:** Estimates cavity depth using a graph-based traversal from the cavity 
-        openings, identifies the deepest tetrahedra, and filters cavities according to the specified depth criteria.
-    5. **Output Generation:** Optionally trims cavities exceeding the specified	maximum depth, saves detected 
-        cavities to PDB/PQR files, and returns cavity objects together with the surface representation for further 
+    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, 
+        calculates van der Waals radii, and performs 3D Delaunay triangulation 
+        and Voronoi tessellation on the coordinates.
+    2. **Surface and Interior Filtering:** Iteratively removes simplices based 
+        on the user-defined radii (`r1` and `r2`) to distinguish the molecular 
+        surface from the internal void space.
+    3. **Surface Cavity Identification:** Detects connected void regions and 
+        identifies those that remain connected to the protein surface, 
+        corresponding to surface-accessible cavities and pockets.
+    4. **Depth Calculation and Filtering:** Estimates cavity depth using a 
+        graph-based traversal from the cavity openings, identifies the deepest
+         tetrahedra, and filters cavities according to the specified depth criteria.
+    5. **Output Generation:** Optionally trims cavities exceeding the specified
+    	maximum depth, saves detected cavities to PDB/PQR files, and returns 
+        cavity objects together with the surface representation for further 
         analysis and visualization.
        
     Example usage:
@@ -2352,7 +2493,8 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, ma
 
 
 class Channel:
-    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume, cost=None):
+    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, 
+                 bottleneck, volume, cost=None):
         self.tetrahedra = tetrahedra
         self.centerline_spline = centerline_spline
         self.radius_spline = radius_spline
@@ -2365,9 +2507,9 @@ class Channel:
         self.cost = cost
         # curvature: path length / straight-line end-to-end distance
         # (dimensionless, >= 1; 1.0 == perfectly straight).
-        self.curvature = self._compute_curvature()
+        self.curvature = self._computeCurvature()
 
-    def _compute_curvature(self):
+    def _computeCurvature(self):
         """Path length divided by straight-line end-to-end distance."""
         x = self.centerline_spline.x
         start = np.asarray(self.centerline_spline(x[0]))
@@ -2377,7 +2519,7 @@ class Channel:
             return float('nan')
         return float(self.length / straight)
 
-    def get_splines(self):
+    def getSplines(self):
         return self.centerline_spline, self.radius_spline
     
     
@@ -2394,12 +2536,12 @@ class State:
                 np.array_equal(self.neigh, other.neigh) and
                 np.array_equal(self.verti, other.verti))
         
-    def set_state(self, simplices, neighbors, vertices):
+    def setState(self, simplices, neighbors, vertices):
         self.simp = simplices
         self.neigh = neighbors
         self.verti = vertices
         
-    def get_state(self):
+    def getState(self):
         return self.simp, self.neigh, self.verti
 
 class Cavity:
@@ -2412,24 +2554,24 @@ class Cavity:
         self.tetrahedra_depths = {}
         self.volume = 0.0
         
-    def make_surface(self):
+    def makeSurface(self):
         self.is_connected_to_surface = True
         
-    def set_exit_tetrahedra(self, exit_tetrahedra, end_tetrahedra):
+    def setExitTetrahedra(self, exit_tetrahedra, end_tetrahedra):
         self.exit_tetrahedra = exit_tetrahedra
         self.end_tetrahedra = end_tetrahedra
         
-    def set_starting_tetrahedron(self, tetrahedron):
+    def setStartingTetrahedron(self, tetrahedron):
         self.starting_tetrahedron = tetrahedron
         
-    def set_depth(self, depth):
+    def setDepth(self, depth):
         self.depth = depth
         
-    def add_channel(self, channel):
+    def addChannel(self, channel):
         self.channels.append(channel)
     
         
-def _rows_isin(a, b):
+def _rowsIsin(a, b):
     """Boolean mask marking which rows of 2D integer array ``a`` occur as a row
     in 2D array ``b`` (exact, order-sensitive match).
 
@@ -2449,7 +2591,8 @@ def _rows_isin(a, b):
 
 
 class ChannelCalculator:
-    def __init__(self, atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
+    def __init__(self, atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, 
+                 sparsity=15):
         self.atoms = atoms
         self.r1 = r1
         self.r2 = r2
@@ -2457,14 +2600,15 @@ class ChannelCalculator:
         self.bottleneck = bottleneck
         self.sparsity = sparsity
         
-    def sphere_fit(self, vertices, tetrahedron, vertice, vdw_radii, r):
-        center = vertice
-        d_sum = sum(np.linalg.norm(center - vertices[atom]) for atom in tetrahedron)
-        r_sum = sum(r + vdw_radii[atom] for atom in tetrahedron)
+    # def sphereFit(self, vertices, tetrahedron, vertice, vdw_radii, r):
+    #     center = vertice
+    #     d_sum = sum(np.linalg.norm(center - vertices[atom]) for atom in tetrahedron)
+    #     r_sum = sum(r + vdw_radii[atom] for atom in tetrahedron)
         
-        return d_sum >= r_sum
+    #     return d_sum >= r_sum
 
-    def delete_simplices3d(self, points, simplices, neighbors, vertices, vdw_radii, r, surface):
+    def deleteSimplices3d(self, points, simplices, neighbors, vertices, 
+                          vdw_radii, r, surface):
         simplices = np.asarray(simplices)
         neighbors = np.asarray(neighbors)
         vertices = np.asarray(vertices)
@@ -2473,7 +2617,7 @@ class ChannelCalculator:
         if n == 0:
             return simplices, neighbors, vertices
 
-        # Vectorized sphere_fit: for each tetrahedron compare the sum of distances
+        # Vectorized sphereFit: for each tetrahedron compare the sum of distances
         # from its Voronoi vertex to its 4 atoms against the sum of (r + vdw_radius)
         # over those atoms. In the surface pass only boundary tetrahedra (those with
         # a -1 neighbour) can ever be deleted, so restrict the expensive norm to that
@@ -2508,7 +2652,8 @@ class ChannelCalculator:
 
         return simp, neigh, verti
 
-    def delete_section(self, simplices_subset, simplices, neighbors, vertices, reverse=False):
+    def deleteSection(self, simplices_subset, simplices, neighbors, vertices, 
+                      reverse=False):
         simplices = np.asarray(simplices)
         neighbors = np.asarray(neighbors)
         vertices = np.asarray(vertices)
@@ -2520,7 +2665,7 @@ class ChannelCalculator:
         # Which rows of `simplices` also appear in `simplices_subset` (exact,
         # order-sensitive row match via hashed membership instead of the former
         # O(n x len(subset)) per-row scan).
-        matches = _rows_isin(simplices, np.asarray(simplices_subset))
+        matches = _rowsIsin(simplices, np.asarray(simplices_subset))
         keep = matches if reverse else ~matches
 
         simp = simplices[keep]
@@ -2533,7 +2678,7 @@ class ChannelCalculator:
 
         return simp, neigh, verti
 
-    def get_vdw_radii(self, atoms):
+    def getVdwRadii(self, atoms):
         vdw_radii_dict = {
             'H': 1.20, 'HE': 1.40, 'LI': 1.82, 'BE': 1.53, 'B': 1.92, 'C': 1.70,
             'N': 1.55, 'O': 1.52, 'F': 1.47, 'NE': 1.54, 'NA': 2.27, 'MG': 1.73,
@@ -2549,12 +2694,9 @@ class ChannelCalculator:
         
         return np.array([vdw_radii_dict[atom] for atom in atoms])
 
-    def _fibonacci_sphere(self, n):
+    def _fibonacciSphere(self, n):
         """Return ``n`` roughly evenly distributed unit vectors on a sphere using
         the Fibonacci (golden spiral) lattice."""
-        # np.maximum (elementwise, no axis arg) rather than builtin max(): the
-        # module's `from numpy import *` shadows max() with np.max, whose second
-        # positional arg is an axis and crashes under numpy >= 2.0.
         n = int(np.maximum(1, n))
         indices = np.arange(n) + 0.5
         phi = np.arccos(1.0 - 2.0 * indices / n)
@@ -2564,7 +2706,7 @@ class ChannelCalculator:
         z = np.cos(phi)
         return np.stack([x, y, z], axis=1)
 
-    def _shell_point_count(self, rad, rho, max_deviation):
+    def _shellPointCount(self, rad, rho, max_deviation):
         """Number of equal balls of radius ``rho`` to place on a shell of radius
         ``rad`` so that the outer envelope of their union stays within
         ``max_deviation`` of ``rad + rho``.
@@ -2578,9 +2720,6 @@ class ChannelCalculator:
         """
         r = rad + rho - max_deviation
         cos_alpha = (rad * rad + r * r - rho * rho) / (2.0 * rad * r)
-        # Use np.clip rather than builtin min/max: `from numpy import *` shadows
-        # the builtins with numpy reductions, whose second positional arg is an
-        # axis, which crashes on a float under numpy >= 2.0.
         cos_alpha = float(np.clip(cos_alpha, -1.0, 1.0))
         if cos_alpha >= 1.0:
             return 1
@@ -2595,7 +2734,7 @@ class ChannelCalculator:
         # breaks large-atom accuracy - tune max_deviation instead to change cost.
         return int(np.ceil(4.0 / (1.0 - cos_alpha)))
 
-    def homogenize_atoms(self, coords, vdw_radii, max_deviation=0.2):
+    def homogenizeAtoms(self, coords, vdw_radii, max_deviation=0.2):
         """Substitute every atom by a set of homogeneous balls whose common radius
         equals the smallest van der Waals radius present in the structure.
 
@@ -2644,15 +2783,15 @@ class ChannelCalculator:
             for rad in shell_radii:
                 if rad <= tol:
                     continue
-                n = self._shell_point_count(rad, rho, max_deviation)
-                new_points.extend(center + rad * self._fibonacci_sphere(n))
+                n = self._shellPointCount(rad, rho, max_deviation)
+                new_points.extend(center + rad * self._fibonacciSphere(n))
 
         new_points = np.array(new_points)
         new_radii = np.full(len(new_points), rho)
 
         return new_points, new_radii
     
-    def surface_layer(self, shape_simplices, filtered_simplices, shape_neighbors):
+    def surfaceLayer(self, shape_simplices, filtered_simplices, shape_neighbors):
         shape_simplices = np.asarray(shape_simplices)
         shape_neighbors = np.asarray(shape_neighbors)
         filtered_simplices = np.asarray(filtered_simplices)
@@ -2665,7 +2804,7 @@ class ChannelCalculator:
         interior_simplices = shape_simplices[~boundary]
 
         # Row-membership tests replace the former (N, M, 4) broadcast temporaries.
-        surf_keep = _rows_isin(surface_simplices, filtered_simplices)
+        surf_keep = _rowsIsin(surface_simplices, filtered_simplices)
         filtered_surface_simplices = surface_simplices[surf_keep]
         filtered_surface_neighbors = surface_neighbors[surf_keep]
 
@@ -2673,17 +2812,17 @@ class ChannelCalculator:
         filtered_surface_neighbors = filtered_surface_neighbors[filtered_surface_neighbors != 0]
 
         filtered_interior_simplices = interior_simplices[
-            _rows_isin(interior_simplices, filtered_simplices)]
+            _rowsIsin(interior_simplices, filtered_simplices)]
 
         surface_layer_neighbor_simplices = shape_simplices[filtered_surface_neighbors]
 
         second_layer = filtered_interior_simplices[
-            _rows_isin(filtered_interior_simplices, surface_layer_neighbor_simplices)]
+            _rowsIsin(filtered_interior_simplices, surface_layer_neighbor_simplices)]
 
         return filtered_surface_simplices, second_layer
 
             
-    def find_groups(self, neigh, is_cavity=True):
+    def findGroups(self, neigh, is_cavity=True):
         x = neigh.shape[0]
         visited = np.zeros(x, dtype=bool)
         groups = []
@@ -2709,7 +2848,8 @@ class ChannelCalculator:
             
         return groups
 
-    def get_surface_cavities(self, cavities, interior_simplices, second_layer, state, points, vdw_radii, sparsity):
+    def getSurfaceCavities(self, cavities, interior_simplices, second_layer, 
+                           state, points, vdw_radii, sparsity):
         surface_cavities = []
         
         for cavity in cavities:
@@ -2717,16 +2857,16 @@ class ChannelCalculator:
             second_layer_mask = np.isin(interior_simplices[tetrahedra], second_layer).all(axis=1)
             
             if np.any(second_layer_mask):
-                cavity.make_surface()
+                cavity.makeSurface()
                 exit_tetrahedra = tetrahedra[second_layer_mask]
-                end_tetrahedra = self.get_end_tetrahedra(exit_tetrahedra, state.verti, points, vdw_radii, state.simp, sparsity)
-                cavity.set_exit_tetrahedra(exit_tetrahedra, end_tetrahedra)
+                end_tetrahedra = self.getEndTetrahedra(exit_tetrahedra, state.verti, points, vdw_radii, state.simp, sparsity)
+                cavity.setExitTetrahedra(exit_tetrahedra, end_tetrahedra)
                 surface_cavities.append(cavity)
                 
         return surface_cavities
 
 
-    def merge_cavities(self, cavities, simplices):
+    def mergeCavities(self, cavities, simplices):
         if not cavities:
             # No cavities survived filtering (e.g. restrict_channels_to_start_point
             # selected a single cavity shallower than min_depth). Return an empty
@@ -2736,7 +2876,7 @@ class ChannelCalculator:
         merged_tetrahedra = np.concatenate([cavity.tetrahedra for cavity in cavities])
         return simplices[merged_tetrahedra]
 
-    def find_deepest_tetrahedra(self, cavities, neighbors):
+    def findDeepestTetrahedra(self, cavities, neighbors):
         from collections import deque
         
         for cavity in cavities:
@@ -2763,19 +2903,20 @@ class ChannelCalculator:
                         visited[neighbor] = True
                         queue.append((neighbor, depth + 1))
 
-            cavity.set_starting_tetrahedron(np.array([deepest_tetrahedron]))
-            cavity.set_depth(max_depth)
+            cavity.setStartingTetrahedron(np.array([deepest_tetrahedron]))
+            cavity.setDepth(max_depth)
             cavity.tetrahedra_depths = tetrahedra_depths
             
-    def calc_circumcenters(self, dela):
-        # per-simplex circumcenters recovered analytically from the Delaunay paraboloid lifting,
-        # avoiding a second Qhull pass. Identical to scipy Voronoi vertices in general position.
+    def calcCircumcenters(self, dela):
+        # per-simplex circumcenters recovered analytically from the Delaunay 
+        # paraboloid lifting, avoiding a second Qhull pass. Identical to scipy 
+        # Voronoi vertices in general position.
         eq = dela.equations
         scale = dela.paraboloid_scale
         centers = -eq[:, :-2] / (2 * scale * eq[:, -2][:, None])
         return centers
 
-    def build_sparse_graph(self, simplices, neighbors, vertices, points, vdw_radii):
+    def buildSparseGraph(self, simplices, neighbors, vertices, points, vdw_radii):
         # one weighted CSR adjacency matrix for the whole cleared state.
         # Edge (tetra -> neigh) weight is l / (d**2 + b) where
         # l is the vertex-to-vertex distance and d is the neighbour's clearance
@@ -2801,14 +2942,17 @@ class ChannelCalculator:
                 rows.append(tetra)
                 cols.append(neigh)
                 data.append(weight)
-        graph = csr_matrix((data, (rows, cols)), shape=(len(simplices), len(simplices)))
+        graph = csr_matrix((data, (rows, cols)), shape=(len(simplices), 
+                                                        len(simplices)))
         return graph
 
-    def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points, vdw_radii,
-                 truncate_at_surface=True, similarity=0.8):
-        # a single multi-target Dijkstra from the seed over the cavity subgraph, then every exit path reconstructed from
-        # the predecessor tree - instead of one heap search per (seed, exit) pair.
-        # Channel geometry still goes through the current process_channel/Channel (Simpson-based volume).
+    def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points, 
+                 vdw_radii, truncate_at_surface=True, similarity=0.8):
+        # a single multi-target Dijkstra from the seed over the cavity subgraph,
+        # then every exit path reconstructed from the predecessor tree - 
+        # instead of one heap search per (seed, exit) pair.
+        # Channel geometry still goes through the current 
+        # process_channel/Channel (Simpson-based volume).
         from scipy.sparse.csgraph import dijkstra
         from collections import defaultdict
 
@@ -2818,27 +2962,30 @@ class ChannelCalculator:
         global_to_local = {tetra: i for i, tetra in enumerate(cavity_tetra)}
         cavity_graph = graph[np.ix_(cavity_tetra, cavity_tetra)]
 
-        # A tunnel physically ends at the surface, but the Dijkstra cost has no such
-        # term (it rewards width, and mouths are wide), so a cheapest path to a far
-        # exit can run through/past a nearer mouth. When truncate_at_surface is set we
-        # cut each reconstructed path at the first qualified mouth it reaches. A mouth
-        # is a surface (exit) tetrahedron whose inscribed clearance (min over its 4
-        # atoms of |vertex - atom| - vdw) is >= bottleneck - one a probe of that radius
-        # can leave through. We test the Voronoi vertices geometrically, not tetra
-        # identity: near the surface many distinct exit tetra share almost the same
-        # circumcenter, so a path can be inside a mouth while its node is a neighbour,
-        # which a tetra-identity test would miss. Two truncated paths are then treated
-        # as the same channel only if they leave through overlapping mouths AND share
-        # most of their route (see _add_deduped_channels); distinct exits are kept.
+        # A tunnel physically ends at the surface, but the Dijkstra cost has 
+        # no such term (it rewards width, and mouths are wide), so a cheapest 
+        # path to a far exit can run through/past a nearer mouth. When 
+        # truncate_at_surface is set we cut each reconstructed path at the 
+        # first qualified mouth it reaches. A mouth is a surface (exit) 
+        # tetrahedron whose inscribed clearance is >= bottleneck - one a probe
+        #  of that radius can leave through. We test the Voronoi vertices 
+        # geometrically, not tetra identity: near the surface many distinct 
+        # exit tetra share almost the same circumcenter, so a path can be 
+        # inside a mouth while its node is a neighbour,which a tetra-identity 
+        # test would miss. Two truncated paths are then treated as the same 
+        # channel only if they leave through overlapping mouths AND share most 
+        # of their route (see _add_deduped_channels); distinct exits are kept.
         mouth_xyz = np.empty((0, 3))
         mouth_r = np.empty(0)
         if truncate_at_surface:
-            exit_tetra = np.asarray(getattr(cavity, 'exit_tetrahedra', np.empty(0, dtype=np.intp)))
+            exit_tetra = np.asarray(getattr(cavity, 'exit_tetrahedra', 
+                                            np.empty(0, dtype=np.intp)))
             if len(exit_tetra):
                 verts = vertices[exit_tetra]
                 atom_pos = points[simplices[exit_tetra]]
                 atom_rad = vdw_radii[simplices[exit_tetra]]
-                clearance = (np.linalg.norm(atom_pos - verts[:, None, :], axis=2) - atom_rad).min(axis=1)
+                clearance = (np.linalg.norm(atom_pos - verts[:, None, :], 
+                                            axis=2) - atom_rad).min(axis=1)
                 q = clearance >= self.bottleneck
                 mouth_xyz = verts[q]
                 mouth_r = clearance[q]
@@ -2849,10 +2996,10 @@ class ChannelCalculator:
             if start_global not in global_to_local:
                 continue
             start_local = global_to_local[start_global]
-            # directed=True: edge (u -> v) keeps weight l / (d_v**2 + b), i.e. the
+            # directed=True: edge (u -> v) keeps weight l / (d_v**2 + b), i.e.
             # clearance of the node being *entered* - exactly the current heap
-            # Dijkstra's cost model. (directed=False would symmetrize each edge to
-            # l / (max(d_u, d_v)**2 + b) and pick slightly different paths -> 14.)
+            # Dijkstra's cost model. (directed=False would symmetrize each edge 
+            # to l / (max(d_u, d_v)**2 + b) and pick slightly different paths)
             distances, predecessors = dijkstra(
                 cavity_graph, directed=True, indices=start_local,
                 return_predecessors=True)
@@ -2886,10 +3033,10 @@ class ChannelCalculator:
                 term_xyz = None
                 term_r = 0.0
                 if len(mouth_xyz):
-                    # walk seed->exit; stop at the first tetra whose Voronoi vertex
-                    # lies inside some qualified mouth's sphere (skip the seed). Record
-                    # that entry point and the radius of the mouth entered - the tunnel
-                    # physically leaves the protein there.
+                    # walk seed->exit; stop at the first tetra whose Voronoi 
+                    # vertex lies inside some qualified mouth's sphere (skip 
+                    # the seed). Record that entry point and the radius of the 
+                    # mouth entered.. tunnel physically leaves  protein there.
                     for j in range(1, len(path_local)):
                         cc = vertices[cavity_tetra[path_local[j]]]
                         d = np.linalg.norm(mouth_xyz - cc, axis=1)
@@ -2901,28 +3048,29 @@ class ChannelCalculator:
                             break
 
                 path_global = cavity_tetra[path_local]
-                channel = Channel(path_global, *self.process_channel(
+                channel = Channel(path_global, *self.processChannel(
                     path_global, vertices, points, vdw_radii, simplices),
                     cost=float(distances[path_local[-1]]))
                 candidates.append((channel, term_xyz, term_r, list(path_local)))
 
         if truncate_at_surface:
-            self._add_deduped_channels(cavity, candidates, similarity)
+            self._addDedupedChannels(cavity, candidates, similarity)
         else:
             for channel, _t, _r, _path in candidates:
-                cavity.add_channel(channel)
+                cavity.addChannel(channel)
 
-    def _add_deduped_channels(self, cavity, candidates, similarity):
-        # Keep one channel per (surface exit, distinct route). Two truncated channels
-        # are the same tunnel only if they leave through overlapping mouths (their exit
-        # spheres intersect, |Ti - Tj| < ri + rj) AND share most of their route (diverge
-        # late). Exits farther apart than their mouth radii are distinct openings and
-        # kept, even when the paths share a long trunk and split only near the surface;
-        # different corridors to one exit diverge early (low shared prefix) and are also
-        # kept. Comparing the two actual exit points avoids the single-linkage chaining
+    def _addDedupedChannels(self, cavity, candidates, similarity):
+        # Keep one channel per (surface exit, distinct route). Two truncated 
+        # channels are the same tunnel only if they leave through overlapping 
+        # mouths (their exit spheres intersect, |Ti - Tj| < ri + rj) AND share 
+        # most of their route (diverge late). Exits farther apart than their 
+        # mouth radii are distinct openings and kept, even when the paths share
+        #  a long trunk and split only near the surface; different corridors to
+        #  one exit diverge early (low shared prefix) and are also kept. 
+        # omparing the two actual exit points avoids the single-linkage chaining
         # of a mouth-cluster label, which can span many A and merge distinct exits.
-        # Cost-sorted greedy, so the kept representative is always the cheapest and the
-        # outcome is order-independent.
+        # Cost-sorted greedy, so the kept representative is always the cheapest
+        # and the outcome is order-independent.
         kept = []  # (channel, term_xyz, term_r, path)
         for channel, term_xyz, term_r, path in sorted(candidates, key=lambda c: c[0].cost):
             duplicate = False
@@ -2930,19 +3078,19 @@ class ChannelCalculator:
                 for _kc, kxyz, kr, kpath in kept:
                     if kxyz is not None and \
                             np.linalg.norm(term_xyz - kxyz) < term_r + kr and \
-                            self._shared_prefix_fraction(path, kpath) >= similarity:
+                            self._sharedPrefixFraction(path, kpath) >= similarity:
                         duplicate = True
                         break
             if not duplicate:
                 kept.append((channel, term_xyz, term_r, path))
         for channel, _t, _r, _path in kept:
-            cavity.add_channel(channel)
+            cavity.addChannel(channel)
 
     @staticmethod
-    def _shared_prefix_fraction(a, b):
-        # Fraction of the shorter path shared as a common prefix from the seed. Robust
-        # to trunk-sharing: distinct tunnels share only the early trunk (small), a
-        # redundant wiggle shares almost everything (~1.0).
+    def _sharedPrefixFraction(a, b):
+        # Fraction of the shorter path shared as a common prefix from the seed.
+        # Robust to trunk-sharing: distinct tunnels share only the early trunk 
+        # (small), a redundant wiggle shares almost everything (~1.0).
         n = 0
         for x, y in zip(a, b):
             if x == y:
@@ -2952,44 +3100,50 @@ class ChannelCalculator:
         m = min(len(a), len(b))
         return n / m if m else 0.0
 
-    def calculate_max_radius(self, vertice, points, vdw_radii, simp):
+    def calculateMaxRadius(self, vertice, points, vdw_radii, simp):
         atom_positions = points[simp]
         radii = vdw_radii[simp]
         distances = np.linalg.norm(atom_positions - vertice, axis=1) - radii
         return np.min(distances)
 
-    def calculate_radius_spline(self, tetrahedra, voronoi_vertices, points, vdw_radii, simp):
+    def calculateRadiusSpline(self, tetrahedra, voronoi_vertices, points, 
+                              vdw_radii, simp):
         vertices = voronoi_vertices[tetrahedra]
-        radii = np.array([self.calculate_max_radius(v, points, vdw_radii, s) for v, s in zip(vertices, simp[tetrahedra])])
+        radii = np.array([self.calculateMaxRadius(v, points, vdw_radii, s) for v, s in zip(vertices, simp[tetrahedra])])
         return radii, np.min(radii)
 
-    def process_channel(self, tetrahedra, voronoi_vertices, points, vdw_radii, simp):
+    def processChannel(self, tetrahedra, voronoi_vertices, points, vdw_radii, 
+                       simp):
         from scipy.interpolate import CubicSpline
         
         centers = voronoi_vertices[tetrahedra]
-        radii, bottleneck = self.calculate_radius_spline(tetrahedra, voronoi_vertices, points, vdw_radii, simp)
+        radii, bottleneck = self.calculateRadiusSpline(tetrahedra, 
+                                                       voronoi_vertices, 
+                                                       points, vdw_radii, simp)
         
         t = np.arange(len(centers))
         centerline_spline = CubicSpline(t, centers, bc_type='natural')
         radius_spline = CubicSpline(t, radii, bc_type='natural')
         
-        length = self.calculate_channel_length(centerline_spline)
-        volume = self.calculate_channel_volume(centerline_spline, radius_spline)
+        length = self.calculateChannelLength(centerline_spline)
+        volume = self.calculateChannelVolume(centerline_spline, radius_spline)
         
         return centerline_spline, radius_spline, length, bottleneck, volume
 
-    def find_biggest_tetrahedron(self, tetrahedra, voronoi_vertices, points, vdw_radii, simp):
-        radii = np.array([self.calculate_max_radius(voronoi_vertices[tetra], points, vdw_radii, simp[tetra]) for tetra in tetrahedra])
+    def findBiggestTetrahedron(self, tetrahedra, voronoi_vertices, points, 
+                               vdw_radii, simp):
+        radii = np.array([self.calculateMaxRadius(voronoi_vertices[tetra], points, vdw_radii, simp[tetra]) for tetra in tetrahedra])
         max_radius_index = np.argmax(radii)
         return tetrahedra[max_radius_index]
 
-    def get_end_tetrahedra(self, tetrahedra, voronoi_vertices, points, vdw_radii, simp, sparsity):
+    def getEndTetrahedra(self, tetrahedra, voronoi_vertices, points, vdw_radii, 
+                         simp, sparsity):
         # Greedy sparse sampling of the mouth (exit) tetrahedra: seed with the
         # widest tetrahedron, then repeatedly add the widest tetrahedron that is
         # still at least `sparsity` away from every already-selected one, until
         # none qualify. Vectorized rewrite of the former O(N_exit x M^2) double
         # loop (which called np.linalg.norm once per candidate/selected pair and
-        # re-scanned radii via find_biggest_tetrahedron every pass):
+        # re-scanned radii via findBiggestTetrahedron every pass):
         #   * the "far enough from all selected" test is exactly "running min
         #     distance to the selected set >= sparsity", so keep one min_dist
         #     array and fold in each new pick with a single vectorized norm;
@@ -3002,22 +3156,23 @@ class ChannelCalculator:
         if n == 0:
             return tetrahedra
 
-        verts = voronoi_vertices[tetrahedra]                     # (n, 3) circumcenters
+        verts = voronoi_vertices[tetrahedra]            # (n, 3) circumcenters
         radii = np.array([
-            self.calculate_max_radius(voronoi_vertices[tetra], points, vdw_radii, simp[tetra])
+            self.calculateMaxRadius(voronoi_vertices[tetra], points, 
+                                    vdw_radii, simp[tetra])
             for tetra in tetrahedra])
 
         min_dist = np.full(n, np.inf)
         selected = np.zeros(n, dtype=bool)
         order = []
 
-        current = int(np.argmax(radii))                          # widest tetrahedron (seed)
+        current = int(np.argmax(radii))             # widest tetrahedron (seed)
         while True:
             order.append(current)
             selected[current] = True
             min_dist = np.minimum(min_dist, np.linalg.norm(verts - verts[current], axis=1))
 
-            feasible = (min_dist >= sparsity) & ~selected        # >= sparsity from every pick
+            feasible = (min_dist >= sparsity) & ~selected   # >= sparsity from every pick
             if not feasible.any():
                 break
             # widest feasible tetrahedron; np.argmax breaks ties toward the
@@ -3026,14 +3181,14 @@ class ChannelCalculator:
 
         return tetrahedra[order]
 
-    def filter_cavities(self, cavities, min_depth):
+    def filterCavities(self, cavities, min_depth):
         return [cavity for cavity in cavities if cavity.depth >= min_depth]
 
-    def filter_channels_by_bottleneck(self, cavities, bottleneck):
+    def filterChannelsByBottleneck(self, cavities, bottleneck):
         for cavity in cavities:
             cavity.channels = [channel for channel in cavity.channels if channel.bottleneck >= bottleneck]
     
-    def filter_channels_by_volume(self, cavities, min_volume=None, max_volume=None):
+    def filterChannelsByVolume(self, cavities, min_volume=None, max_volume=None):
         """Filter channels by volume."""
     
         for cavity in cavities:
@@ -3046,7 +3201,8 @@ class ChannelCalculator:
                 filtered_channels.append(channel)
             cavity.channels = filtered_channels
 
-    def filter_cavities_by_tetrahedra(self, cavities, min_tetrahedra=None, max_tetrahedra=None):
+    def filterCavitiesByTetrahedra(self, cavities, min_tetrahedra=None, 
+                                   max_tetrahedra=None):
         """Filter cavities by cavity volume."""
     
         filtered = []
@@ -3059,7 +3215,7 @@ class ChannelCalculator:
             filtered.append(cavity)
         return filtered
 
-    def calculate_tetrahedron_volume(self, a, b, c, d):
+    def calculateTetrahedronVolume(self, a, b, c, d):
         return abs(np.dot(a - d, np.cross(b - d, c - d))) / 6.0
 
     def calculate_cavity_volumes(self, cavities, simplices, coords):
@@ -3070,10 +3226,10 @@ class ChannelCalculator:
             for tetra in cavity.tetrahedra:
                 atom_ids = simplices[tetra]
                 a, b, c, d = coords[atom_ids]
-                volume += self.calculate_tetrahedron_volume(a, b, c, d)
+                volume += self.calculateTetrahedronVolume(a, b, c, d)
             cavity.volume = volume
 
-    def filter_cavities_by_volume(self, cavities, min_volume=None, max_volume=None):
+    def filterCavitiesByVolume(self, cavities, min_volume=None, max_volume=None):
         """Filter cavities by approximate volume."""
 
         filtered_cavities = []
@@ -3085,7 +3241,7 @@ class ChannelCalculator:
             filtered_cavities.append(cavity)
         return filtered_cavities
 
-    def save_channels_to_pdb(self, channels, filename, separate=False, num_samples=5):
+    def saveChannelsToPdb(self, channels, filename, separate=False, num_samples=5):
         # ``channels`` is a flat list, already ordered by cost - that order is
         # the order they are written and numbered here. Each channel is preceded
         # by a REMARK reporting its length, bottleneck radius, curvature and cost.
@@ -3095,13 +3251,13 @@ class ChannelCalculator:
         with open(filename, 'w') as pqr_file:
             atom_index = 1
             for channel_index, channel in enumerate(channels):
-                centerline_spline, radius_spline = channel.get_splines()
+                centerline_spline, radius_spline = channel.getSplines()
                 samples = len(channel.tetrahedra) * num_samples
                 t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
                 centers = centerline_spline(t)
                 radii = radius_spline(t)
 
-                pqr_file.write(self._channel_remark(channel_index, channel))
+                pqr_file.write(self._channelRemark(channel_index, channel))
                 pdb_lines = []
                 for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
                     pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
@@ -3117,18 +3273,19 @@ class ChannelCalculator:
         # created, one per channel, numbered by the same cost order.
         if separate:
             for channel_index, channel in enumerate(channels):
-                channel_filename = filename.replace('.pqr', '_channel{0}.pqr'.format(channel_index))
-                channel_filename = channel_filename.replace('.pdb', '_channel{0}.pdb'.format(channel_index))
+                # TODO channel suffix is rather long, making it hard to read in pymol, shorten or user defined?
+                channel_filename = filename.replace('.pqr', '_chl{0}.pqr'.format(channel_index))
+                channel_filename = channel_filename.replace('.pdb', '_chl{0}.pdb'.format(channel_index))
 
                 with open(channel_filename, 'w') as pqr_file:
                     atom_index = 1
-                    centerline_spline, radius_spline = channel.get_splines()
+                    centerline_spline, radius_spline = channel.getSplines()
                     samples = len(channel.tetrahedra) * num_samples
                     t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
                     centers = centerline_spline(t)
                     radii = radius_spline(t)
 
-                    pqr_file.write(self._channel_remark(channel_index, channel))
+                    pqr_file.write(self._channelRemark(channel_index, channel))
                     pdb_lines = []
                     for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
                         pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
@@ -3139,7 +3296,7 @@ class ChannelCalculator:
                     pqr_file.writelines(pdb_lines)
 
     @staticmethod
-    def _channel_remark(channel_index, channel):
+    def _channelRemark(channel_index, channel):
         """One-line PQR/PDB REMARK with a channel's basic geometry:
         length, bottleneck radius, curvature and Dijkstra cost."""
         curv = 'n/a' if np.isnan(channel.curvature) else "%.3f" % channel.curvature
@@ -3149,7 +3306,7 @@ class ChannelCalculator:
                     channel_index, channel.length, channel.bottleneck, curv, cost))
 
 
-    def save_cavities_to_pdb(self, cavities, vertices, filename, separate=False):
+    def saveCavitiesToPdb(self, cavities, vertices, filename, separate=False):
         """Save surface cavities to a PDB/PQR file as dummy atoms."""
 
         filename = str(filename)
@@ -3192,14 +3349,14 @@ class ChannelCalculator:
 
                 cavity_index += 1
             
-    def calculate_channel_length(self, centerline_spline):
+    def calculateChannelLength(self, centerline_spline):
         t_values = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], len(centerline_spline.x) * 10)
         points = centerline_spline(t_values)
         diffs = np.diff(points, axis=0)
         lengths = np.linalg.norm(diffs, axis=1)
         return np.sum(lengths)
     
-    def calculate_channel_volume(self, centerline_spline, radius_spline):
+    def calculateChannelVolume(self, centerline_spline, radius_spline):
         # Tube volume  V = \int pi r(t)^2 |x'(t)| dt  evaluated by vectorized
         # composite Simpson instead of an adaptive scipy.quad that called the
         # integrand thousands of times per channel. The centerline/radius are
@@ -3228,7 +3385,8 @@ class ChannelCalculator:
 
         return total_volume
             
-    def set_starting_tetrahedra_from_point(self, cavities, vertices, start_point, restrict=False):
+    def setStartingTetrahedraFromPoint(self, cavities, vertices, start_point, 
+                                       restrict=False):
         '''Set starting tetrahedra using a user-defined 3D point.
         The starting tetrahedron of a cavity is the one whose Voronoi vertex is closest
         to `start_point` (Euclidean distance).
@@ -3263,7 +3421,7 @@ class ChannelCalculator:
             idx = int(np.argmin(d2))
 
             if not restrict:
-                cavity.set_starting_tetrahedron(np.array([tet[idx]]))
+                cavity.setStartingTetrahedron(np.array([tet[idx]]))
 
             if d2[idx] < best_d2:
                 best_d2 = d2[idx]
@@ -3278,7 +3436,7 @@ class ChannelCalculator:
                 "tetrahedron; no channels will be computed.")
             return []
 
-        best_cavity.set_starting_tetrahedron(np.array([best_tetra]))
+        best_cavity.setStartingTetrahedron(np.array([best_tetra]))
         LOGGER.info("start_point mapped to tetrahedron {0} (Voronoi vertex {1:.3f} A "
             "away); restricting channel search to the cavity that contains it."
             .format(int(best_tetra), float(np.sqrt(best_d2))))
@@ -3286,7 +3444,7 @@ class ChannelCalculator:
         return [best_cavity]
 
 
-    def trim_cavities_by_depth(self, cavities, max_depth):
+    def trimCavitiesByDepth(self, cavities, max_depth):
         """Filtering cavities by max_depth."""
     
         for cavity in cavities:
