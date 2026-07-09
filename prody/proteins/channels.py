@@ -630,7 +630,7 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     restrict_channels_to_start_point=False, r1=3, r2=1.25, min_depth=10, 
     min_volume=None, max_volume=None, max_depth=None, bottleneck=1, sparsity=15, 
-    min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, homogenize=True,
+    min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, diagram="homogenized",
     max_deviation=0.2, truncate_at_surface=True, similarity=0.8):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
@@ -698,15 +698,20 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         A higher value results in fewer sampling points. Default is 15.
     :type sparsity: int
     
-    :param homogenize: If True (default), every atom is substituted by a set of homogeneous balls whose common
+    :param diagram: 
+        "homogenized" (default) - every atom is substituted by a set of homogeneous balls whose common
         radius equals the smallest van der Waals radius present in the structure, before building the Voronoi
         and Delaunay tessellations. This yields an accurate estimate of the additively weighted (power) Voronoi
         diagram from an ordinary one, as done in MolAxis and CAVER 3, instead of discarding the smaller (e.g.
-        hydrogen) atoms. If False, the original atoms are used with their individual van der Waals radii.
-    :type homogenize: bool
+        hydrogen) atoms. 
+        "simple" - the original atoms are used with their individual van der Waals radii directly. This is very 
+        inaccurate and should be avoided at almost all cases.
+        "weighted" - TODO
+
+    :type diagram: str
 
     :param max_deviation: Maximum tolerated deviation, in Angstrom, between the union surface of the substitute
-        balls and the original van der Waals surface when ``homogenize`` is True. It controls the trade-off
+        balls and the original van der Waals surface when ``diagram = homogenized`` . It controls the trade-off
         between surface accuracy and the number of balls generated: an atom whose radius exceeds the smallest
         radius (``rho``) by more than ``max_deviation`` is filled with several balls, otherwise it is kept as a
         single ``rho`` ball. Default is 0.2. Guideline values:
@@ -716,7 +721,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         * ``0.05`` - ``0.1`` - finer surface; noticeably more balls (e.g. in heavy-atom-only structures it starts
           filling carbon, which is otherwise left as a single ball with a uniform ~0.18 A inset).
 
-        Only used when ``homogenize`` is True.
+        Only used when ``diagram = homogenized``.
     :type max_deviation: float
 
     :param truncate_at_surface: If True (default), each channel is terminated at the first surface (exit)
@@ -815,19 +820,23 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
 
-    # TODO in fact we should perhaps do the filtering outside, as you might want heteroatoms too, e.g., HEM in CYPs
-    # for now commenting and asuming users provide what they want to analyze - adjust in documentation/tutorial
-    #atoms = atoms.select('not hetero and noh') # Excluding hydrogens
+    if diagram not in ["homogenized", "weighted"]:
+        atoms = atoms.select('not hetero and noh') # Excluding hydrogens
+        # TODO in fact we should perhaps do the filtering outside, as you might want heteroatoms too, e.g., HEM in CYPs
+        # for now commenting and asuming users provide what they want to analyze - adjust in documentation/tutorial
+
     coords = atoms.getCoords()
     vdw_radii = calculator.get_vdw_radii(atoms.getElements())
 
-    if homogenize:
+    if diagram == "homogenized":
         LOGGER.timeit('_prody_channels_homogenize')
         coords, vdw_radii = calculator.homogenize_atoms(coords, vdw_radii, max_deviation)
         LOGGER.report("Substituted {0} atoms with {1} homogeneous balls of radius {2:.2f} A in %.2fs.".format(
             atoms.numAtoms(), len(coords), float(vdw_radii[0])), '_prody_channels_homogenize')
 
-
+    if diagram == "weighted":
+        #TODO using vorpy3 package?
+        pass
 
     LOGGER.timeit('_prody_channels_tessellation')
     dela = Delaunay(coords)
