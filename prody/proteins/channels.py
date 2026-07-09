@@ -628,10 +628,10 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
-    restrict_channels_to_start_point=False, r1=3, r2=1.25, min_depth=10, 
-    min_volume=None, max_volume=None, max_depth=None, bottleneck=1, sparsity=15, 
+    restrict_channels_to_start_point=False, r1=3, r2=0.9, min_depth=10, 
+    min_volume=None, max_volume=None, max_depth=None, bottleneck=0.9, sparsity=1, 
     min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, diagram="homogenized",
-    max_deviation=0.2, truncate_at_surface=True, similarity=0.8, max_peel_depth=None):
+    max_deviation=0.1, truncate_at_surface=True, similarity=0.8, max_peel_depth=None):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -675,7 +675,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         the outer surface of the channels. Default is 3.
     :type r1: float
 
-    :param r2: The second radius threshold used to define the inner surface of the channels. Default is 1.25.
+    :arg r2: The second radius threshold used to define the inner surface of the channels. Default is 0.9.
     :type r2: float
 
     :param min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
@@ -685,7 +685,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         Default is None.
     :type max_depth: int
 
-    :param bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
+    :arg bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 0.9.
     :type bottleneck: float
 
     :param min_volume: Minimum volume required for a channel/cavity to be retained. Default is None.
@@ -694,8 +694,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :param max_volume: Maximum volume allowed for a channel/cavity to be retained. Default is None.
     :type max_volume: float
 
-    :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
-        A higher value results in fewer sampling points. Default is 15.
+    :arg sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
+        A higher value results in fewer sampling points. Default is 1, which enables detection of most relevant 
+        channel branches.
     :type sparsity: int
     
     :param diagram: 
@@ -714,12 +715,14 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         balls and the original van der Waals surface when ``diagram = homogenized`` . It controls the trade-off
         between surface accuracy and the number of balls generated: an atom whose radius exceeds the smallest
         radius (``rho``) by more than ``max_deviation`` is filled with several balls, otherwise it is kept as a
-        single ``rho`` ball. Default is 0.2. Guideline values:
+        single ``rho`` ball. Default is 0.1. Guideline values:
 
-        * ``0.2`` (default) - balanced; e.g. carbon fills to ~15 balls when hydrogens are present (``rho``=1.2).
-        * ``0.15``  - CAVER3-like.
-        * ``0.05`` - ``0.1`` - finer surface; noticeably more balls (e.g. in heavy-atom-only structures it starts
-          filling carbon, which is otherwise left as a single ball with a uniform ~0.18 A inset).
+        * ``0.1`` fine accurate surface with minimal errors, but on average 15 times more balls than original
+        * ``0.15`` in heavy-atom-only structures it startsfilling carbon, which is otherwise left as a single 
+        ball with a uniform ~0.18 A inset).
+        * ``0.2`` speed optimized ; e.g. carbon fills to ~15 balls when hydrogens are present (``rho``=1.2), 
+        resulting roughly to ~8 times more balls. Without hydrogens, carbons are single balls => 
+        only very minor expansion.
 
         Only used when ``diagram = homogenized``.
     :type max_deviation: float
