@@ -631,7 +631,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     restrict_channels_to_start_point=False, r1=3, r2=1.25, min_depth=10, 
     min_volume=None, max_volume=None, max_depth=None, bottleneck=1, sparsity=15, 
     min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, diagram="homogenized",
-    max_deviation=0.2, truncate_at_surface=True, similarity=0.8):
+    max_deviation=0.2, truncate_at_surface=True, similarity=0.8, max_peel_depth=None):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -739,6 +739,15 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         corridors (diverging early, sharing little), are kept as separate tunnels. ``1.0`` merges only paths
         that share an exit and are otherwise identical; ``0.0`` keeps one channel per distinct exit. Default is 0.8.
     :type similarity: float
+
+    :param max_peel_depth: Safety cap on the bounded surface peel. After the r1 surface is built, it is eroded
+        inward with the r2 probe by ``round(r1 - r2)`` layers to strip the wide former-exterior shell (the
+        "moat") that a large r1 probe bridges over; that shell would otherwise act as a low-cost path on which
+        channels truncate and collapse. The peel is near-inert at the default ``r1``/``r2`` and grows with the
+        gap ``r1 - r2``. ``max_peel_depth`` limits the number of eroded layers, as a guard against over-peeling
+        into the interior at very large ``r1``; ``None`` (default) leaves the peel uncapped. Erosion also stops
+        early on its own once no boundary tetrahedron wider than ``r2`` remains.
+    :type max_peel_depth: int or None
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an object containing information
@@ -871,6 +880,20 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             break
         
     s_srf = State(*s_tmp.get_state())
+
+    # Bounded r2 peel (moat removal): erode the r1 surface inward with the r2 probe
+    # by round(r1 - r2) layers, stripping the wide former-exterior "moat" shell that
+    # a large r1 bridges over (it would otherwise act as a low-cost path that truncates
+    # channels). Stops early once erosion converges. max_peel_depth caps it (None = uncapped).
+    peel_depth = int(round(r1 - r2))
+    if max_peel_depth is not None:
+        peel_depth = min(peel_depth, max_peel_depth)
+    for _ in range(peel_depth):
+        s_next = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + tuple([vdw_radii, r2, True]))))
+        if s_next == s_srf:
+            break
+        s_srf = s_next
+
     #s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + [vdw_radii, r2, False])))
     s_inr = State(*calculator.delete_simplices3d(coords, *(s_srf.get_state() + tuple([vdw_radii, r2, False]))))
 
