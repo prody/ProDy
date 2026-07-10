@@ -85,7 +85,13 @@ DATA_FILES = {
         'file': '2k39.mmtf',
         'n_atoms': 1231,
         'models': 116
-    },    
+    },
+    '2k39_pdb_model0': {
+        'pdb': '2K39',
+        'file': 'pdb2k39_all_model0.pdb',
+        'n_atoms': 1231,
+        'models': 116
+    },
     '3enl_pdb': {
         'pdb': '3enl',
         'file': 'pdb3enl.pdb',
@@ -371,7 +377,7 @@ DATA_FILES = {
     },    
     '2k39_insty_first': {
         'file': '2k39_insty_first.pdb'
-    },    
+    },
     '2k39_insty_dcd': {
         'file': '2k39_insty.dcd'
     },

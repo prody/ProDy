@@ -11,7 +11,7 @@ dependencies:
   - numpy
   - pyparsing<=3.1.1
   - scipy
-  - matplotlib # REQUIRED: Prevents import errors and allows font caching
+  - matplotlib # REQUIRED: Prevents import errors and allows font caching and app outputs
   - nose
   - pytest
   - pytest-timeout  # Added here for caching
@@ -20,9 +20,10 @@ dependencies:
   - mdtraj
   - openmm
   - clustalw
-  
+  - scikit-learn
+  - kmedoids
+
   # Pip packages
   - pip
   - pip:
     - mmtf-python
-    - scikit-learn
