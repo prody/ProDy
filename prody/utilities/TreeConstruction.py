@@ -14,10 +14,8 @@
 import itertools
 import copy
 import numbers
-from Bio.Phylo import BaseTree
-from Bio.Phylo.TreeConstruction import _DistanceMatrix as DistanceMatrix
 
-__all__ = ['_Matrix', 'DistanceMatrix', 'TreeConstructor', 'DistanceTreeConstructor']
+__all__ = ['_Matrix', 'TreeConstructor', 'DistanceTreeConstructor']
 
 class _Matrix:
     """Base class for distance matrix or scoring matrix.
@@ -400,6 +398,9 @@ class DistanceTreeConstructor(TreeConstructor):
                 The distance matrix for tree construction.
 
         """
+        from Bio.Phylo import BaseTree
+        from Bio.Phylo.TreeConstruction import _DistanceMatrix as DistanceMatrix
+
         if not isinstance(distance_matrix, DistanceMatrix):
             raise TypeError("Must provide a DistanceMatrix object.")
 
@@ -456,6 +457,9 @@ class DistanceTreeConstructor(TreeConstructor):
                 The distance matrix for tree construction.
 
         """
+        from Bio.Phylo import BaseTree
+        from Bio.Phylo.TreeConstruction import _DistanceMatrix as DistanceMatrix
+
         if not isinstance(distance_matrix, DistanceMatrix):
             raise TypeError("Must provide a DistanceMatrix object.")
 

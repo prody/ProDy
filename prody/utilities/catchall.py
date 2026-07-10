@@ -8,7 +8,8 @@ from .checkers import checkCoords
 from .logger import LOGGER
 
 
-__all__ = ['calcTree', 'clusterMatrix', 
+__all__ = ['calcTree', 'writeTree', 'parseTree',
+           'clusterMatrix',
            'showLines', 'showMatrix', 'showBars', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
@@ -239,7 +240,7 @@ def getTreeFromLinkage(names, linkage):
     :arg linkage: linkage matrix
     :type linkage: :class:`~numpy.ndarray`
     """
-    try: 
+    try:
         from Bio.Phylo.BaseTree import Tree, Clade
     except ImportError:
         raise ImportError('Phylo module could not be imported. '
@@ -308,7 +309,8 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
     :type linkage: bool
     """
             
-    from .TreeConstruction import DistanceMatrix, DistanceTreeConstructor
+    from .TreeConstruction import DistanceTreeConstructor
+    from Bio.Phylo.TreeConstruction import _DistanceMatrix as DistanceMatrix
     
     if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
         raise ValueError("Mismatch between the sizes of matrix and names.")
@@ -366,7 +368,7 @@ def writeTree(filename, tree, format_str='newick'):
     :arg format_str: a string specifying the format for the tree
     :type format_str: str
     """
-    try: 
+    try:
         from Bio import Phylo
     except ImportError:
         raise ImportError('Phylo module could not be imported. '
@@ -384,6 +386,29 @@ def writeTree(filename, tree, format_str='newick'):
 
     Phylo.write(tree, filename, format_str)
 
+def parseTree(filename, format_str='newick'):
+    """ Parse a tree from a file using Biopython.
+
+    :arg filename: name for output file
+    :type filename: str
+
+    :arg format_str: a string specifying the format for the tree
+    :type format_str: str
+    """
+    try:
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+
+    if not isinstance(filename, str):
+        raise TypeError('filename should be a string')
+
+    if not isinstance(format_str, str):
+        raise TypeError('format_str should be a string')
+
+    return Phylo.read(filename, format_str)
 
 def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, return_linkage=None, **kwargs):
     """
