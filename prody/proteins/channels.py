@@ -14,11 +14,7 @@ from prody.atomic import Atomic
 from prody.utilities import checkCoords, getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
 from prody.ensemble import Ensemble
-from prody.measure import calcCenter
-
-from .fixer import *
-from .compare import *
-from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
+from prody.measure import calcCenter, calcTransformation, calcDistance, calcRMSD, superpose
 
 
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
