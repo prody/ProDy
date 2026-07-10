@@ -657,13 +657,13 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
     o3d.visualization.draw_geometries(meshes_to_visualize)
 
-
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     restrict_channels_to_start_point=False, r1=3, r2=0.9, min_depth=10, 
     min_volume=None, max_volume=None, max_depth=None, bottleneck=0.9, 
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, 
-    diagram="homogenized", max_deviation=0.1, truncate_at_surface=True, 
-    similarity=0.8, max_peel_depth=None):
+    diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
+    similarity=0.8, max_peel_depth=None, max_proc=1, weighted_cache=True,
+    weighted_mouth_depth=4):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
 
@@ -757,7 +757,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         "simple" - the original atoms are used with their individual van der 
         Waals radii directly. This is very inaccurate and should be avoided in 
         almost all cases.
-        "weighted" - TODO
+        "weighted" - the true additively-weighted (Apollonius) Voronoi diagram is
+        built directly from the atoms with their individual van der Waals radii,
+        using the third-party ``vorpy`` package (with a compiled kernel when
+        ``numba`` is available). This is the exact diagram the "homogenized" mode
+        approximates, at a higher cost (~ 100x slower, for 4000 atoms).
 
     :type diagram: str
 
@@ -769,8 +773,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         ``max_deviation`` is filled with several balls, otherwise it is kept as
          a single ``rho`` ball. Default is 0.1. Guideline values:
 
-        * ``0.1`` fine accurate surface with minimal errors, but on average 15 
-            times more balls than original
+        * ``0.1`` fine accurate surface with minimal errors, but on 13-15x 
+            more balls than original
         * ``0.15`` in heavy-atom-only structures it startsfilling carbon, which
              is otherwise left as a single ball with a uniform ~0.18 A inset).
         * ``0.2`` speed optimized ; e.g. carbon fills to ~15 balls when 
@@ -814,6 +818,36 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
          ``None`` (default) leaves the peel uncapped. Erosion also stops early
         on its own once no boundary tetrahedron wider than ``r2`` remains.
     :type max_peel_depth: int or None
+
+    :arg max_proc: Maximum number of worker processes for the ``diagram="weighted"``
+        tessellation. Large structures are split into spatially local boxes that are
+        tessellated independently and merged; ``max_proc`` bounds how many run
+        concurrently. ``1`` (default) runs them serially. Ignored for the other
+        ``diagram`` modes.
+    :type max_proc: int
+
+    :arg weighted_cache: Cache the raw additively-weighted Voronoi diagram to disk so
+        that re-running ``diagram="weighted"`` on the same structure skips the
+        expensive vorpy tessellation (which dominates the ~10 min run time). The
+        diagram only depends on the atoms and ``r1``, so re-runs that change only
+        ``r2``, ``bottleneck``, ``sparsity``, ``start_point`` etc. reuse it. ``True``
+        (default) caches next to ``output_path`` (or, absent one, under the structure
+        title in the current directory); pass a path to place it explicitly, or
+        ``False`` to disable. The cache is keyed by content, so editing the structure
+        or ``r1`` transparently forces a recompute. Only used for ``diagram="weighted"``.
+    :type weighted_cache: bool or str
+
+    :arg weighted_mouth_depth: Only used for ``diagram="weighted"``. The additively-
+        weighted (Apollonius) tessellation is not a clean simplicial complex, so it
+        leaves false interior boundary faces that the pipeline would misread as
+        surface openings, truncating channels to stubs. To repair this a *homogenized*
+        diagram of the same atoms is built as an interior/exterior oracle, and only
+        exit tetrahedra whose Voronoi vertex lies within ``weighted_mouth_depth``
+        tetrahedron layers of the true molecular surface are treated as mouths.
+        Default 4 (the value at which the recovered channels match the
+        ``"homogenized"`` result); ``None`` disables the relabeling. Note the layer
+        count scales with ``r1`` (it sets the eroded surface-shell thickness).
+    :type weighted_mouth_depth: int or None
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an 
@@ -872,8 +906,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             errorMsg = ', '.join(errorMsg.split(', ')[:-1]) + ' and ' + errorMsg.split(', ')[-1]
         raise ImportError(errorMsg)
 
-    from scipy.spatial import Delaunay
-    
     if PY3K:
         from pathlib import Path
     else:
@@ -904,13 +936,27 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
 
-    if diagram not in ["homogenized", "weighted"]:
-        atoms = atoms.select('not hetero and noh') # Excluding hydrogens
-        # TODO in fact we should perhaps do the filtering outside, as you might
-        #  want heteroatoms too, e.g., HEM in CYPs 
+    if diagram == "simple":
+        # 'simple' builds an *unweighted* Delaunay of the atom centres, i.e. it
+        # ignores the differences between atomic radii. That approximation is worst
+        # when the radius spread is largest -- which is exactly when hydrogens (small
+        # vdW) are present -- so warn there and steer the user to a radius-aware mode.
+        # With H absent the heavy-atom radii are much closer, so 'simple' is more
+        # defensible and matches the heavy-atom-only input most tools accept (at the
+        # cost of over-large empty space where the missing H would sit).
+        elements = np.char.upper(np.asarray(atoms.getElements(), dtype=str))
+        if np.any(elements == 'H'):
+            LOGGER.warn("diagram='simple' with hydrogens present: the unweighted "
+                "Voronoi diagram ignores radius differences, which are largest when H "
+                "are present, so its topology and clearances are significantly less "
+                "accurate. Consider diagram='homogenized' (or 'weighted'), which "
+                "account for per-atom radii.")
 
     coords = atoms.getCoords()
     vdw_radii = calculator.getVdwRadii(atoms.getElements())
+    # For diagram="weighted" only: a homogenized-surface depth oracle used to relabel
+    # the additively-weighted diagram's leaky surface mouths (see getSurfaceCavities).
+    mouth_oracle = None
 
     if diagram == "homogenized":
         LOGGER.timeit('_prody_channels_homogenize')
@@ -918,21 +964,63 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         LOGGER.report("Substituted {0} atoms with {1} homogeneous balls of radius {2:.2f} A in %.2fs.".format(
             atoms.numAtoms(), len(coords), float(vdw_radii[0])), '_prody_channels_homogenize')
 
-    if diagram == "weighted":
-        #TODO using vorpy3 package?
-        pass
-
     LOGGER.timeit('_prody_channels_tessellation')
-    dela = Delaunay(coords)
-    # circumcenters straight from the Delaunay paraboloid lifting, so we
-    # skip the redundant second Qhull pass (scipy Voronoi). Numerically identical
-    # to voro.vertices for points in general position.
-    verts = calculator.calcCircumcenters(dela)
-    LOGGER.report('Delaunay tessellation of {0} points constructed in %.2fs.'.format(
-        len(coords)), '_prody_channels_tessellation')
+    if diagram == "weighted":
+        # True additively-weighted (Apollonius) Voronoi network via the third-party
+        # vorpy package: van der Waals radii are baked into the diagram exactly,
+        # instead of being approximated by homogenising atoms into uniform balls.
+        # buildAwTessellation returns the same (simplices, neighbors, vertices) triple
+        # a scipy Delaunay would, so the downstream erosion/cavity pipeline is
+        # untouched. Because every AW vertex is equidistant (additively) to its 4
+        # tangent atoms, the sum-based clearance test in deleteSimplices3d reduces
+        # exactly to the per-atom clearance, so the returned clearances are not needed.
+        if not checkAndImport('vorpy'):
+            raise ImportError('diagram="weighted" requires the vorpy package for the '
+                'additively-weighted (Apollonius) Voronoi diagram. Install vorpy, or '
+                'use diagram="homogenized"/"simple".')
+        # The compiled calc_vert kernel needs numba; without it the weighted path
+        # still works but is ~5x slower, so fall back with a warning rather than fail.
+        accelerate = checkAndImport('numba')
+        if not accelerate:
+            LOGGER.warn('numba is not installed; the additively-weighted tessellation '
+                'will run without the compiled kernel and may be very slow.')
+        from ._vorpy_aw import buildAwTessellation, resolveCachePath
+        try:
+            title = atoms.getTitle()
+        except Exception:
+            title = None
+        cache_path = resolveCachePath(weighted_cache, output_path, title)
+        simplices, neighbors, verts, _ = buildAwTessellation(
+            coords, vdw_radii, max_vert=max(2.0 * r1, 8), accelerate=accelerate,
+            max_proc=max_proc, cache=cache_path)
+        LOGGER.report('Additively-weighted (Apollonius) tessellation of {0} atoms '
+            'constructed in %.2fs.'.format(len(coords)),
+            '_prody_channels_tessellation')
+        # The AW->simplicial mapping leaves false interior boundary faces that the
+        # pipeline would misread as surface mouths (collapsing channels to stubs).
+        # Build a homogenized diagram of the same atoms as an interior/exterior depth
+        # oracle; getSurfaceCavities then keeps only exit tetrahedra within
+        # weighted_mouth_depth tetrahedron layers of the true molecular surface.
+        if weighted_mouth_depth is not None:
+            LOGGER.timeit('_prody_channels_mouth_oracle')
+            mouth_oracle = calculator.buildSurfaceDepthOracle(
+                coords, vdw_radii, r1, max_deviation, weighted_mouth_depth)
+            LOGGER.report('Homogenized surface oracle (weighted mouth relabeling) '
+                'built in %.2fs.', '_prody_channels_mouth_oracle')
+    else:
+        from scipy.spatial import Delaunay
+        dela = Delaunay(coords)
+        # circumcenters straight from the Delaunay paraboloid lifting, so we
+        # skip the redundant second Qhull pass (scipy Voronoi). Numerically identical
+        # to voro.vertices for points in general position.
+        simplices = dela.simplices
+        neighbors = dela.neighbors
+        verts = calculator.calcCircumcenters(dela)
+        LOGGER.report('Delaunay tessellation of {0} points constructed in %.2fs.'.format(
+            len(coords)), '_prody_channels_tessellation')
 
     LOGGER.timeit('_prody_channels_surface')
-    s_prt = State(dela.simplices, dela.neighbors, verts)
+    s_prt = State(simplices, neighbors, verts)
     
     if PY3K:
         s_tmp = State(*s_prt.getState())
@@ -978,15 +1066,17 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     LOGGER.timeit('_prody_channels_cavities')
     c_cavities = calculator.findGroups(s_clr.neigh)
-    c_surface_cavities = calculator.getSurfaceCavities(c_cavities, s_clr.simp, 
-                                                       l_second_layer_simp, 
-                                                       s_clr, coords, 
-                                                       vdw_radii, sparsity)
+    c_surface_cavities = calculator.getSurfaceCavities(c_cavities, s_clr.simp,
+                                                       l_second_layer_simp,
+                                                       s_clr, coords,
+                                                       vdw_radii, sparsity,
+                                                       mouth_oracle)
 
     calculator.findDeepestTetrahedra(c_surface_cavities, s_clr.neigh)
     if start_point is not None:
         c_surface_cavities = calculator.setStartingTetrahedraFromPoint(
-            c_surface_cavities, s_clr.verti, start_point, restrict_channels_to_start_point)
+            c_surface_cavities, s_clr.verti, start_point, coords, vdw_radii,
+            s_clr.simp, restrict_channels_to_start_point)
 
     c_filtered_cavities = calculator.filterCavities(c_surface_cavities, min_depth)
     LOGGER.report('{0} surface cavities detected and filtered in %.2fs.'.format(
@@ -2786,6 +2876,65 @@ class ChannelCalculator:
         new_radii = np.full(len(new_points), rho)
 
         return new_points, new_radii
+
+    def buildSurfaceDepthOracle(self, coords, vdw_radii, r1, max_deviation, max_depth):
+        """Interior/exterior depth oracle for relabeling the additively-weighted
+        diagram's surface mouths (``diagram="weighted"``).
+
+        The AW tessellation is not a clean simplicial complex: many interior 3-ball
+        faces are left unpaired and masquerade as surface boundaries, so channels
+        truncate to stubs. This builds a *homogenized* Voronoi diagram of the same
+        atoms (a clean simplicial complex), erodes it with an ``r1`` probe to separate
+        solvent (exterior) from protein (interior), and BFS-labels every tetrahedron
+        by the number of layers below the molecular surface (0 = exterior/solvent).
+        :meth:`getSurfaceCavities` then keeps only AW exit tetrahedra whose Voronoi
+        vertex maps (via ``find_simplex``) to depth ``<= max_depth``.
+
+        :returns: ``(delaunay, depth, max_depth)`` -- the homogenized
+            :class:`~scipy.spatial.Delaunay`, its per-tetrahedron layer count (points
+            outside the hull are treated as depth 0), and the passed-through threshold.
+        """
+        from collections import deque
+        from scipy.spatial import Delaunay
+
+        hp, hrho = self.homogenizeAtoms(coords, vdw_radii, max_deviation)
+        delaunay = Delaunay(hp)
+        centers = self.calcCircumcenters(delaunay)
+        clearance = (np.linalg.norm(hp[delaunay.simplices] - centers[:, None, :], axis=2)
+                     - hrho[delaunay.simplices]).min(axis=1)
+        neighbors = delaunay.neighbors
+        n = len(delaunay.simplices)
+
+        # r1 surface erosion: peel boundary tetrahedra wide enough for the probe, from
+        # the hull inward, until nothing more can be removed. Survivors == interior.
+        alive = np.ones(n, dtype=bool)
+        while True:
+            dead = np.zeros(n, dtype=bool)
+            for k in range(4):
+                col = neighbors[:, k]
+                dead |= (col == -1) | ((col >= 0) & ~alive[col])
+            peel = alive & dead & (clearance >= r1)
+            if not peel.any():
+                break
+            alive[peel] = False
+
+        # BFS layers: depth 0 = exterior/solvent tetrahedra, +1 per step inward.
+        depth = np.full(n, -1, dtype=np.intp)
+        queue = deque(np.nonzero(~alive)[0].tolist())
+        for i in queue:
+            depth[i] = 0
+        while queue:
+            i = queue.popleft()
+            for k in range(4):
+                j = neighbors[i, k]
+                if j >= 0 and depth[j] == -1:
+                    depth[j] = depth[i] + 1
+                    queue.append(j)
+        # Enclosed pockets never reached from the exterior are deep (never a mouth).
+        reached = depth[depth >= 0]
+        depth[depth == -1] = (int(reached.max()) + 5) if reached.size else (max_depth + 1)
+
+        return delaunay, depth, max_depth
     
     def surfaceLayer(self, shape_simplices, filtered_simplices, shape_neighbors):
         shape_simplices = np.asarray(shape_simplices)
@@ -2845,7 +2994,7 @@ class ChannelCalculator:
         return groups
 
     def getSurfaceCavities(self, cavities, interior_simplices, second_layer, 
-                           state, points, vdw_radii, sparsity):
+                           state, points, vdw_radii, sparsity, mouth_oracle=None):
         surface_cavities = []
         
         for cavity in cavities:
@@ -2853,8 +3002,19 @@ class ChannelCalculator:
             second_layer_mask = np.isin(interior_simplices[tetrahedra], second_layer).all(axis=1)
             
             if np.any(second_layer_mask):
-                cavity.makeSurface()
                 exit_tetrahedra = tetrahedra[second_layer_mask]
+                if mouth_oracle is not None:
+                    # diagram="weighted": drop the false (buried) mouths the leaky AW
+                    # diagram produces. Keep an exit tetrahedron only if its Voronoi
+                    # vertex lies within max_depth tetrahedron layers of the true
+                    # molecular surface, per a homogenized interior/exterior oracle.
+                    delaunay, depth, max_depth = mouth_oracle
+                    located = delaunay.find_simplex(state.verti[exit_tetrahedra])
+                    layers = np.where(located >= 0, depth[located.clip(0)], 0)
+                    exit_tetrahedra = exit_tetrahedra[layers <= max_depth]
+                    if len(exit_tetrahedra) == 0:
+                        continue
+                cavity.makeSurface()
                 end_tetrahedra = self.getEndTetrahedra(exit_tetrahedra, state.verti, points, vdw_radii, state.simp, sparsity)
                 cavity.setExitTetrahedra(exit_tetrahedra, end_tetrahedra)
                 surface_cavities.append(cavity)
@@ -3381,15 +3541,19 @@ class ChannelCalculator:
 
         return total_volume
             
-    def setStartingTetrahedraFromPoint(self, cavities, vertices, start_point, 
-                                       restrict=False):
+    def setStartingTetrahedraFromPoint(self, cavities, vertices, start_point,
+                                       points, vdw_radii, simp, restrict=False):
         '''Set starting tetrahedra using a user-defined 3D point.
         The starting tetrahedron of a cavity is the one whose Voronoi vertex is closest
         to `start_point` (Euclidean distance).
-        
+
         :arg cavities: list of cavity objects
         :arg vertices: Voronoi vertices (array of shape (n, 3))
         :arg start_point: point [x, y, z] in Å (list/tuple/ndarray of length 3)
+        :arg points: atom coordinates (array of shape (n_atoms, 3)), used to report
+            the inscribed radius of the mapped tetrahedron
+        :arg vdw_radii: per-atom van der Waals radii (array of shape (n_atoms,))
+        :arg simp: simplices (tetrahedron -> its 4 atom indices)
         :arg restrict: if True, only the single cavity whose closest tetrahedron is
             globally nearest to `start_point` is seeded and returned, so channels are
             computed exclusively for the region around `start_point`. If False (default),
@@ -3433,9 +3597,13 @@ class ChannelCalculator:
             return []
 
         best_cavity.setStartingTetrahedron(np.array([best_tetra]))
+        start_radius = self.calculateMaxRadius(
+            vertices[best_tetra], points, vdw_radii, simp[best_tetra])
         LOGGER.info("start_point mapped to tetrahedron {0} (Voronoi vertex {1:.3f} A "
-            "away); restricting channel search to the cavity that contains it."
-            .format(int(best_tetra), float(np.sqrt(best_d2))))
+            "away, inscribed radius {2:.3f} A); restricting channel search to the "
+            "cavity that contains it. A small inscribed radius here means the "
+            "start_point sits in a tight spot that may bottleneck all channels."
+            .format(int(best_tetra), float(np.sqrt(best_d2)), float(start_radius)))
 
         return [best_cavity]
 
