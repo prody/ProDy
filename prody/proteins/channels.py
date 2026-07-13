@@ -30,6 +30,21 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getChannelParametersMultipleFrames',
            'getChannelResidueNamesMultipleFrames']
 
+# Sampling of the enclosure test used to strip the moat (see
+# ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
+# of a point depends on how many directions are sampled and how far they are
+# followed, so min_enclosure is only meaningful against a fixed sampling. Adding
+# rays lowers every enclosure, since more directions find more of the thin ways
+# out of a channel, and so invalidates the threshold rather than refining it.
+ENCLOSURE_RAYS = 32
+ENCLOSURE_RANGE = 15.0
+ENCLOSURE_STEP = 0.75
+# One radius for every atom, on the scale of a heavy-atom vdW radius. Enclosure is
+# a burial heuristic, so resolving 1.52 A from 1.7 A would only shift every value
+# by a little and be absorbed by min_enclosure; a single radius means a single
+# tree and a plain nearest-neighbour test.
+ENCLOSURE_RADIUS = 1.7
+
 
 def checkAndImport(package_name):
     """Check for package and import it if possible and return **True**.
@@ -659,11 +674,11 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     restrict_channels_to_start_point=False, r1=3, r2=0.9, min_depth=10, 
-    min_volume=None, max_volume=None, max_depth=None, bottleneck=0.9, 
+    min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0, 
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, 
     diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
-    similarity=0.8, max_peel_depth=None, weighted_cache=True,
-    weighted_mouth_depth=4):
+    similarity=0.8, route_tolerance=1.0, min_enclosure=0.85, max_peel_depth=None,
+    weighted_cache=True, weighted_mouth_depth=4):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
 
@@ -729,8 +744,10 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         trimmed to the specified depth. Default is None.
     :type max_depth: int
 
-    :arg bottleneck: The minimum allowed bottleneck size (narrowest point) for 
-        the channels. Default is 0.9.
+    :arg bottleneck: Acts as secondary filter following channel identification.
+        The minimum allowed bottleneck size (narrowest point) for the channels.
+        It it critical when diagram=simple, as it partially corrects for wrong 
+        diagram topology. Default is 0.0, no filtering applied. 
     :type bottleneck: float
 
     :arg min_volume: Minimum volume required for a channel/cavity to be 
@@ -741,12 +758,17 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         retained. Default is None.
     :type max_volume: float
 
-    :arg sparsity: The sparsity parameter controls the sampling density when 
-        analyzing the molecular surface. A higher value results in fewer 
-        sampling points. Default is 1, which enables detection of most relevant 
-         channel branches.
-    :type sparsity: int
-    
+    :arg sparsity: Size of a surface opening, in Angstrom. When
+        ``truncate_at_surface`` is True, two channels whose exits lie closer than
+        ``sparsity`` are treated as leaving through the same opening, and are
+        merged if they also share a corridor (see ``similarity``); a higher value
+        therefore reports fewer, coarser openings. Note this is applied *after*
+        the channel search, so it can only merge channels, never hide one: it is
+        a reporting preference, not part of the geometry. (When
+        ``truncate_at_surface`` is False it retains its old meaning, the sampling
+        density of exit tetrahedra on the molecular surface.) Default is 1.
+    :type sparsity: float
+
     :arg diagram: 
         "homogenized" (default) - every atom is substituted by a set of 
         homogeneous balls whose common radius equals the smallest van der Waals
@@ -784,40 +806,86 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         Only used when ``diagram = homogenized``.
     :type max_deviation: float
 
-    :arg truncate_at_surface: If True (default), each channel is terminated at 
-        the first surface (exit)tetrahedron it reaches whose inscribed radius 
-        is at least ``bottleneck``, instead of running all the way to its 
-        assigned end tetrahedron. This prevents a cheapest path from surfacing 
-        at one mouth and continuing on to another, and de-duplicates the 
-        channels that collapse onto a shared mouth (keeping the cheapest per 
-        terminal). If False, the original behaviour is kept (paths run to the 
-        end tetrahedra).
+    :arg truncate_at_surface: If True (default), surface (exit) tetrahedra are
+        made *absorbing*: a channel may end at one, but no channel may pass
+        through one. A mouth is a surface tetrahedron a probe of the traversal
+        radius ``r2`` can leave through. This forbids the cheapest path from
+        surfacing at one mouth, running along the outside and re-entering at
+        another - a surface hop, not a tunnel - which the width-rewarding cost
+        would otherwise prefer, since surface grooves are the widest space
+        available. Enforcing it during the search (rather than cutting the
+        winning path afterwards) is what keeps genuine narrow interior corridors
+        in the output: cut afterwards, such a corridor loses the cheapest-path
+        race to the groove leading to the same mouth and is never enumerated at
+        all. If False, paths run freely to their end tetrahedra, surface hops
+        included.
     :type truncate_at_surface: bool
 
-    :arg similarity: Only used when ``truncate_at_surface`` is True. Fraction 
-        (0-1) of the shorter path that two channels must share, as a common 
-        prefix from the seed, to be treated as the same tunnel when they leave
-         through the same surface opening. Two channels are merged (cheapest 
-         kept) only if their exit points coincide (the mouth spheres they leave
-         through overlap) AND their shared-prefix fraction is at least 
-         ``similarity``; channels that exit at distinct mouths, or reach one 
-        exit by genuinely different corridors (diverging early, sharing a bit),
-         are kept as separate tunnels. ``1.0`` merges only paths that share an 
-         exit and are otherwise identical; ``0.0`` keeps one channel per 
-         distinct exit. Default is 0.8.
+    :arg similarity: Only used when ``truncate_at_surface`` is True. Fraction
+        (0-1) of the **longer** of two channels, measured in Angstrom along its
+        centerline, that must run within ``route_tolerance`` of the other one for
+        the two to count as the same corridor. Two channels are merged (cheapest
+        kept) only when they take the same corridor **and** leave through the
+        same opening (see ``sparsity``); a corridor that forks near the surface
+        and exits twice is one tunnel, but two different corridors to one opening,
+        or one corridor reaching two openings, are two tunnels. The comparison is
+        geometric rather than a shared prefix of tetrahedra, so it is unaffected
+        by *where* two routes diverge (variants that split and rejoin still count
+        as one), by containment (a long route is not deleted as the "duplicate" of
+        a short one it happens to start with), and by ``max_deviation`` (a
+        tetrahedron count is not mesh-invariant; Angstrom are). ``1.0`` merges
+        only routes that coincide along their whole length; ``0.0`` merges every
+        channel that shares an opening. Default is 0.8.
     :type similarity: float
 
-    :arg max_peel_depth: Safety cap on the bounded surface peel. After the r1 
-        surface is built, it is eroded inward with the r2 probe by 
-        ``round(r1 - r2)`` layers to strip the wide former-exterior shell (the
-        "moat") that a large r1 probe bridges over; that shell would otherwise 
-        act as a low-cost path on which channels truncate and collapse. The 
-        peel is near-inert at the default ``r1``/``r2`` and grows with the
-        gap ``r1 - r2``. ``max_peel_depth`` limits the number of eroded layers,
-         as a guard against over-peeling into the interior at large ``r1``; 
-         ``None`` (default) leaves the peel uncapped. Erosion also stops early
-        on its own once no boundary tetrahedron wider than ``r2`` remains.
-    :type max_peel_depth: int or None
+    :arg route_tolerance: Only used when ``truncate_at_surface`` is True. How far
+        apart, in Angstrom, two centerlines may drift and still count as the same
+        corridor when computing ``similarity``. Larger values merge more
+        aggressively (nearby parallel routes read as one tunnel); smaller values
+        report finer route variants separately. Default is 1.0.
+    :type route_tolerance: float
+
+    :arg min_enclosure: Fraction of directions that must be blocked by protein for
+        a tetrahedron to count as interior, in ``[0, 1]``. Default is 0.85.
+
+        Once the r1 surface is built it is eroded inward with the r2 probe, to
+        strip the shell of true exterior that an r1 probe bridges over rather than
+        enters (the "moat"); that shell would otherwise join the cavity and offer
+        wide, low-cost routes along the outside of the protein. Erosion continues
+        while the tetrahedra at the front are *open*, meaning that fewer than
+        ``min_enclosure`` of the directions leaving them run into protein within
+        15 Angstrom, and halts at the first buried layer.
+
+        Bounding the erosion by size instead does not work. A count of tetrahedron
+        layers is not mesh-invariant, as a layer is one tetrahedron thick and
+        tetrahedra shrink as ``max_deviation`` is lowered. A depth in Angstrom is
+        not ``r1``-invariant, as the moat is as deep as ``r1 - r2`` in a concavity
+        but vanishes on a flat face, so a depth that clears it where it is thick
+        also marches down the channel mouths and erodes the channels themselves.
+        Testing burial locally instead leaves ``r1`` to decide only where the
+        erosion starts, not where it stops, so results are independent of it, and
+        ``r1`` is left doing the one job it should: capping the mouths.
+
+        This decides where the surface is taken to begin, so within its usable
+        range it moves where channels *end* rather than which channels are found:
+        raising it erodes deeper, and a channel then stops an Angstrom or so
+        earlier, at a neighbouring mouth tetrahedron.
+
+        Do not raise it far. A channel interior is itself an escape direction and
+        so is never fully enclosed, and real channels come close to the default
+        already - the most exposed tetrahedron of a genuine channel in 1mj5 scores
+        0.88. Above roughly 0.93 the sub-level set percolates along the channels
+        and the erosion, having nowhere to stop, takes the whole cavity with it.
+        That failure is at least loud, in that no channels are reported at all.
+    :type min_enclosure: float
+
+    :arg max_peel_depth: Optional hard cap, **in Angstrom**, on how far the peel
+        above may advance from the r1 surface. ``None`` (default) is uncapped, and
+        the enclosure test alone decides where erosion stops. Set it only as a
+        backstop on a structure where the peel misbehaves; it is deliberately not
+        tied to ``r1``, since a cap that scales with ``r1`` reintroduces exactly
+        the ``r1`` dependence that ``min_enclosure`` exists to remove.
+    :type max_peel_depth: float or None
 
     :arg weighted_cache: Cache the raw additively-weighted Voronoi diagram to disk so
         that re-running ``diagram="weighted"`` on the same structure skips the
@@ -879,9 +947,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                                      start_point=start_sel)
     
     To save the results as PDB file:
-    channels, surface = calcChannels(atoms, output_path="channels.pdb", 
-                                     separate=False, r1=3, r2=1.25, min_depth=10, 
-                                     bottleneck=1, sparsity=15) """
+    channels, surface = calcChannels(atoms, output_path="channels.pdb",
+                                     separate=False, r1=3, r2=0.9, min_depth=10,
+                                     bottleneck=1, sparsity=3) """
     
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
     missing = []
@@ -927,7 +995,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     LOGGER.timeit('_prody_calcChannels')
 
-    calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
+    calculator = ChannelCalculator(atoms, r2=r2, sparsity=sparsity,
+                                   route_tolerance=route_tolerance)
 
     if diagram == "simple":
         # 'simple' builds an *unweighted* Delaunay of the atom centres, i.e. it
@@ -947,6 +1016,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     coords = atoms.getCoords()
     vdw_radii = calculator.getVdwRadii(atoms.getElements())
+    # Burial is a property of the protein, not of the tessellation, so the enclosure
+    # test that strips the moat runs against the real atoms rather than the balls the
+    # diagram happens to be built on. Homogenization would otherwise make it a
+    # function of max_deviation, which min_enclosure must not be.
+    atom_coords = coords
     # For diagram="weighted" only: a homogenized-surface depth oracle used to relabel
     # the additively-weighted diagram's leaky surface mouths (see getSurfaceCavities).
     mouth_oracle = None
@@ -1037,18 +1111,14 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         
     s_srf = State(*s_tmp.getState())
 
-    # Bounded r2 peel (moat removal): erode the r1 surface inward with the r2 probe
-    # by round(r1 - r2) layers, stripping the wide former-exterior "moat" shell that
-    # a large r1 bridges over (it would otherwise act as a low-cost path that truncates
-    # channels). Stops early once erosion converges. max_peel_depth caps it (None = uncapped).
-    peel_depth = int(round(r1 - r2))
-    if max_peel_depth is not None:
-        peel_depth = min(peel_depth, max_peel_depth)
-    for _ in range(peel_depth):
-        s_next = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + tuple([vdw_radii, r2, True]))))
-        if s_next == s_srf:
-            break
-        s_srf = s_next
+    # Moat removal: erode the r1 surface inward with the r2 probe, stripping the shell
+    # of true exterior that a large r1 probe bridges over instead of entering (it would
+    # otherwise join the cavity and offer wide, low-cost routes along the outside).
+    # Erosion stops where the tetrahedra stop being open to the solvent, which is a
+    # local criterion, so neither the mesh nor r1 sets how deep the peel goes.
+    s_srf = State(*calculator.peelSurfaceByEnclosure(
+        coords, *(s_srf.getState() + tuple([vdw_radii, r2, atom_coords,
+                                            min_enclosure, max_peel_depth]))))
 
     #s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + [vdw_radii, r2, False])))
     s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + tuple([vdw_radii, r2, False]))))
@@ -1205,8 +1275,8 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     :rtype: list of lists
 
     Example usage:
-    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
-                                   separate=False, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15) 
+    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb",
+                                   separate=False, r1=3, r2=0.9, min_depth=10, bottleneck=1, sparsity=3)
                                   
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
                                    separate=False, start_point=[-10.353, -0.133, 5.608]) """
@@ -2670,14 +2740,16 @@ def _rowsIsin(a, b):
 
 
 class ChannelCalculator:
-    def __init__(self, atoms, r1=3, r2=1.25, min_depth=10, bottleneck=1, 
-                 sparsity=15):
+    def __init__(self, atoms, r2=0.9, sparsity=1, route_tolerance=1.0):
+        # Only the parameters the class actually consults are held here. r1,
+        # min_depth and bottleneck are stages of the pipeline, applied to the
+        # tessellation and to the finished channels by calcChannels; keeping copies
+        # of them on the calculator suggested it filtered by them, which it does
+        # not.
         self.atoms = atoms
-        self.r1 = r1
         self.r2 = r2
-        self.min_depth = min_depth
-        self.bottleneck = bottleneck
         self.sparsity = sparsity
+        self.route_tolerance = route_tolerance
         
     # def sphereFit(self, vertices, tetrahedron, vertice, vdw_radii, r):
     #     center = vertice
@@ -2731,7 +2803,199 @@ class ChannelCalculator:
 
         return simp, neigh, verti
 
-    def deleteSection(self, simplices_subset, simplices, neighbors, vertices, 
+    def calcEnclosure(self, query, centers, tree=None):
+        """Fraction of the directions seen from each point of ``query`` that are
+        blocked by an atom within :data:`ENCLOSURE_RANGE` Angstrom.
+
+        A local, probe-independent measure of burial: a point in the open solvent
+        sees sky in most directions, a point inside a channel is surrounded
+        whatever the channel's width.
+
+        Rays are marched outwards and a ray is dropped as soon as it is blocked,
+        which is what keeps this affordable: in a buried region most directions
+        hit protein within the first few Angstrom, and only the few that escape
+        are followed the whole way out. Marching costs
+        ``ENCLOSURE_RAYS x steps`` tree queries per point and so is all but
+        insensitive to how many atoms there are, whereas testing every atom in
+        range against every ray costs a multiple of the atom count, and with rays
+        this sparse nearly all of that work is wasted on atoms that lie near no
+        ray at all.
+
+        Pass the real atoms here, not the balls of a homogenized diagram: burial
+        is a property of the protein, not of the tessellation. Atoms are all given
+        the same :data:`ENCLOSURE_RADIUS`, so one tree and one plain
+        nearest-neighbour test suffice. This is a burial heuristic and not a
+        surface calculation, and the alternative -- a per-atom radius, which no
+        nearest-neighbour query can express -- buys nothing that
+        ``min_enclosure`` cannot absorb.
+
+        :data:`ENCLOSURE_RAYS` is fixed rather than exposed, because it is part of
+        the definition of the quantity and not an accuracy knob. Adding rays is
+        not a free refinement: more directions discover more of the thin escape
+        routes out of a channel, so the enclosure of every point drifts downwards
+        and a threshold calibrated at one ray count does not carry over to
+        another.
+
+        :arg query: points to evaluate, ``(n, 3)``.
+        :arg centers: atom centres.
+        :arg tree: optional prebuilt :class:`~scipy.spatial.cKDTree` over
+            ``centers``, to avoid rebuilding it on every call.
+        :returns: ``n`` fractions in ``[0, 1]``."""
+        from scipy.spatial import cKDTree
+
+        query = np.asarray(query, dtype=float)
+        if len(query) == 0:
+            return np.empty(0)
+        if tree is None:
+            tree = cKDTree(np.asarray(centers, dtype=float))
+
+        i = np.arange(ENCLOSURE_RAYS) + 0.5
+        phi = np.arccos(1 - 2 * i / ENCLOSURE_RAYS)
+        theta = np.pi * (1 + 5 ** 0.5) * i              # Fibonacci sphere
+        directions = np.stack([np.sin(phi) * np.cos(theta),
+                               np.sin(phi) * np.sin(theta),
+                               np.cos(phi)], axis=1)
+
+        blocked = np.zeros((len(query), ENCLOSURE_RAYS), dtype=bool)
+        live = np.ones_like(blocked)
+        for step in np.arange(ENCLOSURE_STEP,
+                              ENCLOSURE_RANGE + ENCLOSURE_STEP, ENCLOSURE_STEP):
+            point, ray = np.nonzero(live)
+            if not len(point):
+                break
+            samples = query[point] + directions[ray] * step
+            hit = tree.query(samples, distance_upper_bound=ENCLOSURE_RADIUS,
+                             workers=-1)[0] <= ENCLOSURE_RADIUS
+            blocked[point[hit], ray[hit]] = True
+            live[point[hit], ray[hit]] = False
+
+        return blocked.mean(axis=1)
+
+    def peelSurfaceByEnclosure(self, points, simplices, neighbors, vertices,
+                               vdw_radii, r, atom_coords, min_enclosure,
+                               max_depth=None):
+        """Erode the surface inward with a probe of radius ``r``, stopping where
+        the tetrahedra stop being open to the solvent.
+
+        This removes the "moat": the shell of true exterior that lies inside the
+        ``r1`` surface, because an ``r1`` probe cannot enter the concavities it
+        bridges over. Left in place the moat joins the cavity and offers wide,
+        cheap routes along the outside of the protein.
+
+        Neither obvious way of bounding the erosion works. A count of tetrahedron
+        layers is not mesh-invariant, since a layer is one tetrahedron thick and
+        tetrahedra shrink as the tessellation is refined. A depth in Angstrom is
+        not ``r1``-invariant, since the moat has no constant thickness: it is as
+        deep as ``r1 - r`` inside a concavity and vanishes on a flat face, so a
+        depth large enough to clear it where it is thick also marches down the
+        channel mouths and erodes the channels themselves. At ``r1 = 10``, a
+        reasonable setting for a porin or a ribosome, that leaves almost nothing.
+
+        The rule used here is local instead. A boundary tetrahedron is stripped
+        only while it is *open*, that is while its enclosure is below
+        ``min_enclosure`` (see :meth:`calcEnclosure`). The moat is open by
+        construction and goes; erosion halts by itself at the first buried layer.
+        ``r1`` then decides only where the erosion starts, not where it stops, so
+        the result no longer depends on it, and ``r1`` is left doing the one job
+        it should: capping the mouths.
+
+        Since enclosure is a static field, the peel is really "delete the
+        outside-connected component of ``{enclosure < min_enclosure}``". A
+        threshold above the enclosure of a channel interior (empirically about
+        0.93, as a channel is itself an escape direction) therefore percolates
+        along the channels and erodes the cavity away entirely. ``max_depth`` is
+        available as a hard backstop, but the default threshold leaves a wide
+        margin and the failure mode is loud - no channels at all - rather than a
+        plausible-looking result with the real channels missing.
+
+        Note that the probe test and the enclosure test deliberately run against
+        different spheres. ``points`` and ``vdw_radii`` are the balls the diagram
+        is built on, and the probe test has to use them or its geometry stops
+        agreeing with :meth:`deleteSimplices3d`. ``atom_coords`` are the real
+        atoms, and the enclosure test has to use those, or burial would depend on
+        the tessellation. Under ``diagram="homogenized"`` the two are not the same
+        set, as some 4700 atoms become some 33000 equal balls, which would make
+        the enclosure test both slower and a function of ``max_deviation``. Under
+        ``"simple"`` and ``"weighted"`` they coincide.
+
+        :arg atom_coords: the real atoms, for the enclosure test.
+        :arg min_enclosure: fraction of directions that must be blocked for a
+            tetrahedron to count as interior and stop the erosion. ``<= 0``
+            returns the state unchanged.
+        :arg max_depth: optional cap, in Angstrom, on how far the front may
+            advance from the initial surface. ``None`` (default) is uncapped.
+        :returns: ``(simplices, neighbors, vertices)``, compacted."""
+        from scipy.spatial import cKDTree
+
+        simplices = np.asarray(simplices)
+        neighbors = np.asarray(neighbors)
+        vertices = np.asarray(vertices)
+
+        if min_enclosure <= 0 or len(simplices) == 0:
+            return simplices, neighbors, vertices
+
+        boundary = (neighbors == -1).any(axis=1)
+        if not boundary.any():
+            return simplices, neighbors, vertices
+
+        # Fixed for the whole peel, so the cap bounds the total advance of the
+        # front rather than its advance per pass.
+        surface = cKDTree(vertices[boundary]) if max_depth is not None else None
+        atoms = cKDTree(atom_coords)
+        # Enclosure is a property of a point, not of the shrinking mesh, so a
+        # tetrahedron re-examined on a later pass is never re-traced. Tetrahedra
+        # are renumbered by the compaction below, but the four balls they are
+        # built on are not, so those index the cache.
+        traced = {}
+
+        while True:
+            n = len(simplices)
+            if n == 0:
+                break
+            boundary = np.nonzero((neighbors == -1).any(axis=1))[0]
+            if not len(boundary):
+                break
+
+            # The cheap tests first: does the probe fit (the same sum-based test
+            # as deleteSimplices3d), and are we still inside the optional cap?
+            ball_coords = points[simplices[boundary]]
+            d_sum = np.linalg.norm(
+                ball_coords - vertices[boundary][:, None, :], axis=2).sum(axis=1)
+            r_sum = (r + vdw_radii[simplices[boundary]]).sum(axis=1)
+            candidate = d_sum >= r_sum
+            if max_depth is not None:
+                candidate &= surface.query(vertices[boundary])[0] <= max_depth
+            candidates = boundary[candidate]
+            if not len(candidates):
+                break
+
+            # Ray tracing runs only on what survived those, and only once each.
+            keys = [tuple(key) for key in simplices[candidates]]
+            fresh = [i for i, key in enumerate(keys) if key not in traced]
+            if fresh:
+                values = self.calcEnclosure(vertices[candidates[fresh]],
+                                            atom_coords, tree=atoms)
+                for i, value in zip(fresh, values):
+                    traced[keys[i]] = value
+            enclosure = np.array([traced[key] for key in keys])
+
+            should_delete = np.zeros(n, dtype=bool)
+            should_delete[candidates[enclosure < min_enclosure]] = True
+            if not should_delete.any():
+                break
+
+            keep = ~should_delete
+            simplices = simplices[keep]
+            neigh = neighbors[keep].copy()
+            vertices = vertices[keep]
+
+            new_index = np.full(n, -1, dtype=neigh.dtype)
+            new_index[keep] = np.arange(keep.sum(), dtype=neigh.dtype)
+            neighbors = np.where(neigh == -1, -1, new_index[neigh])
+
+        return simplices, neighbors, vertices
+
+    def deleteSection(self, simplices_subset, simplices, neighbors, vertices,
                       reverse=False):
         simplices = np.asarray(simplices)
         neighbors = np.asarray(neighbors)
@@ -3111,33 +3375,79 @@ class ChannelCalculator:
         global_to_local = {tetra: i for i, tetra in enumerate(cavity_tetra)}
         cavity_graph = graph[np.ix_(cavity_tetra, cavity_tetra)]
 
-        # A tunnel physically ends at the surface, but the Dijkstra cost has 
-        # no such term (it rewards width, and mouths are wide), so a cheapest 
-        # path to a far exit can run through/past a nearer mouth. When 
-        # truncate_at_surface is set we cut each reconstructed path at the 
-        # first qualified mouth it reaches. A mouth is a surface (exit) 
-        # tetrahedron whose inscribed clearance is >= bottleneck - one a probe
-        #  of that radius can leave through. We test the Voronoi vertices 
-        # geometrically, not tetra identity: near the surface many distinct 
-        # exit tetra share almost the same circumcenter, so a path can be 
-        # inside a mouth while its node is a neighbour,which a tetra-identity 
-        # test would miss. Two truncated paths are then treated as the same 
-        # channel only if they leave through overlapping mouths AND share most 
-        # of their route (see _add_deduped_channels); distinct exits are kept.
-        mouth_xyz = np.empty((0, 3))
-        mouth_r = np.empty(0)
+        # A tunnel ends at the surface, but the Dijkstra cost has no such term:
+        # it rewards width, and the widest places are the surface grooves. Left
+        # free, the cheapest path to a far exit leaves the pocket at one mouth,
+        # runs along the outside and re-enters at another - which is not a
+        # tunnel. So a mouth must not *conduct*, only *absorb*: we drop the
+        # outgoing edges of every mouth before the search, making "a channel
+        # ends at its first surface contact" a hard constraint of the search
+        # rather than a cut applied afterwards to the winning path.
+        # The ordering is the whole point. Truncating after selection cuts a
+        # path that was itself chosen *because* it ran along the surface, while
+        # a genuine narrow interior corridor to the same mouth loses the argmin
+        # to that groove and is never enumerated at all - it vanishes from the
+        # output even though it is open. Mesh refinement makes the groove
+        # cheaper, so interior tunnels drop out one by one as max_deviation
+        # shrinks; forbidding transit removes that dependence entirely.
+        # A mouth is a surface (exit) tetrahedron a probe of the traversal
+        # radius r2 can leave through. Note the gate is r2, not bottleneck:
+        # bottleneck is a reporting filter, and letting it decide which mouths
+        # absorb would let it silently re-open narrow mouths as transit nodes,
+        # i.e. change the routes rather than filter them. For the homogenized
+        # and weighted diagrams every surviving tetrahedron already clears r2 by
+        # construction (equal radii + equidistant circumcenter collapse the
+        # sum-based test in deleteSimplices3d to the per-atom clearance), so the
+        # test is a no-op there; it earns its keep for diagram="simple", where
+        # unequal radii break that identity.
+        # Local indices of the tetrahedra a channel is allowed to end at.
+        terminals_local = [global_to_local[int(t)]
+                           for t in np.asarray(cavity.end_tetrahedra)
+                           if int(t) in global_to_local]
         if truncate_at_surface:
-            exit_tetra = np.asarray(getattr(cavity, 'exit_tetrahedra', 
+            exit_tetra = np.asarray(getattr(cavity, 'exit_tetrahedra',
                                             np.empty(0, dtype=np.intp)))
             if len(exit_tetra):
                 verts = vertices[exit_tetra]
                 atom_pos = points[simplices[exit_tetra]]
                 atom_rad = vdw_radii[simplices[exit_tetra]]
-                clearance = (np.linalg.norm(atom_pos - verts[:, None, :], 
+                clearance = (np.linalg.norm(atom_pos - verts[:, None, :],
                                             axis=2) - atom_rad).min(axis=1)
-                q = clearance >= self.bottleneck
-                mouth_xyz = verts[q]
-                mouth_r = clearance[q]
+                seeds = set(int(s) for s in cavity.starting_tetrahedron)
+
+                # Only the mouths themselves absorb. A tetrahedron that merely lies
+                # inside a mouth's inscribed ball must NOT be absorbed: the ball's
+                # radius is the clearance (up to ~2 A) and it reaches inward as
+                # well as outward, so absorbing on it eats the corridors that
+                # approach the surface and truncates real tunnels before they
+                # arrive - measured to delete both known side tunnels at
+                # max_deviation=0.1 while keeping them at 0.02, i.e. exactly the
+                # silent, mesh-dependent tunnel loss this design exists to prevent.
+                # A path can consequently still slip *past* a mouth through a twin
+                # tetrahedron - a neighbour sharing almost the same circumcenter,
+                # not itself in the second layer and so still conducting - and
+                # surface again somewhere else. That leak is real but narrow (the
+                # twins sit 0.1-0.7 A from a mouth, in the surface shell at depth
+                # 1-4), and such a path always passes through the exit sphere of a
+                # channel that is already reported. It is therefore handled in
+                # _addDedupedChannels, which cuts a path at the first reported exit
+                # sphere it enters - the point where it truly leaves the protein -
+                # rather than walling the graph off against every mouth.
+                absorbing = [global_to_local[int(t)]
+                             for t, c in zip(exit_tetra, clearance)
+                             if c >= self.r2 and int(t) in global_to_local
+                             and int(t) not in seeds]
+                if absorbing:
+                    # Zero the mouths' rows: edges *into* a mouth survive (a
+                    # channel may end there), edges *out of* it are gone.
+                    cavity_graph = cavity_graph.tolil()
+                    for i in absorbing:
+                        cavity_graph.rows[i] = []
+                        cavity_graph.data[i] = []
+                    cavity_graph = cavity_graph.tocsr()
+                # Every mouth is a terminus; the dedup decides which of them are
+                # one opening. See the comment at the target loop below.
+                terminals_local = absorbing
 
         candidates = []
 
@@ -3166,12 +3476,21 @@ class ChannelCalculator:
                 for child in parent_to_children.get(node, []):
                     stack.append((child, path + [child]))
 
-            for exit_global in cavity.end_tetrahedra:
-                if exit_global == start_global:
+            # A channel ends where it first touches the surface, i.e. at whichever
+            # mouth absorbed it - so emit a candidate for every *reachable* mouth,
+            # not for a pre-sampled subset of them. Sampling the targets before the
+            # search (the old `end_tetrahedra`, thinned by `sparsity`) can pick a
+            # target that sits behind another mouth: the path is absorbed at that
+            # nearer mouth and can go no further, the sampled target is never
+            # reached, and because only sampled targets emit channels the tunnel is
+            # reported nowhere at all. Which mouth happens to shadow which target is
+            # a tessellation accident, so real tunnels vanished at some meshes and
+            # not others. Every mouth is a legitimate terminus, so let every
+            # reachable one produce a candidate and leave exit identity to the
+            # dedup, where `sparsity` merges the mouths that share one opening.
+            for exit_local in terminals_local:
+                if exit_local == start_local:
                     continue
-                if exit_global not in global_to_local:
-                    continue
-                exit_local = global_to_local[exit_global]
                 if np.isinf(distances[exit_local]):
                     continue
 
@@ -3179,75 +3498,190 @@ class ChannelCalculator:
                 if path_local is None:
                     continue
 
-                term_xyz = None
-                term_r = 0.0
-                if len(mouth_xyz):
-                    # walk seed->exit; stop at the first tetra whose Voronoi 
-                    # vertex lies inside some qualified mouth's sphere (skip 
-                    # the seed). Record that entry point and the radius of the 
-                    # mouth entered.. tunnel physically leaves  protein there.
-                    for j in range(1, len(path_local)):
-                        cc = vertices[cavity_tetra[path_local[j]]]
-                        d = np.linalg.norm(mouth_xyz - cc, axis=1)
-                        hit = np.nonzero(d < mouth_r)[0]
-                        if len(hit):
-                            path_local = path_local[:j + 1]
-                            term_xyz = cc.copy()
-                            term_r = float(mouth_r[hit[np.argmin(d[hit])]])
-                            break
-
                 path_global = cavity_tetra[path_local]
                 channel = Channel(path_global, *self.processChannel(
                     path_global, vertices, points, vdw_radii, simplices),
                     cost=float(distances[path_local[-1]]))
-                candidates.append((channel, term_xyz, term_r, list(path_local)))
+                # the Dijkstra cost at every node, so that a path cut short at a
+                # reported exit can be re-costed at the node it was cut at
+                node_costs = np.asarray(distances)[np.asarray(path_local)]
+                candidates.append((channel, node_costs))
 
         if truncate_at_surface:
-            self._addDedupedChannels(cavity, candidates, similarity)
+            self._addDedupedChannels(cavity, candidates, similarity, vertices,
+                                     points, vdw_radii, simplices)
         else:
-            for channel, _t, _r, _path in candidates:
+            for channel, _costs in candidates:
                 cavity.addChannel(channel)
 
-    def _addDedupedChannels(self, cavity, candidates, similarity):
-        # Keep one channel per (surface exit, distinct route). Two truncated 
-        # channels are the same tunnel only if they leave through overlapping 
-        # mouths (their exit spheres intersect, |Ti - Tj| < ri + rj) AND share 
-        # most of their route (diverge late). Exits farther apart than their 
-        # mouth radii are distinct openings and kept, even when the paths share
-        #  a long trunk and split only near the surface; different corridors to
-        #  one exit diverge early (low shared prefix) and are also kept. 
-        # omparing the two actual exit points avoids the single-linkage chaining
-        # of a mouth-cluster label, which can span many A and merge distinct exits.
-        # Cost-sorted greedy, so the kept representative is always the cheapest
-        # and the outcome is order-independent.
-        kept = []  # (channel, term_xyz, term_r, path)
-        for channel, term_xyz, term_r, path in sorted(candidates, key=lambda c: c[0].cost):
-            duplicate = False
-            if term_xyz is not None:
-                for _kc, kxyz, kr, kpath in kept:
-                    if kxyz is not None and \
-                            np.linalg.norm(term_xyz - kxyz) < term_r + kr and \
-                            self._sharedPrefixFraction(path, kpath) >= similarity:
-                        duplicate = True
+    def _addDedupedChannels(self, cavity, candidates, similarity, vertices,
+                            points, vdw_radii, simplices):
+        # Cheapest first, and each candidate is judged only against the channels
+        # already kept - so the kept channel is always the cheapest of its group
+        # and the result does not depend on the order candidates arrive in.
+        #
+        # Step 1, CUT. A reported channel's exit sphere (centred on its exit
+        # vertex, radius the clearance there) is the volume of that opening. If a
+        # candidate's route passes through it, the candidate has left the protein
+        # at that opening: whatever it does afterwards is a hop across the outside,
+        # not part of a tunnel. So cut it there. This is what stops a path from
+        # slipping past a mouth through a twin tetrahedron and claiming some far
+        # exit on the other side. Note the cut is made only against the handful of
+        # *already reported* exits, never against all mouths - truncating against
+        # every mouth is what used to demolish real tunnels.
+        #
+        # Step 2, COMPARE. Two channels are the same tunnel when they leave by the
+        # same opening AND take the same corridor to get there. Both halves are
+        # needed: a corridor that forks near the surface and exits twice through
+        # one opening is one tunnel counted twice (merge), but two genuinely
+        # different corridors that happen to surface at the same opening are two
+        # tunnels (keep), and one corridor reaching two separate openings is also
+        # two tunnels (keep). A candidate that was cut in step 1 is compared on its
+        # cut route, which is the only part of it that is really a tunnel.
+        #
+        # Route identity is measured GEOMETRICALLY - how much of one centerline
+        # runs alongside the other - not as a shared prefix of tetrahedra. A prefix
+        # is the wrong instrument twice over: it is blind to rejoining (two routes
+        # that split near the seed and then run together to the same exit share
+        # almost no prefix, yet are plainly one tunnel) and it is fooled by
+        # containment (a short route that is a prefix of a long one scores ~1.0 and
+        # deletes the long one, which is the channel carrying the distinctive
+        # route). Comparing the curves is immune to both, and to the tessellation:
+        # a tetrahedron count is not mesh-invariant, so the same physical fork
+        # scores differently at different max_deviation.
+        prepared = sorted(candidates, key=lambda c: c[0].cost)
+        if not prepared:
+            return
+
+        kept = []  # (channel, pts, exit_xyz, opening_radius)
+        for channel, node_costs in prepared:
+            tetra = np.asarray(channel.tetrahedra)
+            pts = vertices[tetra]
+
+            # step 1: cut at the first reported opening this route enters
+            cut, cutter = None, None
+            for i in range(1, len(pts)):
+                for kxyz, kr in ((k[2], k[3]) for k in kept):
+                    if np.linalg.norm(pts[i] - kxyz) < kr:
+                        cut = i
                         break
+                if cut is not None:
+                    cutter = next(k for k in kept
+                                  if np.linalg.norm(pts[cut] - k[2]) < k[3])
+                    break
+            if cut is not None:
+                tetra = tetra[:cut + 1]
+                pts = pts[:cut + 1]
+                channel = Channel(tetra, *self.processChannel(
+                    tetra, vertices, points, vdw_radii, simplices),
+                    cost=float(node_costs[cut]))
+
+            # step 2: same opening AND same corridor -> the same tunnel.
+            # The corridor is compared OUTSIDE the shared opening. Inside it the
+            # routes are already through the mouth and merely fanning out across
+            # it, and that fan is not evidence of a different corridor: the
+            # Voronoi network splays where a tunnel widens into its opening, so
+            # sibling paths peel off in the last few Angstrom and end on
+            # neighbouring exit tetrahedra. Counting that splay as divergence is
+            # what used to report one tunnel as a bundle of near-copies - on 1mj5
+            # four channels sharing a trunk and separated only by a 2.5 A fan
+            # scored 0.73 together, just under `similarity`, yet score 1.00 once
+            # the opening is discounted.
+            duplicate = False
+            for _kc, kpts, kxyz, kr in kept:
+                if np.linalg.norm(pts[-1] - kxyz) >= kr:
+                    continue                        # a different opening
+                if self._routeCoverage(pts, kpts, center=kxyz,
+                                       radius=kr) >= similarity:
+                    duplicate = True
+                    break
             if not duplicate:
-                kept.append((channel, term_xyz, term_r, path))
-        for channel, _t, _r, _path in kept:
+                if cut is not None:
+                    # A cut channel stops inside an opening that is already
+                    # reported, so it INHERITS that opening rather than declaring
+                    # its own. Its last tetrahedron is an interior one that merely
+                    # happens to lie in the exit volume, and its inscribed sphere
+                    # is not a mouth - promoting it to a cutting surface would let
+                    # an interior sphere start truncating other candidates. (It
+                    # survives to here only when it reached that opening by a
+                    # genuinely different corridor, which is a distinct tunnel and
+                    # must be kept. Note its cost, taken at the cut node, is
+                    # necessarily below that of the channel that cut it, since the
+                    # cut lies upstream of that channel's mouth - so cost orders
+                    # the output but does not mean the cut channel is "better".)
+                    kept.append((channel, pts, cutter[2], cutter[3]))
+                else:
+                    # One radius stands for this opening everywhere: it cuts routes
+                    # that pass through it, it decides which channels share it, and
+                    # it is the region discounted when their corridors are compared.
+                    # The clearance at the exit vertex measures the mouth, but on a
+                    # coarse tessellation it is erratic and can collapse to almost
+                    # nothing, fragmenting one physical mouth into several; the
+                    # sparsity floor keeps it mesh-independent.
+                    kept.append((channel, pts, pts[-1],
+                                 max(self.calculateMaxRadius(
+                                     pts[-1], points, vdw_radii,
+                                     simplices[tetra[-1]]), self.sparsity)))
+        for channel, _pts, _xyz, _r in kept:
             cavity.addChannel(channel)
 
-    @staticmethod
-    def _sharedPrefixFraction(a, b):
-        # Fraction of the shorter path shared as a common prefix from the seed.
-        # Robust to trunk-sharing: distinct tunnels share only the early trunk 
-        # (small), a redundant wiggle shares almost everything (~1.0).
-        n = 0
-        for x, y in zip(a, b):
-            if x == y:
-                n += 1
-            else:
-                break
-        m = min(len(a), len(b))
-        return n / m if m else 0.0
+    def _routeCoverage(self, a, b, tol=None, center=None, radius=0.0):
+        """Fraction of the SHORTER centerline's arc length that runs within ``tol``
+        Angstrom of the longer one.
+
+        Answers "does the longer channel follow the shorter one's corridor?".
+        ``1.0`` means the shorter route lies wholly inside the longer one's
+        corridor, so they took the same way out - the longer one simply carried on
+        past the point where the shorter one surfaced. That continuation is *not*
+        counted as a difference, which is the point: two channels leaving through
+        one opening are one tunnel even if one of them runs on and exits a few
+        Angstrom further along. It is safe to ignore the continuation only because
+        this is gated on the two channels sharing an opening; without that gate,
+        scoring against the shorter route would delete long channels that head off
+        to a quite different exit.
+
+        ``center`` and ``radius`` describe that shared opening, and the part of
+        either route lying inside it is discarded before the comparison. A tunnel
+        splays as it widens into its mouth, so sibling paths peel apart over the
+        last few Angstrom and land on neighbouring exit tetrahedra; that fan says
+        nothing about which corridor they took, and counting it makes one tunnel
+        look like several.
+
+        Note this deliberately says nothing about *where* the routes differ, or how
+        sharply the uncovered part turns away - only how much of the shorter route
+        is shared. Where two corridors genuinely part company, they do so for a
+        large fraction of the route, and the score falls."""
+        from scipy.spatial import cKDTree
+
+        if tol is None:
+            tol = self.route_tolerance
+        if center is not None and radius > 0:
+            a = a[np.linalg.norm(a - center, axis=1) > radius]
+            b = b[np.linalg.norm(b - center, axis=1) > radius]
+            if len(a) < 2 or len(b) < 2:
+                # Nothing survives outside the opening, so all either route ever
+                # did was cross the mouth: there is no corridor to tell apart.
+                return 1.0
+        if len(a) < 2 or len(b) < 2:
+            return 0.0
+
+        def arclen(p):
+            return float(np.linalg.norm(np.diff(p, axis=0), axis=1).sum())
+
+        long_p, short_p = (a, b) if arclen(a) >= arclen(b) else (b, a)
+        steps = np.linalg.norm(np.diff(short_p, axis=0), axis=1)
+        total = steps.sum()
+        if total <= 0:
+            return 0.0
+
+        # each node carries half of each adjacent segment, so its weight is the
+        # arc length it stands for
+        weight = np.zeros(len(short_p))
+        weight[:-1] += steps / 2.0
+        weight[1:] += steps / 2.0
+
+        near = cKDTree(long_p).query(short_p)[0] <= tol
+        return float(weight[near].sum() / total)
 
     def calculateMaxRadius(self, vertice, points, vdw_radii, simp):
         atom_positions = points[simp]
