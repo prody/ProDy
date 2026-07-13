@@ -662,7 +662,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     min_volume=None, max_volume=None, max_depth=None, bottleneck=0.9, 
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, 
     diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
-    similarity=0.8, max_peel_depth=None, max_proc=1, weighted_cache=True,
+    similarity=0.8, max_peel_depth=None, weighted_cache=True,
     weighted_mouth_depth=4):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
@@ -818,13 +818,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
          ``None`` (default) leaves the peel uncapped. Erosion also stops early
         on its own once no boundary tetrahedron wider than ``r2`` remains.
     :type max_peel_depth: int or None
-
-    :arg max_proc: Maximum number of worker processes for the ``diagram="weighted"``
-        tessellation. Large structures are split into spatially local boxes that are
-        tessellated independently and merged; ``max_proc`` bounds how many run
-        concurrently. ``1`` (default) runs them serially. Ignored for the other
-        ``diagram`` modes.
-    :type max_proc: int
 
     :arg weighted_cache: Cache the raw additively-weighted Voronoi diagram to disk so
         that re-running ``diagram="weighted"`` on the same structure skips the
@@ -992,7 +985,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         cache_path = resolveCachePath(weighted_cache, output_path, title)
         simplices, neighbors, verts, _ = buildAwTessellation(
             coords, vdw_radii, max_vert=max(2.0 * r1, 8), accelerate=accelerate,
-            max_proc=max_proc, cache=cache_path)
+            cache=cache_path)
         LOGGER.report('Additively-weighted (Apollonius) tessellation of {0} atoms '
             'constructed in %.2fs.'.format(len(coords)),
             '_prody_channels_tessellation')
@@ -3597,13 +3590,17 @@ class ChannelCalculator:
             return []
 
         best_cavity.setStartingTetrahedron(np.array([best_tetra]))
+        start_vertex = vertices[best_tetra]
         start_radius = self.calculateMaxRadius(
-            vertices[best_tetra], points, vdw_radii, simp[best_tetra])
-        LOGGER.info("start_point mapped to tetrahedron {0} (Voronoi vertex {1:.3f} A "
-            "away, inscribed radius {2:.3f} A); restricting channel search to the "
-            "cavity that contains it. A small inscribed radius here means the "
-            "start_point sits in a tight spot that may bottleneck all channels."
-            .format(int(best_tetra), float(np.sqrt(best_d2)), float(start_radius)))
+            start_vertex, points, vdw_radii, simp[best_tetra])
+        LOGGER.info("start_point mapped to tetrahedron {0} (Voronoi vertex at "
+            "[{1:.3f}, {2:.3f}, {3:.3f}], {4:.3f} A away from start_point, inscribed "
+            "radius {5:.3f} A); restricting channel search to the cavity that contains "
+            "it. A small inscribed radius here means the start_point sits in a tight "
+            "spot that may bottleneck all channels."
+            .format(int(best_tetra), float(start_vertex[0]), float(start_vertex[1]),
+                    float(start_vertex[2]), float(np.sqrt(best_d2)),
+                    float(start_radius)))
 
         return [best_cavity]
 

@@ -322,17 +322,16 @@ def resolveCachePath(cache, output_path=None, title=None):
 
 
 def buildAwTessellation(coords, vdw_radii, max_vert=8.0, accelerate=True,
-                        max_proc=1, target_atoms=500, cache=None):
+                        target_atoms=500, cache=None):
     """Build the additively-weighted (Apollonius) Voronoi network of the balls
     ``(coords, vdw_radii)`` with vorpy and adapt it to the channel finder's arrays.
 
     Large *and spatially extended* structures are split into local boxes (each padded
-    with a correctness halo), tessellated independently and merged by global 4-ball
-    signature, optionally across up to ``max_proc`` worker processes. Splitting only
-    engages where a box core would be comfortably larger than its halo (see
-    ``_planBoxes``); a compact globular structure -- even a few thousand atoms -- stays
-    on the single-pass path, since there the halo would re-cover the whole structure
-    and decomposition would be a net loss.
+    with a correctness halo), tessellated one after another and merged by global 4-ball
+    signature. Splitting only engages where a box core would be comfortably larger than
+    its halo (see ``_planBoxes``); a compact globular structure -- even a few thousand
+    atoms -- stays on the single-pass path, since there the halo would re-cover the
+    whole structure and decomposition would be a net loss.
 
     :arg coords: (N,3) ball centres (atom coordinates), in Angstrom.
     :arg vdw_radii: (N,) van der Waals radii aligned with ``coords``.
@@ -340,8 +339,6 @@ def buildAwTessellation(coords, vdw_radii, max_vert=8.0, accelerate=True,
         clearance exceeds this are dropped. ~8 A keeps every channel-relevant vertex
         while pruning irrelevant large voids. Default 8.0.
     :arg accelerate: apply the compiled ``calc_vert`` kernel first. Default True.
-    :arg max_proc: maximum worker processes for the per-box tessellations. 1 (default)
-        runs the boxes serially in-process.
     :arg target_atoms: approximate number of balls per box core; also the threshold
         below which the structure is tessellated in a single pass. Default 500.
     :arg cache: optional path to an ``.npz`` cache file. When given and it already
@@ -401,7 +398,7 @@ def buildAwTessellation(coords, vdw_radii, max_vert=8.0, accelerate=True,
                            list(verts['dub']) if 'dub' in verts else None)
     else:
         result = _buildAwDecomposed(coords, vdw_radii, max_vert, accelerate,
-                                    max_proc, boxes, halo)
+                                    boxes, halo)
 
     if cache:
         _saveCache(cache, key, result)
@@ -541,8 +538,7 @@ def _planBoxes(coords, target, halo):
     return boxes
 
 
-def _buildAwDecomposed(coords, vdw_radii, max_vert, accelerate, max_proc,
-                       boxes, halo):
+def _buildAwDecomposed(coords, vdw_radii, max_vert, accelerate, boxes, halo):
     """Tessellate each box (core + halo) independently, keep only the vertices whose
     location falls in the box core, and merge them by global 4-ball signature.
 
@@ -551,7 +547,6 @@ def _buildAwDecomposed(coords, vdw_radii, max_vert, accelerate, max_proc,
     max_radius of the vertex; since the vertex sits in the core, that halo around the
     core contains every ball a core vertex depends on (+1 A margin)."""
     from prody import LOGGER
-    import multiprocessing as mp
 
     tasks, cores, haloed = [], [], []
     for lo, hi in boxes:
@@ -565,24 +560,15 @@ def _buildAwDecomposed(coords, vdw_radii, max_vert, accelerate, max_proc,
         cores.append(int(core.sum()))
         haloed.append(len(gidx))
 
-    max_proc = max(1, int(max_proc))
-    nproc = min(max_proc, len(tasks))
     LOGGER.info('Weighted tessellation: {0} boxes, {1}-{2} atoms each ({3}-{4} with '
-                'halo), {5} process(es).'.format(len(tasks), min(cores), max(cores),
-                min(haloed), max(haloed), nproc))
+                'halo).'.format(len(tasks), min(cores), max(cores),
+                min(haloed), max(haloed)))
 
     results = []
-    if nproc == 1 or len(tasks) == 1:
-        for t in tasks:
-            results.append(_awBoxTask(t))
-            LOGGER.info('Additively-weighted Voronoi diagram: box {0}/{1} done'
-                        .format(len(results), len(tasks)))
-    else:
-        with mp.Pool(processes=nproc) as pool:
-            for out in pool.imap_unordered(_awBoxTask, tasks):
-                results.append(out)
-                LOGGER.info('Additively-weighted Voronoi diagram: box {0}/{1} done'
-                            .format(len(results), len(tasks)))
+    for t in tasks:
+        results.append(_awBoxTask(t))
+        LOGGER.info('Additively-weighted Voronoi diagram: box {0}/{1} done'
+                    .format(len(results), len(tasks)))
 
     # Merge box outputs, deduplicating by global 4-ball signature. Ownership-by-core-
     # location already assigns each vertex to a single box, so collisions are rare and
@@ -602,9 +588,8 @@ def _buildAwDecomposed(coords, vdw_radii, max_vert, accelerate, max_proc,
 
 
 def _awBoxTask(task):
-    """Worker: tessellate one box's balls and return the core-owned vertices as
-    ``(global_signature, x, y, z, clearance)`` records. Top-level so it is picklable
-    for :class:`multiprocessing.Pool`."""
+    """Tessellate one box's balls and return the core-owned vertices as
+    ``(global_signature, x, y, z, clearance)`` records."""
     coords, vdw_radii, gidx, lo, hi, max_vert, accelerate = task
     verts = _runVorpy(coords, vdw_radii, max_vert, accelerate)
     out = []
