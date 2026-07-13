@@ -1,10 +1,13 @@
 """This module contains unit tests for :mod:`~prody.ensemble`."""
 
-from prody.tests import TestCase
+from prody.tests import TestCase, skipUnless, MATPLOTLIB
+
+if MATPLOTLIB:
+    import matplotlib.pyplot as plt
 
 from numpy.testing import assert_equal
 
-from prody import (calcOccupancies, trimPDBEnsemble, PDBEnsemble, 
+from prody import (calcOccupancies, trimPDBEnsemble, PDBEnsemble, showOccupancies,
                    parsePDB, buildPDBEnsemble, bestMatch, sameChid, 
                    sameChainPos)
 from prody.tests.datafiles import *
@@ -89,4 +92,24 @@ class TestBuildPDBEnsemble(TestCase):
         ens6 = buildPDBEnsemble(biomols, match_func=bestMatch)
         assert_equal(ens6.numConfs(), 5, 
             'buildPDBEnsemble with sameChainPos on biomols did not include all AMPAR dimers')        
-        
+
+
+@skipUnless(MATPLOTLIB, 'matplotlib not found')
+class TestShowOccupancies(TestCase):
+
+    def tearDown(self):
+        plt.close('all')
+
+    def testUsesExplicitAtoms(self):
+        show = showOccupancies(PDBENSEMBLEA, normed=True, atoms=ATOMS)
+        line = show[0]
+        assert_equal(line.get_xdata(), ATOMS.getResnums(),
+                     'showOccupancies failed to use explicit atoms for x-axis')
+        assert_equal(plt.gca().get_xlabel(), 'Residue number',
+                     'showOccupancies failed to label the residue-number x-axis')
+
+    def testUsesEnsembleAtomsByDefault(self):
+        show = showOccupancies(PDBENSEMBLEA, normed=True)
+        line = show[0]
+        assert_equal(line.get_xdata(), PDBENSEMBLEA.getAtoms().getResnums(),
+                     'showOccupancies failed to use ensemble atoms for x-axis')
