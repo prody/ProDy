@@ -147,5 +147,50 @@ class TestParsePDBHeaderMissingAtoms(unittest.TestCase):
         self.header = None
 
 
+
+
+class TestParsePDBHeaderModresNcAA(unittest.TestCase):
+    """Test that MODRES records are used to correctly convert non-canonical AA
+    (ncAA) three-letter codes to canonical one-letter codes in polymer sequences.
+    The test PDB contains a residue 'XAA' which is not in the global
+    mod_res_map.dat but is mapped to 'MET' via a MODRES record."""
+
+    def setUp(self):
+        self.polymers = parsePDBHeader(
+            pathDatafile('pdb_modres_ncaa.pdb'), 'polymers')
+        self.polymers_long = parsePDBHeader(
+            pathDatafile('pdb_modres_ncaa.pdb'), 'polymers', longSeq=True)
+
+    def testPolymerPresent(self):
+        self.assertEqual(len(self.polymers), 1,
+            'expected exactly one polymer chain')
+
+    def testOneLetterSequenceNcAA(self):
+        """ncAA 'XAA' should be mapped to 'M' (MET) via MODRES, not 'X'."""
+        seq = self.polymers[0].sequence
+        self.assertEqual(seq, 'AMGSM',
+            'one-letter sequence does not correctly map ncAA via MODRES; '
+            'got {0!r}, expected "AMGSM"'.format(seq))
+
+    def testLongSequencePreservesNcAA(self):
+        """Three-letter (long) sequence should preserve the ncAA name."""
+        seq = self.polymers_long[0].sequence
+        self.assertIn('XAA', seq,
+            'long sequence should contain the original ncAA name "XAA"')
+
+    def testModifiedResidues(self):
+        """MODRES record should be stored in poly.modified."""
+        modified = self.polymers[0].modified
+        self.assertIsNotNone(modified,
+            'poly.modified should not be None when MODRES records are present')
+        resnames = [m[0] for m in modified]
+        self.assertIn('XAA', resnames,
+            '"XAA" should appear in poly.modified residue names')
+
+    def tearDown(self):
+        self.polymers = None
+        self.polymers_long = None
+
+
 if __name__ == '__main__':
     unittest.main()

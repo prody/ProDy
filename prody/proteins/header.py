@@ -601,18 +601,33 @@ def _getPolymers(lines, **kwargs):
 
     pdbid = lines['pdbid']
     polymers = dict()
+
+    # Pre-process MODRES records to build a local non-canonical → canonical AA map.
+    # This is used as a fallback when converting SEQRES three-letter codes to
+    # one-letter codes for residues not already present in AAMAP.
+    local_modmap = {}
+    for i, line in lines['MODRES']:
+        resname = line[12:15].strip()
+        stdname = line[24:27].strip()
+        if resname and stdname:
+            local_modmap[resname] = stdname
+
+    seq_kwargs = dict(kwargs)
+    if local_modmap:
+        seq_kwargs['extra_map'] = local_modmap
+
+    longSeq = kwargs.get('longSeq', False)
     for i, line in lines['SEQRES']:
         ch = line[11]
         poly = polymers.get(ch, Polymer(ch))
         polymers[ch] = poly
 
-        longSeq = kwargs.get('longSeq', False)
         if longSeq:
             if poly.sequence != '':
                 poly.sequence += ' '
-            poly.sequence += getSequence(line[19:].split(), **kwargs)
+            poly.sequence += getSequence(line[19:].split(), **seq_kwargs)
         else:
-            poly.sequence += ''.join(getSequence(line[19:].split(), **kwargs))
+            poly.sequence += ''.join(getSequence(line[19:].split(), **seq_kwargs))
 
     for i, line in lines['DBREF ']:
         i += 1

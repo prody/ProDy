@@ -11,13 +11,29 @@ __all__ = ['Chain']
 def getSequence(resnames, **kwargs):
     """Returns polypeptide sequence from a list of *resnames* using one-letter residue
     name abbreviations by default, or long (usually three letter) abbrevations
-    if *longSeq* is **True**."""
+    if *longSeq* is **True**.
+
+    :arg extra_map: a dictionary mapping non-canonical residue names (three-letter)
+        to their standard (canonical) three-letter residue names, used as a fallback
+        when a residue name is not found in :data:`.AAMAP`.  This is typically
+        populated from MODRES records in a PDB file.
+    :type extra_map: dict"""
 
     longSeq = kwargs.get('longSeq', False)
     if longSeq:
         return ' '.join(resnames)
 
+    extra_map = kwargs.get('extra_map', None)
     get = AAMAP.get
+    if extra_map:
+        result = []
+        for rn in resnames:
+            aa = get(rn, None)
+            if aa is None:
+                stdname = extra_map.get(rn)
+                aa = get(stdname, 'X') if stdname else 'X'
+            result.append(aa)
+        return ''.join(result)
     return ''.join([get(rn, 'X') for rn in resnames])
 
 
