@@ -192,5 +192,35 @@ class TestParsePDBHeaderModresNcAA(unittest.TestCase):
         self.polymers_long = None
 
 
+class TestThreeLetterSequenceKwarg(unittest.TestCase):
+
+    def setUp(self):
+        self.pdb = pathDatafile('1ubi')
+        self.polymers = parsePDBHeader(self.pdb, 'polymers')
+        self.polymers_long = parsePDBHeader(self.pdb, 'polymers', longSeq=True)
+        self.polymers_three = parsePDBHeader(self.pdb, 'polymers', threeLetter=True)
+        self.ag = parsePDB(self.pdb)
+
+    def testParsePDBHeaderThreeLetterAlias(self):
+        self.assertEqual(self.polymers_three[0].sequence,
+            self.polymers_long[0].sequence)
+
+    def testChainGetSequenceThreeLetterAlias(self):
+        chain = self.ag.protein['A']
+        self.assertEqual(chain.getSequence(), self.polymers[0].sequence)
+        self.assertEqual(chain.getSequence(threeLetter=True),
+            chain.getSequence(longSeq=True))
+
+    def testAtomicGetSequenceThreeLetterAlias(self):
+        self.assertEqual(self.ag.ca.getSequence(threeLetter=True),
+            self.ag.ca.getSequence(longSeq=True))
+
+    def tearDown(self):
+        self.polymers = None
+        self.polymers_long = None
+        self.polymers_three = None
+        self.ag = None
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -307,7 +307,8 @@ def getHeaderDict(stream, *keys, **kwargs):
     or a stream.
     
     Polymers have sequences that usually use one-letter residue name abbreviations by default. 
-    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**."""
+    To obtain long (usually three letter) abbrevations, set *longSeq* or
+    *threeLetter* to **True**."""
 
     lines = defaultdict(list)
     loc = 0
@@ -597,7 +598,8 @@ def _getPolymers(lines, **kwargs):
     """Returns list of polymers (macromolecules).
     
     Polymers have sequences that usually use one-letter residue name abbreviations by default. 
-    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**."""
+    To obtain long (usually three letter) abbrevations, set *longSeq* or
+    *threeLetter* to **True**."""
 
     pdbid = lines['pdbid']
     polymers = dict()
@@ -616,7 +618,7 @@ def _getPolymers(lines, **kwargs):
     if local_modmap:
         seq_kwargs['extra_map'] = local_modmap
 
-    longSeq = kwargs.get('longSeq', False)
+    longSeq = kwargs.get('longSeq', kwargs.get('threeLetter', False))
     for i, line in lines['SEQRES']:
         ch = line[11]
         poly = polymers.get(ch, Polymer(ch))

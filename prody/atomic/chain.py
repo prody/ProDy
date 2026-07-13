@@ -11,7 +11,7 @@ __all__ = ['Chain']
 def getSequence(resnames, **kwargs):
     """Returns polypeptide sequence from a list of *resnames* using one-letter residue
     name abbreviations by default, or long (usually three letter) abbrevations
-    if *longSeq* is **True**.
+    if *longSeq* or *threeLetter* is **True**.
 
     :arg extra_map: a dictionary mapping non-canonical residue names (three-letter)
         to their standard (canonical) three-letter residue names, used as a fallback
@@ -19,7 +19,7 @@ def getSequence(resnames, **kwargs):
         populated from MODRES records in a PDB file.
     :type extra_map: dict"""
 
-    longSeq = kwargs.get('longSeq', False)
+    longSeq = kwargs.get('longSeq', kwargs.get('threeLetter', False))
     if longSeq:
         return ' '.join(resnames)
 
@@ -150,11 +150,12 @@ class Chain(AtomSubset):
         """Returns one-letter sequence string for amino acids in the chain.
         When *allres* keyword argument is **True**, sequence will include all
         residues (e.g. water molecules) in the chain and **X** will be used for
-        non-standard residue names."""
+        non-standard residue names. Set *longSeq* or *threeLetter* to **True**
+        to return long residue names."""
 
         if kwargs.get('allres', False):
             get = AAMAP.get
-            if kwargs.get('longSeq', False):
+            if kwargs.get('longSeq', kwargs.get('threeLetter', False)):
                 seq = ' '.join([res.getResname() for res in self])
             else:
                 seq = ''.join([get(res.getResname(), 'X') for res in self])
