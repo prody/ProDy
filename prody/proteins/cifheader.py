@@ -1392,7 +1392,7 @@ def _getUnobservedSeq(lines, **kwargs):
         chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
         if not chid in unobs_seqs.keys():
             unobs_seqs[chid] = ''
-        unobs_seqs[chid] += AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
+        unobs_seqs[chid] += AAMAP.get(item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id'], 'X')
 
     if len(unobs_seqs) == 0:
         return None
@@ -1423,7 +1423,7 @@ def _getUnobservedSeq(lines, **kwargs):
                     if len(item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']) == 1:
                         one_letter = item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']
                     else:
-                        one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']].upper()
+                        one_letter = AAMAP.get(item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id'], 'X').upper()
                     good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
                     row1_list = list(aln[0])
                     row1_list[good_pos] = one_letter
