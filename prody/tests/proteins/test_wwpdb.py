@@ -1,6 +1,8 @@
 """This module contains unit tests for :mod:`~prody.proteins`."""
 
 import os
+import tempfile
+from unittest import mock
 
 from numpy.testing import *
 
@@ -69,3 +71,27 @@ class TestHTTP(unittest.TestCase):
                 pass
             except:
                 pass
+
+
+class TestExtendedPDBIDHandling(unittest.TestCase):
+
+    def testHTTPUsesCIFForExtendedIdentifiers(self):
+        requested_urls = []
+
+        class _Response(object):
+            def read(self):
+                return b'data'
+
+        def _openURL(url):
+            requested_urls.append(url)
+            return _Response()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with mock.patch('prody.proteins.wwpdb.openURL', side_effect=_openURL):
+                with mock.patch('prody.proteins.wwpdb.pathPDBFolder', return_value=None):
+                    with mock.patch('prody.proteins.wwpdb.wwPDBServer', return_value='us'):
+                        fn = fetchPDBviaHTTP('pdb_00006uv8', folder=tmpdir)
+
+        self.assertIsNotNone(fn)
+        self.assertTrue(requested_urls)
+        self.assertTrue(requested_urls[0].endswith('.cif.gz'))
