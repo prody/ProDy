@@ -22,6 +22,7 @@ __pycache__
 # ProDy
 *.nmd
 *.pdb
+!prody/tests/datafiles/pdb_modres_ncaa.pdb
 *.pdb.gz
 *.cif
 *.cif.gz
