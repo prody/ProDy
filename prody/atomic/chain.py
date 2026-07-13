@@ -53,13 +53,12 @@ class Chain(AtomSubset):
          - *slice* (:func:`slice`), e.g, ``10:20``, returns a list of
            :class:`.Residue` instances"""
 
-    __slots__ = ['_ag', '_indices', '_hv', '_acsi', '_selstr', '_seq']
+    __slots__ = ['_ag', '_indices', '_hv', '_acsi', '_selstr']
 
     def __init__(self, ag, indices, hv, acsi=None, **kwargs):
 
         AtomSubset.__init__(self, ag, indices, acsi, **kwargs)
         self._hv = hv
-        self._seq = None
 
     def __repr__(self):
 
@@ -159,15 +158,12 @@ class Chain(AtomSubset):
                 seq = ' '.join([res.getResname() for res in self])
             else:
                 seq = ''.join([get(res.getResname(), 'X') for res in self])
-        elif self._seq:
-            seq = self._seq
         else:
             calpha = self.calpha
             if calpha:
                 seq = getSequence(calpha.getResnames(), **kwargs)
             else:
                 seq = ''
-            self._seq = seq
         return seq
 
     def getSelstr(self):
