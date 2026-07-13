@@ -275,6 +275,46 @@ B 2 LIG 1 1 1 LIG LIG B ?
                         'parseMMCIF failed to keep non-polymer atoms with auth_seq_id "."')
         assert_equal(ligand.getResnums(), np.array([1, 1]),
                      err_msg='parseMMCIF failed to use non-polymer scheme numbering when auth_seq_id is "."')
+
+    def testLabelSeqIdPreferredWhenRequested(self):
+        """Test that label_seq_id can be preferred over auth_seq_id for resnums."""
+
+        path = os.path.join(TEMPDIR, 'label_seq_id_preferred.cif')
+        with open(path, 'w') as out:
+            out.write("""data_label_seq_id_preferred
+#
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.auth_atom_id
+_atom_site.auth_comp_id
+_atom_site.auth_asym_id
+_atom_site.label_seq_id
+_atom_site.auth_seq_id
+_atom_site.pdbx_PDB_ins_code
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.occupancy
+_atom_site.B_iso_or_equiv
+_atom_site.pdbx_PDB_model_num
+ATOM 1 N N . ASP A N ASP A 1 59 ? 1.0 2.0 3.0 1.00 10.00 1
+ATOM 2 C CA . ASP A CA ASP A 1 59 ? 1.1 2.1 3.1 1.00 11.00 1
+#
+""")
+
+        ag_auth = parseMMCIF(path)
+        assert_equal(ag_auth.getResnums(), np.array([59, 59]),
+                     err_msg='parseMMCIF should keep auth_seq_id as the default residue numbering')
+
+        ag_label = parseMMCIF(path, use_auth_seq_id=False)
+        assert_equal(ag_label.getResnums(), np.array([1, 1]),
+                     err_msg='parseMMCIF failed to use label_seq_id when requested')
         
     def testChimeraxCIFBiomolArguments(self):
         """Test outcome of valid and invalid *segment* arguments."""

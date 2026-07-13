@@ -138,6 +138,11 @@ _parseMMCIFdoc = """
 
     :arg packmol: whether to renumber chains like packmol, default is False
     :type packmol: bool
+
+    :arg use_auth_seq_id: whether to prefer ``_atom_site.auth_seq_id`` over
+        ``_atom_site.label_seq_id`` when assigning residue numbers, default is
+        *True*
+    :type use_auth_seq_id: bool
     """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
@@ -246,6 +251,7 @@ def parseMMCIFStream(stream, **kwargs):
     report = kwargs.get('report', False)
     assert isinstance(header, bool), 'header must be a boolean'
     packmol = kwargs.get('packmol', False)
+    use_auth_seq_id = kwargs.get('use_auth_seq_id', True)
 
     if model is not None:
         if isinstance(model, int):
@@ -309,8 +315,8 @@ def parseMMCIFStream(stream, **kwargs):
         if header or biomol or secondary:
             hd = getCIFHeaderDict(lines)
 
-        _parseMMCIFLines(ag, lines, model, chain, subset, altloc, 
-                         segment, unite_chains, report)
+        _parseMMCIFLines(ag, lines, model, chain, subset, altloc,
+                         segment, unite_chains, report, use_auth_seq_id)
 
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -360,7 +366,7 @@ parseMMCIF.__doc__ += _parseMMCIFdoc
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                      altloc_torf, segment, unite_chains,
-                     report):
+                     report, use_auth_seq_id=True):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
@@ -478,6 +484,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     next_resnum_by_chain = {}
     has_auth_seq_id = 'auth_seq_id' in fields
     has_label_seq_id = 'label_seq_id' in fields
+    seq_id_fields = ('auth_seq_id', 'label_seq_id') if use_auth_seq_id else ('label_seq_id', 'auth_seq_id')
 
     acount = 0
     lineidx = start
@@ -549,16 +556,13 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         hetero[acount] = startswith == 'HETATM' # True or False
 
         resnum = None
-        try:
-            resnum = _parseResnum(linefields[fields['auth_seq_id']])
-        except KeyError:
-            pass
-
-        if resnum is None:
+        for seq_id_field in seq_id_fields:
             try:
-                resnum = _parseResnum(linefields[fields['label_seq_id']])
+                resnum = _parseResnum(linefields[fields[seq_id_field]])
             except KeyError:
                 pass
+            if resnum is not None:
+                break
 
         try:
             icode = linefields[fields['pdbx_PDB_ins_code']]
