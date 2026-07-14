@@ -8,6 +8,9 @@ __author__ = 'Karolina Mikulska-Ruminska', 'Eryk Trzcinski'
 __credits__ = ['Karolina Mikulska-Ruminska', 'Eryk Trzcinski']
 __email__ = ['karolamik@fizyka.umk.pl']
 
+import logging
+from contextlib import contextmanager
+
 import numpy as np
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
@@ -37,13 +40,48 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
 # rays lowers every enclosure, since more directions find more of the thin ways
 # out of a channel, and so invalidates the threshold rather than refining it.
 ENCLOSURE_RAYS = 32
-ENCLOSURE_RANGE = 15.0
+ENCLOSURE_RANGE = 25.0
 ENCLOSURE_STEP = 0.75
 # One radius for every atom, on the scale of a heavy-atom vdW radius. Enclosure is
 # a burial heuristic, so resolving 1.52 A from 1.7 A would only shift every value
 # by a little and be absorbed by min_enclosure; a single radius means a single
 # tree and a plain nearest-neighbour test.
 ENCLOSURE_RADIUS = 1.7
+
+
+@contextmanager
+def _warningsDelivered():
+    """Let WARNING records through for the duration of the block.
+
+    Importing ProDy installs a logging filter that drops every WARNING record from
+    the package logger (prody.dynamics.adaptive2, at module scope), so every
+    ``LOGGER.warn`` in ProDy is silently discarded. Whether that filter should exist
+    at all is a question for the package as a whole; until it is settled, this
+    module at least delivers its own warnings.
+
+    Offending filters are found by asking them, rather than by importing the class
+    and matching on type: any filter that rejects a synthetic WARNING record is
+    detached for the block and reinstated afterwards. That keeps this working if the
+    filter is renamed or moved, and it leaves the filter in force everywhere else,
+    so nothing outside this module changes behaviour."""
+    logger = LOGGER._logger
+    probe = logging.LogRecord(logger.name, logging.WARNING, __file__, 0,
+                              '', (), None)
+    muting = [f for f in list(logger.filters)
+              if not (f.filter(probe) if hasattr(f, 'filter') else f(probe))]
+    for f in muting:
+        logger.removeFilter(f)
+    try:
+        yield
+    finally:
+        for f in muting:
+            logger.addFilter(f)
+
+
+def _warn(message):
+    """``LOGGER.warn``, but actually emitted. See :func:`_warningsDelivered`."""
+    with _warningsDelivered():
+        LOGGER.warn(message)
 
 
 def checkAndImport(package_name):
@@ -63,14 +101,14 @@ def checkAndImport(package_name):
     if PY3K:
         import importlib.util
         if importlib.util.find_spec(package_name) is None:
-            LOGGER.warn("Package " + str(package_name) + " is not installed. "
+            _warn("Package " + str(package_name) + " is not installed. "
             "Please install it to use this function.")
             return False
     else:
         try:
             __import__(package_name)
         except ImportError:
-            LOGGER.warn("Package " + str(package_name) + " is not installed. "
+            _warn("Package " + str(package_name) + " is not installed. "
             "Please install it to use this function.")
             return False
     
@@ -201,7 +239,7 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
             if returncode != 0:
                 LOGGER.info("VMD exited with status " + str(returncode) + ".")
     except Exception as e:
-        LOGGER.warn("An unexpected error occurred: " + str(e))
+        _warn("An unexpected error occurred: " + str(e))
     finally:
         if os.path.exists(temp_script_path):
             os.unlink(temp_script_path)
@@ -677,7 +715,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0, 
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, 
     diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
-    similarity=0.8, route_tolerance=1.0, min_enclosure=0.85, max_peel_depth=None,
+    similarity=0.8, route_tolerance=1.0, min_enclosure=0.70, max_peel_depth=None,
     weighted_cache=True, weighted_mouth_depth=4):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
@@ -732,8 +770,17 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         which is used to define the outer surface of the channels. Default is 3
     :type r1: float
 
-    :arg r2: The second radius threshold used to define the inner surface of 
+    :arg r2: The second radius threshold used to define the inner surface of
         the channels. Default is 0.9.
+
+        Below about 1.2 Angstrom the probe is smaller than a water molecule, and
+        then the structure must carry explicit hydrogens. Without them, every
+        carbon keeps its full vdW radius while the space its hydrogens occupied is
+        left empty, and a sub-water probe is small enough to thread those
+        interstices: the interior percolates into a sponge and the channel count
+        can rise several-fold. At 1.2 Angstrom and above, protonated and 
+        unprotonated structures give the same channels, and an X-ray file may 
+        be used as it comes. A warning is issued for the unsafe combination.
     :type r2: float
 
     :arg min_depth: The minimum depth a cavity must have to be considered as a 
@@ -851,7 +898,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :type route_tolerance: float
 
     :arg min_enclosure: Fraction of directions that must be blocked by protein for
-        a tetrahedron to count as interior, in ``[0, 1]``. Default is 0.85.
+        a tetrahedron to count as interior, in ``[0, 1]``. Default is 0.70.
 
         Once the r1 surface is built it is eroded inward with the r2 probe, to
         strip the shell of true exterior that an r1 probe bridges over rather than
@@ -859,7 +906,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         wide, low-cost routes along the outside of the protein. Erosion continues
         while the tetrahedra at the front are *open*, meaning that fewer than
         ``min_enclosure`` of the directions leaving them run into protein within
-        15 Angstrom, and halts at the first buried layer.
+        :data:`ENCLOSURE_RANGE` Angstrom, and halts at the first buried layer.
 
         Bounding the erosion by size instead does not work. A count of tetrahedron
         layers is not mesh-invariant, as a layer is one tetrahedron thick and
@@ -871,17 +918,13 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         erosion starts, not where it stops, so results are independent of it, and
         ``r1`` is left doing the one job it should: capping the mouths.
 
-        This decides where the surface is taken to begin, so within its usable
-        range it moves where channels *end* rather than which channels are found:
-        raising it erodes deeper, and a channel then stops an Angstrom or so
-        earlier, at a neighbouring mouth tetrahedron.
+        It is bounded from both sides, and the window is narrow.
 
-        Do not raise it far. A channel interior is itself an escape direction and
-        so is never fully enclosed, and real channels come close to the default
-        already - the most exposed tetrahedron of a genuine channel in 1mj5 scores
-        0.88. Above roughly 0.93 the sub-level set percolates along the channels
-        and the erosion, having nowhere to stop, takes the whole cavity with it.
-        That failure is at least loud, in that no channels are reported at all.
+        Too low and the moat is not fully stripped. Too high and the erosion 
+        never meets a layer buried enough to stop it, so it percolates down the
+          channels and eats the cavity.The default sits at the floor, which is
+        the safe end: over-peeling silently deletes real channels, whereas
+        under-peeling shows up as surface-riding routes that can be recognised.
     :type min_enclosure: float
 
     :arg max_peel_depth: Optional hard cap, **in Angstrom**, on how far the peel
@@ -1003,6 +1046,27 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     calculator = ChannelCalculator(atoms, r2=r2, sparsity=sparsity,
                                    route_tolerance=route_tolerance)
 
+    elements = np.char.upper(np.asarray(atoms.getElements(), dtype=str))
+    has_hydrogens = bool(np.any(elements == 'H'))
+
+    # An X-ray structure carries no hydrogens, and its carbons keep their full vdW
+    # radius, so the ~0.6 A the missing H occupied is left as void -- around every
+    # heavy atom at once, including buried contacts that never come apart. That is
+    # usually harmless, and is often defended as standing in for thermal motion: a
+    # probe of water size cannot enter those interstices anyway, and protonated and
+    # unprotonated runs agree from about 1.2 A upwards. Below that the probe is
+    # small enough to thread them and the interior percolates into a sponge rather
+    # than merely widening: at r2 = 0.75, 1mj5 goes from 8 channels to 65 and dbja
+    # from 2 to 76. Those routes are fictitious, not the real ones made wider. So a
+    # sub-water probe needs real hydrogens; above it, take the file as it comes.
+    if not has_hydrogens and r2 < 1.2:
+        _warn("structure has no hydrogens and r2={0:.2f} is below 1.2 A: the space "
+              "left by the missing H is then wide enough for the probe to pass, and "
+              "channels will be found through interstices that do not exist in the "
+              "real protein (their number can rise several-fold). Either add "
+              "hydrogens, or raise r2 to 1.2 A or more, where protonated and "
+              "unprotonated structures give the same channels.".format(r2))
+
     if diagram == "simple":
         # 'simple' builds an *unweighted* Delaunay of the atom centres, i.e. it
         # ignores the differences between atomic radii. That approximation is worst
@@ -1011,9 +1075,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         # With H absent the heavy-atom radii are much closer, so 'simple' is more
         # defensible and matches the heavy-atom-only input most tools accept (at the
         # cost of over-large empty space where the missing H would sit).
-        elements = np.char.upper(np.asarray(atoms.getElements(), dtype=str))
-        if np.any(elements == 'H'):
-            LOGGER.warn("diagram='simple' with hydrogens present: the unweighted "
+        if has_hydrogens:
+            _warn("diagram='simple' with hydrogens present: the unweighted "
                 "Voronoi diagram ignores radius differences, which are largest when H "
                 "are present, so its topology and clearances are significantly less "
                 "accurate. Consider diagram='homogenized' (or 'weighted'), which "
@@ -1054,7 +1117,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         # still works but is ~5x slower, so fall back with a warning rather than fail.
         accelerate = checkAndImport('numba')
         if not accelerate:
-            LOGGER.warn('numba is not installed; the additively-weighted tessellation '
+            _warn('numba is not installed; the additively-weighted tessellation '
                 'will run without the compiled kernel and may be very slow.')
         from ._vorpy_aw import buildAwTessellation, resolveCachePath
         try:
@@ -2636,17 +2699,16 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2,
     cavities, surface = calcSurfaceCavities(protein, output_path='test_surf_cav.pqr')   """
 
     if sparsity is not None:
-        LOGGER.warn("sparsity is deprecated in calcSurfaceCavities and is "
-                    "ignored. It thinned the mouth tetrahedra sampled as termini "
-                    "by the channel search; cavities are built from the unthinned "
-                    "ones, so it never changed them.")
+        _warn("sparsity is deprecated in calcSurfaceCavities and is "
+              "ignored. It thinned the mouth tetrahedra sampled as termini "
+              "by the channel search; cavities are built from the unthinned "
+              "ones, so it never changed them.")
 
     # No peel (min_enclosure=0). The enclosure peel strips the shell of true
     # exterior that a large r1 probe bridges over instead of entering, because it
     # offers a channel wide, low-cost routes along the outside of the protein. A
     # surface cavity *is* that shell: a pocket is shallow and open by definition,
-    # so the peel deletes exactly what this function is asked to find (on 1mj5 it
-    # takes every cavity, 21 -> 0). Openness is the signal here, not the artefact.
+    # so the peel deletes these cavities 
     cavities, surface = calcChannels(
             atoms,
             output_path=output_path,
@@ -3602,10 +3664,7 @@ class ChannelCalculator:
             # Voronoi network splays where a tunnel widens into its opening, so
             # sibling paths peel off in the last few Angstrom and end on
             # neighbouring exit tetrahedra. Counting that splay as divergence is
-            # what used to report one tunnel as a bundle of near-copies - on 1mj5
-            # four channels sharing a trunk and separated only by a 2.5 A fan
-            # scored 0.73 together, just under `similarity`, yet score 1.00 once
-            # the opening is discounted.
+            # what used to report one tunnel as a bundle of near-copies.
             duplicate = False
             for _kc, kpts, kxyz, kr in kept:
                 if np.linalg.norm(pts[-1] - kxyz) >= kr:
@@ -4038,7 +4097,7 @@ class ChannelCalculator:
             return cavities
 
         if best_cavity is None:
-            LOGGER.warn("start_point was provided but no cavity contains any "
+            _warn("start_point was provided but no cavity contains any "
                 "tetrahedron; no channels will be computed.")
             return []
 
