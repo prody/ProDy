@@ -673,7 +673,7 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
     o3d.visualization.draw_geometries(meshes_to_visualize)
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
-    restrict_channels_to_start_point=False, r1=3, r2=0.9, min_depth=10, 
+    restrict_channels_to_start_point=True, r1=3, r2=0.9, min_depth=10, 
     min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0, 
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, 
     diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
@@ -720,10 +720,10 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :type start_point: list, tuple, or ndarray (length 3), :class:`.Atomic`, or None
 
     :arg restrict_channels_to_start_point: Only used when ``start_point`` is 
-        provided. If True, the channel search is restricted to the single cavity
-         whose closest tetrahedron is globally nearest to ``start_point``, so 
-        channels are computed only for the region around that point instead of 
-        one channel bundle per detected cavity. If False (default), 
+        provided. If True (default), the channel search is restricted to the 
+        single cavity whose closest tetrahedron is globally nearest to 
+        ``start_point``, so  channels are computed only for the region around 
+        that point instead of one channel bundle per detected cavity. If False, 
         ``start_point`` merely overrides the seed (starting) tetrahedron of 
         every cavity and channels are still computed for all cavities.
     :type restrict_channels_to_start_point: bool 
@@ -758,15 +758,20 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         retained. Default is None.
     :type max_volume: float
 
-    :arg sparsity: Size of a surface opening, in Angstrom. When
-        ``truncate_at_surface`` is True, two channels whose exits lie closer than
-        ``sparsity`` are treated as leaving through the same opening, and are
-        merged if they also share a corridor (see ``similarity``); a higher value
-        therefore reports fewer, coarser openings. Note this is applied *after*
-        the channel search, so it can only merge channels, never hide one: it is
-        a reporting preference, not part of the geometry. (When
-        ``truncate_at_surface`` is False it retains its old meaning, the sampling
-        density of exit tetrahedra on the molecular surface.) Default is 1.
+    :arg sparsity: Size of a channel surface opening (mouth), in Angstrom: how far
+        apart two exits must lie to count as separate openings. It is one quantity,
+        reached by whichever branch of the search is running, and the two branches
+        are mutually exclusive. With ``truncate_at_surface`` True (the default) it
+        is a floor on the radius of a reported opening, so two channels leaving
+        closer than ``sparsity`` are treated as sharing that opening and are merged
+        if they also share a corridor (see ``similarity``); being applied *after*
+        the search, it can only merge channels there, never hide one, and is a
+        reporting preference rather than part of the geometry. With
+        ``truncate_at_surface`` False it is instead the spacing at which exit
+        tetrahedra are sampled as channel termini, and it does then decide which
+        channels are found at all. Either way a higher value reports fewer channels.
+        It has no effect on the cavities, which are found from the exit tetrahedra
+        before any thinning. Default is 1.
     :type sparsity: float
 
     :arg diagram: 
@@ -1390,7 +1395,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, 
     :arg kwargs: Additional parameters passed to :func:`calcSurfaceCavities`.
         These can include `r1`, `r2`, `min_depth`, `max_depth`,
         `min_tetrahedra`, `max_tetrahedra`, `min_volume`, `max_volume`,
-        `sparsity`, `start_frame`, and `stop_frame`.
+        `start_frame`, and `stop_frame`.
     :type kwargs: dict
 
     :returns: Two lists:
@@ -2540,7 +2545,7 @@ def calcSurfaceCavityOverlaps(**kwargs):
 
 def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, 
                         max_depth=3, min_tetrahedra=None, max_tetrahedra=None, 
-                        min_volume=50, max_volume=None, sparsity=15, 
+                        min_volume=50, max_volume=None, sparsity=None,
                         separate=False):
     """Calculate surface cavities (pockets) on protein surface using CaviTracer 
     approach.
@@ -2575,12 +2580,15 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2,
         trimmed to the specified depth. Default is 3.
     :type max_depth: int
 
-    :arg sparsity: The sparsity parameter controls the sampling density when 
-        analyzing the molecular surface.A higher value results in fewer 
-        sampling points. Default is 15.
+    :arg sparsity: Deprecated and ignored; accepted only so that existing calls
+        keep working. It never affected surface cavities: it thinned the sampling
+        of the mouth (exit) tetrahedra used as termini by the *channel* search,
+        and no cavity property reads that thinned set. Cavity extent, depth,
+        volume and filtering are all derived from the unthinned exit tetrahedra,
+        so passing 1 or 15 returns the same cavities.
     :type sparsity: int
 
-    :arg min_tetrahedra: Minimum number of tetrahedra required for a cavity to 
+    :arg min_tetrahedra: Minimum number of tetrahedra required for a cavity to
         be retained. Smaller cavities are discarded. Default is None.
     :type min_tetrahedra: int
 
@@ -2627,16 +2635,27 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2,
     protein = p.select('protein')
     cavities, surface = calcSurfaceCavities(protein, output_path='test_surf_cav.pqr')   """
 
+    if sparsity is not None:
+        LOGGER.warn("sparsity is deprecated in calcSurfaceCavities and is "
+                    "ignored. It thinned the mouth tetrahedra sampled as termini "
+                    "by the channel search; cavities are built from the unthinned "
+                    "ones, so it never changed them.")
 
+    # No peel (min_enclosure=0). The enclosure peel strips the shell of true
+    # exterior that a large r1 probe bridges over instead of entering, because it
+    # offers a channel wide, low-cost routes along the outside of the protein. A
+    # surface cavity *is* that shell: a pocket is shallow and open by definition,
+    # so the peel deletes exactly what this function is asked to find (on 1mj5 it
+    # takes every cavity, 21 -> 0). Openness is the signal here, not the artefact.
     cavities, surface = calcChannels(
-            atoms, 
+            atoms,
             output_path=output_path,
             separate=separate,
-            r1=r1, r2=r2, 
+            r1=r1, r2=r2,
             min_depth=min_depth, max_depth=max_depth,
             min_volume=min_volume, max_volume=max_volume,
             min_tetrahedra=min_tetrahedra, max_tetrahedra=max_tetrahedra,
-            sparsity=sparsity, cavities_only=True)
+            min_enclosure=0.0, cavities_only=True)
     
     return cavities, surface
 
