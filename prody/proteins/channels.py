@@ -4164,10 +4164,15 @@ class ChannelCalculator:
 
                 pqr_file.write(self._channelRemark(channel_index, channel))
                 pdb_lines = []
+                # Each channel gets its own residue number so the channels stay
+                # separable at the record level, matching saveCavitiesToPdb.
                 for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                    pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
+                    pdb_lines.append("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, channel_index + 1, x, y, z, 1.00, radius))
 
-                for i in range(1, samples):
+                # Bond consecutive samples of THIS channel only, using the global
+                # atom serial numbers (start=atom_index). No CONECT spans two
+                # channels, so each one is a separate strand in the viewer.
+                for i in range(atom_index, atom_index + samples - 1):
                     pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
 
                 pqr_file.writelines(pdb_lines)
@@ -4193,9 +4198,9 @@ class ChannelCalculator:
                     pqr_file.write(self._channelRemark(channel_index, channel))
                     pdb_lines = []
                     for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                        pdb_lines.append("ATOM  %5d  H   FIL T   1    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, x, y, z, 1.00, radius))
+                        pdb_lines.append("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, channel_index + 1, x, y, z, 1.00, radius))
 
-                    for i in range(1, samples):
+                    for i in range(atom_index, atom_index + samples - 1):
                         pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
 
                     pqr_file.writelines(pdb_lines)
