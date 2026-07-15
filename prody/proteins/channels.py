@@ -3849,19 +3849,21 @@ class ChannelCalculator:
         distances = np.linalg.norm(atom_positions - vertice, axis=1) - radii
         return np.min(distances)
 
-    def _pathBottleneck(self, tetrahedra, voronoi_vertices, points, vdw_radii,
-                        simp, vertex_radii):
-        # The narrowest point of a path lies on the gates (the shared Delaunay
-        # faces) between consecutive circumcenters, not at the circumcenters,
-        # which are local clearance maxima. So the bottleneck is the path minimum
-        # over the per-edge gate clearances - the edge bottleneck radius - read
-        # from the cache and recomputed for any edge the map lacks. Always
-        # <= min(vertex_radii), so it can only tighten the reported width.
-        if len(tetrahedra) < 2:
-            return float(np.min(vertex_radii))
+    def _pathGates(self, tetrahedra, voronoi_vertices, points, vdw_radii,
+                   simp, vertex_radii):
+        # Per-edge gate clearance along the path: the minimum clearance on each
+        # shared Delaunay face between consecutive circumcenters (the edge
+        # bottleneck radius), read from the cache and recomputed for any edge the
+        # map lacks. Each gate is <= the clearance at both its endpoints, so the
+        # path minimum is the reported bottleneck and the gates are where the
+        # tube pinches for the volume. Length len(tetrahedra) - 1; empty for a
+        # single-tetrahedron path.
+        n = len(tetrahedra)
+        if n < 2:
+            return np.empty(0)
         eb = self._edge_bottleneck
-        gate = np.inf
-        for k in range(len(tetrahedra) - 1):
+        gates = np.empty(n - 1)
+        for k in range(n - 1):
             i, j = int(tetrahedra[k]), int(tetrahedra[k + 1])
             key = (i, j) if i < j else (j, i)
             g = eb.get(key) if eb is not None else None
@@ -3875,9 +3877,8 @@ class ChannelCalculator:
                     g = self._edgeBottleneck(voronoi_vertices[i],
                                              voronoi_vertices[j], shared,
                                              points, vdw_radii)
-            if g < gate:
-                gate = g
-        return float(gate)
+            gates[k] = g
+        return gates
 
     def calculateRadiusSpline(self, tetrahedra, voronoi_vertices, points,
                               vdw_radii, simp):
@@ -3890,23 +3891,39 @@ class ChannelCalculator:
             vertices = voronoi_vertices[tetrahedra]
             radii = np.array([self.calculateMaxRadius(v, points, vdw_radii, s)
                               for v, s in zip(vertices, simp[tetrahedra])])
-        bottleneck = self._pathBottleneck(tetrahedra, voronoi_vertices, points,
-                                          vdw_radii, simp, radii)
-        return radii, bottleneck
+        gates = self._pathGates(tetrahedra, voronoi_vertices, points,
+                                vdw_radii, simp, radii)
+        return radii, gates
 
     def processChannel(self, tetrahedra, voronoi_vertices, points, vdw_radii, 
                        simp):
         from scipy.interpolate import CubicSpline
         
         centers = voronoi_vertices[tetrahedra]
-        radii, bottleneck = self.calculateRadiusSpline(tetrahedra, 
-                                                       voronoi_vertices, 
-                                                       points, vdw_radii, simp)
-        
+        radii, gates = self.calculateRadiusSpline(tetrahedra,
+                                                  voronoi_vertices,
+                                                  points, vdw_radii, simp)
+        bottleneck = float(np.min(gates)) if len(gates) else float(np.min(radii))
+
         t = np.arange(len(centers))
         centerline_spline = CubicSpline(t, centers, bc_type='natural')
-        radius_spline = CubicSpline(t, radii, bc_type='natural')
-        
+        # The tube pinches at the gates, not at the wide circumcenters, so give
+        # the radius profile a knot at each gate (midway between its two
+        # vertices) carrying the gate clearance. The centerline keeps only the
+        # vertex knots; both splines share the same t domain, so the volume
+        # integral samples them consistently and the endpoints (hence the cap
+        # radii) are unchanged.
+        if len(gates):
+            knot_t = np.empty(2 * len(centers) - 1)
+            knot_t[0::2] = t
+            knot_t[1::2] = t[:-1] + 0.5
+            knot_r = np.empty_like(knot_t)
+            knot_r[0::2] = radii
+            knot_r[1::2] = gates
+            radius_spline = CubicSpline(knot_t, knot_r, bc_type='natural')
+        else:
+            radius_spline = CubicSpline(t, radii, bc_type='natural')
+
         length = self.calculateChannelLength(centerline_spline)
         volume = self.calculateChannelVolume(centerline_spline, radius_spline)
         
