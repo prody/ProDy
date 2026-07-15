@@ -1070,9 +1070,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # probe of water size cannot enter those interstices anyway, and protonated and
     # unprotonated runs agree from about 1.2 A upwards. Below that the probe is
     # small enough to thread them and the interior percolates into a sponge rather
-    # than merely widening: at r2 = 0.75, 1mj5 goes from 8 channels to 65 and dbja
-    # from 2 to 76. Those routes are fictitious, not the real ones made wider. So a
-    # sub-water probe needs real hydrogens; above it, take the file as it comes.
+    # than merely widening Those routes are fictitious, not the real ones made 
+    # wider. So a sub-water probe needs real hydrogens; above it, take the file as it comes.
     if not has_hydrogens and r2 < 1.2:
         _warn("structure has no hydrogens and r2={0:.2f} is below 1.2 A: the space "
               "left by the missing H is then wide enough for the probe to pass, and "
@@ -2846,7 +2845,14 @@ class ChannelCalculator:
         self.r2 = r2
         self.sparsity = sparsity
         self.route_tolerance = route_tolerance
-        
+        # Filled once by buildSparseGraph and read by the channel geometry:
+        # the per-simplex Voronoi-vertex clearance (the spline knots) and the
+        # per-edge gate clearance on each shared Delaunay face (the reported
+        # bottleneck and, later, the Dijkstra cost). Cached so the two consumers
+        # share one definition of width instead of recomputing it apart.
+        self._vertex_clearance = None
+        self._edge_bottleneck = None
+
     # def sphereFit(self, vertices, tetrahedron, vertice, vdw_radii, r):
     #     center = vertice
     #     d_sum = sum(np.linalg.norm(center - vertices[atom]) for atom in tetrahedron)
@@ -3425,6 +3431,34 @@ class ChannelCalculator:
         centers = -eq[:, :-2] / (2 * scale * eq[:, -2][:, None])
         return centers
 
+    def _edgeBottleneck(self, ci, cj, shared_atoms, points, vdw_radii):
+        # Minimum clearance along the Voronoi edge - the segment between the two
+        # circumcenters ci, cj, dual to the Delaunay face the two tetrahedra
+        # share - measured against that face's atoms. This is the edge bottleneck
+        # radius: the circumcenters are local clearance maxima, so the tightest
+        # point of the segment (the gate) generally lies between them and is
+        # narrower than either endpoint.
+        #
+        # min over t in [0, 1] and over the shared atoms of |p(t) - a| - vdw(a),
+        # with p(t) = ci + t (cj - ci). Because the min over the (t, atom)
+        # product equals the min of the per-atom minima, each atom reduces to an
+        # independent clamped point-to-segment distance - a closed form, no
+        # sampling. The foot clamps to an endpoint when it falls outside the
+        # segment, so the gate value is always <= both vertex clearances. Exact
+        # for the straight edges of the homogenized/simple diagrams; for the
+        # weighted (Apollonius) diagram the true edge is a slight arc and the
+        # chord is a local approximation.
+        a = points[shared_atoms]
+        r = vdw_radii[shared_atoms]
+        u = cj - ci
+        uu = float(u @ u)
+        if uu <= 1e-12:
+            # twin tetrahedra: the circumcenters coincide, the edge is a point
+            return float(np.min(np.linalg.norm(a - ci, axis=1) - r))
+        t = np.clip((a - ci) @ u / uu, 0.0, 1.0)
+        p = ci + t[:, None] * u
+        return float(np.min(np.linalg.norm(p - a, axis=1) - r))
+
     def buildSparseGraph(self, simplices, neighbors, vertices, points, vdw_radii):
         # one weighted CSR adjacency matrix for the whole cleared state.
         # Edge (tetra -> neigh) weight is l / (d**2 + b) where
@@ -3435,10 +3469,23 @@ class ChannelCalculator:
         tetra_points = points[simplices]
         distances = np.linalg.norm(tetra_points - vertices[:, None, :], axis=2)
         bottleneck = np.min(distances - vdw_radii[simplices], axis=1)
+        # Cache the per-simplex vertex clearance: the channel geometry otherwise
+        # recomputes this identical min over each path's tetrahedra.
+        self._vertex_clearance = bottleneck
 
         rows = []
         cols = []
         data = []
+
+        # Gate clearance on each shared Delaunay face, keyed by the unordered
+        # edge and computed once (the face is symmetric). Nothing reads it yet;
+        # it is built here so the reported bottleneck and the Dijkstra cost can
+        # later share one definition of edge width instead of each sampling
+        # clearance only at the circumcenters. Shared atoms come from the set
+        # intersection of the two simplices rather than scipy's opposite-vertex
+        # convention, so it holds however the diagram builds its neighbours.
+        simp_sets = [frozenset(int(a) for a in row) for row in simplices]
+        edge_bottleneck = {}
 
         b = 1e-3
         for tetra, neighs in enumerate(neighbors):
@@ -3451,7 +3498,16 @@ class ChannelCalculator:
                 rows.append(tetra)
                 cols.append(neigh)
                 data.append(weight)
-        graph = csr_matrix((data, (rows, cols)), shape=(len(simplices), 
+                if tetra < neigh:
+                    shared = simp_sets[tetra] & simp_sets[neigh]
+                    if len(shared) == 3:
+                        edge_bottleneck[(int(tetra), int(neigh))] = \
+                            self._edgeBottleneck(
+                                vertices[tetra], vertices[neigh],
+                                np.fromiter(shared, dtype=np.intp, count=3),
+                                points, vdw_radii)
+        self._edge_bottleneck = edge_bottleneck
+        graph = csr_matrix((data, (rows, cols)), shape=(len(simplices),
                                                         len(simplices)))
         return graph
 
@@ -3782,10 +3838,17 @@ class ChannelCalculator:
         distances = np.linalg.norm(atom_positions - vertice, axis=1) - radii
         return np.min(distances)
 
-    def calculateRadiusSpline(self, tetrahedra, voronoi_vertices, points, 
+    def calculateRadiusSpline(self, tetrahedra, voronoi_vertices, points,
                               vdw_radii, simp):
-        vertices = voronoi_vertices[tetrahedra]
-        radii = np.array([self.calculateMaxRadius(v, points, vdw_radii, s) for v, s in zip(vertices, simp[tetrahedra])])
+        tetrahedra = np.asarray(tetrahedra)
+        # The per-vertex clearance is the same min buildSparseGraph already took
+        # over every simplex; read it back instead of recomputing it per path.
+        if self._vertex_clearance is not None:
+            radii = self._vertex_clearance[tetrahedra]
+        else:
+            vertices = voronoi_vertices[tetrahedra]
+            radii = np.array([self.calculateMaxRadius(v, points, vdw_radii, s)
+                              for v, s in zip(vertices, simp[tetrahedra])])
         return radii, np.min(radii)
 
     def processChannel(self, tetrahedra, voronoi_vertices, points, vdw_radii, 
