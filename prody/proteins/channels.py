@@ -712,12 +712,12 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     restrict_channels_to_start_point=True, start_point_search=3.0,
-    r1=3, r2=0.9, min_depth=10,
-    min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0, 
-    sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False, 
+    r1=3, r2=0.9, min_depth=5,
+    min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0,
+    sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
     diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
     similarity=0.8, route_tolerance=1.0, min_enclosure=0.70, max_peel_depth=None,
-    weighted_cache=True, weighted_mouth_depth=4):
+    weighted_cache=True, weighted_mouth_depth=2.5):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
 
@@ -797,13 +797,15 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         be used as it comes. A warning is issued for the unsafe combination.
     :type r2: float
 
-    :arg min_depth: The minimum depth a cavity must have to be considered as a 
-        channel. Default is 10.
-    :type min_depth: int
+    :arg min_depth: The minimum depth, in Angstrom, a cavity must reach to be
+        considered as a channel. Depth is the geodesic distance from the cavity's
+        surface opening to its farthest point along the Voronoi network, so it is a
+        physical length independent of the tessellation density. Default is 5.
+    :type min_depth: float
 
-    :arg max_depth: Maximum cavity depth. Cavities deeper than this value are 
-        trimmed to the specified depth. Default is None.
-    :type max_depth: int
+    :arg max_depth: Maximum cavity depth, in Angstrom. Portions of a cavity deeper
+        than this value are trimmed away. Default is None (no trimming).
+    :type max_depth: float
 
     :arg bottleneck: Acts as secondary filter following channel identification.
         The minimum allowed bottleneck size (narrowest point) for the channels.
@@ -937,7 +939,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         Too low and the moat is not fully stripped. Too high and the erosion 
         never meets a layer buried enough to stop it, so it percolates down the
           channels and eats the cavity.The default sits at the floor, which is
-        the safe end: over-peeling silently deletes real channels, whereas
+        the safe end: over-peeling deletes real channels, whereas
         under-peeling shows up as surface-riding routes that can be recognised.
     :type min_enclosure: float
 
@@ -966,11 +968,10 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         surface openings, truncating channels to stubs. To repair this a *homogenized*
         diagram of the same atoms is built as an interior/exterior oracle, and only
         exit tetrahedra whose Voronoi vertex lies within ``weighted_mouth_depth``
-        tetrahedron layers of the true molecular surface are treated as mouths.
-        Default 4 (the value at which the recovered channels match the
-        ``"homogenized"`` result); ``None`` disables the relabeling. Note the layer
-        count scales with ``r1`` (it sets the eroded surface-shell thickness).
-    :type weighted_mouth_depth: int or None
+        Angstrom (geodesic distance below the molecular surface) are treated as mouths.
+        Default 2.5 (the value at which the recovered channels match the
+        ``"homogenized"`` result); ``None`` disables the relabeling.
+    :type weighted_mouth_depth: float or None
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an 
@@ -1010,7 +1011,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     
     To save the results as PDB file:
     channels, surface = calcChannels(atoms, output_path="channels.pdb",
-                                     separate=False, r1=3, r2=0.9, min_depth=10,
+                                     separate=False, r1=3, r2=0.9, min_depth=5,
                                      bottleneck=1, sparsity=3) """
     
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
@@ -1148,7 +1149,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         # pipeline would misread as surface mouths (collapsing channels to stubs).
         # Build a homogenized diagram of the same atoms as an interior/exterior depth
         # oracle; getSurfaceCavities then keeps only exit tetrahedra within
-        # weighted_mouth_depth tetrahedron layers of the true molecular surface.
+        # weighted_mouth_depth Angstrom (geodesic) of the true molecular surface.
         if weighted_mouth_depth is not None:
             LOGGER.timeit('_prody_channels_mouth_oracle')
             mouth_oracle = calculator.buildSurfaceDepthOracle(
@@ -1157,6 +1158,16 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                 'built in %.2fs.', '_prody_channels_mouth_oracle')
     else:
         from scipy.spatial import Delaunay
+        # We deliberately do NOT joggle/jitter the input (no QJ), unlike CAVER,
+        # which perturbs by ~0.001 A to dodge the cospherical "T5" degeneracy it
+        # reports in nearly every structure. scipy's default Qhull options
+        # (Qbb Qc Qz) merge cospherical facets instead of joggling, so the
+        # circumcenters stay finite even at degeneracies (verified: 0 NaN/inf
+        # across millions of tetrahedra, even under heavy homogenized refinement).
+        # Not joggling keeps the pipeline exactly reproducible (homogenizeAtoms is
+        # a fixed Fibonacci lattice, and nothing here uses an RNG). The only
+        # residual is coincident circumcenters at true degeneracies, handled where
+        # it matters by the twin-tetrahedron guard in _edgeBottleneck.
         dela = Delaunay(coords)
         # circumcenters straight from the Delaunay paraboloid lifting, so we
         # skip the redundant second Qhull pass (scipy Voronoi). Numerically identical
@@ -1216,7 +1227,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                                                        vdw_radii, sparsity,
                                                        mouth_oracle)
 
-    calculator.findDeepestTetrahedra(c_surface_cavities, s_clr.neigh)
+    calculator.findDeepestTetrahedra(c_surface_cavities, s_clr.neigh, s_clr.verti,
+                                     coords, s_clr.simp)
     if start_point is not None:
         c_surface_cavities = calculator.setStartingTetrahedraFromPoint(
             c_surface_cavities, s_clr.verti, start_point, coords, vdw_radii,
@@ -1358,7 +1370,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
 
     Example usage:
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb",
-                                   separate=False, r1=3, r2=0.9, min_depth=10, bottleneck=1, sparsity=3)
+                                   separate=False, r1=3, r2=0.9, min_depth=5, bottleneck=1, sparsity=3)
                                   
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
                                    separate=False, start_point=[-10.353, -0.133, 5.608]) """
@@ -1485,7 +1497,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, 
     Example usage:
     protein = parsePDB('1tqn').select('protein')
     cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, trajectory=traj, output_path="surface_cavities",
-        r1=4.5, r2=2.0, min_depth=2, max_depth=3, min_volume=50)
+        r1=4.5, r2=2.0, min_depth=1.5, max_depth=2.5, min_volume=50)
 
     cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, start_frame=0, stop_frame=10, r1=4.5, r2=2.0) """
 
@@ -1714,7 +1726,7 @@ def parseSurfaceCavityParameters(cavities, **kwargs):
         tetrahedra_counts.append(tetrahedra_count)
 
         if param_file_name is not None:
-            lines.append("{0}_cavity{1}: {2:.3f} {3} {4}\n".format(
+            lines.append("{0}_cavity{1}: {2:.3f} {3:.2f} {4}\n".format(
                 param_file_name, nr_cav, volume, depth, tetrahedra_count))
 
     if param_file_name is not None:
@@ -2620,8 +2632,8 @@ def calcSurfaceCavityOverlaps(**kwargs):
     return calcChannelSurfaceOverlaps(**kwargs)
 
 
-def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, 
-                        max_depth=3, min_tetrahedra=None, max_tetrahedra=None, 
+def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
+                        max_depth=2.5, min_tetrahedra=None, max_tetrahedra=None,
                         min_volume=50, max_volume=None, sparsity=None,
                         separate=False):
     """Calculate surface cavities (pockets) on protein surface using CaviTracer 
@@ -2649,13 +2661,16 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2,
         the cavities. Default is 2.
     :type r2: float
 
-    :arg min_depth: The minimum depth a cavity must have to be considered as a 
-        cavity. Default is 2.
-    :type min_depth: int
+    :arg min_depth: The minimum depth, in Angstrom, a cavity must reach to be
+        considered. Depth is the geodesic distance from the surface opening along the
+        Voronoi network, a physical length independent of tessellation density.
+        Default is 1.5.
+    :type min_depth: float
 
-    :arg max_depth: Maximum cavity depth. Cavities deeper than this value are 
-        trimmed to the specified depth. Default is 3.
-    :type max_depth: int
+    :arg max_depth: Maximum cavity depth, in Angstrom. Portions of a cavity deeper
+        than this value are trimmed away, keeping the shallow surface shell that
+        defines a pocket. Default is 2.5.
+    :type max_depth: float
 
     :arg sparsity: Deprecated and ignored; accepted only so that existing calls
         keep working. It never affected surface cavities: it thinned the sampling
@@ -3244,16 +3259,16 @@ class ChannelCalculator:
         faces are left unpaired and masquerade as surface boundaries, so channels
         truncate to stubs. This builds a *homogenized* Voronoi diagram of the same
         atoms (a clean simplicial complex), erodes it with an ``r1`` probe to separate
-        solvent (exterior) from protein (interior), and BFS-labels every tetrahedron
-        by the number of layers below the molecular surface (0 = exterior/solvent).
+        solvent (exterior) from protein (interior), and labels every tetrahedron by its
+        geodesic distance (A) below the molecular surface (0 = exterior/solvent).
         :meth:`getSurfaceCavities` then keeps only AW exit tetrahedra whose Voronoi
-        vertex maps (via ``find_simplex``) to depth ``<= max_depth``.
+        vertex maps (via ``find_simplex``) to depth ``<= max_depth`` Angstrom.
 
         :returns: ``(delaunay, depth, max_depth)`` -- the homogenized
-            :class:`~scipy.spatial.Delaunay`, its per-tetrahedron layer count (points
-            outside the hull are treated as depth 0), and the passed-through threshold.
+            :class:`~scipy.spatial.Delaunay`, its per-tetrahedron geodesic depth in
+            Angstrom (points outside the hull are treated as depth 0), and the
+            passed-through threshold.
         """
-        from collections import deque
         from scipy.spatial import Delaunay
 
         hp, hrho = self.homogenizeAtoms(coords, vdw_radii, max_deviation)
@@ -3277,21 +3292,18 @@ class ChannelCalculator:
                 break
             alive[peel] = False
 
-        # BFS layers: depth 0 = exterior/solvent tetrahedra, +1 per step inward.
-        depth = np.full(n, -1, dtype=np.intp)
-        queue = deque(np.nonzero(~alive)[0].tolist())
-        for i in queue:
-            depth[i] = 0
-        while queue:
-            i = queue.popleft()
-            for k in range(4):
-                j = neighbors[i, k]
-                if j >= 0 and depth[j] == -1:
-                    depth[j] = depth[i] + 1
-                    queue.append(j)
+        # Geodesic depth (A) below the surface: shortest path from the exterior
+        # (solvent) tetrahedra inward along Voronoi edges. A physical distance, not a
+        # tetrahedron-layer count, so weighted_mouth_depth is a real Angstrom threshold
+        # that does not drift with the homogenization density.
+        degenerate = self._degenerateTetrahedra(delaunay.simplices, centers, hp)
+        scratch = np.full(n, -1, dtype=np.intp)
+        depth = self._geodesicDepth(np.arange(n), np.nonzero(~alive)[0], neighbors,
+                                    centers, degenerate, scratch)
         # Enclosed pockets never reached from the exterior are deep (never a mouth).
-        reached = depth[depth >= 0]
-        depth[depth == -1] = (int(reached.max()) + 5) if reached.size else (max_depth + 1)
+        reached = depth[np.isfinite(depth)]
+        depth[~np.isfinite(depth)] = (float(reached.max()) + 5.0) if reached.size \
+            else float(max_depth + 1)
 
         return delaunay, depth, max_depth
     
@@ -3365,12 +3377,12 @@ class ChannelCalculator:
                 if mouth_oracle is not None:
                     # diagram="weighted": drop the false (buried) mouths the leaky AW
                     # diagram produces. Keep an exit tetrahedron only if its Voronoi
-                    # vertex lies within max_depth tetrahedron layers of the true
+                    # vertex lies within max_depth Angstrom (geodesic) of the true
                     # molecular surface, per a homogenized interior/exterior oracle.
                     delaunay, depth, max_depth = mouth_oracle
                     located = delaunay.find_simplex(state.verti[exit_tetrahedra])
-                    layers = np.where(located >= 0, depth[located.clip(0)], 0)
-                    exit_tetrahedra = exit_tetrahedra[layers <= max_depth]
+                    surface_depth = np.where(located >= 0, depth[located.clip(0)], 0.0)
+                    exit_tetrahedra = exit_tetrahedra[surface_depth <= max_depth]
                     if len(exit_tetrahedra) == 0:
                         continue
                 cavity.makeSurface()
@@ -3391,36 +3403,84 @@ class ChannelCalculator:
         merged_tetrahedra = np.concatenate([cavity.tetrahedra for cavity in cavities])
         return simplices[merged_tetrahedra]
 
-    def findDeepestTetrahedra(self, cavities, neighbors):
-        from collections import deque
-        
+    def _degenerateTetrahedra(self, simplices, vertices, points):
+        # Scale-invariant flatness flag for the geodesic depth graph. A near-flat
+        # tetrahedron has a runaway circumcenter, so its incident Voronoi edges can be
+        # astronomically long (measured up to ~1e14 A) and would corrupt a shortest-path
+        # depth. Flatness is the ratio of circumradius R to the tetrahedron's own atom
+        # span L: well-shaped cells sit at R/L < ~4 whatever their absolute size - the
+        # large fat cells that span a wide pore under a big probe included - while flat
+        # slivers diverge to R/L -> infinity. Using the dimensionless R/L, never an
+        # absolute length, keeps this correct for porins, ribosome tunnels and
+        # large-probe (e.g. r1=20) runs alike. Edges touching a flagged tetrahedron are
+        # dropped from the graph in _geodesicDepth.
+        apex = points[simplices]                                  # (n, 4, 3)
+        R = np.linalg.norm(apex[:, 0] - vertices, axis=1)         # circumradius
+        L = np.zeros(len(simplices))
+        for a in range(4):
+            for b in range(a + 1, 4):
+                L = np.maximum(L, np.linalg.norm(apex[:, a] - apex[:, b], axis=1))
+        # Well-shaped cells measure R/L up to ~3.7 (p99.9); flat slivers reach ~1e14.
+        # Flag above 5 - the ~14-order gap makes the exact cut irrelevant across [5, 100].
+        return R / np.maximum(L, 1e-9) > 5.0
+
+    def _geodesicDepth(self, tetrahedra, sources, neighbors, vertices, degenerate, scratch):
+        # Shortest-path distance (A) from the source set to every tetrahedron in
+        # `tetrahedra`, along Voronoi edges weighted by circumcenter-to-circumcenter
+        # distance (a multi-source Dijkstra over the induced subgraph). Edges touching a
+        # degenerate (runaway-circumcenter) tetrahedron are dropped. `scratch` is a
+        # reusable global->local index buffer (-1 outside `tetrahedra`), reset before
+        # return so the caller can pass it again. Returns the distance aligned to
+        # `tetrahedra`, np.inf where a tetrahedron is unreachable from every source.
+        from scipy.sparse import csr_matrix
+        from scipy.sparse.csgraph import dijkstra
+
+        T = np.asarray(tetrahedra, dtype=np.intp)
+        m = len(T)
+        if m == 0:
+            return np.empty(0)
+        scratch[T] = np.arange(m)
+        nb = neighbors[T]                                         # (m, deg) global
+        safe_nb = np.where(nb < 0, 0, nb)
+        local = np.where(nb < 0, -1, scratch[safe_nb])
+        keep = local >= 0
+        keep &= ~degenerate[T][:, None]                          # drop from a flat tetra
+        keep &= ~np.where(nb < 0, True, degenerate[safe_nb])     # drop into a flat tetra
+        keep = keep.ravel()
+        row = np.repeat(np.arange(m), nb.shape[1])[keep]
+        col = local.ravel()[keep]
+        w = np.linalg.norm(vertices[T[row]] - vertices[T[col]], axis=1)
+        graph = csr_matrix((w, (row, col)), shape=(m, m))
+        src = scratch[np.asarray(sources, dtype=np.intp)]
+        src = src[src >= 0]
+        scratch[T] = -1                                          # reset for reuse
+        if len(src) == 0:
+            return np.full(m, np.inf)
+        return dijkstra(graph, indices=src, min_only=True)
+
+    def findDeepestTetrahedra(self, cavities, neighbors, vertices, points, simplices):
+        # Cavity depth = the geodesic distance (A) from the cavity's openings (its exit
+        # tetrahedra) to its farthest point, as a shortest path along Voronoi edges. This
+        # is a physical length independent of tetrahedron size, so min_depth is mesh
+        # invariant; the old +1-per-tetrahedron layer count grew as the mesh refined.
+        degenerate = self._degenerateTetrahedra(simplices, vertices, points)
+        scratch = np.full(neighbors.shape[0], -1, dtype=np.intp)
         for cavity in cavities:
-            exit_tetrahedra = cavity.exit_tetrahedra
-            # O(1) membership instead of scanning the tetrahedra array per edge.
-            cavity_tetra_set = set(cavity.tetrahedra.tolist())
-            visited = np.zeros(neighbors.shape[0], dtype=bool)
-            visited[exit_tetrahedra] = True
-            queue = deque([(tetra, 0) for tetra in exit_tetrahedra])
-            max_depth = -1
-            deepest_tetrahedron = None
-            tetrahedra_depths = {}
-
-            while queue:
-                current, depth = queue.popleft()
-                tetrahedra_depths[current] = depth
-
-                if depth > max_depth:
-                    max_depth = depth
-                    deepest_tetrahedron = current
-
-                for neighbor in neighbors[current]:
-                    if neighbor != -1 and not visited[neighbor] and neighbor in cavity_tetra_set:
-                        visited[neighbor] = True
-                        queue.append((neighbor, depth + 1))
-
-            cavity.setStartingTetrahedron(np.array([deepest_tetrahedron]))
-            cavity.setDepth(max_depth)
-            cavity.tetrahedra_depths = tetrahedra_depths
+            tetra = np.asarray(cavity.tetrahedra, dtype=np.intp)
+            dist = self._geodesicDepth(tetra, cavity.exit_tetrahedra, neighbors,
+                                       vertices, degenerate, scratch)
+            finite = np.isfinite(dist)
+            if not finite.any():
+                # No exit reached any tetrahedron (degenerate cavity); keep it minimal.
+                cavity.setStartingTetrahedron(np.array([int(tetra[0])]))
+                cavity.setDepth(0.0)
+                cavity.tetrahedra_depths = {int(tetra[0]): 0.0}
+                continue
+            deepest = int(np.argmax(np.where(finite, dist, -np.inf)))
+            cavity.setStartingTetrahedron(np.array([int(tetra[deepest])]))
+            cavity.setDepth(float(dist[deepest]))
+            cavity.tetrahedra_depths = {int(tetra[k]): float(dist[k])
+                                        for k in np.nonzero(finite)[0]}
             
     def calcCircumcenters(self, dela):
         # per-simplex circumcenters recovered analytically from the Delaunay 
@@ -3453,7 +3513,20 @@ class ChannelCalculator:
         u = cj - ci
         uu = float(u @ u)
         if uu <= 1e-12:
-            # twin tetrahedra: the circumcenters coincide, the edge is a point
+            # Twin tetrahedra: the circumcenters coincide, the edge is a point,
+            # so return the shared vertex clearance directly. This guard is
+            # load-bearing, not defensive boilerplate - do not remove it. Two
+            # near-cospherical tetrahedra (the "T5" degeneracy CAVER's paper
+            # jitters against) produce coincident circumcenters; measured on real
+            # structures these are absent at the default max_deviation but do
+            # appear - a handful per structure - as the diagram is refined
+            # (max_deviation -> 0.02). scipy/Qhull's cospherical facet merging
+            # keeps the geometry finite (no NaN/inf circumcenters) so we do not
+            # need CAVER's jitter/random-rotation precautions, but the coincident
+            # circumcenters would still divide by ~0 here. Just above the
+            # threshold the clip below handles it: for a tiny but non-zero edge
+            # the foot clamps to an endpoint and the gate degrades continuously
+            # to the endpoint clearance.
             return float(np.min(np.linalg.norm(a - ci, axis=1) - r))
         t = np.clip((a - ci) @ u / uu, 0.0, 1.0)
         p = ci + t[:, None] * u
@@ -4222,7 +4295,7 @@ class ChannelCalculator:
                 distance=float(np.linalg.norm(vertices[tetra] - sp)),
                 radius=float(self.calculateMaxRadius(
                     vertices[tetra], points, vdw_radii, simp[tetra])),
-                depth=int(depths.get(tetra, 0)))
+                depth=float(depths.get(tetra, 0.0)))
 
         def report(seed, searched, eligible):
             info = {'seed': seed, 'anchor': anchor,
@@ -4326,8 +4399,8 @@ class ChannelCalculator:
         best_cavity.setStartingTetrahedron(np.array([best_info['seed']]))
         self.reportSeedTetrahedron(best_info, search_radius)
         LOGGER.info("    restricting the channel search to the cavity that contains it "
-            "({0} tetrahedra, depth {1}).".format(len(best_cavity.tetrahedra),
-                                                  int(best_cavity.depth)))
+            "({0} tetrahedra, depth {1:.1f} A).".format(len(best_cavity.tetrahedra),
+                                                        float(best_cavity.depth)))
 
         return [best_cavity]
 
@@ -4339,14 +4412,14 @@ class ChannelCalculator:
         where = '' if cavity_index is None else ' of cavity {0}'.format(cavity_index)
         LOGGER.info("start_point seeded at tetrahedron {0}{1} (Voronoi vertex at "
             "[{2:.3f}, {3:.3f}, {4:.3f}], {5:.3f} A from start_point, inscribed radius "
-            "{6:.3f} A, depth {7})."
+            "{6:.3f} A, depth {7:.1f} A)."
             .format(info['seed'], where, info['seed_vertex'][0], info['seed_vertex'][1],
                     info['seed_vertex'][2], info['seed_distance'], info['seed_radius'],
                     info['seed_depth']))
 
         if info['seed'] != info['anchor']:
             LOGGER.info("    widened from the nearest tetrahedron {0} ({1:.3f} A away, "
-                "inscribed radius {2:.3f} A, depth {3}), the widest of the {4} tetrahedra "
+                "inscribed radius {2:.3f} A, depth {3:.1f} A), the widest of the {4} tetrahedra "
                 "no shallower than it among the {5} reachable within {6:.1f} A; seeding "
                 "the narrow one would have capped every channel here at its radius."
                 .format(info['anchor'], info['anchor_distance'], info['anchor_radius'],
