@@ -3838,6 +3838,36 @@ class ChannelCalculator:
         distances = np.linalg.norm(atom_positions - vertice, axis=1) - radii
         return np.min(distances)
 
+    def _pathBottleneck(self, tetrahedra, voronoi_vertices, points, vdw_radii,
+                        simp, vertex_radii):
+        # The narrowest point of a path lies on the gates (the shared Delaunay
+        # faces) between consecutive circumcenters, not at the circumcenters,
+        # which are local clearance maxima. So the bottleneck is the path minimum
+        # over the per-edge gate clearances - the edge bottleneck radius - read
+        # from the cache and recomputed for any edge the map lacks. Always
+        # <= min(vertex_radii), so it can only tighten the reported width.
+        if len(tetrahedra) < 2:
+            return float(np.min(vertex_radii))
+        eb = self._edge_bottleneck
+        gate = np.inf
+        for k in range(len(tetrahedra) - 1):
+            i, j = int(tetrahedra[k]), int(tetrahedra[k + 1])
+            key = (i, j) if i < j else (j, i)
+            g = eb.get(key) if eb is not None else None
+            if g is None:
+                shared = np.intersect1d(simp[i], simp[j], assume_unique=True)
+                if len(shared) != 3:
+                    # not face-adjacent (should not happen on a graph path);
+                    # fall back to the tighter of the two endpoints
+                    g = float(min(vertex_radii[k], vertex_radii[k + 1]))
+                else:
+                    g = self._edgeBottleneck(voronoi_vertices[i],
+                                             voronoi_vertices[j], shared,
+                                             points, vdw_radii)
+            if g < gate:
+                gate = g
+        return float(gate)
+
     def calculateRadiusSpline(self, tetrahedra, voronoi_vertices, points,
                               vdw_radii, simp):
         tetrahedra = np.asarray(tetrahedra)
@@ -3849,7 +3879,9 @@ class ChannelCalculator:
             vertices = voronoi_vertices[tetrahedra]
             radii = np.array([self.calculateMaxRadius(v, points, vdw_radii, s)
                               for v, s in zip(vertices, simp[tetrahedra])])
-        return radii, np.min(radii)
+        bottleneck = self._pathBottleneck(tetrahedra, voronoi_vertices, points,
+                                          vdw_radii, simp, radii)
+        return radii, bottleneck
 
     def processChannel(self, tetrahedra, voronoi_vertices, points, vdw_radii, 
                        simp):
