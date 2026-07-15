@@ -3532,14 +3532,48 @@ class ChannelCalculator:
         p = ci + t[:, None] * u
         return float(np.min(np.linalg.norm(p - a, axis=1) - r))
 
+    def _edgeBottleneckBatch(self, ci, cj, shared_atoms, points, vdw_radii):
+        # Vectorized _edgeBottleneck over F edges at once. ``ci``, ``cj`` are
+        # (F, 3) circumcenters (``ci`` the lower-index endpoint, so the reverse
+        # edge yields a bitwise-identical gate) and ``shared_atoms`` is (F, 3)
+        # atom indices of the shared Delaunay face. Same closed-form clamped
+        # point-to-segment as the scalar version, with the twin-tetrahedron
+        # (coincident circumcenter) guard applied row-wise. See _edgeBottleneck.
+        a = points[shared_atoms]                          # (F, 3, 3)
+        r = vdw_radii[shared_atoms]                       # (F, 3)
+        u = cj - ci                                       # (F, 3)
+        uu = np.einsum('fj,fj->f', u, u)                  # (F,)
+        twin = uu <= 1e-12
+        uu_safe = np.where(twin, 1.0, uu)
+        diff = a - ci[:, None, :]                         # (F, 3, 3)
+        t = np.clip(np.einsum('faj,fj->fa', diff, u) / uu_safe[:, None],
+                    0.0, 1.0)                             # (F, 3)
+        p = ci[:, None, :] + t[:, :, None] * u[:, None, :]
+        gate = (np.linalg.norm(p - a, axis=2) - r).min(axis=1)
+        if twin.any():
+            # coincident circumcenters: the edge is a point, so the gate is the
+            # shared vertex clearance measured at ci (== cj).
+            twin_gate = (np.linalg.norm(diff, axis=2) - r).min(axis=1)
+            gate = np.where(twin, twin_gate, gate)
+        return gate
+
     def buildSparseGraph(self, simplices, neighbors, vertices, points, vdw_radii):
-        # one weighted CSR adjacency matrix for the whole cleared state.
-        # Edge (tetra -> neigh) weight is l / (d**2 + b) where l is the
+        # One weighted CSR adjacency matrix for the whole cleared state, built
+        # from array ops over the (N, deg) neighbour table - no Python loop.
+        # Edge (tetra -> neigh) weight is l / (d**2 + b), where l is the
         # vertex-to-vertex distance and d is the gate clearance on the shared
         # Delaunay face (min clearance along the connecting Voronoi edge). The
-        # gate is symmetric, so this cost no longer depends on traversal
-        # direction the way the entered-node vertex clearance did.
+        # gate is the width the cost should see: the clearance between the two
+        # circumcenters, not the entered node's own vertex clearance, which is a
+        # local maximum and lets the search prefer a route that is actually
+        # narrower at a face it never measures. Because the gate is symmetric,
+        # the cost no longer depends on traversal direction the way the
+        # entered-node vertex clearance did.
         from scipy.sparse import csr_matrix
+
+        simplices = np.asarray(simplices)
+        neighbors = np.asarray(neighbors)
+        N, deg = neighbors.shape
 
         tetra_points = points[simplices]
         distances = np.linalg.norm(tetra_points - vertices[:, None, :], axis=2)
@@ -3548,54 +3582,53 @@ class ChannelCalculator:
         # recomputes this identical min over each path's tetrahedra.
         self._vertex_clearance = bottleneck
 
-        rows = []
-        cols = []
-        data = []
+        # Directed edge list straight off the neighbour table.
+        rows = np.repeat(np.arange(N), deg)
+        cols = neighbors.ravel()
+        keep = cols != -1
+        rows = rows[keep]
+        cols = cols[keep]
 
-        # Gate clearance on each shared Delaunay face, keyed by the unordered
-        # edge and computed once (the face is symmetric). This is the width the
-        # cost sees: the clearance at the gate between two circumcenters, not the
-        # entered node's own vertex clearance, which is a local maximum and lets
-        # the search prefer a route that is actually narrower at a face it never
-        # measures. The reported bottleneck reads the same map. Shared atoms come
-        # from the set intersection of the two simplices rather than scipy's
-        # opposite-vertex convention, so it holds however the diagram builds its
-        # neighbours. Rows are visited in increasing index order and (tetra,
-        # neigh<-tetra) is stored before its reverse, so the symmetric key is
-        # always present when the reverse direction reads it.
-        simp_sets = [frozenset(int(a) for a in row) for row in simplices]
-        edge_bottleneck = {}
+        # Drive the gate geometry from the lower-index endpoint so an edge's two
+        # directed copies see identical inputs and get a bitwise identical,
+        # direction-symmetric gate - i.e. compute each undirected edge once.
+        lo = np.minimum(rows, cols)
+        hi = np.maximum(rows, cols)
 
+        # Shared 3 atoms of each Delaunay face, convention-agnostic (set
+        # intersection, not scipy's opposite-vertex rule, so it holds for the
+        # weighted diagram too): ``present`` marks which of the lower simplex's
+        # four atoms also appear in the higher one; a face-adjacent edge has 3.
+        slo = simplices[lo]
+        shi = simplices[hi]
+        present = (slo[:, :, None] == shi[:, None, :]).any(axis=2)   # (M, 4)
+        face = present.sum(axis=1) == 3
+
+        # Rare non-face links fall back to the entered node's vertex clearance;
+        # face links (essentially all of them) overwrite it with the gate.
+        d = bottleneck[cols].astype(float, copy=True)
+        if face.any():
+            fi = np.nonzero(face)[0]
+            shared = slo[fi][present[fi]].reshape(-1, 3)
+            d[fi] = self._edgeBottleneckBatch(vertices[lo[fi]], vertices[hi[fi]],
+                                              shared, points, vdw_radii)
+
+        l = np.linalg.norm(vertices[rows] - vertices[cols], axis=1)
         b = 1e-3
-        for tetra, neighs in enumerate(neighbors):
-            for neigh in neighs:
-                nb = int(neigh)
-                if nb == -1:
-                    continue
-                if tetra < nb:
-                    shared = simp_sets[tetra] & simp_sets[nb]
-                    if len(shared) == 3:
-                        edge_bottleneck[(tetra, nb)] = self._edgeBottleneck(
-                            vertices[tetra], vertices[nb],
-                            np.fromiter(shared, dtype=np.intp, count=3),
-                            points, vdw_radii)
-                key = (tetra, nb) if tetra < nb else (nb, tetra)
-                # gate clearance (symmetric); fall back to the entered node's
-                # vertex clearance for the rare link with no shared-face gate.
-                d = edge_bottleneck.get(key)
-                if d is None:
-                    d = bottleneck[nb]
-                l = np.linalg.norm(vertices[tetra] - vertices[nb])
-                weight = l / (d * d + b)
-                rows.append(tetra)
-                cols.append(nb)
-                data.append(weight)
-        self._edge_bottleneck = edge_bottleneck
-        graph = csr_matrix((data, (rows, cols)), shape=(len(simplices),
-                                                        len(simplices)))
-        return graph
+        weight = l / (d * d + b)
 
-    def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points, 
+        # Per-edge gate cache (unordered key) read by _pathGates: each face edge
+        # stored once, keyed (lo, hi). The reported bottleneck reads the same map.
+        undirected = face & (rows < cols)
+        self._edge_bottleneck = {
+            (int(i), int(j)): float(v)
+            for i, j, v in zip(rows[undirected], cols[undirected],
+                               d[undirected])
+        }
+
+        return csr_matrix((weight, (rows, cols)), shape=(N, N))
+
+    def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points,
                  vdw_radii, truncate_at_surface=True, similarity=0.8):
         # a single multi-target Dijkstra from the seed over the cavity subgraph,
         # then every exit path reconstructed from the predecessor tree - 
