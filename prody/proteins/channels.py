@@ -3461,9 +3461,11 @@ class ChannelCalculator:
 
     def buildSparseGraph(self, simplices, neighbors, vertices, points, vdw_radii):
         # one weighted CSR adjacency matrix for the whole cleared state.
-        # Edge (tetra -> neigh) weight is l / (d**2 + b) where
-        # l is the vertex-to-vertex distance and d is the neighbour's clearance
-        # (min over its 4 atoms of |vertex - atom| - vdw_radius)
+        # Edge (tetra -> neigh) weight is l / (d**2 + b) where l is the
+        # vertex-to-vertex distance and d is the gate clearance on the shared
+        # Delaunay face (min clearance along the connecting Voronoi edge). The
+        # gate is symmetric, so this cost no longer depends on traversal
+        # direction the way the entered-node vertex clearance did.
         from scipy.sparse import csr_matrix
 
         tetra_points = points[simplices]
@@ -3478,34 +3480,43 @@ class ChannelCalculator:
         data = []
 
         # Gate clearance on each shared Delaunay face, keyed by the unordered
-        # edge and computed once (the face is symmetric). Nothing reads it yet;
-        # it is built here so the reported bottleneck and the Dijkstra cost can
-        # later share one definition of edge width instead of each sampling
-        # clearance only at the circumcenters. Shared atoms come from the set
-        # intersection of the two simplices rather than scipy's opposite-vertex
-        # convention, so it holds however the diagram builds its neighbours.
+        # edge and computed once (the face is symmetric). This is the width the
+        # cost sees: the clearance at the gate between two circumcenters, not the
+        # entered node's own vertex clearance, which is a local maximum and lets
+        # the search prefer a route that is actually narrower at a face it never
+        # measures. The reported bottleneck reads the same map. Shared atoms come
+        # from the set intersection of the two simplices rather than scipy's
+        # opposite-vertex convention, so it holds however the diagram builds its
+        # neighbours. Rows are visited in increasing index order and (tetra,
+        # neigh<-tetra) is stored before its reverse, so the symmetric key is
+        # always present when the reverse direction reads it.
         simp_sets = [frozenset(int(a) for a in row) for row in simplices]
         edge_bottleneck = {}
 
         b = 1e-3
         for tetra, neighs in enumerate(neighbors):
             for neigh in neighs:
-                if neigh == -1:
+                nb = int(neigh)
+                if nb == -1:
                     continue
-                l = np.linalg.norm(vertices[tetra] - vertices[neigh])
-                d = bottleneck[neigh]
+                if tetra < nb:
+                    shared = simp_sets[tetra] & simp_sets[nb]
+                    if len(shared) == 3:
+                        edge_bottleneck[(tetra, nb)] = self._edgeBottleneck(
+                            vertices[tetra], vertices[nb],
+                            np.fromiter(shared, dtype=np.intp, count=3),
+                            points, vdw_radii)
+                key = (tetra, nb) if tetra < nb else (nb, tetra)
+                # gate clearance (symmetric); fall back to the entered node's
+                # vertex clearance for the rare link with no shared-face gate.
+                d = edge_bottleneck.get(key)
+                if d is None:
+                    d = bottleneck[nb]
+                l = np.linalg.norm(vertices[tetra] - vertices[nb])
                 weight = l / (d * d + b)
                 rows.append(tetra)
-                cols.append(neigh)
+                cols.append(nb)
                 data.append(weight)
-                if tetra < neigh:
-                    shared = simp_sets[tetra] & simp_sets[neigh]
-                    if len(shared) == 3:
-                        edge_bottleneck[(int(tetra), int(neigh))] = \
-                            self._edgeBottleneck(
-                                vertices[tetra], vertices[neigh],
-                                np.fromiter(shared, dtype=np.intp, count=3),
-                                points, vdw_radii)
         self._edge_bottleneck = edge_bottleneck
         graph = csr_matrix((data, (rows, cols)), shape=(len(simplices),
                                                         len(simplices)))
