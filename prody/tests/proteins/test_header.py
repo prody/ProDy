@@ -192,6 +192,49 @@ class TestParsePDBHeaderModresNcAA(unittest.TestCase):
         self.polymers_long = None
 
 
+class TestParsePDBHeaderSEPModres(unittest.TestCase):
+    """Test that SEP (phosphoserine) is correctly converted to S (SER) via
+    MODRES records, reproducing the 5FC2 scenario reported in GitHub issue
+    comments: chain A has SEP at position 4 mapped to SER, and a ligand
+    6L3 that should fall back to 'X'."""
+
+    def setUp(self):
+        self.polymers = parsePDBHeader(
+            pathDatafile('sep_modres'), 'polymers')
+        self.polymers_long = parsePDBHeader(
+            pathDatafile('sep_modres'), 'polymers', longSeq=True)
+
+    def testPolymerPresent(self):
+        self.assertEqual(len(self.polymers), 1,
+            'expected exactly one polymer chain')
+
+    def testOneLetterSequenceSEP(self):
+        """SEP should map to S (SER) and ligand 6L3 should fall back to X."""
+        seq = self.polymers[0].sequence
+        self.assertEqual(seq, 'DKSIEVGRX',
+            'one-letter sequence incorrect; got {0!r}, expected "DKSIEVGRX"'
+            .format(seq))
+
+    def testLongSequenceContainsSEP(self):
+        """Three-letter sequence should preserve the SEP residue name."""
+        seq = self.polymers_long[0].sequence
+        self.assertIn('SEP', seq,
+            'long sequence should contain "SEP" residue name')
+
+    def testModifiedResidues(self):
+        """MODRES record for SEP should be stored in poly.modified."""
+        modified = self.polymers[0].modified
+        self.assertIsNotNone(modified,
+            'poly.modified should not be None when MODRES records are present')
+        resnames = [m[0] for m in modified]
+        self.assertIn('SEP', resnames,
+            '"SEP" should appear in poly.modified residue names')
+
+    def tearDown(self):
+        self.polymers = None
+        self.polymers_long = None
+
+
 class TestThreeLetterSequenceKwarg(unittest.TestCase):
 
     def setUp(self):

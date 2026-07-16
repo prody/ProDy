@@ -456,6 +456,9 @@ DATA_FILES = {
     },
     'modres_ncaa': {
         'file': 'pdb_modres_ncaa.pdb'
+    },
+    'sep_modres': {
+        'file': 'pdb5fc2_sep_modres.pdb'
     }
 }
 
