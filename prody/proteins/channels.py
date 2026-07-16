@@ -119,15 +119,15 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
     """Generates a 3D model of molecular structures using VMD and returns it as
       an Open3D TriangleMesh.
 
-    This function creates a temporary PDB file from the provided atomic data a
-    nd uses VMD (Visual Molecular Dynamics) to render this data into an STL 
-    file, which is then loaded into Open3D as a TriangleMesh. The function 
-    handles the creation and cleanup of temporary files and manages the 
+    This function creates a temporary PDB file from the provided atomic data
+    and uses VMD (Visual Molecular Dynamics) to render this data into an STL
+    file, which is then loaded into Open3D as a TriangleMesh. The function
+    handles the creation and cleanup of temporary files and manages the
     subprocess call to VMD.
     
     To install Open3D use: 
     conda install open3d (for Anaconda users; version open3d-0.19.0 was used 
-    during the developement) or pip install open3d
+    during the development) or pip install open3d
 
     :arg vmd_path: Path to the VMD executable. This is required to run VMD and 
     execute the TCL script.
@@ -273,7 +273,7 @@ def showChannels(channels, model=None, surface=None):
 
     To install Open3D use: 
     conda install open3d (for Anaconda users; version open3d-0.19.0 was used 
-    during the developement) or pip install open3d
+    during the development) or pip install open3d
     
     :arg channels: A list of channel objects or a single channel object. Each 
         channel should have a `getSplines()` method that returns two 
@@ -315,8 +315,11 @@ def showChannels(channels, model=None, surface=None):
         centers = centerline_spline(t)
         radii = radius_spline(t)
 
-        spheres = [o3d.geometry.TriangleMesh.create_sphere(radius=r, 
-                                                           resolution=20).translate(c) for r, c in zip(radii, centers)]
+        spheres = [
+            o3d.geometry.TriangleMesh.create_sphere(radius=r,
+                                                    resolution=20).translate(c)
+            for r, c in zip(radii, centers)
+        ]
         mesh = spheres[0]
         for sphere in spheres[1:]:
             mesh += sphere
@@ -391,7 +394,7 @@ def showCavities(surface, show_surface=False):
 
     To install Open3D use: 
     conda install open3d (for Anaconda users; version open3d-0.19.0 was used 
-    during the developement) or pip install open3d
+    during the development) or pip install open3d
 
     :arg surface: A list containing three elements:
         - `points`: The coordinates of the vertices (atoms) in the molecular 
@@ -860,7 +863,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         using the third-party ``vorpy`` package (with a compiled kernel when
         ``numba`` is available). This is the exact diagram the "homogenized" mode
         approximates, at a higher cost (~ 100x slower, for 4000 atoms).
-
     :type diagram: str
 
     :arg max_deviation: Maximum tolerated deviation, in Angstrom, between the 
@@ -873,7 +875,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
         * ``0.1`` fine accurate surface with minimal errors, but on 13-15x 
             more balls than original
-        * ``0.15`` in heavy-atom-only structures it startsfilling carbon, which
+        * ``0.15`` in heavy-atom-only structures it starts filling carbon, which
              is otherwise left as a single ball with a uniform ~0.18 A inset).
         * ``0.2`` speed optimized ; e.g. carbon fills to ~15 balls when 
             hydrogens are present (``rho``=1.2), resulting roughly to ~8 times 
@@ -946,7 +948,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
         Too low and the moat is not fully stripped. Too high and the erosion 
         never meets a layer buried enough to stop it, so it percolates down the
-          channels and eats the cavity.The default sits at the floor, which is
+          channels and eats the cavity. The default sits at the floor, which is
         the safe end: over-peeling deletes real channels, whereas
         under-peeling shows up as surface-riding routes that can be recognised.
     :type min_enclosure: float
@@ -996,7 +998,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an 
-          object containing informationabout its path and geometry.
+          object containing information about its path and geometry.
         - `surface`: A list containing additional information for further 
           visualization, including the atomic coordinates, simplices defining 
           the surface, and merged cavities.
@@ -1103,15 +1105,17 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     elements = np.char.upper(np.asarray(atoms.getElements(), dtype=str))
     has_hydrogens = bool(np.any(elements == 'H'))
 
-    # An X-ray structure carries no hydrogens, and its carbons keep their full vdW
-    # radius, so the ~0.6 A the missing H occupied is left as void -- around every
-    # heavy atom at once, including buried contacts that never come apart. That is
-    # usually harmless, and is often defended as standing in for thermal motion: a
-    # probe of water size cannot enter those interstices anyway, and protonated and
-    # unprotonated runs agree from about 1.2 A upwards. Below that the probe is
-    # small enough to thread them and the interior percolates into a sponge rather
-    # than merely widening Those routes are fictitious, not the real ones made 
-    # wider. So a sub-water probe needs real hydrogens; above it, take the file as it comes.
+    # An experimental structure generally carries no hydrogens -- X-ray and cryo-EM
+    # alike, since neither resolves them except at the very highest resolutions -- and
+    # its carbons keep their full vdW radius, so the ~0.6 A the missing H occupied is
+    # left as void, around every heavy atom at once, including buried contacts that
+    # never come apart. That is usually harmless, and is often defended as standing in
+    # for thermal motion: a probe of water size cannot enter those interstices anyway,
+    # and protonated and unprotonated runs agree from about 1.2 A upwards. Below that
+    # the probe is small enough to thread them and the interior percolates into a
+    # sponge rather than merely widening. Those routes are fictitious, not the real
+    # ones made wider. So a sub-water probe needs real hydrogens; above it, take the
+    # file as it comes.
     if not has_hydrogens and r2 < 1.2:
         _warn("structure has no hydrogens and r2={0:.2f} is below 1.2 A: the space "
               "left by the missing H is then wide enough for the probe to pass, and "
@@ -1656,8 +1660,8 @@ def getChannelParameters(channels, **kwargs):
     """Extracts and returns the lengths, bottlenecks, and volumes of each 
     channel in a given list of channels.
 
-    This functaaion iterates through a list of channel objects, extracting the 
-    length, bottleneck,and volume of each channel. These values are collected 
+    This function iterates through a list of channel objects, extracting the
+    length, bottleneck, and volume of each channel. These values are collected
     into separate lists, which are returned as a tuple for further use.
 
     :arg channels: A list of channel objects, where each channel has attributes
@@ -1667,8 +1671,8 @@ def getChannelParameters(channels, **kwargs):
     :type channels: list
 
     :arg param_file_name: The files with parameters will be saved in a text 
-        file with the provided name.Use one word which will be added to 
-        '_Parameters_All_channels.txt' sufix. If further analysis will be 
+        file with the provided name. Use one word which will be added to
+        '_Parameters_All_channels.txt' suffix. If further analysis will be
         performed with selectChannelBySelection() function, the preferable 
         param_file_name is PDB+chain for example: '1bbhA'.
     :type param_file_name: str 
@@ -1887,7 +1891,7 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
     :type protein: prody.atomic.AtomGroup or None
 
     :arg num_samples: The number of atom samples to generate along each segment
-         of the channel.More samples result in a finer representation of the 
+         of the channel. More samples result in a finer representation of the
          channel. Default is 5.
     :type num_samples: int
 
@@ -2355,7 +2359,7 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
 
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
     """Select PQR files with channels that are having FIL residues within 
-    certain distance (distA) from selected residue (temporarly one residue).
+    certain distance (distA) from selected residue (temporarily one residue).
     If not all files should be included use pqr_files to provide the new list. 
     For example:
     pqr_files = [file for file in os.listdir('.') if file.startswith('7lafA_') and file.endswith('.pqr')]
@@ -2377,7 +2381,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     :type folder_name: str
 
     :arg distA: non-zero value, maximal distance from selected region to 
-        channel (FIL atoms)default is 5
+        channel (FIL atoms). Default is 5.
     :type distA: int, float 
         
     :arg residues_file: File with residues forming the channel created by 
@@ -2436,7 +2440,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
             else:
                 pass 
 
-    # Extract paramaters and/or residues with channel selection
+    # Extract parameters and/or residues with channel selection
     if residues_file == True:
         selected_residues = []
         for file in copied_files_list:
@@ -2541,11 +2545,11 @@ def calcChannelSurfaceOverlaps(**kwargs):
     :arg output_file_name: The name of the PDB file with overlapping surfaces.
     :type output_file_name: str
 
-    :arg pqr_files: File with residues forming the channel created by 
-        getChannelResidues() default is False (then all the files from the 
-        current directory will be analyzed)when providing a list, only the PDBs
-         from list will be analyzedwhen providing str, it will be treated as a 
-        folder path  
+    :arg pqr_files: File with residues forming the channel created by
+        getChannelResidues(). Default is False, then all the files from the
+        current directory will be analyzed. When providing a list, only the
+        PDBs from the list will be analyzed. When providing str, it will be
+        treated as a folder path.
     :type pqr_files: bool, list or str
     
     Example usage:
@@ -2739,7 +2743,7 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
         - `cavities`: A list of detected cavities, where each channel is an 
             object containing information about its path and geometry.
         - `surface`: A list containing additional information for further 
-            visualization, includingthe atomic coordinates, simplices defining 
+            visualization, including the atomic coordinates, simplices defining
             the surface, and merged cavities.
     :rtype: tuple (list, list)
 
