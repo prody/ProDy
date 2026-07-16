@@ -1,5 +1,6 @@
 HEADER    KINASE                                  16-JUL-26   5FC2              
 MODRES 5FC2 SEP A    4  SER  PHOSPHOSERINE                                      
+MODRES 5FC2 6L3 A    9       INHIBITOR LIGAND                                   
 SEQRES   1 A    9  ASP LYS SEP ILE GLU VAL GLY ARG 6L3                        
 ATOM      1  CA  ASP A   1      10.000  10.000  10.000  1.00 20.00           C  
 END
