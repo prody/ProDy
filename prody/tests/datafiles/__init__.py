@@ -458,7 +458,7 @@ DATA_FILES = {
         'file': 'pdb_modres_ncaa.pdb'
     },
     'sep_modres': {
-        'file': 'pdb_sep_modres.pdb'
+        'file': 'pdb5fc2_sep_modres.pdb'
     }
 }
 

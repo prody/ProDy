@@ -200,9 +200,9 @@ class TestParsePDBHeaderSEPModres(unittest.TestCase):
 
     def setUp(self):
         self.polymers = parsePDBHeader(
-            pathDatafile('pdb_sep_modres.pdb'), 'polymers')
+            pathDatafile('sep_modres'), 'polymers')
         self.polymers_long = parsePDBHeader(
-            pathDatafile('pdb_sep_modres.pdb'), 'polymers', longSeq=True)
+            pathDatafile('sep_modres'), 'polymers', longSeq=True)
 
     def testPolymerPresent(self):
         self.assertEqual(len(self.polymers), 1,
