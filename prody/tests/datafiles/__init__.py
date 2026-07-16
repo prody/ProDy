@@ -453,6 +453,12 @@ DATA_FILES = {
         'n_atoms': 4,
         'long_resname': 'ACET',
         'short_resname': 'ACE'
+    },
+    'modres_ncaa': {
+        'file': 'pdb_modres_ncaa.pdb'
+    },
+    'sep_modres': {
+        'file': 'pdb5fc2_sep_modres.pdb'
     }
 }
 
