@@ -1235,7 +1235,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         s_prv.setState(*s_tmp.getState())
         
         if PY3K:
-            #s_tmp.setState(*calculator.deleteSimplices3d(coords, *(s_tmp.getState() + [vdw_radii, r1, True])))
             s_tmp.setState(*calculator.deleteSimplices3d(coords, *(s_tmp.getState() + tuple([vdw_radii, r1, True]))))
         else:
             tmp_state = calculator.deleteSimplices3d(coords, *(s_tmp.getState() + [vdw_radii, r1, True]))
@@ -1255,7 +1254,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         coords, *(s_srf.getState() + tuple([vdw_radii, r2, atom_coords,
                                             min_enclosure, max_peel_depth]))))
 
-    #s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + [vdw_radii, r2, False])))
     s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + tuple([vdw_radii, r2, False]))))
 
     l_first_layer_simp, l_second_layer_simp = calculator.surfaceLayer(s_srf.simp, s_inr.simp, s_srf.neigh)
@@ -2916,15 +2914,99 @@ class ChannelCalculator:
         self._vertex_clearance = None
         self._edge_bottleneck = None
 
-    # def sphereFit(self, vertices, tetrahedron, vertice, vdw_radii, r):
-    #     center = vertice
-    #     d_sum = sum(np.linalg.norm(center - vertices[atom]) for atom in tetrahedron)
-    #     r_sum = sum(r + vdw_radii[atom] for atom in tetrahedron)
-        
-    #     return d_sum >= r_sum
+    def sphereFit(self, points, simplices, vertices, vdw_radii, r, rows=None):
+        """Sum-based clearance test: for each tetrahedron, decide whether a probe
+        of radius ``r`` fits at its Voronoi vertex.
 
-    def deleteSimplices3d(self, points, simplices, neighbors, vertices, 
+        Compares the sum of the distances from the Voronoi vertex to the four
+        atom centres against the sum of ``r + vdw_radius`` over the same four
+        atoms. Summing over the four atoms instead of testing each one is the
+        tangent-sphere test exactly when the vertex is equidistant from all four,
+        and a mild relaxation of it otherwise; the erosion defaults are
+        calibrated against that behaviour.
+
+        :arg points: coordinates of all atoms, shape ``(n_atoms, 3)``.
+        :type points: :class:`~numpy.ndarray`
+
+        :arg simplices: atom indices of each tetrahedron, shape ``(n, 4)``.
+        :type simplices: :class:`~numpy.ndarray`
+
+        :arg vertices: Voronoi vertex of each tetrahedron, shape ``(n, 3)``.
+        :type vertices: :class:`~numpy.ndarray`
+
+        :arg vdw_radii: van der Waals radius of each atom.
+        :type vdw_radii: :class:`~numpy.ndarray`
+
+        :arg r: probe radius in Angstrom.
+        :type r: float
+
+        :arg rows: optional boolean mask over the tetrahedra. Rows outside it are
+            reported as ``False`` without paying for the distance computation.
+            :meth:`deleteSimplices3d` uses it to restrict the surface pass to the
+            boundary shell.
+        :type rows: :class:`~numpy.ndarray`, optional
+
+        :returns: boolean array of length ``len(simplices)``, ``True`` where the
+            probe fits.
+        :rtype: :class:`~numpy.ndarray`
+        """
+        fits = np.zeros(len(simplices), dtype=bool)
+        if rows is None:
+            rows = slice(None)
+        elif not rows.any():
+            return fits
+
+        atom_coords = points[simplices[rows]]                          # (m, 4, 3)
+        d_sum = np.linalg.norm(
+            atom_coords - vertices[rows][:, None, :], axis=2).sum(axis=1)
+        r_sum = (r + vdw_radii[simplices[rows]]).sum(axis=1)
+        fits[rows] = d_sum >= r_sum
+
+        return fits
+
+    def deleteSimplices3d(self, points, simplices, neighbors, vertices,
                           vdw_radii, r, surface):
+        """Delete the tetrahedra that fail the :meth:`sphereFit` probe test and
+        return the compacted tessellation.
+
+        Which side of the test is deleted depends on the pass. The ``surface``
+        pass erodes from the outside in: a boundary tetrahedron the probe fits
+        into is open to the solvent, hence exterior, and goes. Only tetrahedra on
+        the boundary (those with a ``-1`` neighbour) are reachable from outside,
+        so the test is restricted to that shell (~n^(2/3) rows) instead of being
+        evaluated over every tetrahedron on each erosion iteration, and the
+        caller iterates to convergence. The inner pass instead drops every
+        tetrahedron too tight for the probe, leaving the space it can actually
+        occupy.
+
+        :arg points: coordinates of all atoms, shape ``(n_atoms, 3)``.
+        :type points: :class:`~numpy.ndarray`
+
+        :arg simplices: atom indices of each tetrahedron, shape ``(n, 4)``.
+        :type simplices: :class:`~numpy.ndarray`
+
+        :arg neighbors: index of the tetrahedron opposite each vertex, ``-1`` on
+            the boundary, shape ``(n, 4)``.
+        :type neighbors: :class:`~numpy.ndarray`
+
+        :arg vertices: Voronoi vertex of each tetrahedron, shape ``(n, 3)``.
+        :type vertices: :class:`~numpy.ndarray`
+
+        :arg vdw_radii: van der Waals radius of each atom.
+        :type vdw_radii: :class:`~numpy.ndarray`
+
+        :arg r: probe radius in Angstrom.
+        :type r: float
+
+        :arg surface: ``True`` for one erosion step of the surface pass, ``False``
+            for the inner pass.
+        :type surface: bool
+
+        :returns: the surviving ``(simplices, neighbors, vertices)``, with
+            neighbour indices remapped to the new numbering and deleted
+            neighbours set to ``-1``.
+        :rtype: tuple
+        """
         simplices = np.asarray(simplices)
         neighbors = np.asarray(neighbors)
         vertices = np.asarray(vertices)
@@ -2933,26 +3015,18 @@ class ChannelCalculator:
         if n == 0:
             return simplices, neighbors, vertices
 
-        # Vectorized sphereFit: for each tetrahedron compare the sum of distances
-        # from its Voronoi vertex to its 4 atoms against the sum of (r + vdw_radius)
-        # over those atoms. In the surface pass only boundary tetrahedra (those with
-        # a -1 neighbour) can ever be deleted, so restrict the expensive norm to that
-        # shell (~n^(2/3) rows) instead of evaluating it over every tetrahedron on
-        # each erosion iteration.
         if surface:
+            # Erode: a boundary tetrahedron the probe fits into is open to the
+            # solvent, hence exterior. Only the boundary shell is reachable from
+            # outside, so only it is tested.
             boundary = (neighbors == -1).any(axis=1)
-            should_delete = np.zeros(n, dtype=bool)
-            if boundary.any():
-                atom_coords = points[simplices[boundary]]               # (m, 4, 3)
-                d_sum = np.linalg.norm(
-                    atom_coords - vertices[boundary][:, None, :], axis=2).sum(axis=1)
-                r_sum = (r + vdw_radii[simplices[boundary]]).sum(axis=1)
-                should_delete[boundary] = d_sum >= r_sum
+            should_delete = self.sphereFit(points, simplices, vertices,
+                                           vdw_radii, r, rows=boundary)
         else:
-            atom_coords = points[simplices]                             # (n, 4, 3)
-            d_sum = np.linalg.norm(atom_coords - vertices[:, None, :], axis=2).sum(axis=1)
-            r_sum = (r + vdw_radii[simplices]).sum(axis=1)
-            should_delete = d_sum < r_sum
+            # Carve: drop every tetrahedron too tight for the probe, anywhere,
+            # leaving the space it can actually occupy.
+            should_delete = ~self.sphereFit(points, simplices, vertices,
+                                            vdw_radii, r)
 
         keep = ~should_delete
         simp = simplices[keep]
