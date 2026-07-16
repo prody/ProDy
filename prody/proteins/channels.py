@@ -717,7 +717,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
     diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
     similarity=0.8, route_tolerance=1.0, min_enclosure=0.70, max_peel_depth=None,
-    weighted_cache=True, weighted_mouth_depth=2.5):
+    weighted_cache=True, weighted_mouth_depth=2.5, edge_cost=None):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
 
@@ -730,9 +730,17 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     controls whether each detected channel is saved to a separate file or if all 
     channels are saved in a single file.
 
-    The implementation is inspired by the methods described in the publication:
+    The implementation is inspired by the methods described in the following 
+    publications:
     "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by
      D. Sehnal, et al., published in J Chemoinform, 5 (39) 2013.
+     
+     CAVER: Algorithms for Analyzing Dynamics of Tunnels in Macromolecules. by
+     A. Pavelka, et al., published in IEEE ACM T COMPUT BI, (13) 2016.
+
+    Software Tools for Identification, Visualization and Analysis of Protein 
+    Tunnels and Channels. by J. Brezovsky, et al., Biotechnol Adv (31) 2013.
+
 
     :arg atoms: An object representing the molecular structure, typically 
         containing atomic coordinates and element types.
@@ -973,6 +981,19 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         ``"homogenized"`` result); ``None`` disables the relabeling.
     :type weighted_mouth_depth: float or None
 
+    :arg edge_cost: How each Voronoi edge is priced in the Dijkstra tunnel search.
+        ``"integral"`` prices each edge by the integral of its clearance profile
+        along the edge, which is mesh-invariant. ``"bottleneck"`` uses the legacy
+        ``length / (gate**2 + eps)``, charging the whole edge at its single
+        narrowest point, whose value (and the routing it produces) drifts as
+        ``max_deviation`` coarsens. ``None`` (default) selects ``"integral"`` for
+        ``diagram="homogenized"``/``"simple"`` (straight edges, where the integral
+        is exact) and ``"bottleneck"`` for ``diagram="weighted"``. ``"integral"``
+        is rejected for ``diagram="weighted"`` (Apollonius edges are arcs the
+        straight-chord integral cannot price). The reported bottleneck radius is
+        unaffected by this choice.
+    :type edge_cost: str or None
+
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an 
           object containing informationabout its path and geometry.
@@ -1058,8 +1079,26 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     LOGGER.timeit('_prody_calcChannels')
 
+    # Edge-cost mode for the Dijkstra routing (buildSparseGraph). Default: the
+    # mesh-invariant profile integral for the straight-edged homogenized/simple
+    # diagrams, the legacy l/(d^2+b) for weighted (Apollonius edges are arcs,
+    # where the straight-chord integral is only approximate; weighted is
+    # experimental). An explicit value overrides the per-diagram default.
+    if edge_cost is None:
+        edge_cost = 'bottleneck' if diagram == 'weighted' else 'integral'
+    elif edge_cost not in ('integral', 'bottleneck'):
+        raise ValueError("edge_cost must be 'integral', 'bottleneck' or None, "
+                         "got {0!r}".format(edge_cost))
+    elif edge_cost == 'integral' and diagram == 'weighted':
+        raise ValueError("edge_cost='integral' is only valid for the straight-edge "
+                         "diagrams ('homogenized'/'simple'); the weighted "
+                         "(Apollonius) diagram has arc edges the straight-chord "
+                         "integral cannot price. Use edge_cost='bottleneck' (the "
+                         "default for diagram='weighted') or None.")
+
     calculator = ChannelCalculator(atoms, r2=r2, sparsity=sparsity,
-                                   route_tolerance=route_tolerance)
+                                   route_tolerance=route_tolerance,
+                                   edge_cost=edge_cost)
 
     elements = np.char.upper(np.asarray(atoms.getElements(), dtype=str))
     has_hydrogens = bool(np.any(elements == 'H'))
@@ -2850,7 +2889,8 @@ def _rowsIsin(a, b):
 
 
 class ChannelCalculator:
-    def __init__(self, atoms, r2=0.9, sparsity=1, route_tolerance=1.0):
+    def __init__(self, atoms, r2=0.9, sparsity=1, route_tolerance=1.0,
+                 edge_cost='integral'):
         # Only the parameters the class actually consults are held here. r1,
         # min_depth and bottleneck are stages of the pipeline, applied to the
         # tessellation and to the finished channels by calcChannels; keeping copies
@@ -2860,6 +2900,10 @@ class ChannelCalculator:
         self.r2 = r2
         self.sparsity = sparsity
         self.route_tolerance = route_tolerance
+        # 'integral' (clearance-profile integral) or 'bottleneck' (l/(d^2+b));
+        # the Dijkstra edge weight in buildSparseGraph. Resolved per diagram by
+        # calcChannels (weighted defaults to 'bottleneck').
+        self.edge_cost = edge_cost
         # Filled once by buildSparseGraph and read by the channel geometry:
         # the per-simplex Voronoi-vertex clearance (the spline knots) and the
         # per-edge gate clearance on each shared Delaunay face (the reported
@@ -3539,6 +3583,10 @@ class ChannelCalculator:
         # atom indices of the shared Delaunay face. Same closed-form clamped
         # point-to-segment as the scalar version, with the twin-tetrahedron
         # (coincident circumcenter) guard applied row-wise. See _edgeBottleneck.
+        # Returns ``(gate, tstar)``: the min clearance and the parameter t in
+        # [0, 1] where it is attained (the binding atom's clamped foot), the
+        # latter used by _edgeCostIntegralBatch to force a quadrature node on
+        # the pinch.
         a = points[shared_atoms]                          # (F, 3, 3)
         r = vdw_radii[shared_atoms]                       # (F, 3)
         u = cj - ci                                       # (F, 3)
@@ -3549,13 +3597,66 @@ class ChannelCalculator:
         t = np.clip(np.einsum('faj,fj->fa', diff, u) / uu_safe[:, None],
                     0.0, 1.0)                             # (F, 3)
         p = ci[:, None, :] + t[:, :, None] * u[:, None, :]
-        gate = (np.linalg.norm(p - a, axis=2) - r).min(axis=1)
+        clr = np.linalg.norm(p - a, axis=2) - r          # (F, 3)
+        amin = clr.argmin(axis=1)
+        rows = np.arange(len(u))
+        gate = clr[rows, amin]
+        tstar = t[rows, amin]
         if twin.any():
             # coincident circumcenters: the edge is a point, so the gate is the
-            # shared vertex clearance measured at ci (== cj).
+            # shared vertex clearance measured at ci (== cj) and tstar is moot.
             twin_gate = (np.linalg.norm(diff, axis=2) - r).min(axis=1)
             gate = np.where(twin, twin_gate, gate)
-        return gate
+            tstar = np.where(twin, 0.0, tstar)
+        return gate, tstar
+
+    def _edgeCostIntegralBatch(self, ci, cj, tstar, shared_atoms, points,
+                               vdw_radii, z=2.0, delta=0.3, r_floor=1e-2):
+        # Price the edge by the integral of its clearance profile r(t)^-z, not by
+        # the whole length charged at its single narrowest point (the l/gate^2 MOLE
+        # cost). This profile-integral idea follows CAVER (TCBB'15, Eq. 1), but this
+        # is NOT a CAVER reimplementation - the quadrature deliberately differs (see
+        # below). r(t) = min over the 3 shared-face balls of |ci + t (cj-ci) - a| -
+        # vdw is the exact clearance profile of the straight (homogenized/simple)
+        # edge. The integral is additive under subdivision, so unlike l/gate^2 the
+        # cost is mesh-invariant; the vertex-only formula's error grows with edge
+        # length (measured ~19% -> ~1500% p95 across length bins) and drifts the
+        # routing as max_deviation coarsens.
+        #
+        # The quadrature differs from CAVER's: where CAVER samples a plain uniform
+        # grid (and takes its grid-minimum as the bottleneck), we take the uniform
+        # grid linspace(0, 1, K) AND force a node at the exact analytic gate t*, so
+        # the narrowest point is never missed - and the reported edge bottleneck is
+        # that exact gate (see _edgeBottleneckBatch), not a grid sample. K =
+        # ceil(L/delta) is a fixed ARCLENGTH step in Angstrom, so the sample count
+        # scales with physical length (what makes it mesh-invariant). A short edge
+        # (L <= delta) collapses to {0, t*, 1}, the three clearances already in
+        # hand. r(t) is floored at r_floor so the integrand cannot diverge on a
+        # sub-r2 edge that dips through an atom (the integral's analog of the
+        # l/(d^2+b) regularizer); traversable edges have r(t) >= r2 >> r_floor and
+        # are untouched. Exact for straight edges; a chord approximation for the
+        # weighted (Apollonius) diagram, whose edges are arcs.
+        chunk = 20000
+        u = cj - ci
+        L = np.linalg.norm(u, axis=1)
+        cost = np.zeros(len(ci))
+        alive = np.nonzero(L > 1e-6)[0]                   # twin/zero-length -> 0
+        K = np.maximum(2, np.ceil(L / delta).astype(int) + 1)
+        for k in np.unique(K[alive]):
+            bucket = alive[K[alive] == k]
+            grid = np.linspace(0.0, 1.0, k)
+            for s in range(0, len(bucket), chunk):
+                ii = bucket[s:s + chunk]
+                nodes = np.sort(np.concatenate(
+                    [np.broadcast_to(grid, (len(ii), k)), tstar[ii, None]],
+                    axis=1), axis=1)                      # (n, k+1)
+                p = ci[ii][:, None, :] + nodes[:, :, None] * u[ii][:, None, :]
+                a = points[shared_atoms[ii]]              # (n, 3, 3)
+                rr = np.linalg.norm(p[:, :, None, :] - a[:, None, :, :], axis=3) \
+                    - vdw_radii[shared_atoms[ii]][:, None, :]
+                rr = np.maximum(rr.min(axis=2), r_floor)  # (n, k+1) profile
+                cost[ii] = np.trapz(rr ** (-z), nodes, axis=1) * L[ii]
+        return cost
 
     def buildSparseGraph(self, simplices, neighbors, vertices, points, vdw_radii):
         # One weighted CSR adjacency matrix for the whole cleared state, built
@@ -3569,6 +3670,11 @@ class ChannelCalculator:
         # narrower at a face it never measures. Because the gate is symmetric,
         # the cost no longer depends on traversal direction the way the
         # entered-node vertex clearance did.
+        #
+        # Two edge-cost modes (self.edge_cost): 'bottleneck' is the l/(d**2 + b)
+        # above (d = gate); 'integral' replaces it on face edges with a clearance-
+        # profile integral (_edgeCostIntegralBatch), which is mesh-invariant.
+        # Either way the gate is still cached as the reported edge bottleneck.
         from scipy.sparse import csr_matrix
 
         simplices = np.asarray(simplices)
@@ -3607,15 +3713,32 @@ class ChannelCalculator:
         # Rare non-face links fall back to the entered node's vertex clearance;
         # face links (essentially all of them) overwrite it with the gate.
         d = bottleneck[cols].astype(float, copy=True)
+        fi = tstar = shared = None
         if face.any():
             fi = np.nonzero(face)[0]
             shared = slo[fi][present[fi]].reshape(-1, 3)
-            d[fi] = self._edgeBottleneckBatch(vertices[lo[fi]], vertices[hi[fi]],
-                                              shared, points, vdw_radii)
+            d[fi], tstar = self._edgeBottleneckBatch(vertices[lo[fi]],
+                                                     vertices[hi[fi]], shared,
+                                                     points, vdw_radii)
 
         l = np.linalg.norm(vertices[rows] - vertices[cols], axis=1)
         b = 1e-3
-        weight = l / (d * d + b)
+        weight = l / (d * d + b)          # 'bottleneck' cost; non-face fallback
+        if self.edge_cost == 'integral' and fi is not None:
+            # 'integral' cost: replace the l/(d^2+b) of every face edge (the
+            # bottleneck-only MOLE cost) with the clearance-profile integral. The
+            # l/(d^2+b) fallback stays on the rare non-face links.
+            #
+            # No R/L flatness guard is needed here (unlike buildSurfaceDepthOracle,
+            # which runs on the full diagram): this graph is the *cleared interior*
+            # state, and a runaway circumcenter means a huge clearance, so the r1
+            # erosion has already stripped every flat boundary tetra - measured 0
+            # degenerate tetra and max edge ~4 A in the cleared graph. That matters
+            # because l/(d^2+b) *over*-prices a runaway edge (huge l) so the search
+            # avoids it for free, whereas the integral would *under*-price it (r(t)
+            # is huge over most of a runaway edge, so r(t)^-z ~ 0 there).
+            weight[fi] = self._edgeCostIntegralBatch(
+                vertices[lo[fi]], vertices[hi[fi]], tstar, shared, points, vdw_radii)
 
         # Per-edge gate cache (unordered key) read by _pathGates: each face edge
         # stored once, keyed (lo, hi). The reported bottleneck reads the same map.
