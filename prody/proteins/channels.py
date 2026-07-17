@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""This module is called CaviFinder and defines functions for calculating 
-channels, tunnels and pores within protein structure.
+"""This module is called CaviTracer and defines functions for calculating 
+channels, tunnels, and pores within protein structure.
 """
 
-__author__ = 'Karolina Mikulska-Ruminska', 'Eryk Trzcinski'
-__credits__ = ['Karolina Mikulska-Ruminska', 'Eryk Trzcinski']
+__author__ = 'Karolina Mikulska-Ruminska', 'Jan Brezovsky', 'Eryk Trzcinski'
+__credits__ = ['Karolina Mikulska-Ruminska', 'Jan Brezovsky', 'Eryk Trzcinski']
 __email__ = ['karolamik@fizyka.umk.pl']
 
 import logging
