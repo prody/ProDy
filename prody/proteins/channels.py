@@ -48,6 +48,7 @@ ENCLOSURE_STEP = 0.75
 # tree and a plain nearest-neighbour test.
 ENCLOSURE_RADIUS = 1.7
 
+_OVERLAP_OFFSET_CACHE = {}
 
 @contextmanager
 def _warningsDelivered():
@@ -113,6 +114,50 @@ def checkAndImport(package_name):
             return False
     
     return True
+
+
+def _getOverlapSphereOffsets(radius, resolution):
+    """Return integer voxel offsets inside a sphere of a given radius."""
+
+    key = (round(float(radius), 3), float(resolution))
+
+    if key in _OVERLAP_OFFSET_CACHE:
+        return _OVERLAP_OFFSET_CACHE[key]
+
+    n = int(np.ceil(radius / resolution))
+    grid = np.arange(-n, n + 1, dtype=int)
+
+    dx, dy, dz = np.meshgrid(grid, grid, grid, indexing='ij')
+    offsets = np.vstack((dx.ravel(), dy.ravel(), dz.ravel())).T
+    xyz = offsets.astype(float) * resolution
+    mask = np.sum(xyz * xyz, axis=1) <= radius * radius
+    offsets = offsets[mask]
+    _OVERLAP_OFFSET_CACHE[key] = offsets
+
+    return offsets
+
+
+def _surfaceFromPqrWorker(args):
+    """Create voxelized FIL surface for one PQR file."""
+
+    pqr_file, resolution = args
+    atoms = parsePQR(pqr_file)
+    fil = atoms.select('resname FIL')
+
+    if fil is None:
+        return set()
+
+    coords = fil.getCoords()
+    radii = fil.getRadii()
+    surface = set()
+
+    for center, radius in zip(coords, radii):
+        center_idx = np.rint(center / resolution).astype(int)
+        offsets = _getOverlapSphereOffsets(float(radius), resolution)
+        voxels = offsets + center_idx
+        surface.update(map(tuple, voxels))
+
+    return surface
 
 
 def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
@@ -2539,6 +2584,11 @@ def calcChannelSurfaceOverlaps(**kwargs):
     :arg resolution: Surface sampling resolution.
         default is 0.5
     :type resolution: float
+    
+    :arg max_proc: Maximum number of parallel processes used to voxelize individual
+        PQR files. If 1, files are processed serially. If None, all available CPU
+        cores are used. Default is 2.
+    :type max_proc: int or None
 
     :arg output_file_name: The name of the PDB file with overlapping surfaces.
     :type output_file_name: str
@@ -2563,8 +2613,11 @@ def calcChannelSurfaceOverlaps(**kwargs):
     """
     
     import os
+    import multiprocessing
+    from collections import Counter
 
     resolution = kwargs.pop('resolution', 0.5)
+    max_proc = kwargs.pop('max_proc', 2)
      
     pqr_files = kwargs.pop('pqr_files', False)
     if pqr_files == False or pqr_files is None:
@@ -2572,7 +2625,8 @@ def calcChannelSurfaceOverlaps(**kwargs):
         pqr_files = [file for file in os.listdir('.') if file.endswith('.pqr')]
     elif isinstance(pqr_files, str):
         # folder path
-        pqr_files = [file for file in os.listdir(pqr_files) if file.endswith('.pqr')]
+        if os.path.isdir(pqr_files):
+            pqr_files = [os.path.join(pqr_files, file) for file in os.listdir(pqr_files) if file.endswith('.pqr')]
     elif isinstance(pqr_files, list):
         # list of PQRs
         pqr_files = [file for file in pqr_files if file.endswith('.pqr')]
@@ -2580,71 +2634,64 @@ def calcChannelSurfaceOverlaps(**kwargs):
         raise ValueError('Please provide list with PQR files, folder path, or nothing to analyze PQRs in the current folder')
 
     output_file_name = kwargs.pop('output_file_name','overlap_regions.pdb')
-    if os.path.exists(output_file_name):
-        os.rename(output_file_name, output_file_name+'-old')
-
-    def loadPDBdata(filepath):
-        """Parse a PQR file and return a list of atom dictionaries for lines containing 'FIL'."""
-        atoms_set = []
-        FILatoms = parsePQR(filepath).select('resname FIL')
-        
-        if FILatoms == None:
-            pass
-        else:
-            for nr_i, i in enumerate(FILatoms):
-                FILatoms_coords = FILatoms.getCoords()[nr_i]
-                FILBetas_value = FILatoms.getRadii()[nr_i]
-                atoms_set.append({
-                    'x': float(FILatoms_coords[0]),
-                    'y': float(FILatoms_coords[1]),
-                    'z': float(FILatoms_coords[2]),
-                    'radius': float(FILBetas_value)
-                })
-        return atoms_set
-
-    def create_surface(atoms, resolution=resolution):
-        """Create a 3D grid representing the surface occupied by the atoms."""
-        surface = {}
-        Zr = 0
-        for atom in atoms:
-            x, y, z, radius = atom['x'], atom['y'], atom['z'], atom['radius']
-            for i in np.arange(x - radius, x + radius, resolution):
-                for j in np.arange(y - radius, y + radius, resolution):
-                    for k in np.arange(z - radius, z + radius, resolution):
-                        if (i - x) ** 2 + (j - y) ** 2 + (k - z) ** 2 <= radius ** 2:
-                            key = (round(i, Zr), round(j, Zr), round(k, Zr))
-                            surface[key] = surface.get(key, 0) + 1
-        return surface
-
-    def merge_surfaces(surfaces):
-        """Merge multiple surfaces and calculate overlap counts."""
-        merged_surface = {}
-        for surface in surfaces:
-            for key in surface:
-                merged_surface[key] = merged_surface.get(key, 0) + 1
-        return merged_surface
-
-    def write_merge_surf_pdb(merged_surface, filename, nr_pdbs):
-        """Write the merged surface into a PDB file."""
-        with open(filename, 'w') as file:
-            atom_id = 1
-            for (x, y, z), count in merged_surface.items():
-                norm_count = count/nr_pdbs
-                file.write("ATOM  {:5d}  H   FIL T   1    {:8.3f}{:8.3f}{:8.3f}{:6.2f}  1.00\n".format(atom_id, x, y, z, norm_count))
-                atom_id += 1
-
-    surfaces = []
-    for nr_pdbs,pqr_file in enumerate(pqr_files):
-        LOGGER.info("Processing file: {0}".format(pqr_file))
-        atoms = loadPDBdata(pqr_file)
-        if atoms:
-            surface = create_surface(atoms, resolution=resolution)
-            surfaces.append(surface)
     
-    nr_pdbs = nr_pdbs+1
-    merged_surface = merge_surfaces(surfaces)
-    write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
+    if len(pqr_files) == 0:
+        LOGGER.info("No PQR files found.")
+        return None
 
+    if os.path.exists(output_file_name):
+        os.rename(output_file_name, output_file_name + '-old')
+
+    if max_proc is None:
+        max_proc = multiprocessing.cpu_count()
+
+    max_proc = int(max_proc)
+    if max_proc < 1:
+        max_proc = 1
+
+    max_proc = min(max_proc, len(pqr_files))
+
+    LOGGER.info("Number of PQR files: {0}".format(len(pqr_files)))
+    LOGGER.info("Resolution: {0}".format(resolution))
+    LOGGER.info("max_proc: {0}".format(max_proc))
+
+    merged_surface = Counter()
+    tasks = [(pqr_file, resolution) for pqr_file in pqr_files]
+
+    if max_proc > 1:
+        LOGGER.info("Calculating overlaps using {0} processes.".format(max_proc))
+        chunksize = max(1, len(tasks) // (max_proc * 4))
+        with multiprocessing.Pool(processes=max_proc) as pool:
+            for surface in pool.imap_unordered(_surfaceFromPqrWorker, tasks,
+                                               chunksize=chunksize):
+                merged_surface.update(surface)
+
+    else:
+        for pqr_file in pqr_files:
+            LOGGER.info("Processing file: {0}".format(pqr_file))
+            surface = _surfaceFromPqrWorker((pqr_file, resolution))
+            merged_surface.update(surface)
+
+    with open(output_file_name, 'w') as out:
+        atom_id = 1
+
+        for (ix, iy, iz), count in merged_surface.items():
+            x = ix * resolution
+            y = iy * resolution
+            z = iz * resolution
+
+            norm_count = float(count) / float(len(pqr_files))
+
+            out.write("ATOM  {:5d}  H   FIL T   1    {:8.3f}{:8.3f}{:8.3f}{:6.2f}  1.00\n"
+                .format(atom_id, x, y, z, norm_count))
+
+            atom_id += 1
+
+    LOGGER.info("Overlap written to: {0}".format(output_file_name))
+    LOGGER.info("Number of occupied overlap voxels: {0}".format(len(merged_surface)))
+
+    return output_file_name
+    
 
 def calcSurfaceCavityOverlaps(**kwargs):
     """Calculate overlapping regions of surface cavities represented as FIL atoms.
