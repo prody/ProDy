@@ -2604,6 +2604,12 @@ def calcChannelSurfaceOverlaps(**kwargs):
     calcChannelSurfaceOverlaps() - all the files in the current directory will 
     be analyzed
     
+    from pathlib import Path
+    pqr_files = [str(f) for f in Path(".").glob("channels_*.pqr")]
+    calcChannelSurfaceOverlaps(pqr_files=pqr_files, output_file_name='results.pdb', max_proc=4)
+    - files with the "channels_" prefix will be selected from the current folder and analyzed using 
+    four parallel processes.
+    
     calcChannelSurfaceOverlaps(pqr_files='./DATA', output_file_name='results.pdb') - only files from 
     the DATA folder will be analyzed and results will be saved as results.pdb
     
@@ -2705,6 +2711,11 @@ def calcSurfaceCavityOverlaps(**kwargs):
 
     :arg resolution: surface sampling resolution. Default is 0.5.
     :type resolution: float
+    
+    :arg max_proc: Maximum number of parallel processes used to voxelize individual
+        PQR files. If 1, files are processed serially. If None, all available CPU
+        cores are used. Default is 2.
+    :type max_proc: int or None
 
     :arg output_file_name: name of the output PDB file with overlapping cavity
         regions. Default is ``'surface_cavity_overlap_regions.pdb'``.
