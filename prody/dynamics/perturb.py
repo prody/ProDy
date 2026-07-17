@@ -45,10 +45,25 @@ def calcPerturbResponse(model, **kwargs):
         ATPase subdomain IA is a mediator of interdomain allostery in Hsp70
         molecular chaperones. *PLoS Comput. Biol.* **2014** 10:e1003624.
 
-    If *turbo* is **True** (default), then PRS is approximated by the limit of 
-    large numbers of forces and no perturbation forces are explicitly applied. 
-    If set to **False**, then each residue/node is perturbed *repeats* times (default 100) 
+    If *turbo* is **True** (default), then PRS is approximated by the limit of
+    large numbers of forces and no perturbation forces are explicitly applied.
+    If set to **False**, then each residue/node is perturbed *repeats* times (default 100)
     with a random unit force vector as in ProDy v1.8 and earlier.
+
+    If *return_vectors* is **True**, the full directional responses are kept
+    instead of being squared and averaged into magnitudes. The response
+    displacement vectors ``cov . f`` are returned as a :class:`.ModeEnsemble`
+    with one modeset per perturbed node, each holding the *repeats* response
+    vectors to the same random unit forces used when *turbo* is **False**, with
+    eigenvalues set to the squared response magnitudes. A specific direction (or
+    set of directions) may be supplied via *force* (a 3-vector or an ``(m, 3)``
+    array) to override the random forces; *perturb_node* (an index or list of
+    indices) restricts the scan to selected nodes. The resulting ensemble plugs
+    into the SignDy tools (:func:`.calcOverlap`, :meth:`.ModeEnsemble.match`,
+    :func:`.saveModeEnsemble`), so each response can be overlapped with a target
+    conformational change (e.g. from :func:`.calcDeformVector`) to find which
+    perturbations trigger a given transition and map a functional cycle. Requires
+    a 3d *model* (ANM or PCA); GNM responses have no direction.
     """
 
     if not isinstance(model, (NMA, ModeSet, Mode)):
@@ -75,6 +90,60 @@ def calcPerturbResponse(model, **kwargs):
     # LOGGER.timeit('_prody_cov')
 
     cov = model.getCovariance()
+
+    return_vectors = kwargs.get('return_vectors', False)
+    if return_vectors:
+        # Directional PRS: keep the response displacement vectors cov.f rather
+        # than squaring/averaging them into magnitudes, so their direction can be
+        # overlapped with a target conformational change. Returns a ModeEnsemble
+        # (one modeset per perturbed node, one "mode" per force).
+        from .signature import ModeEnsemble
+
+        if not model.is3d():
+            raise ValueError('return_vectors=True requires a 3d model (ANM or '
+                             'PCA); GNM responses have no direction')
+
+        repeats = kwargs.pop('repeats', 100)
+        force = kwargs.get('force', None)
+        perturb_node = kwargs.get('perturb_node', None)
+
+        if perturb_node is None:
+            nodes = list(range(n_atoms))
+        elif np.isscalar(perturb_node):
+            nodes = [int(perturb_node)]
+        else:
+            nodes = [int(n) for n in perturb_node]
+
+        if force is not None:
+            forces = np.atleast_2d(np.asarray(force, dtype=float))
+            if forces.shape[1] != 3:
+                raise ValueError('force must be a 3-vector or an (m, 3) array')
+
+        resnums = atoms.getResnums() if atoms is not None else None
+        ens = ModeEnsemble('{0} PRS response'.format(model.getTitle()))
+
+        LOGGER.progress('Calculating directional perturbation response',
+                        len(nodes), '_prody_prs_vec')
+        for k, i in enumerate(nodes):
+            i3 = i * 3
+            if force is None:
+                f = np.random.rand(repeats * 3).reshape((repeats, 3))
+                f /= ((f**2).sum(1)**0.5).reshape((repeats, 1))
+            else:
+                f = forces
+            # response vectors cov.f, shape (3*n_atoms, n_forces)
+            resp = np.dot(cov[:, i3:i3 + 3], f.T)
+            vals = (resp**2).sum(0)  # squared response magnitude per force
+            label = 'perturb_{0}'.format(i if resnums is None else resnums[i])
+            nma_i = NMA(label)
+            nma_i.setEigens(resp, vals)
+            ens.addModeSet(nma_i, label=label)
+            LOGGER.update(k, label='_prody_prs_vec')
+        LOGGER.clear()
+
+        if atoms is not None:
+            ens.setAtoms(atoms)
+        return ens
 
     turbo = kwargs.get('turbo', True)
     if turbo:
