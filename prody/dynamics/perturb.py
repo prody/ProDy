@@ -51,11 +51,13 @@ def calcPerturbResponse(model, **kwargs):
     with a random unit force vector as in ProDy v1.8 and earlier.
 
     If *return_vectors* is **True**, the full directional responses are kept
-    instead of being squared and averaged into magnitudes. The response
-    displacement vectors ``cov . f`` are returned as a :class:`.ModeEnsemble`
-    with one modeset per perturbed node, each holding the *repeats* response
-    vectors to the same random unit forces used when *turbo* is **False**, with
-    eigenvalues set to the squared response magnitudes. A specific direction (or
+    instead of being squared and averaged into magnitudes. This overrides
+    *turbo*: explicit perturbing forces are always applied (as when *turbo* is
+    **False**), so the *turbo* setting is ignored. The response displacement
+    vectors ``cov . f`` are returned as a :class:`.ModeEnsemble` with one modeset
+    per perturbed node, each holding the *repeats* response vectors to random
+    unit forces, with eigenvalues set to the squared response magnitudes. A
+    specific direction (or
     set of directions) may be supplied via *force* (a 3-vector or an ``(m, 3)``
     array) to override the random forces; *perturb_node* (an index or list of
     indices) restricts the scan to selected nodes. The resulting ensemble plugs
