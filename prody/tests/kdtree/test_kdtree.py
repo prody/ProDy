@@ -1,6 +1,6 @@
 """This module contains unit tests for :mod:`~prody.KDTree` module."""
 
-from numpy import tile, array, arange, ones
+from numpy import tile, array, arange, ones, dtype
 from numpy.testing import assert_allclose
 
 from prody.tests import unittest
@@ -39,6 +39,22 @@ class TestKDTree(unittest.TestCase):
             assert_allclose(((x - y)**2).sum()**0.5, radius,
                             rtol=RTOL, atol=ATOL,
                             err_msg='KDTree all search failed')
+
+    def testIndicesDtype(self):
+        """Test that getIndices returns array with C long dtype to avoid
+        integer type mismatch on Windows (GitHub issue #2173)."""
+
+        kdtree = self.kdtree
+        # Point search
+        kdtree.search(10000, array([0, 0, 0]))
+        indices = kdtree.getIndices()
+        self.assertEqual(indices.dtype, dtype('l'),
+                         'KDTree point search indices dtype mismatch')
+        # Pair search
+        kdtree.search(1.75)
+        indices = kdtree.getIndices()
+        self.assertEqual(indices.dtype, dtype('l'),
+                         'KDTree pair search indices dtype mismatch')
 
 
 COORDS = array([[-1., -1., 0.],

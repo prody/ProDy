@@ -300,7 +300,7 @@ def get_KDTree_indices(kdtree):
     except:
         n = kdtree.get_count()
         if n:
-            indices = empty(n, int)
+            indices = empty(n, 'l')
             kdtree.get_indices(indices)
     return indices
 
