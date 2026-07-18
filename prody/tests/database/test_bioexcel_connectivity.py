@@ -2,9 +2,15 @@ import pytest
 import os
 from prody import fetchBioexcelPDB
 
-BIOEXCEL_TESTS = bool(os.environ.get('PRODY_BIOEXCEL_TESTS', False))
+def is_server_up():
+    try:
+        # Quick 3-second check to see if the API base is responding
+        response = requests.head("https://bioexcel-cv19.bsc.es/api/rest/v1/", timeout=3)
+        return response.status_code == 200
+    except:
+        return False
 
-@pytest.mark.skipif(not BIOEXCEL_TESTS, reason="Set PRODY_BIOEXCEL_TESTS=1 to enable BioExcel tests")
+@pytest.mark.skipif(not is_server_up(), reason="BioExcel server is unreachable")
 def test_fetchBioexcelPDB_connectivity(tmpdir):
     """
     Test connectivity to BioExcel-CV19 / MDDB API.
