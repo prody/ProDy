@@ -30,7 +30,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'calcSurfaceCavityOverlaps',
            'getSurfaceCavityResidueNamesMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
-           'getChannelParametersMultipleFrames',
+           'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
            'getChannelResidueNamesMultipleFrames']
 
 # Sampling of the enclosure test used to strip the moat (see
@@ -158,6 +158,63 @@ def _surfaceFromPqrWorker(args):
         surface.update(map(tuple, voxels))
 
     return surface
+
+
+def _reportAtomsInputComposition(atoms):
+    """Report the composition of atoms supplied for channel analysis.
+
+    This function checks whether the input atomic structure contains only
+    protein atoms or also includes water, non-water HETATM records, or other
+    non-protein components. If non-protein atoms are present, a warning is
+    issued indicating that all supplied atoms will be included in the channel
+    calculation.
+
+    The function does not modify or filter the input structure. To analyze only
+    the protein, the user should provide an appropriate ProDy selection, for
+    example ``atoms.select('protein')``. """
+    
+    if not isinstance(atoms, Atomic):
+        raise TypeError(
+            "atoms must be a ProDy Atomic object, such as an AtomGroup "
+            "or Selection")
+
+    protein = atoms.select('protein')
+    water = atoms.select('water')
+    hetero = atoms.select('hetero and not water')
+    other = atoms.select('not protein and not hetero')
+    nonprotein = atoms.select('not protein')
+
+    if nonprotein is None:
+        LOGGER.info("The atoms supplied to calcChannels contain protein atoms only.")
+        return
+
+    components = []
+
+    if water is not None:
+        components.append(
+            "water: {0} atoms in {1} residues".format(
+                water.numAtoms(),
+                len(np.unique(water.getResindices()))))
+
+    if hetero is not None:
+        components.append(
+            "non-water hetero components: {0} atoms "
+            "(resnames: {1})".format(
+                hetero.numAtoms(),
+                ", ".join(sorted(np.unique(hetero.getResnames())))))
+
+    if other is not None:
+        components.append(
+            "other non-protein components: {0} atoms "
+            "(resnames: {1})".format(
+                other.numAtoms(),
+                ", ".join(sorted(np.unique(other.getResnames())))))
+
+    _warn("The atoms supplied to calcChannels() contain non-protein components: "
+        "{0}. All supplied atoms except waters will be used for channel analysis. "
+        "To analyze only the protein structure, provide an appropriate "
+        "selection, for example atoms.select('protein').".format(
+            "; ".join(components)))
 
 
 def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
@@ -1142,7 +1199,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                          "(Apollonius) diagram has arc edges the straight-chord "
                          "integral cannot price. Use edge_cost='bottleneck' (the "
                          "default for diagram='weighted') or None.")
-
+    
+    _reportAtomsInputComposition(atoms)
+    atoms = atoms.select('not water') # water is excluded from the selection
     calculator = ChannelCalculator(atoms, r2=r2, sparsity=sparsity,
                                    route_tolerance=route_tolerance,
                                    edge_cost=edge_cost)
