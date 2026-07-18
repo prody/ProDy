@@ -147,5 +147,123 @@ class TestParsePDBHeaderMissingAtoms(unittest.TestCase):
         self.header = None
 
 
+
+
+class TestParsePDBHeaderModresNcAA(unittest.TestCase):
+    """Test that MODRES records are used to correctly convert non-canonical AA
+    (ncAA) three-letter codes to canonical one-letter codes in polymer sequences.
+    The test PDB contains a residue 'XAA' which is not in the global
+    mod_res_map.dat but is mapped to 'MET' via a MODRES record."""
+
+    def setUp(self):
+        self.polymers = parsePDBHeader(
+            pathDatafile('pdb_modres_ncaa.pdb'), 'polymers')
+        self.polymers_long = parsePDBHeader(
+            pathDatafile('pdb_modres_ncaa.pdb'), 'polymers', longSeq=True)
+
+    def testPolymerPresent(self):
+        self.assertEqual(len(self.polymers), 1,
+            'expected exactly one polymer chain')
+
+    def testOneLetterSequenceNcAA(self):
+        """ncAA 'XAA' should be mapped to 'M' (MET) via MODRES, not 'X'."""
+        seq = self.polymers[0].sequence
+        self.assertEqual(seq, 'AMGSM',
+            'one-letter sequence does not correctly map ncAA via MODRES; '
+            'got {0!r}, expected "AMGSM"'.format(seq))
+
+    def testLongSequencePreservesNcAA(self):
+        """Three-letter (long) sequence should preserve the ncAA name."""
+        seq = self.polymers_long[0].sequence
+        self.assertIn('XAA', seq,
+            'long sequence should contain the original ncAA name "XAA"')
+
+    def testModifiedResidues(self):
+        """MODRES record should be stored in poly.modified."""
+        modified = self.polymers[0].modified
+        self.assertIsNotNone(modified,
+            'poly.modified should not be None when MODRES records are present')
+        resnames = [m[0] for m in modified]
+        self.assertIn('XAA', resnames,
+            '"XAA" should appear in poly.modified residue names')
+
+    def tearDown(self):
+        self.polymers = None
+        self.polymers_long = None
+
+
+class TestParsePDBHeaderSEPModres(unittest.TestCase):
+    """Test that SEP (phosphoserine) is correctly converted to S (SER) via
+    MODRES records, reproducing the 5FC2 scenario reported in GitHub issue
+    comments: chain A has SEP at position 4 mapped to SER, and a ligand
+    6L3 that should fall back to 'X'."""
+
+    def setUp(self):
+        self.polymers = parsePDBHeader(
+            pathDatafile('sep_modres'), 'polymers')
+        self.polymers_long = parsePDBHeader(
+            pathDatafile('sep_modres'), 'polymers', longSeq=True)
+
+    def testPolymerPresent(self):
+        self.assertEqual(len(self.polymers), 1,
+            'expected exactly one polymer chain')
+
+    def testOneLetterSequenceSEP(self):
+        """SEP should map to S (SER) and ligand 6L3 should fall back to X."""
+        seq = self.polymers[0].sequence
+        self.assertEqual(seq, 'DKSIEVGRX',
+            'one-letter sequence incorrect; got {0!r}, expected "DKSIEVGRX"'
+            .format(seq))
+
+    def testLongSequenceContainsSEP(self):
+        """Three-letter sequence should preserve the SEP residue name."""
+        seq = self.polymers_long[0].sequence
+        self.assertIn('SEP', seq,
+            'long sequence should contain "SEP" residue name')
+
+    def testModifiedResidues(self):
+        """MODRES record for SEP should be stored in poly.modified."""
+        modified = self.polymers[0].modified
+        self.assertIsNotNone(modified,
+            'poly.modified should not be None when MODRES records are present')
+        resnames = [m[0] for m in modified]
+        self.assertIn('SEP', resnames,
+            '"SEP" should appear in poly.modified residue names')
+
+    def tearDown(self):
+        self.polymers = None
+        self.polymers_long = None
+
+
+class TestThreeLetterSequenceKwarg(unittest.TestCase):
+
+    def setUp(self):
+        self.pdb = pathDatafile('1ubi')
+        self.polymers = parsePDBHeader(self.pdb, 'polymers')
+        self.polymers_long = parsePDBHeader(self.pdb, 'polymers', longSeq=True)
+        self.polymers_three = parsePDBHeader(self.pdb, 'polymers', threeLetter=True)
+        self.ag = parsePDB(self.pdb)
+
+    def testParsePDBHeaderThreeLetterAlias(self):
+        self.assertEqual(self.polymers_three[0].sequence,
+            self.polymers_long[0].sequence)
+
+    def testChainGetSequenceThreeLetterAlias(self):
+        chain = self.ag.protein['A']
+        self.assertEqual(chain.getSequence(), self.polymers[0].sequence)
+        self.assertEqual(chain.getSequence(threeLetter=True),
+            chain.getSequence(longSeq=True))
+
+    def testAtomicGetSequenceThreeLetterAlias(self):
+        self.assertEqual(self.ag.ca.getSequence(threeLetter=True),
+            self.ag.ca.getSequence(longSeq=True))
+
+    def tearDown(self):
+        self.polymers = None
+        self.polymers_long = None
+        self.polymers_three = None
+        self.ag = None
+
+
 if __name__ == '__main__':
     unittest.main()

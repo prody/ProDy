@@ -10,17 +10,12 @@ __email__ = ['karolamik@fizyka.umk.pl']
 
 import numpy as np
 from numpy import *
-from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
-from prody.atomic import flags, sliceAtomicData
-from prody.utilities import importLA, checkCoords, showFigure, getCoords, isListLike
-from prody.measure import calcDistance, calcAngle, calcCenter
-from prody.measure.contacts import findNeighbors
+from prody import LOGGER, PY3K
+from prody.atomic import Atomic
+from prody.utilities import checkCoords, getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
-from collections import Counter
-
-from prody.trajectory import TrajBase, Trajectory, Frame
 from prody.ensemble import Ensemble
+from prody.measure import calcCenter
 
 import multiprocessing
 from .fixer import *
@@ -30,9 +25,13 @@ from prody.measure import calcTransformation, calcDistance, calcRMSD, superpose
 
 __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames', 
            'getChannelParameters', 'getChannelAtoms', 'showChannels', 'showCavities',
-           'selectChannelBySelection', 'getChannelResidueNames',
-           'calcChannelSurfaceOverlaps']
-
+           'showSurfaceCavities', 'selectChannelBySelection', 'getChannelResidueNames',
+           'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 
+           'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters',
+           'getSurfaceCavityResidueNames', 'selectSurfaceCavityBySelection',
+           'calcSurfaceCavityOverlaps','getSurfaceCavityResidueNamesMultipleFrames',
+           'getSurfaceCavityParametersMultipleFrames', 'getChannelParametersMultipleFrames',
+           'getChannelResidueNamesMultipleFrames']
 
 
 def checkAndImport(package_name):
@@ -64,12 +63,16 @@ def checkAndImport(package_name):
     return True
 
 
-def getVmdModel(vmd_path, atoms):
+def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
     """Generates a 3D model of molecular structures using VMD and returns it as an Open3D TriangleMesh.
 
     This function creates a temporary PDB file from the provided atomic data and uses VMD (Visual Molecular Dynamics)
     to render this data into an STL file, which is then loaded into Open3D as a TriangleMesh. The function handles
     the creation and cleanup of temporary files and manages the subprocess call to VMD.
+    
+    To install Open3D use: 
+    conda install open3d (for Anaconda users; version open3d-0.19.0 was used during the developement)
+    or pip install open3d
 
     :param vmd_path: Path to the VMD executable. This is required to run VMD and execute the TCL script.
     :type vmd_path: str
@@ -111,6 +114,20 @@ def getVmdModel(vmd_path, atoms):
     import open3d as o3d
     import os
 
+    representation_map = {
+    'newcartoon': 'NewCartoon',
+    'cartoon': 'NewCartoon',
+    'vdw': 'VDW 1.0 20.0',
+    'surf': 'Surf',
+    'quicksurf': 'QuickSurf 1.0 0.5 0.25 2.0',
+    'cpk': 'CPK 1.0 0.3 20.0 20.0'}
+
+    rep_key = representation.lower()
+    if rep_key not in representation_map:
+        raise ValueError(
+            "representation must be one of: 'NewCartoon', 'VDW', 'Surf', 'QuickSurf', or 'CPK'")
+    representation_style = representation_map[rep_key]
+
     if PY3K:
         from pathlib import Path
     else:
@@ -133,7 +150,7 @@ def getVmdModel(vmd_path, atoms):
         set output_path [lindex $argv 1]
 
         mol new $file_path
-        mol modstyle 0 0 NewCartoon
+        mol modstyle 0 0 %s
 
         set id_matrix {{1 0 0 0} {0 1 0 0} {0 0 1 0} {0 0 0 1}}
         molinfo top set center_matrix [list $id_matrix]
@@ -144,7 +161,8 @@ def getVmdModel(vmd_path, atoms):
         render STL $output_path
 
         exit
-        """
+        """ % representation_style
+        
         temp_script.write(vmd_script.encode('utf-8'))
 
     command = [vmd_path, '-e', str(temp_script_path), '-args', str(temp_pdb_path), str(output_path)]
@@ -185,6 +203,10 @@ def showChannels(channels, model=None, surface=None):
     This function renders a 3D visualization of molecular channels based on their spline representations.
     It can also display a molecular model (e.g., the protein structure) and a surface (e.g., cavity surface)
     in the same visualization. The function utilizes the Open3D library to create and render the 3D meshes.
+
+    To install Open3D use: 
+    conda install open3d (for Anaconda users; version open3d-0.19.0 was used during the developement)
+    or pip install open3d
     
     :arg channels: A list of channel objects or a single channel object. Each channel should have a 
         `get_splines()` method that returns two CubicSpline objects: one for the centerline and one for the radii.
@@ -210,7 +232,7 @@ def showChannels(channels, model=None, surface=None):
     showChannels(channels, model=protein_mesh, surface=surface_data) """
     
     if not checkAndImport('open3d'):
-        errorMsg = 'To run showChannels, please install open3d.'
+        errorMsg = 'To run showChannels, please install open3d (version 0.19.0).'
         raise ImportError(errorMsg)
             
     import open3d as o3d
@@ -290,6 +312,10 @@ def showCavities(surface, show_surface=False):
     This function displays a 3D visualization of cavities detected in a molecular structure.
     It uses the Open3D library to render the cavities as a triangle mesh. Optionally, it can also
     display the molecular surface as a wireframe overlay.
+
+    To install Open3D use: 
+    conda install open3d (for Anaconda users; version open3d-0.19.0 was used during the developement)
+    or pip install open3d
 
     :arg surface: A list containing three elements:
         - `points`: The coordinates of the vertices (atoms) in the molecular structure.
@@ -375,7 +401,235 @@ def showCavities(surface, show_surface=False):
     vis.destroy_window()
 
 
-def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, bottleneck=1, sparsity=15):
+def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False, 
+    cavity_atoms=None, mode='tetra', alpha=4.0, smoothing=0):
+    """Visualize surface cavities together with an optional protein model.
+    
+    This function displays surface cavities calculated by :func:`calcSurfaceCavities`.
+    Cavities can be visualized either directly from the tetrahedral/Voronoi
+    representation returned by the calculation, or from pseudoatoms loaded from
+    a PDB/PQR file through `cavity_atoms`.
+
+    - `mode='tetra'` displays cavities as a tetrahedron-derived mesh.
+      This mode follows the original geometric representation most closely,
+      but the resulting surface may appear faceted.
+    - `mode='smooth'` builds a smoother surface from Voronoi vertices
+      assigned to each cavity using an alpha-shape reconstruction. This mode
+      requires `cavities` to be provided.
+
+    If `cavity_atoms` is provided, cavities are visualized from the
+    coordinates of the supplied pseudoatoms instead of from `surface[2]` or
+    `cavities`. 
+    
+    :param surface: Surface data returned by :func:`calcSurfaceCavities`.
+        Required for `mode='tetra'`, for `mode='smooth'` when
+        `cavity_atoms` is not provided, and for displaying the molecular
+        surface when `show_surface=True`. The expected list contains:
+
+        - `surface[0]`: atomic coordinates used for the calculation,
+        - `surface[1]`: simplices defining the molecular surface,
+        - `surface[2]`: merged cavity simplices,
+        - `surface[3]`: simplices after surface-layer removal,
+        - `surface[4]`: Voronoi vertices used to represent surface cavities.
+
+    :type surface: list or None
+
+    :param cavities: List of :class:`Cavity` objects returned by
+        :func:`calcSurfaceCavities`. Required when `mode='smooth'` and
+        `cavity_atoms` is not provided, because the function uses
+        `cavity.tetrahedra` to select the corresponding Voronoi vertices.
+    :type cavities: list or None
+
+    :param model: Optional Open3D `TriangleMesh` representing the protein or
+        another molecular model. The model can be generated with
+        :func:`getVmdModel`.
+    :type model: open3d.geometry.TriangleMesh, or None
+
+    :param show_surface: If `True`, display the molecular surface wireframe
+        derived from `surface[1]` in addition to the cavity representation.
+        This requires `surface` to be provided. Default is `False`.
+    :type show_surface: bool
+
+    :param mode: Visualization mode used when `cavity_atoms` is not provided.
+        Accepted values are `'tetra'` and `'smooth'`. Default is `'tetra'`.
+    :type mode: str
+
+    :param alpha: Alpha value used for alpha-shape surface reconstruction in
+        `mode='smooth'` and when visualizing `cavity_atoms`. Smaller values
+        produce tighter surfaces, while larger values may connect more distant
+        points and generate broader surfaces. Default is 4.0.
+    :type alpha: float
+
+    :param smoothing: Number of Taubin smoothing iterations applied to the
+        reconstructed cavity mesh. If `0` or `None`, no smoothing is
+        applied. Default is 0.
+    :type smoothing: int or None
+
+    :param cavity_atoms: Optional pseudoatom representation of surface
+        cavities. This can be either a path to a PDB/PQR file or a parsed ProDy
+        `AtomGroup`, or an Open3D `TriangleMesh` generated, for example, with 
+        :func:`getVmdModel`.
+    :type cavity_atoms: str, :class:`.AtomGroup`, open3d.geometry.TriangleMesh, or None
+    
+    Examples:
+    p = parsePDB('1tqn')
+    protein = p.select('protein')
+    cavities, surface = calcSurfaceCavities(protein, output_path='cavities.pqr')
+    model_protein = getVmdModel(vmd_path, protein)
+    cav_model = getVmdModel(vmd_path, parsePQR('cavities.pqr'), representation='QuickSurf')
+    
+    showSurfaceCavities(surface, model=model_protein, show_surface=True)
+    or
+    showSurfaceCavities(surface, model=model_protein, cavity_atoms='cavities.pqr', show_surface=True)
+    or
+    showSurfaceCavities(surface, model=model_protein, cavity_atoms=cav_model, show_surface=True)
+    """
+
+    if not checkAndImport('open3d'):
+        raise ImportError('To run showSurfaceCavities, please install open3d.')
+
+    import open3d as o3d
+    import os
+
+    points = surface[0]
+    surf_simp = surface[1]
+    simp_cavities = surface[2]
+    
+    if mode not in ['tetra', 'smooth']:
+        raise ValueError("mode must be 'tetra' or 'smooth'")
+
+    meshes_to_visualize = []
+
+    if model is not None:
+        model.compute_vertex_normals()
+        model.paint_uniform_color([0.8, 0.8, 0.8])
+        meshes_to_visualize.append(model)
+    
+    if cavity_atoms is not None:
+        cavity_atoms_given = True
+    
+        if isinstance(cavity_atoms, o3d.geometry.TriangleMesh):
+            cavity_atoms.compute_vertex_normals()
+            cavity_atoms.paint_uniform_color([0.1, 0.7, 0.3])
+            meshes_to_visualize.append(cavity_atoms)
+        
+        else:  
+            if isinstance(cavity_atoms, str):
+                ext = os.path.splitext(cavity_atoms)[1].lower()
+                if ext == '.pqr':
+                    cavity_atoms = parsePQR(cavity_atoms)
+                else:
+                    cavity_atoms = parsePDB(cavity_atoms)
+
+            if not hasattr(cavity_atoms, 'getCoords'):
+                raise TypeError("cavity_atoms must be a PDB/PQR filename, a ProDy AtomGroup, "
+                                "or an Open3D TriangleMesh.")
+
+            resnums = np.unique(cavity_atoms.getResnums())
+
+            for resnum in resnums:
+                sele = cavity_atoms.select('resnum {0}'.format(resnum))
+                if sele is None:
+                    continue
+
+                pts = sele.getCoords()
+                if pts is None or len(pts) < 4:
+                    continue
+
+                pcd = o3d.geometry.PointCloud()
+                pcd.points = o3d.utility.Vector3dVector(pts)
+                cavity_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
+
+                if smoothing is not None and smoothing > 0:
+                    cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
+
+                cavity_mesh.compute_vertex_normals()
+                cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+                meshes_to_visualize.append(cavity_mesh)
+
+    else:
+        if surface is None:
+            raise ValueError("surface must be provided when cavity_atoms is not given")
+
+        points = surface[0]
+        surf_simp = surface[1]
+        simp_cavities = surface[2]
+    
+        if mode == 'tetra':
+            triangles = []
+            for tetra in simp_cavities:
+                triangles.extend([
+                    sorted([tetra[0], tetra[1], tetra[2]]),
+                    sorted([tetra[0], tetra[1], tetra[3]]),
+                    sorted([tetra[0], tetra[2], tetra[3]]),
+                    sorted([tetra[1], tetra[2], tetra[3]])])
+
+            surface_triangles = np.unique(np.array(triangles), axis=0, return_counts=True)[0]
+            cavity_mesh = o3d.geometry.TriangleMesh()
+            cavity_mesh.vertices = o3d.utility.Vector3dVector(points)
+            cavity_mesh.triangles = o3d.utility.Vector3iVector(surface_triangles)
+            cavity_mesh.compute_vertex_normals()
+            
+            if smoothing is not None and smoothing > 0:
+                cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
+                cavity_mesh.compute_vertex_normals()
+            
+            cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+            meshes_to_visualize.append(cavity_mesh)
+            
+        elif mode == 'smooth':
+            if cavities is None:
+                raise ValueError("cavities must be provided for mode='smooth'")
+            
+            verti = surface[4]
+            for cavity in cavities:
+                if cavity.tetrahedra is None or len(cavity.tetrahedra) < 4:
+                    continue
+
+                pts = verti[cavity.tetrahedra]
+                pcd = o3d.geometry.PointCloud()
+                pcd.points = o3d.utility.Vector3dVector(pts)
+                cavity_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
+
+                if smoothing is not None and smoothing > 0:
+                    cavity_mesh = cavity_mesh.filter_smooth_taubin(number_of_iterations=smoothing)
+
+                cavity_mesh.compute_vertex_normals()
+                cavity_mesh.paint_uniform_color([0.1, 0.7, 0.3])
+                meshes_to_visualize.append(cavity_mesh)
+
+    if show_surface == True:
+        triangles = []
+        for tetra in surf_simp:
+            triangles.extend([sorted([tetra[0], tetra[1], tetra[2]]),
+                                  sorted([tetra[0], tetra[1], tetra[3]]),
+                                  sorted([tetra[0], tetra[2], tetra[3]]),
+                                  sorted([tetra[1], tetra[2], tetra[3]])])
+            
+        triangles = np.array(triangles)
+        triangles.sort(axis=1)
+            
+        triangles_tuple = [tuple(tri) for tri in triangles]
+        unique_triangles, counts = np.unique(triangles_tuple, return_counts=True, axis=0)
+        surface_triangles = unique_triangles[counts == 1]
+            
+        lines = []
+        for simplex in surface_triangles:
+            for i in range(3):
+                for j in range(i + 1, 3):
+                    lines.append([simplex[i], simplex[j]])
+            
+        line_set = o3d.geometry.LineSet()
+        line_set.points = o3d.utility.Vector3dVector(points)
+        line_set.lines = o3d.utility.Vector2iVector(lines)
+        meshes_to_visualize.append(line_set)
+
+    o3d.visualization.draw_geometries(meshes_to_visualize)
+
+
+def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3, r2=1.25, min_depth=10, 
+    min_volume=None, max_volume=None, max_depth=None, bottleneck=1, sparsity=15, 
+    min_tetrahedra=None, max_tetrahedra=None, cavities_only=False):
     """Computes and identifies channels within a molecular structure using Voronoi and Delaunay tessellations.
 
     This function analyzes the provided atomic structure to detect channels, which are voids or pathways
@@ -401,10 +655,12 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         are saved in a single PDB file. Default is False.
     :type separate: bool
 
-    :param start_point: Optional starting point for channel search. If provided, the algorithm will use 
-        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
+    :param start_point: Optional starting point for channel search. This can be either a 3D coordinate point or
+        an atomic selection/AtomGroup. If the 3D coordinate point will be provided, the algorithm will use the 
+        tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
         the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
-    :type start_point: list, tuple, or ndarray (length 3), or None 
+        If an atomic selection is provided, its geometric center is used as the starting point.
+    :type start_point: list, tuple, or ndarray (length 3), :class:`.Atomic`, or None 
 
     :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
         the outer surface of the channels. Default is 3.
@@ -414,10 +670,20 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     :type r2: float
 
     :param min_depth: The minimum depth a cavity must have to be considered as a channel. Default is 10.
-    :type min_depth: float
+    :type min_depth: int
+
+    :param max_depth: Maximum cavity depth. Cavities deeper than this value are trimmed to the specified depth. 
+        Default is None.
+    :type max_depth: int
 
     :param bottleneck: The minimum allowed bottleneck size (narrowest point) for the channels. Default is 1.
     :type bottleneck: float
+
+    :param min_volume: Minimum volume required for a channel/cavity to be retained. Default is None.
+    :type min_volume: float
+
+    :param max_volume: Maximum volume allowed for a channel/cavity to be retained. Default is None.
+    :type max_volume: float
 
     :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
         A higher value results in fewer sampling points. Default is 15.
@@ -445,6 +711,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
     channels, surface = calcChannels(atoms, output_path="channels", separate=True)
     
     channels, surface = calcChannels(atoms, output_path="all_channels.pdb", start_point=[-22.312, -20.065, -11.144])
+    
+    start_sel = protein.select('resid 212 309 483')
+    channels, surface = calcChannels(atoms, output_path="all_channels.pdb", start_point=start_sel)
     
     To save the results as PDB file:
     channels, surface = calcChannels(atoms, output_path="channels.pdb", separate=False, r1=3, r2=1.25, min_depth=10, 
@@ -474,18 +743,25 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         from pathlib2 import Path
     
     if start_point is not None:
-        if not isListLike(start_point):
-            raise TypeError("start_point must be a list/tuple/ndarray with three numeric values")
+    
+        if hasattr(start_point, 'getCoords'):
+            if start_point.numAtoms() == 0:
+                raise ValueError("start_point selection contains no atoms")
+            start_point = calcCenter(start_point)
+
+        elif not isListLike(start_point):
+            raise TypeError("start_point must be a selection/AtomGroup or a list/tuple/ndarray "
+                "with three numeric values")
+
         if len(start_point) != 3:
             raise ValueError(
-                "start_point must be a list of three numbers, e.g. "
+                "start_point must be a selection/AtomGroup or a list of three numbers, e.g. "
                 "start_point=[-12.312, 5.065, -1.144]")
         
         start_point = np.array(start_point, dtype=float)        
         
         LOGGER.info("Using user-provided start_point for channel seed: [{:.3f}, {:.3f}, {:.3f}] Å"
             .format(start_point[0], start_point[1], start_point[2]))
-
 
     calculator = ChannelCalculator(atoms, r1, r2, min_depth, bottleneck, sparsity)
     
@@ -534,13 +810,51 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None, r1=3
         calculator.set_starting_tetrahedra_from_point(c_surface_cavities, s_clr.verti, start_point)
     
     c_filtered_cavities = calculator.filter_cavities(c_surface_cavities, min_depth)
+    
+    if cavities_only:
+        if max_depth is not None:
+            calculator.trim_cavities_by_depth(c_filtered_cavities, max_depth)
+
+        if min_tetrahedra is not None or max_tetrahedra is not None:
+            c_filtered_cavities = calculator.filter_cavities_by_tetrahedra(c_filtered_cavities, min_tetrahedra, max_tetrahedra)
+
+        calculator.calculate_cavity_volumes(c_filtered_cavities, s_clr.simp, coords)
+
+        if min_volume is not None or max_volume is not None:
+            c_filtered_cavities = calculator.filter_cavities_by_volume(c_filtered_cavities, min_volume, max_volume)
+    
     merged_cavities = calculator.merge_cavities(c_filtered_cavities, s_clr.simp)
+    
+    # Early-return for the calcSurfaceCavities function:
+    if cavities_only:
+        LOGGER.info("Returning surface cavities")
+        
+        if output_path:
+            output_path = Path(output_path)
+            
+            if output_path.is_dir():
+                output_path = output_path / "surface_cavities.pqr"
+            elif not (output_path.suffix == ".pdb" or output_path.suffix == ".pqr"):
+                output_path = output_path.with_suffix(".pqr")
+
+            if not separate:
+                LOGGER.info("Saving surface cavities to " + str(output_path) + ".")
+            else:
+                LOGGER.info("Saving multiple surface cavities to directory " + str(output_path.parent) + ".")
+
+            calculator.save_cavities_to_pdb(c_filtered_cavities, s_clr.verti, output_path, separate)
+        
+        return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp, s_clr.verti]
         
     for cavity in c_filtered_cavities:
         #calculator.dijkstra(cavity, *(s_clr.get_state() + [coords, vdw_radii]))
         calculator.dijkstra(cavity, *(s_clr.get_state() + tuple([coords, vdw_radii])))
         
     calculator.filter_channels_by_bottleneck(c_filtered_cavities, bottleneck)
+    
+    if min_volume is not None or max_volume is not None:
+        calculator.filter_channels_by_volume(c_filtered_cavities, min_volume, max_volume)
+    
     channels = [channel for cavity in c_filtered_cavities for channel in cavity.channels]
         
     no_of_channels = len(channels)
@@ -682,6 +996,147 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     return channels_all, surfaces_all
 
 
+def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, **kwargs):
+    """Compute surface cavities for each frame in a trajectory or multi-model PDB.
+
+    This function calculates surface cavities for each frame of a trajectory or
+    for each model of a multi-model PDB structure. For every frame/model, it
+    calls :func:`calcSurfaceCavities` and stores the detected cavities together
+    with the corresponding surface representation. The `kwargs` argument is
+    passed directly to :func:`calcSurfaceCavities` and can include parameters
+    controlling cavity detection, filtering, and output generation.
+
+    :param atoms: Atomic object containing the molecular structure. For trajectory 
+        analysis, this object provides the reference topology and is updated with 
+        coordinates from each frame. For multi-model PDB files, the individual 
+        coordinate sets are analyzed one by one.
+    :type atoms: :class:`.Atomic`
+
+    :param trajectory: Optional trajectory or ensemble object containing multiple
+        coordinate frames. If provided, surface cavities are calculated for each
+        selected trajectory frame. If not provided, the function attempts to use
+        multiple coordinate sets stored in `atoms`.
+    :type trajectory: :class:`.Atomic`, :class:`.Ensemble`, or trajectory-like object
+
+    :param output_path: Optional filename used to save detected surface cavities.
+        If provided, one output file is generated for each frame/model by
+        appending the frame/model index to the file name. If `None`, results are
+        returned but not written in the folder. Default is `None`.
+    :type output_path: str or None
+
+    :param separate: If `True`, each detected surface cavity is saved as a separate 
+        PQR/PDB file for each frame/model. If `False`, all cavities detected 
+        in a given frame/model are saved in a single file. Default is `False`.
+    :type separate: bool
+
+    :param kwargs: Additional parameters passed to :func:`calcSurfaceCavities`.
+        These can include `r1`, `r2`, `min_depth`, `max_depth`,
+        `min_tetrahedra`, `max_tetrahedra`, `min_volume`, `max_volume`,
+        `sparsity`, `start_frame`, and `stop_frame`.
+    :type kwargs: dict
+
+    :returns: Two lists:
+        - `cavities_all`: a list containing detected surface cavities for each
+          analyzed frame/model,
+        - `surfaces_all`: a list containing the corresponding surface representations 
+          for each analyzed frame/model.
+    :rtype: tuple (list, list)
+
+    Example usage:
+    protein = parsePDB('1tqn').select('protein')
+    cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, trajectory=traj, output_path="surface_cavities",
+        r1=4.5, r2=2.0, min_depth=2, max_depth=3, min_volume=50)
+
+    cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, start_frame=0, stop_frame=10, r1=4.5, r2=2.0) """
+
+    if PY3K:
+        if not checkAndImport('pathlib'):
+            raise ImportError('To run calcSurfaceCavitiesMultipleFrames, please install pathlib.')
+        from pathlib import Path
+    else:
+        if not checkAndImport('pathlib2'):
+            raise ImportError('To run calcSurfaceCavitiesMultipleFrames, please install pathlib2 for Python 2.7.')
+        from pathlib2 import Path
+
+    try:
+        coords = getCoords(atoms)
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object with `getCoords` method')
+
+    cavities_all = []
+    surfaces_all = []
+
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+
+    if output_path:
+        output_path = Path(output_path)
+        if output_path.suffix == ".pqr":
+            output_path = output_path.with_suffix('')
+
+    if trajectory is not None:
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)
+
+        nfi = trajectory._nfi
+        trajectory.reset()
+        if stop_frame == -1:
+            traj = trajectory[start_frame:]
+        else:
+            traj = trajectory[start_frame:stop_frame + 1]
+
+        atoms_copy = atoms.copy()
+        for j0, frame0 in enumerate(traj, start=start_frame):
+            LOGGER.info("Frame: {0}".format(j0))
+            atoms_copy.setCoords(frame0.getCoords())
+
+            if output_path:
+                cavities, surface = calcSurfaceCavities(atoms_copy,
+                    output_path=str(output_path) + "{0}.pqr".format(j0), separate=separate, **kwargs)
+            else:
+                cavities, surface = calcSurfaceCavities(atoms_copy, separate=separate, **kwargs)
+
+            cavities_all.append(cavities)
+            surfaces_all.append(surface)
+
+        trajectory._nfi = nfi
+
+    else:
+        if atoms.numCoordsets() > 1:
+            coordsets = atoms.getCoordsets()
+
+            if stop_frame == -1:
+                model_indices = range(start_frame, len(coordsets))
+            else:
+                model_indices = range(start_frame, stop_frame + 1)
+
+            for i in model_indices:
+                LOGGER.info("Model: {0}".format(i))
+                atoms.setACSIndex(i)
+
+                if output_path:
+                    cavities, surface = calcSurfaceCavities(
+                        atoms,
+                        output_path=str(output_path) + "{0}.pqr".format(i),
+                        separate=separate,
+                        **kwargs)
+                else:
+                    cavities, surface = calcSurfaceCavities(
+                        atoms,
+                        separate=separate,
+                        **kwargs)
+
+                cavities_all.append(cavities)
+                surfaces_all.append(surface)
+        else:
+            LOGGER.info("Include trajectory or use multi-model PDB file.")
+
+    return cavities_all, surfaces_all
+
+
 def parseParameters(channels, **kwargs):
     """Extracts and returns the lengths, bottlenecks, and volumes of each channel in a given list of channels. """
     
@@ -750,6 +1205,155 @@ def getChannelParameters(channels, **kwargs):
             for i in range(len(lengths)):
                 LOGGER.info("channel {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
         return multi_model_param
+
+
+def getChannelParametersMultipleFrames(channels_all, **kwargs):
+    """Extract channel parameters for multiple frames or models.
+
+    This function is a multi-frame wrapper for :func:`getChannelParameters`.
+    It extracts channel parameters for each model or trajectory frame separately.
+    Each element of ``channels_all`` is treated as the list of channels calculated
+    for one frame/model.
+
+    This function should be used with channels returned by
+    :func:`calcChannelsMultipleFrames`.
+
+    :arg channels_all: list of channel lists returned by
+        :func:`calcChannelsMultipleFrames`. Each element corresponds to one
+        model or trajectory frame.
+    :type channels_all: list
+
+    :arg param_file_name: base name for the output parameter files. If provided,
+        one file will be written for each model/frame with the frame/model index
+        added to the file name.
+    :type param_file_name: str
+
+    :returns: A list of parameter tuples for each model/frame. Each tuple contains
+        channel lengths, bottlenecks, and volumes.
+    :rtype: list  """
+
+    parameters_all = []
+    for frame_nr, channels in enumerate(channels_all):
+        LOGGER.info("Frame/model: {0}".format(frame_nr))
+        params = getChannelParameters(channels, **kwargs)
+        parameters_all.append(params)
+
+    return parameters_all
+
+
+def parseSurfaceCavityParameters(cavities, **kwargs):
+    """Extract depths, volumes, and tetrahedra counts for surface cavities."""
+
+    depths = []
+    volumes = []
+    tetrahedra_counts = []
+    param_file_name = kwargs.pop('param_file_name', None)
+    lines = []
+    
+    if param_file_name is not None:
+        lines.append("# Cavity_id Volume [Å³] Depth [Å] Tetrahedra_count\n")
+    
+    for nr_cav, cavity in enumerate(cavities):
+        depth = cavity.depth
+        volume = cavity.volume
+        tetrahedra_count = len(cavity.tetrahedra)
+        depths.append(depth)
+        volumes.append(volume)
+        tetrahedra_counts.append(tetrahedra_count)
+
+        if param_file_name is not None:
+            lines.append("{0}_cavity{1}: {2:.3f} {3} {4}\n".format(
+                param_file_name, nr_cav, volume, depth, tetrahedra_count))
+
+    if param_file_name is not None:
+        with open(param_file_name + '_Parameters_All_surface_cavities.txt', "w") as f_par:
+            f_par.writelines(lines)
+    
+    return volumes, depths, tetrahedra_counts
+
+
+def getSurfaceCavityParameters(cavities, **kwargs):
+    """Extract volumes, depths, and tetrahedra counts of surface cavities.
+
+    This function iterates through a list of surface cavity objects and extracts
+    the volume, depth, and number of tetrahedra assigned to each cavity. These
+    values are returned as separate lists and can optionally be saved to a text file.
+
+    :arg cavities: A list of surface cavity objects returned by :func:`calcSurfaceCavities`.
+    :type cavities: list
+
+    :arg param_file_name: Optional name used to save cavity parameters to a text file. 
+        The suffix '_Parameters_All_surface_cavities.txt' will be added.
+    :type param_file_name: str
+
+    :returns: Three lists containing volumes, depths, and tetrahedra counts.
+    :rtype: tuple (list, list, list)
+
+    Example usage:
+    volumes, depths, tetrahedra_counts = getSurfaceCavityParameters(cavities)
+    """
+
+    multi_model_param = []
+    param_file_name = kwargs.get('param_file_name', None)
+
+    try:
+        results_V_D_T = parseSurfaceCavityParameters(cavities, **kwargs)
+        volumes, depths, tetrahedra_counts = results_V_D_T
+
+        LOGGER.info("Cavity {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Depth [Å]', 'Tetrahedra count'))
+
+        for i in range(len(volumes)):
+            LOGGER.info("cavity {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i], 2), np.round(depths[i], 2),
+                tetrahedra_counts[i]))
+
+        return results_V_D_T
+
+    except:
+        for nr_i, i in enumerate(cavities):
+            safe_param_file_name = param_file_name if param_file_name is not None else ""
+            results = parseSurfaceCavityParameters(cavities[nr_i],
+                param_file_name=safe_param_file_name + str(nr_i))
+            multi_model_param.append(results)
+
+        LOGGER.info("Cavity {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 'Depth [Å]', 'Tetrahedra count'))
+
+        for frame_nr, frame in enumerate(multi_model_param):
+            volumes, depths, tetrahedra_counts = frame
+            LOGGER.info("Frame {0}".format(frame_nr))
+
+            for i in range(len(volumes)):
+                LOGGER.info("cavity {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i], 2), np.round(depths[i], 2),
+                    tetrahedra_counts[i]))
+
+        return multi_model_param
+
+
+def getSurfaceCavityParametersMultipleFrames(cavities_all, **kwargs):
+    """Provides surface cavity parameters for multiple frames or models.
+
+    It analyzes surface cavities calculated for multi-model PDB files or
+    trajectories and returns cavity parameters for each model/frame.
+
+    :arg cavities_all: list of surface cavity lists returned by
+        :func:`calcSurfaceCavitiesMultipleFrames`.
+    :type cavities_all: list
+    
+    :arg param_file_name: base name for the output parameter files. If provided,
+        one file will be written for each model/frame with the frame/model index
+        added to the file name.
+    :type param_file_name: str
+
+    :returns: A list with surface cavity parameters for each frame/model.
+    :rtype: list """
+
+    parameters_all = []
+
+    for i, cavities in enumerate(cavities_all):
+        LOGGER.info("Model/frame: {0}".format(i))
+        params = getSurfaceCavityParameters(cavities, **kwargs)
+        parameters_all.append(params)
+
+    return parameters_all
 
 
 def getChannelAtoms(channels, protein=None, num_samples=5):
@@ -917,11 +1521,314 @@ def getChannelResidueNames(atoms, channels, **kwargs):
             residues_list = "None"
 
     if residues_file_name is not None:
-        with open(residues_file_name+'_Residues_All_channels.txt', "a") as f_res:
+        output_file = residues_file_name + '_Residues_All_channels.txt'
+        with open(output_file, "a") as f_res:
             for k in selected_residues_ch:
                 f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
+        
+        LOGGER.info("Channel residues were saved to: {0}".format(output_file))
                 
     return selected_residues_ch
+
+
+def getChannelResidueNamesMultipleFrames(atoms, channels_all, trajectory=None, **kwargs):
+    """Provides residue names for channels calculated for multiple frames/models.
+
+    This function is a multi-frame wrapper for :func:`getChannelResidueNames`.
+    For each model/frame, the atomic coordinates are matched with the
+    corresponding channel prediction.
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+
+    :arg channels_all: list of channel lists returned by :func:`calcChannelsMultipleFrames`.
+    :type channels_all: list
+
+    :arg trajectory: optional trajectory object. If provided, coordinates are
+        taken from trajectory frames. If None, a multi-model PDB is assumed and
+        models are selected using ``setACSIndex``.
+    :type trajectory: :class:`.Trajectory` or None
+
+    :arg start_frame: first frame/model index. Default is 0.
+    :type start_frame: int
+
+    :arg stop_frame: last frame/model index. Default is -1, meaning all available
+        frames/models in ``channels_all``.
+    :type stop_frame: int
+
+    :arg residues_file_name: base name for output residue files. If provided,
+        one file will be written for each frame/model.
+    :type residues_file_name: str
+
+    :arg distA: maximal distance between channel FIL atoms and protein residues.
+        Default is 4 Å.
+    :type distA: int, float
+
+    :arg one_letter_aa: whether to apply one-letter code to residue names.
+        Default is False.
+    :type one_letter_aa: bool
+
+    :returns: A list of residue-name lists for each frame/model.
+    :rtype: list  """
+
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+    residues_file_name = kwargs.pop('residues_file_name', None)
+    selected_residues_all = []
+
+    if trajectory is None:
+        # multi-model PDB
+        for frame_pos, channels in enumerate(channels_all):
+            model_index = start_frame + frame_pos
+
+            if stop_frame != -1 and model_index > stop_frame:
+                break
+
+            LOGGER.info("Model: {0}".format(model_index))
+            atoms.setACSIndex(model_index)
+
+            if residues_file_name is not None:
+                frame_residues_file_name = residues_file_name + "_model{}".format(model_index)
+            else:
+                frame_residues_file_name = None
+
+            residues = getChannelResidueNames(atoms, channels,
+                residues_file_name=frame_residues_file_name, **kwargs)
+
+            selected_residues_all.append(residues)
+
+    else:
+        # trajectory / DCD
+        nfi = getattr(trajectory, '_nfi', None)
+
+        if hasattr(trajectory, 'reset'):
+            trajectory.reset()
+
+        if stop_frame == -1:
+            traj = trajectory[start_frame:]
+        else:
+            traj = trajectory[start_frame:stop_frame + 1]
+
+        atoms_copy = atoms.copy()
+        for frame_pos, frame in enumerate(traj):
+            frame_index = start_frame + frame_pos
+
+            if frame_pos >= len(channels_all):
+                break
+
+            LOGGER.info("Frame: {0}".format(frame_index))
+            atoms_copy.setCoords(frame.getCoords())
+
+            if residues_file_name is not None:
+                frame_residues_file_name = residues_file_name + "_frame{}".format(frame_index)
+            else:
+                frame_residues_file_name = None
+
+            residues = getChannelResidueNames(atoms_copy, channels_all[frame_pos],
+                residues_file_name=frame_residues_file_name, **kwargs)
+
+            selected_residues_all.append(residues)
+
+        if nfi is not None:
+            trajectory._nfi = nfi
+
+    return selected_residues_all
+
+
+def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
+    '''Provides the resnames and resid of residues that form surface cavities.
+
+    Residues are extracted based on distA, which is the distance between surface
+    cavity points and protein residues. Surface cavity points are taken from
+    Voronoi vertices assigned to each cavity. Results can be saved as a txt file 
+    by providing the `residues_file_name` parameter.
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+
+    :arg cavities: A list of surface cavity objects returned by :func:`calcSurfaceCavities`.
+    :type cavities: list
+
+    :arg surface: Surface data returned by :func:`calcSurfaceCavities`.
+        The function uses `surface[4]`, which contains Voronoi vertices assigned
+        to surface cavities.
+    :type surface: list
+
+    :arg distA: Residues will be provided based on this value.
+        Default is 4 [Ang].
+    :type distA: int, float
+
+    :arg residues_file_name: The file with residues will be saved in a text file
+        with the provided name. The suffix '_Residues_All_surface_cavities.txt' will be added.
+    :type residues_file_name: str
+
+    :arg one_letter_aa: Whether to apply one-letter code to residue names.
+        Default is False.
+    :type one_letter_aa: bool
+
+    :returns: A list of residue names and residue numbers for each surface cavity.
+    :rtype: list
+    '''
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                  atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    distA = kwargs.pop('distA', 4)
+    residues_file_name = kwargs.pop('residues_file_name', None)
+
+    one_letter_aa = kwargs.pop('one_letter_aa', False)
+    if one_letter_aa == True:
+        from prody.atomic.atomic import AAMAP
+
+    if surface is None or len(surface) < 5:
+        raise ValueError('surface must contain Voronoi vertices in surface[4]')
+
+    vertices = surface[4]
+    if not isinstance(cavities, list):
+        cavities = [cavities]
+
+    selected_residues_cav = []
+
+    for i, cavity in enumerate(cavities):
+        if cavity.tetrahedra is None or len(cavity.tetrahedra) == 0:
+            selected_residues_cav.append('cavity' + str(i) + ': None')
+            continue
+
+        points = vertices[cavity.tetrahedra]
+        residues = atoms.select('same residue as exwithin ' + str(distA) + ' of center', center=points)
+
+        if residues is not None:
+            ca_residues = residues.select('name CA')
+
+            if ca_residues is not None:
+                resnames = ca_residues.getResnames()
+
+                if one_letter_aa == True:
+                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSE", "HSP", "HID", "HIE", "HIP")
+                        else AAMAP.get(aa, aa) for aa in resnames]
+                    resnames = resnames_1letter
+
+                resnums = ca_residues.getResnums()
+                residues_info = ["{}{}".format(resname, resnum)
+                    for resname, resnum in zip(resnames, resnums)]
+
+                residues_list = 'cavity' + str(i) + ': ' + ", ".join(residues_info)
+                selected_residues_cav.append(residues_list)
+
+            else:
+                selected_residues_cav.append('cavity' + str(i) + ': None')
+        else:
+            selected_residues_cav.append('cavity' + str(i) + ': None')
+
+    if residues_file_name is not None:
+        output_file = residues_file_name + '_Residues_All_surface_cavities.txt'
+        with open(output_file, "w") as f_res:
+            f_res.write("# cavity_id residues_within_" + str(distA) + "_A\n")
+            for k in selected_residues_cav:
+                f_res.write("{0}_{1}\n".format(residues_file_name, k))
+                
+        LOGGER.info("Surface cavity residues were saved to: {0}".format(output_file))
+
+    return selected_residues_cav
+
+
+def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all, surfaces_all, trajectory=None, **kwargs):
+    """Provides residue names for surface cavities calculated for multiple frames/models.
+
+    This function is a multi-frame wrapper for :func:`getSurfaceCavityResidueNames`. 
+    For each model or trajectory frame, the atomic coordinates are matched with the 
+    corresponding surface cavity prediction. Thus, cavities calculated for frame/model ``i`` 
+    are analyzed against the protein coordinates from frame/model ``i``.
+
+    This function should be used with results returned by :func:`calcSurfaceCavitiesMultipleFrames`.
+
+    :arg atoms: an Atomic object from which residues are selected.
+    :type atoms: :class:`.Atomic`
+
+    :arg cavities_all: list of surface cavity lists returned by
+        :func:`calcSurfaceCavitiesMultipleFrames`. Each element corresponds
+        to one model or trajectory frame.
+    :type cavities_all: list
+
+    :arg surfaces_all: list of surface data objects returned by
+        :func:`calcSurfaceCavitiesMultipleFrames`. Each element corresponds
+        to one model or trajectory frame and must contain Voronoi vertices in
+        ``surface[4]``.
+    :type surfaces_all: list
+
+    :arg trajectory: optional trajectory object. If provided, coordinates are
+        taken from trajectory frames. If None, a multi-model PDB is assumed.
+    :type trajectory: :class:`.Trajectory` or None
+
+    :arg start_frame: first frame/model index to analyze. Default is 0.
+    :type start_frame: int
+
+    :arg stop_frame: last frame/model index to analyze. Default is -1, meaning
+        all available frames/models in ``cavities_all`` and ``surfaces_all``.
+    :type stop_frame: int
+
+    :arg residues_file_name: base name for output residue files. If provided,
+        one file will be written for each model/frame with ``_modelX`` or
+        ``_frameX`` added to the file name.
+    :type residues_file_name: str
+
+    :arg distA: maximal distance between surface cavity points and protein
+        residues. Default is 4 Å.
+    :type distA: int, float
+
+    :arg one_letter_aa: whether to apply one-letter code to residue names.
+        Default is False.
+    :type one_letter_aa: bool  """
+
+    start_frame = kwargs.pop('start_frame', 0)
+    residues_file_name = kwargs.pop('residues_file_name', None)
+
+    selected_residues_all = []
+    
+    if trajectory is None:
+        # multi-model PDB
+        for frame_pos, (cavities, surface) in enumerate(zip(cavities_all, surfaces_all)):
+            model_index = start_frame + frame_pos
+            atoms.setACSIndex(model_index)
+
+            if residues_file_name is not None:
+                frame_residues_file_name = residues_file_name + "_model{}".format(model_index)
+            else:
+                frame_residues_file_name = None
+
+            residues = getSurfaceCavityResidueNames(atoms, cavities, surface,
+                residues_file_name=frame_residues_file_name, **kwargs)
+
+            selected_residues_all.append(residues)
+
+    else:
+        # trajectory / DCD
+        if hasattr(trajectory, 'reset'):
+            trajectory.reset()
+
+        atoms_copy = atoms.copy()
+        for frame_pos, frame in enumerate(trajectory):
+            frame_index = start_frame + frame_pos
+            atoms_copy.setCoords(frame.getCoords())
+
+            if residues_file_name is not None:
+                frame_residues_file_name = residues_file_name + "_frame{}".format(frame_index)
+            else:
+                frame_residues_file_name = None
+
+            residues = getSurfaceCavityResidueNames(atoms_copy, cavities_all[frame_pos], surfaces_all[frame_pos],
+                residues_file_name=frame_residues_file_name, **kwargs)
+
+            selected_residues_all.append(residues)
+
+    return selected_residues_all
 
 
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
@@ -976,6 +1883,13 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     folder_name = kwargs.pop('folder_name', 'selected_files')
     residues_file = kwargs.pop('residues_file', False)
     param_file = kwargs.pop('param_file', False)
+
+    object_name = kwargs.pop('object_name', 'channel')
+    residues_suffix = kwargs.pop('residues_suffix', '_Residues_All_channels.txt')
+    parameters_suffix = kwargs.pop('parameters_suffix', '_Parameters_All_channels.txt')
+    selected_residues_output = kwargs.pop('selected_residues_output', 'Selected_channel_residues.txt')
+    selected_parameters_output = kwargs.pop('selected_parameters_output', 'Selected_channel_parameters.txt')
+
     copied_files_list = []
     
     if pqr_files == False:
@@ -1003,11 +1917,12 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         selected_residues = []
         for file in copied_files_list:
             try:
-                PDB_id = file[:-4].split('_channel')[0] 
-                channel_name = file[:-4].split('_')[-1]
-                f = open(PDB_id+'_Residues_All_channels.txt', 'r').readlines()
+                PDB_id = file[:-4].split('_' + object_name)[0]
+                selected_name = file[:-4].split('_')[-1]
+                f = open(PDB_id + residues_suffix, 'r').readlines()
+
                 for line in f:
-                    if line.startswith(PDB_id+'_'+channel_name+':'):
+                    if line.startswith(PDB_id + '_' + selected_name + ':'):
                         selected_residues.append(line)
             except:
                 LOGGER.info("File {0} was not analyzed due to the lack of file or multiple channel file.".format(file))
@@ -1036,6 +1951,57 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     LOGGER.info("Selected files: ")
     LOGGER.info(' '.join(copied_files_list))
     LOGGER.info("If newly created files are empty please check whether the parameter names are: PDB_id+_Parameters_All_channels.txt")
+
+
+def selectSurfaceCavityBySelection(atoms, residue_sele, **kwargs):
+    """Select PQR files with surface cavities located close to a selected region.
+
+    This function is a surface-cavity wrapper for :func:`selectChannelBySelection`.
+    It selects PQR files containing surface cavities represented by FIL pseudoatoms
+    that are located within a user-defined distance from a selected protein region.
+
+    Surface cavity files should be generated by :func:`calcSurfaceCavities` or
+    :func:`calcSurfaceCavitiesMultipleFrames`, preferably with ``separate=True``,
+    so that each cavity is saved in an individual PQR file.
+
+    :arg atoms: an Atomic object from which the reference region is selected
+    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+
+    :arg residue_sele: selection string defining the reference region.
+        For example: ``'resid 173'``, ``'resid 173 and chain A'``, ``'resid 170 to 180'``.
+    :type residue_sele: str
+
+    :arg pqr_files: list of PQR files to analyze. If not provided, all PQR files
+        from the current directory will be analyzed.
+    :type pqr_files: bool or list
+
+    :arg folder_name: name of the folder to which selected PQR files will be copied.
+        Default is ``'selected_surface_cavities'``.
+    :type folder_name: str
+
+    :arg distA: maximal distance between the selected region and surface cavity
+        FIL atoms. Default is 5 Å.
+    :type distA: int, float
+
+    :arg residues_file: if True, residue information for selected surface cavities
+        will be extracted from ``*_Residues_All_surface_cavities.txt`` and saved
+        to ``Selected_surface_cavity_residues.txt``.
+        Default is False.
+    :type residues_file: bool
+
+    :arg param_file: if True, parameter information for selected surface cavities
+        will be extracted from ``*_Parameters_All_surface_cavities.txt`` and saved
+        to ``Selected_surface_cavity_parameters.txt``.
+        Default is False.
+    :type param_file: bool """
+
+    kwargs.setdefault('object_name', 'cavity')
+    kwargs.setdefault('residues_suffix', '_Residues_All_surface_cavities.txt')
+    kwargs.setdefault('parameters_suffix', '_Parameters_All_surface_cavities.txt')
+    kwargs.setdefault('selected_residues_output', 'Selected_surface_cavity_residues.txt')
+    kwargs.setdefault('selected_parameters_output', 'Selected_surface_cavity_parameters.txt')
+
+    return selectChannelBySelection(atoms, residue_sele, **kwargs)
 
 
 def calcChannelSurfaceOverlaps(**kwargs):
@@ -1149,7 +2115,122 @@ def calcChannelSurfaceOverlaps(**kwargs):
     merged_surface = merge_surfaces(surfaces)
     write_merge_surf_pdb(merged_surface, output_file_name, nr_pdbs)
 
+
+def calcSurfaceCavityOverlaps(**kwargs):
+    """Calculate overlapping regions of surface cavities represented as FIL atoms.
+
+    It calculates spatial overlap between surface cavities saved as PQR files with
+    FIL pseudoatoms, as generated by :func:`calcSurfaceCavities` or
+    :func:`calcSurfaceCavitiesMultipleFrames`.
+
+    Results are normalized within [0, 1], where the value corresponds to the
+    fraction of analyzed PQR files contributing to a given spatial region.
+
+    :arg resolution: surface sampling resolution. Default is 0.5.
+    :type resolution: float
+
+    :arg output_file_name: name of the output PDB file with overlapping cavity
+        regions. Default is ``'surface_cavity_overlap_regions.pdb'``.
+    :type output_file_name: str
+
+    :arg pqr_files: PQR files with surface cavities represented as FIL atoms.
+        If not provided, all PQR files from the current directory will be analyzed.
+        A list of PQR files can also be provided.
+    :type pqr_files: bool or list """
+
+    kwargs.setdefault('output_file_name', 'surface_cavity_overlap_regions.pdb')
+
+    return calcChannelSurfaceOverlaps(**kwargs)
+
+
+def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=2, max_depth=3, 
+    min_tetrahedra=None, max_tetrahedra=None, min_volume=50, max_volume=None,
+    sparsity=15, separate=False):
+    """Calculate surface cavities (pockets) on protein surface using CaviTracer approach.
+
+    :param atoms: An object representing the molecular structure, typically containing atomic coordinates
+        and element types.
+    :type atoms: `Atoms` object
+
+    :param output_path: Optional path to save the resulting cavities and associated data in PQR (or PDB) format.
+        If None, results are not saved. Default is None.
+    :type output_path: str or None
+
+    :param separate: If True, each detected cavity is saved to a separate PQR file. If False, all cavities
+        are saved in a single PQR file. Default is False.
+    :type separate: bool
+
+    :param r1: The first radius threshold used during the deletion of simplices, which is used to define 
+        the outer surface of the cavities. Default is 4.5.
+    :type r1: float
+
+    :param r2: The second radius threshold used to define the inner surface of the cavities. Default is 2.
+    :type r2: float
+
+    :param min_depth: The minimum depth a cavity must have to be considered as a cavity. Default is 2.
+    :type min_depth: int
+
+    :param max_depth: Maximum cavity depth. Cavities deeper than this value are trimmed to the specified depth. 
+        Default is 3.
+    :type max_depth: int
+
+    :param sparsity: The sparsity parameter controls the sampling density when analyzing the molecular surface.
+        A higher value results in fewer sampling points. Default is 15.
+    :type sparsity: int
+
+    :param min_tetrahedra: Minimum number of tetrahedra required for a cavity to be retained. 
+        Smaller cavities are discarded. Default is None.
+    :type min_tetrahedra: int
+
+    :param max_tetrahedra: Maximum number of tetrahedra allowed for a cavity to be retained.
+        Larger cavities are discarded. Default is None.
+    :type max_tetrahedra: int
+
+    :param min_volume: Minimum volume required for a channel/cavity to be retained. Default is 50.
+    :type min_volume: float
+
+    :param max_volume: Maximum volume allowed for a channel/cavity to be retained. Default is None.
+    :type max_volume: float
+
+    :returns: A tuple containing two elements:
+        - `cavities`: A list of detected cavities, where each channel is an object containing information
+          about its path and geometry.
+        - `surface`: A list containing additional information for further visualization, including
+          the atomic coordinates, simplices defining the surface, and merged cavities.
+    :rtype: tuple (list, list)
+
+    This function performs the following steps:
+    1. **Selection and Filtering:** Selects non-hetero atoms from the protein, calculates van der Waals radii, 
+        and performs 3D Delaunay triangulation and Voronoi tessellation on the coordinates.
+    2. **Surface and Interior Filtering:** Iteratively removes simplices based on the user-defined radii 
+        (`r1` and `r2`) to distinguish the molecular surface from the internal void space.
+    3. **Surface Cavity Identification:** Detects connected void regions and identifies those that remain 
+        connected to the protein surface, corresponding to surface-accessible cavities and pockets.
+    4. **Depth Calculation and Filtering:** Estimates cavity depth using a graph-based traversal from the cavity 
+        openings, identifies the deepest tetrahedra, and filters cavities according to the specified depth criteria.
+    5. **Output Generation:** Optionally trims cavities exceeding the specified	maximum depth, saves detected 
+        cavities to PDB/PQR files, and returns cavity objects together with the surface representation for further 
+        analysis and visualization.
+       
+    Example usage:
+    p = parsePDB('1tqn')
+    protein = p.select('protein')
+    cavities, surface = calcSurfaceCavities(protein, output_path='test_surf_cav.pqr')   """
+
+
+    cavities, surface = calcChannels(
+            atoms, 
+            output_path=output_path,
+            separate=separate,
+            r1=r1, r2=r2, 
+            min_depth=min_depth, max_depth=max_depth,
+            min_volume=min_volume, max_volume=max_volume,
+            min_tetrahedra=min_tetrahedra, max_tetrahedra=max_tetrahedra,
+            sparsity=sparsity, cavities_only=True)
     
+    return cavities, surface
+
+
 class Channel:
     def __init__(self, tetrahedra, centerline_spline, radius_spline, length, bottleneck, volume):
         self.tetrahedra = tetrahedra
@@ -1191,6 +2272,8 @@ class Cavity:
         self.starting_tetrahedron = None
         self.channels = []
         self.depth = 0
+        self.tetrahedra_depths = {}
+        self.volume = 0.0
         
     def make_surface(self):
         self.is_connected_to_surface = True
@@ -1394,9 +2477,12 @@ class ChannelCalculator:
             queue = deque([(tetra, 0) for tetra in exit_tetrahedra])
             max_depth = -1
             deepest_tetrahedron = None
+            tetrahedra_depths = {}
 
             while queue:
                 current, depth = queue.popleft()
+                tetrahedra_depths[current] = depth
+                
                 if depth > max_depth:
                     max_depth = depth
                     deepest_tetrahedron = current
@@ -1408,6 +2494,7 @@ class ChannelCalculator:
 
             cavity.set_starting_tetrahedron(np.array([deepest_tetrahedron]))
             cavity.set_depth(max_depth)
+            cavity.tetrahedra_depths = tetrahedra_depths
             
     def dijkstra(self, cavity, simplices, neighbors, vertices, points, vdw_radii):
         import heapq
@@ -1533,6 +2620,58 @@ class ChannelCalculator:
     def filter_channels_by_bottleneck(self, cavities, bottleneck):
         for cavity in cavities:
             cavity.channels = [channel for channel in cavity.channels if channel.bottleneck >= bottleneck]
+    
+    def filter_channels_by_volume(self, cavities, min_volume=None, max_volume=None):
+        """Filter channels by volume."""
+    
+        for cavity in cavities:
+            filtered_channels = []
+            for channel in cavity.channels:
+                if min_volume is not None and channel.volume < min_volume:
+                    continue
+                if max_volume is not None and channel.volume > max_volume:
+                    continue
+                filtered_channels.append(channel)
+            cavity.channels = filtered_channels
+
+    def filter_cavities_by_tetrahedra(self, cavities, min_tetrahedra=None, max_tetrahedra=None):
+        """Filter cavities by cavity volume."""
+    
+        filtered = []
+        for cavity in cavities:
+            n = len(cavity.tetrahedra)
+            if min_tetrahedra is not None and n < min_tetrahedra:
+                continue
+            if max_tetrahedra is not None and n > max_tetrahedra:
+                continue
+            filtered.append(cavity)
+        return filtered
+
+    def calculate_tetrahedron_volume(self, a, b, c, d):
+        return abs(np.dot(a - d, np.cross(b - d, c - d))) / 6.0
+
+    def calculate_cavity_volumes(self, cavities, simplices, coords):
+        """Calculate approximate cavity volumes from Delaunay tetrahedra."""
+
+        for cavity in cavities:
+            volume = 0.0
+            for tetra in cavity.tetrahedra:
+                atom_ids = simplices[tetra]
+                a, b, c, d = coords[atom_ids]
+                volume += self.calculate_tetrahedron_volume(a, b, c, d)
+            cavity.volume = volume
+
+    def filter_cavities_by_volume(self, cavities, min_volume=None, max_volume=None):
+        """Filter cavities by approximate volume."""
+
+        filtered_cavities = []
+        for cavity in cavities:
+            if min_volume is not None and cavity.volume < min_volume:
+                continue
+            if max_volume is not None and cavity.volume > max_volume:
+                continue
+            filtered_cavities.append(cavity)
+        return filtered_cavities
 
     def save_channels_to_pdb(self, cavities, filename, separate=False, num_samples=5):
         filename = str(filename)
@@ -1586,6 +2725,49 @@ class ChannelCalculator:
                     channel_index += 1
 
 
+    def save_cavities_to_pdb(self, cavities, vertices, filename, separate=False):
+        """Save surface cavities to a PDB/PQR file as dummy atoms."""
+
+        filename = str(filename)
+
+        with open(filename, 'w') as pqr_file:
+            atom_index = 1
+            cavity_index = 0
+
+            for cavity in cavities:
+                tetrahedra = cavity.tetrahedra
+                if tetrahedra is None or len(tetrahedra) == 0:
+                    continue
+
+                points = vertices[tetrahedra]
+                for x, y, z in points:
+                    pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+                        % (atom_index, cavity_index + 1, x, y, z, 1.00, 1.00))
+                    atom_index += 1
+                cavity_index += 1
+
+        if separate:
+            cavity_index = 0
+
+            for cavity in cavities:
+                tetrahedra = cavity.tetrahedra
+                if tetrahedra is None or len(tetrahedra) == 0:
+                    continue
+
+                points = vertices[tetrahedra]
+                cavity_filename = filename.replace('.pqr', '_cavity{0}.pqr'.format(cavity_index))
+                cavity_filename = cavity_filename.replace('.pdb', '_cavity{0}.pdb'.format(cavity_index))
+
+                with open(cavity_filename, 'w') as pqr_file:
+                    atom_index = 1
+
+                    for x, y, z in points:
+                        pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+                            % (atom_index, cavity_index + 1, x, y, z, 1.00, 1.00))
+                        atom_index += 1
+
+                cavity_index += 1
+            
     def calculate_channel_length(self, centerline_spline):
         t_values = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], len(centerline_spline.x) * 10)
         points = centerline_spline(t_values)
@@ -1645,4 +2827,10 @@ class ChannelCalculator:
             cavity.set_starting_tetrahedron(np.array([chosen]))
 
 
-
+    def trim_cavities_by_depth(self, cavities, max_depth):
+        """Filtering cavities by max_depth."""
+    
+        for cavity in cavities:
+            cavity.tetrahedra = np.array([
+                tetra for tetra in cavity.tetrahedra
+                if cavity.tetrahedra_depths.get(tetra, np.inf) <= max_depth])

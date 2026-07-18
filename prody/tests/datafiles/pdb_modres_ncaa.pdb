@@ -1,0 +1,5 @@
+HEADER    TEST MODRES NCAA                     13-JUL-26   0XAA              
+MODRES 0XAA XAA A    5  MET  NON-CANONICAL METHIONINE TEST                      
+SEQRES   1 A    5  ALA MET GLY SER XAA                                          
+ATOM      1  CA  ALA A   1      11.104  13.207   9.347  1.00 20.00           C  
+END
