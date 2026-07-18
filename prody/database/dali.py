@@ -539,7 +539,7 @@ def daliFilterMultimer(atoms, dali_rec, n_chains=None, reverse=False):
     if not isinstance(dali_rec, DaliRecord):
         raise TypeError("dali_rec should be a DaliRecord")
     try:
-        keys = dali_rec._alignPDB
+        _ = dali_rec._alignPDB
     except:
         raise AttributeError("Dali Record does not have any data yet. Please run fetch.")
 
@@ -551,7 +551,7 @@ def daliFilterMultimer(atoms, dali_rec, n_chains=None, reverse=False):
 
     numChains = 0
     atommap = None
-    for i, chain in enumerate(atoms.iterChains()):
+    for chain in atoms.iterChains():
         m = dali_rec.getMapping(chain.getTitle()[:4] + chain.getChid())
         if m is not None:
             numChains += 1
