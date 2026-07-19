@@ -1388,7 +1388,7 @@ def calcSignatureCollectivity(mode_ensemble, masses=None):
         
     return sig
 
-def calcSignatureOverlaps(mode_ensemble, diag=True, collapse=False):
+def calcSignatureOverlaps(mode_ensemble, diag=True, collapse=False, ref_model=None):
     """Calculate average mode-mode overlaps for a ModeEnsemble.
     
     If *diag* is **True** (default) then only diagonal values will be calculated. 
@@ -1398,7 +1398,12 @@ def calcSignatureOverlaps(mode_ensemble, diag=True, collapse=False):
     a 4-dimensional sdarray that is a matrix of overlap matrices. 
     
     If *collapse* is **True** then these will be collapsed together, giving a 2-dimensional 
-    array for full matrices. This operation is not defined for diagonal values."""
+    array for full matrices. This operation is not defined for diagonal values.
+    
+    The overlaps can now be calculated relative to a *ref_model* instead of within the ensemble.
+    """
+    if ref_model is not None and not isinstance(ref_model, (NMA, ModeSet, Mode, Vector)):
+        raise TypeError('ref_model must be of type NMA, ModeSet, Mode or Vector')
     
     if isinstance(mode_ensemble, ModeEnsemble):
         if not mode_ensemble.isMatched():
@@ -1407,9 +1412,13 @@ def calcSignatureOverlaps(mode_ensemble, diag=True, collapse=False):
 
         n_sets = mode_ensemble.numModeSets()
         n_modes = mode_ensemble.numModes()
+        n_atoms = mode_ensemble.numAtoms()
     else:
         if not isListLike(mode_ensemble):
             raise TypeError('mode_ensemble should be list-like or an instance of ModeEnsemble')
+        
+        if not np.all(np.array([isinstance(modeset, (ModeSet, NMA)) for modeset in mode_ensemble])):
+            raise TypeError("mode_ensemble should contain ModeSet or NMA objects")
 
         n_sets = len(mode_ensemble)
 
@@ -1418,39 +1427,84 @@ def calcSignatureOverlaps(mode_ensemble, diag=True, collapse=False):
             n_modes = n_modes[0]
         else:
             raise ValueError('all mode sets in mode_ensemble should have the same number of modes')
-
-    if diag:
-        if collapse:
-            LOGGER.warn('cannot collapse diagonal values')
-        overlaps = np.zeros((n_modes, n_sets, n_sets))
-    else:
-        if collapse:
-            overlaps = np.zeros((n_modes*n_sets, n_modes*n_sets))
+        
+        n_atoms = np.array([modeset.numAtoms() for modeset in mode_ensemble])
+        if np.all(n_atoms == n_atoms[0]):
+            n_atoms = n_atoms[0]
         else:
-            overlaps = np.zeros((n_modes, n_modes, n_sets, n_sets))
+            raise ValueError('all mode sets in mode_ensemble should have the same number of atoms')
+    
+    if ref_model is None:
+        if diag:
+            if collapse:
+                LOGGER.warn('cannot collapse diagonal values')
+            overlaps = np.zeros((n_modes, n_sets, n_sets))
+        else:
+            if collapse:
+                overlaps = np.zeros((n_modes*n_sets, n_modes*n_sets))
+            else:
+                overlaps = np.zeros((n_modes, n_modes, n_sets, n_sets))
 
-    for i, modeset_i in enumerate(mode_ensemble):
-        for j, modeset_j in enumerate(mode_ensemble):
-            if j >= i:
-                if diag:
-                    overlaps[:,i,j] = overlaps[:,j,i] = abs(calcOverlap(modeset_i, 
-                                                                        modeset_j, 
-                                                                        diag=True))
-                else:
-                    if collapse:
-                        overlaps[i*n_modes:(i+1)*n_modes,
-                                 j*n_modes:(j+1)*n_modes] = np.abs(calcOverlap(modeset_i,
-                                                                               modeset_j))
-                        overlaps[j*n_modes:(j+1)*n_modes,
-                                 i*n_modes:(i+1)*n_modes] = np.abs(calcOverlap(modeset_j,
-                                                                               modeset_i))
+        for i, modeset_i in enumerate(mode_ensemble):
+            for j, modeset_j in enumerate(mode_ensemble):
+                if j >= i:
+                    if diag:
+                        overlaps[:,i,j] = overlaps[:,j,i] = abs(calcOverlap(modeset_i, 
+                                                                            modeset_j, 
+                                                                            diag=True))
                     else:
-                        overlaps[:, :, i, j] = abs(calcOverlap(modeset_i,
-                                                               modeset_j,
-                                                               diag=False))
-                        overlaps[:, :, j, i] = abs(calcOverlap(modeset_j,
-                                                               modeset_i,
-                                                               diag=False))
+                        if collapse:
+                            overlaps[i*n_modes:(i+1)*n_modes,
+                                     j*n_modes:(j+1)*n_modes] = np.abs(calcOverlap(modeset_i,
+                                                                                   modeset_j))
+                            overlaps[j*n_modes:(j+1)*n_modes,
+                                     i*n_modes:(i+1)*n_modes] = np.abs(calcOverlap(modeset_j,
+                                                                                   modeset_i))
+                        else:
+                            overlaps[:, :, i, j] = abs(calcOverlap(modeset_i,
+                                                                   modeset_j,
+                                                                   diag=False))
+                            overlaps[:, :, j, i] = abs(calcOverlap(modeset_j,
+                                                                  modeset_i,
+                                                                  diag=False))
+    else:
+        if ref_model.numAtoms() != n_atoms:
+            raise ValueError("ref_model must have the same number of atoms as the ensemble")
+        
+        n_modes_ref = ref_model.numModes()
+
+        if diag:
+            if ref_model.numModes() != n_modes:
+                raise ValueError(
+                    "cannot take diagonal if ref_model does not have the same number of modes as the ensemble"
+                )
+            if collapse:
+                LOGGER.warn('cannot collapse diagonal values')
+            overlaps = np.zeros((n_modes, n_sets, 1))
+        else:
+            if collapse:
+                overlaps = np.zeros((n_modes*n_sets, n_modes_ref))
+            else:
+                overlaps = np.zeros((n_modes, n_modes_ref, n_sets, 1))
+
+        j = 0 # only one ref_model
+        modeset_j = ref_model
+        for i, modeset_i in enumerate(mode_ensemble):
+            if diag:
+                overlaps[:,i,j] = abs(calcOverlap(modeset_i,
+                                                  modeset_j,
+                                                  diag=True))
+            else:
+                if collapse:
+                    overlaps[i*n_modes:(i+1)*n_modes,
+                             j*n_modes_ref:(j+1)*n_modes_ref] = np.abs(
+                                 calcOverlap(modeset_i, modeset_j)
+                            ).reshape(n_modes, n_modes_ref)
+                else:
+                    overlaps[:, :, i, j] = abs(
+                        calcOverlap(modeset_i,
+                                    modeset_j,
+                                    diag=False)).reshape(n_modes, n_modes_ref)
 
     return overlaps
 
