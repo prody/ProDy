@@ -49,6 +49,12 @@ def calcPerturbResponse(model, **kwargs):
     large numbers of forces and no perturbation forces are explicitly applied. 
     If set to **False**, then each residue/node is perturbed *repeats* times (default 100) 
     with a random unit force vector as in ProDy v1.8 and earlier.
+
+    If *return_vectors* is **False** (default), then the average NxN PRS matrix
+    is calculated and used to calculate effectiveness and sensitivity.
+    If **True**, raw responses are returned as a vector ensemble (using :class:`.ModeEnsemble`)
+    with shape n_atoms (perturbed) members x *repeats* vectors x n_atoms (moving).
+    This has to run through the explicit forces branch, so overrides *turbo*.
     """
 
     if not isinstance(model, (NMA, ModeSet, Mode)):
@@ -77,7 +83,9 @@ def calcPerturbResponse(model, **kwargs):
     cov = model.getCovariance()
 
     turbo = kwargs.get('turbo', True)
-    if turbo:
+    return_vectors = kwargs.get('return_vectors', False)
+
+    if turbo and not return_vectors:
         if not model.is3d():
             prs_matrix = cov**2
 
@@ -99,6 +107,13 @@ def calcPerturbResponse(model, **kwargs):
                 j3p3 += 3                
                 prs_matrix[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
     else:
+        from .signature import ModeEnsemble
+        response_ensemble = ModeEnsemble("response ensemble")
+
+        if return_vectors and not model.is3d():
+            raise ValueError('return_vectors=True requires a 3d model (ANM or '
+                             'PCA); GNM responses have no direction')
+
         repeats = kwargs.pop('repeats', 100)
         LOGGER.info('Calculating perturbation response with {0} repeats'.format(repeats))
         LOGGER.timeit('_prody_prs_mat')
@@ -112,10 +127,16 @@ def calcPerturbResponse(model, **kwargs):
             i3p3 += 3
             forces = np.random.rand(repeats * 3).reshape((repeats, 3))
             forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
-            for force in forces:
+            responses = np.zeros((repeats, n_atoms*3))
+            for n, force in enumerate(forces):
+                responses[n] = np.dot(cov[:, i3:i3p3], force)
                 response_matrix[i] += (
-                    np.dot(cov[:, i3:i3p3], force)
-                    ** 2).reshape((n_atoms, 3)).sum(1)
+                    responses[n] ** 2
+                ).reshape((n_atoms, 3)).sum(1)
+
+            responses_nma = NMA(f"response to perturbing {i}th node")
+            responses_nma.setEigens(responses)
+            response_ensemble.addModeSet(responses_nma)
             LOGGER.update(i, '_prody_prs')
 
         response_matrix /= repeats
@@ -154,6 +175,9 @@ def calcPerturbResponse(model, **kwargs):
         atoms.setData('sensitivity', sensitivity)
 
         #atoms.setData('prs_matrix', norm_prs_matrix)
+
+    if return_vectors:
+        return response_ensemble
 
     return norm_prs_matrix, effectiveness, sensitivity
 
