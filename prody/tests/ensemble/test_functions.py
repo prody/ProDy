@@ -1,5 +1,7 @@
 """This module contains unit tests for :mod:`~prody.ensemble`."""
 
+import numpy as np
+
 from prody.tests import TestCase, skipUnless, MATPLOTLIB
 
 if MATPLOTLIB:
@@ -100,16 +102,46 @@ class TestShowOccupancies(TestCase):
     def tearDown(self):
         plt.close('all')
 
+    def _draw(self):
+        plt.gcf().canvas.draw()
+        return plt.gca().xaxis.get_major_formatter()
+
     def testUsesExplicitAtoms(self):
         show = showOccupancies(PDBENSEMBLEA, normed=True, atoms=ATOMS)
         line = show[0]
-        assert_equal(line.get_xdata(), ATOMS.getResnums(),
-                     'showOccupancies failed to use explicit atoms for x-axis')
+        assert_equal(line.get_xdata(), np.arange(ATOMS.numAtoms(), dtype=float),
+                     'showOccupancies failed to use atomic plotting positions')
+        formatter = self._draw()
+        assert_equal(str(formatter(0, None)), str(ATOMS.getResnums()[0]),
+                     'showOccupancies failed to label the x-axis using residue numbers')
         assert_equal(plt.gca().get_xlabel(), 'Residue number',
                      'showOccupancies failed to label the residue-number x-axis')
 
     def testUsesEnsembleAtomsByDefault(self):
         show = showOccupancies(PDBENSEMBLEA, normed=True)
         line = show[0]
-        assert_equal(line.get_xdata(), PDBENSEMBLEA.getAtoms().getResnums(),
-                     'showOccupancies failed to use ensemble atoms for x-axis')
+        assert_equal(line.get_xdata(),
+                     np.arange(PDBENSEMBLEA.getAtoms().numAtoms(), dtype=float),
+                     'showOccupancies failed to use ensemble atoms for atomic plotting positions')
+
+    def testUsesAtomicLabelsForMultipleChains(self):
+        atoms = parsePDB(DATA_FILES['3hsy']['path'], subset='ca')
+        ensemble = PDBEnsemble('multi-chain')
+        ensemble.setAtoms(atoms)
+        ensemble.setCoords(atoms.getCoords())
+        ensemble.addCoordset(atoms)
+
+        show = showOccupancies(ensemble, normed=True)
+        line = show[0]
+        assert_equal(line.get_xdata(), np.arange(atoms.numAtoms(), dtype=float),
+                     'showOccupancies failed to use sequential positions for multiple chains')
+
+        formatter = self._draw()
+        chids = atoms.getChids()
+        first_chain = chids[0]
+        second_index = np.where(chids != first_chain)[0][0]
+        assert_equal(str(formatter(0, None)), '{0}:{1}'.format(chids[0], atoms.getResnums()[0]),
+                     'showOccupancies failed to label the first chain correctly')
+        assert_equal(str(formatter(second_index, None)),
+                     '{0}:{1}'.format(chids[second_index], atoms.getResnums()[second_index]),
+                     'showOccupancies failed to label later chains correctly')

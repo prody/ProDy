@@ -354,6 +354,8 @@ def calcOccupancies(pdb_ensemble, normed=False):
 def showOccupancies(pdbensemble, *args, **kwargs):
     """Show occupancies for the PDB ensemble using :func:`~matplotlib.pyplot.
     plot`.  Occupancies are calculated using :meth:`calcOccupancies`.
+    When atoms are available, :func:`~prody.dynamics.plotting.showAtomicLines`
+    is used to label the x-axis.
 
     :arg atoms: atoms for showing residue numbers along the x-axis.
         Default option is to use ``pdbensemble.getAtoms()``.
@@ -361,6 +363,7 @@ def showOccupancies(pdbensemble, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
+    from prody.dynamics.plotting import showAtomicLines
 
     normed = kwargs.pop('normed', False)
     atoms = kwargs.pop('atoms', None)
@@ -373,10 +376,7 @@ def showOccupancies(pdbensemble, *args, **kwargs):
     if weights is None:
         return None
     if atoms is not None:
-        if weights.shape[0] != atoms.numAtoms():
-            raise ValueError('size mismatch between occupancies ({0}) and atoms ({1})'
-                             .format(weights.shape[0], atoms.numAtoms()))
-        show = plt.plot(atoms.getResnums(), weights, *args, **kwargs)
+        show = showAtomicLines(weights, *args, atoms=atoms, **kwargs)[0]
         plt.xlabel('Residue number')
     else:
         show = plt.plot(weights, *args, **kwargs)
@@ -386,7 +386,7 @@ def showOccupancies(pdbensemble, *args, **kwargs):
     axis[3] += 1
     plt.axis(axis)
     plt.ylabel('Sum of weights')
-    if SETTINGS['auto_show']:
+    if SETTINGS['auto_show'] and atoms is None:
         showFigure()
     return show
 
