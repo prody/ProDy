@@ -12,10 +12,10 @@ from prody.utilities import div0
 
 from .nma import NMA
 from .modeset import ModeSet
-from .mode import Mode
+from .mode import Mode, Vector
 
-__all__ = ['calcPerturbResponse', 'calcDynamicFlexibilityIndex',
-           'calcDynamicCouplingIndex']
+__all__ = ['calcPerturbResponse', 'comparePerturbResponses',
+           'calcDynamicFlexibilityIndex', 'calcDynamicCouplingIndex']
 
 def calcPerturbResponse(model, **kwargs):
 
@@ -55,6 +55,29 @@ def calcPerturbResponse(model, **kwargs):
     If **True**, raw responses are returned as a vector ensemble (using :class:`.ModeEnsemble`)
     with shape n_atoms (perturbed) members x *repeats* vectors x n_atoms (moving).
     This has to run through the explicit forces branch, so overrides *turbo*.
+    Each response vector is the displacement ``cov . f`` and is stored with its
+    squared magnitude as the eigenvalue, so it can be overlapped with a target
+    conformational change (e.g. from :func:`.calcDeformVector`) using
+    :func:`.comparePerturbResponses`.
+
+    The directional scan can be steered with two options:
+
+    * *force*: a specific perturbing force to apply instead of the random unit
+      forces. Either a single 3-vector or an ``(m, 3)`` array of *m* directions.
+      When given, *repeats* is ignored (each node gets exactly *m* responses).
+    * *perturb_node*: an index or list of indices restricting the scan to the
+      selected node(s) rather than every node.
+
+    Either option routes through the explicit-force branch (ignoring *turbo*).
+    They still fill the PRS matrix, but only for the perturbed rows (and, with a
+    custom *force*, along that direction rather than the isotropic average), so
+    when *return_vectors* is **False** a *partial* matrix and its effectiveness
+    and sensitivity are returned. A 3d *model* (ANM or PCA) is required whenever
+    *return_vectors* is **True**; GNM responses have no direction.
+
+    By default *return_vectors* returns only the response ensemble. Set
+    *return_matrix* to **True** together with *return_vectors* to return both,
+    as a 4-tuple ``(prs_matrix, effectiveness, sensitivity, response_ensemble)``.
     """
 
     if not isinstance(model, (NMA, ModeSet, Mode)):
@@ -85,7 +108,11 @@ def calcPerturbResponse(model, **kwargs):
     turbo = kwargs.get('turbo', True)
     return_vectors = kwargs.get('return_vectors', False)
 
-    if turbo and not return_vectors:
+    force = kwargs.pop('force', None)
+    perturb_node = kwargs.pop('perturb_node', None)
+    directional = force is not None or perturb_node is not None
+
+    if turbo and not return_vectors and not directional:
         if not model.is3d():
             prs_matrix = cov**2
 
@@ -114,32 +141,51 @@ def calcPerturbResponse(model, **kwargs):
             raise ValueError('return_vectors=True requires a 3d model (ANM or '
                              'PCA); GNM responses have no direction')
 
+        # resolve which nodes to perturb (default: every node)
+        if perturb_node is None:
+            nodes = list(range(n_atoms))
+        elif np.isscalar(perturb_node):
+            nodes = [int(perturb_node)]
+        else:
+            nodes = [int(i) for i in perturb_node]
+        if any(i < 0 or i >= n_atoms for i in nodes):
+            raise ValueError('perturb_node indices must be in [0, {0})'.format(n_atoms))
+
+        # resolve forces: a fixed direction (or set of directions), otherwise
+        # *repeats* random unit forces drawn per node
+        fixed_forces = None
+        if force is not None:
+            fixed_forces = np.atleast_2d(np.asarray(force, dtype=float))
+            if fixed_forces.shape[1] != 3:
+                raise ValueError('force must be a 3-vector or an (m, 3) array')
+
         repeats = kwargs.pop('repeats', 100)
         LOGGER.info('Calculating perturbation response with {0} repeats'.format(repeats))
         LOGGER.timeit('_prody_prs_mat')
 
+        # rows for nodes that are not perturbed stay zero (a partial PRS matrix)
         prs_matrix = np.zeros((n_atoms, n_atoms))
-        LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
-        i3 = -3
-        i3p3 = 0
-        for i in range(n_atoms):
-            i3 += 3
-            i3p3 += 3
-            forces = np.random.rand(repeats * 3).reshape((repeats, 3))
-            forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
-            responses = np.zeros((repeats, n_atoms*3))
-            for n, force in enumerate(forces):
-                responses[n] = np.dot(cov[:, i3:i3p3], force)
-                prs_matrix[i] += (
-                    responses[n] ** 2
-                ).reshape((n_atoms, 3)).sum(1)
+        LOGGER.progress('Calculating perturbation response', len(nodes), '_prody_prs')
+        for k, i in enumerate(nodes):
+            i3 = i * 3
+            if fixed_forces is not None:
+                forces = fixed_forces
+            else:
+                forces = np.random.rand(repeats * 3).reshape((repeats, 3))
+                forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
 
-            responses_nma = NMA(f"response to perturbing {i}th node")
-            responses_nma.setEigens(responses.T)
+            # response displacement vectors cov . f, shape (3*n_atoms, n_forces)
+            responses = np.dot(cov[:, i3:i3+3], forces.T)
+            vals = (responses ** 2).sum(0)  # squared response magnitude per force
+
+            # average squared response magnitude over the perturbing forces
+            prs_matrix[i] = (responses ** 2).reshape(
+                (n_atoms, 3, -1)).sum(axis=1).mean(axis=1)
+
+            responses_nma = NMA("response to perturbing {0}th node".format(i))
+            responses_nma.setEigens(responses, vals)
             response_ensemble.addModeSet(responses_nma)
-            LOGGER.update(i, label='_prody_prs')
-
-        prs_matrix /= repeats
+            LOGGER.update(k, label='_prody_prs')
 
         LOGGER.clear()
         LOGGER.report('Perturbation response matrix calculated in %.1fs.',
@@ -177,9 +223,73 @@ def calcPerturbResponse(model, **kwargs):
         #atoms.setData('prs_matrix', norm_prs_matrix)
 
     if return_vectors:
+        if atoms is not None:
+            response_ensemble.setAtoms(atoms)
+        if kwargs.get('return_matrix', False):
+            return norm_prs_matrix, effectiveness, sensitivity, response_ensemble
         return response_ensemble
 
     return norm_prs_matrix, effectiveness, sensitivity
+
+
+def comparePerturbResponses(response_ensemble, target, stat='max'):
+    """Overlap analysis of a directional PRS *response_ensemble* against a *target*.
+
+    The *response_ensemble* is a :class:`.ModeEnsemble` as returned by
+    :func:`.calcPerturbResponse` with ``return_vectors=True`` (one modeset per
+    perturbed node, holding that node's response vectors). Each response is
+    overlapped with *target* and the per-force overlaps are reduced to a single
+    value per perturbed node, giving a profile of how well perturbing each node
+    drives motion resembling *target*.
+
+    :arg target: what to overlap the responses against. Either
+
+        * an :class:`.NMA`, :class:`.ModeSet`, :class:`.Mode` or :class:`.Vector`
+          (e.g. an :class:`.ANM` model, one of its modes, or a deformation vector
+          from :func:`.calcDeformVector`); for a multi-mode target the overlap is
+          taken against the best-matching target mode per force; or
+        * another response :class:`.ModeEnsemble`, compared node-by-node (the two
+          ensembles must have the same number of modesets).
+    :type target: :class:`.NMA`, :class:`.ModeSet`, :class:`.Mode`,
+        :class:`.Vector` or :class:`.ModeEnsemble`
+
+    :arg stat: how to reduce each node's absolute overlaps over the force
+        directions. One of ``'max'`` (default, the best-matching force), ``'mean'``
+        (the isotropic average over force directions) or ``'sum'``.
+    :type stat: str
+
+    Returns a 1D :class:`~numpy.ndarray` with one value per perturbed node.
+    """
+    from .signature import ModeEnsemble
+    from .compare import calcOverlap
+
+    if not isinstance(response_ensemble, ModeEnsemble):
+        raise TypeError('response_ensemble must be a ModeEnsemble')
+
+    reducers = {'max': np.max, 'mean': np.mean, 'sum': np.sum}
+    if stat not in reducers:
+        raise ValueError("stat must be one of 'max', 'mean' or 'sum'")
+    reducer = reducers[stat]
+
+    if isinstance(target, ModeEnsemble):
+        if target.numModeSets() != response_ensemble.numModeSets():
+            raise ValueError('the two ensembles must have the same number of '
+                             'modesets (perturbed nodes)')
+        profile = [reducer(np.abs(calcOverlap(ms_i, ms_j)))
+                   for ms_i, ms_j in zip(response_ensemble, target)]
+
+    elif isinstance(target, (NMA, ModeSet, Mode, Vector)):
+        profile = []
+        for ms in response_ensemble:
+            # (n_forces, n_target_modes); keep the best-matching target mode
+            ov = np.abs(calcOverlap(ms, target)).reshape(ms.numModes(), -1)
+            profile.append(reducer(ov.max(axis=1)))
+
+    else:
+        raise TypeError('target must be an NMA, ModeSet, Mode, Vector or '
+                        'ModeEnsemble')
+
+    return np.array(profile)
 
 
 def calcDynamicFlexibilityIndex(matrix, atoms, select, **kwargs):
