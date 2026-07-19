@@ -135,7 +135,7 @@ def calcPerturbResponse(model, **kwargs):
                 ).reshape((n_atoms, 3)).sum(1)
 
             responses_nma = NMA(f"response to perturbing {i}th node")
-            responses_nma.setEigens(responses)
+            responses_nma.setEigens(responses.T)
             response_ensemble.addModeSet(responses_nma)
             LOGGER.update(i, label='_prody_prs')
 
