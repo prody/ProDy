@@ -386,7 +386,7 @@ def showOccupancies(pdbensemble, *args, **kwargs):
     axis[3] += 1
     plt.axis(axis)
     plt.ylabel('Sum of weights')
-    if SETTINGS['auto_show'] and atoms is None:
+    if SETTINGS['auto_show']:
         showFigure()
     return show
 
