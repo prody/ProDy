@@ -103,7 +103,7 @@ def calcPerturbResponse(model, **kwargs):
         LOGGER.info('Calculating perturbation response with {0} repeats'.format(repeats))
         LOGGER.timeit('_prody_prs_mat')
 
-        response_matrix = np.zeros((n_atoms, n_atoms))
+        prs_matrix = np.zeros((n_atoms, n_atoms))
         LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
         i3 = -3
         i3p3 = 0
@@ -113,12 +113,12 @@ def calcPerturbResponse(model, **kwargs):
             forces = np.random.rand(repeats * 3).reshape((repeats, 3))
             forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
             for force in forces:
-                response_matrix[i] += (
+                prs_matrix[i] += (
                     np.dot(cov[:, i3:i3p3], force)
                     ** 2).reshape((n_atoms, 3)).sum(1)
             LOGGER.update(i, label='_prody_prs')
 
-        response_matrix /= repeats
+        prs_matrix /= repeats
 
         LOGGER.clear()
         LOGGER.report('Perturbation response matrix calculated in %.1fs.',
