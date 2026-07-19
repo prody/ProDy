@@ -116,7 +116,7 @@ def calcPerturbResponse(model, **kwargs):
                 response_matrix[i] += (
                     np.dot(cov[:, i3:i3p3], force)
                     ** 2).reshape((n_atoms, 3)).sum(1)
-            LOGGER.update(i, '_prody_prs')
+            LOGGER.update(i, label='_prody_prs')
 
         response_matrix /= repeats
 
