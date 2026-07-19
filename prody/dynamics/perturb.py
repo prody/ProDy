@@ -137,7 +137,7 @@ def calcPerturbResponse(model, **kwargs):
             responses_nma = NMA(f"response to perturbing {i}th node")
             responses_nma.setEigens(responses)
             response_ensemble.addModeSet(responses_nma)
-            LOGGER.update(i, '_prody_prs')
+            LOGGER.update(i, label='_prody_prs')
 
         response_matrix /= repeats
 
