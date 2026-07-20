@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """This module is called CaviTracer and defines functions for calculating 
-channels, tunnels, and pores within protein structure.
+channels, tunnels, and surface cavities within protein structure.
 """
 
 __author__ = 'Karolina Mikulska-Ruminska', 'Jan Brezovsky', 'Eryk Trzcinski'
@@ -218,8 +218,8 @@ def _reportAtomsInputComposition(atoms):
 
 
 def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
-    """Generates a 3D model of molecular structures using VMD and returns it as
-      an Open3D TriangleMesh.
+    """Generates a 3D model of molecular structures using VMD and returns 
+    it as an Open3D TriangleMesh.
 
     This function creates a temporary PDB file from the provided atomic data
     and uses VMD (Visual Molecular Dynamics) to render this data into an STL
@@ -231,25 +231,27 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
     conda install open3d (for Anaconda users; version open3d-0.19.0 was used 
     during the development) or pip install open3d
 
+    If problem with `ipykernel.comm.Comm` class appeared while using getVmdModel
+    please update dash: python -m pip install -U dash
+
     :arg vmd_path: Path to the VMD executable. This is required to run VMD and 
-    execute the TCL script.
+        execute the TCL script.
     :type vmd_path: str
 
     :arg atoms: Atomic data to be written to a PDB file. This should be an 
-    object or data structure
-        that is compatible with the `writePDB` function.
+        object or data structure that is compatible with the `writePDB` function.
     :type atoms: object
 
     :raises ImportError: If required libraries ('subprocess', 'pathlib', 
-    'tempfile', 'open3d') are not installed, an ImportError is raised, 
-    specifying which libraries are missing.
+        'tempfile', 'open3d') are not installed, an ImportError is raised, 
+        specifying which libraries are missing.
 
     :raises ValueError: If the STL file is not created or is empty, or if the 
-    STL file cannot be read as a TriangleMesh,
+        STL file cannot be read as a TriangleMesh,
         a ValueError is raised.
 
     :returns: An Open3D TriangleMesh object representing the 3D model generated
-      from the PDB data.
+        from the PDB data.
     :rtype: open3d.geometry.TriangleMesh
 
     Example usage:
@@ -365,7 +367,7 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
 
 def showChannels(channels, model=None, surface=None):
     """Visualizes the channels, and optionally, the molecular model and 
-        surface, using Open3D.
+    surface, using Open3D.
     
     This function renders a 3D visualization of molecular channels based on 
     their spline representations. It can also display a molecular model (e.g., 
@@ -394,7 +396,7 @@ def showChannels(channels, model=None, surface=None):
         - `simp`: The simplices that define the surface (e.g., triangles or 
            tetrahedra).
         If provided, the surface will be rendered as a wireframe overlay in the
-         visualization.
+        visualization.
     :type surface: list (with two numpy arrays), optional
     
     :raises ImportError: If the Open3D library is not installed, an ImportError
@@ -512,8 +514,7 @@ def showCavities(surface, show_surface=False):
     :type show_surface: bool
 
     :raises ImportError: If the Open3D library is not installed, an ImportError
-      is raised,
-        prompting the user to install Open3D.
+        is raised, prompting the user to install Open3D.
 
     :returns: None
 
@@ -840,11 +841,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     "MOLE 2.0: advanced approach for analysis of biomacromolecular channels" by
      D. Sehnal, et al., published in J Chemoinform, 5 (39) 2013.
      
-     CAVER: Algorithms for Analyzing Dynamics of Tunnels in Macromolecules. by
+     "CAVER: Algorithms for Analyzing Dynamics of Tunnels in Macromolecules". by
      A. Pavelka, et al., published in IEEE ACM T COMPUT BI, (13) 2016.
 
-    Software Tools for Identification, Visualization and Analysis of Protein 
-    Tunnels and Channels. by J. Brezovsky, et al., Biotechnol Adv (31) 2013.
+    "Software Tools for Identification, Visualization and Analysis of Protein 
+    Tunnels and Channels". by J. Brezovsky, et al., Biotechnol Adv (31) 2013.
 
 
     :arg atoms: An object representing the molecular structure, typically 
@@ -857,8 +858,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :type output_path: str or None
 
     :arg separate: If True, each detected channel is saved to a separate PDB 
-        file. If False, all channels are saved in a single PDB file. Default is
-         False.
+        file. If False, all channels are saved in a single PDB file. Default is 
+        False.
     :type separate: bool
 
     :arg start_point: Optional starting point for channel search. This can be
@@ -953,8 +954,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :arg diagram: 
         "homogenized" (default) - every atom is substituted by a set of 
         homogeneous balls whose common radius equals the smallest van der Waals
-          radius present in the structure, before building the Voronoi and 
-          Delaunay tessellations. This yields an accurate estimate of the 
+        radius present in the structure, before building the Voronoi and 
+        Delaunay tessellations. This yields an accurate estimate of the 
         additively weighted Voronoi diagram from an ordinary one, as done in 
         MolAxis and CAVER 3
         "simple" - the original atoms are used with their individual van der 
@@ -964,7 +965,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         built directly from the atoms with their individual van der Waals radii,
         using the third-party ``vorpy`` package (with a compiled kernel when
         ``numba`` is available). This is the exact diagram the "homogenized" mode
-        approximates, at a higher cost (~ 100x slower, for 4000 atoms).
+        approximates, at a higher cost (~ 100x slower, for 4000 atoms). To use this
+        approach install ``vorpy`` library using ``pip install vorpy3``. 
     :type diagram: str
 
     :arg max_deviation: Maximum tolerated deviation, in Angstrom, between the 
@@ -1473,16 +1475,18 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
             
-def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, start_point=None, **kwargs):
-    """Compute channels for each frame in a given trajectory or multi-model PDB
-      file.
+def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, 
+    separate=False, start_point=None, **kwargs):
+    """Compute channels for each frame in a given trajectory or multi-model 
+    PDB file.
 
     This function calculates the channels for each frame in a trajectory or for
      each model in a multi-model PDB file. The `kwargs` can include parameters 
      necessary for channel calculation. If the `separate` parameter is set to 
      True, each detected channel will be saved in a separate PDB file.
 
-    :arg atoms: Atomic data or object containing atomic coordinates and methods for accessing them.
+    :arg atoms: Atomic data or object containing atomic coordinates and methods 
+        for accessing them.
     :type atoms: object
 
     :arg trajectory: Trajectory object containing multiple frames or a 
@@ -1495,30 +1499,36 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
         results are not saved. Default is None.
     :type output_path: str or None
 
-    :arg separate: If True, each detected channel is saved to a separate PDB file for each frame/model.
-        If False, all channels for each frame/model are saved in a single file. Default is False.
+    :arg separate: If True, each detected channel is saved to a separate PDB 
+        file for each frame/model.
+        If False, all channels for each frame/model are saved in a single file. 
+        Default is False.
     :type separate: bool
 
-    :arg start_point: Optional starting point for channel search. If provided, the algorithm will use 
-        the tetrahedron whose Voronoi vertex is closest to this point as the starting tetrahedron (overriding 
-        the default automatic seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
+    :arg start_point: Optional starting point for channel search. If provided, 
+        the algorithm will use the tetrahedron whose Voronoi vertex is closest 
+        to this point as the starting tetrahedron (overriding the default automatic 
+        seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
     :type start_point: list, tuple, or ndarray (length 3), or None 
 
-    :arg kwargs: Additional parameters required for channel calculation. This can include parameters such as
-        radius values (r1, r2), minimum depth (min_depth), bottleneck values, etc. 
+    :arg kwargs: Additional parameters required for channel calculation. This can 
+        include parameters such as radius values (r1, r2), minimum depth (min_depth), 
+        bottleneck values, etc. 
         See the available parameters in calcChannels().
     :type kwargs: dict
 
-    :returns: List of channels and surfaces computed for each frame or model. Each entry in the list corresponds
-        to a specific frame or model.
+    :returns: List of channels and surfaces computed for each frame or model. 
+        Each entry in the list corresponds to a specific frame or model.
     :rtype: list of lists
 
     Example usage:
-    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb",
-                                   separate=False, r1=3, r2=0.9, min_depth=5, bottleneck=1, sparsity=3)
+    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, 
+                                    output_path="channels.pdb", separate=False, r1=3, 
+                                    r2=0.9, min_depth=5, bottleneck=1, sparsity=3)
                                   
-    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, output_path="channels.pdb", 
-                                   separate=False, start_point=[-10.353, -0.133, 5.608]) """
+    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, 
+                                    output_path="channels.pdb", separate=False, 
+                                    start_point=[-10.353, -0.133, 5.608]) """
 
     
     if PY3K:
@@ -1593,7 +1603,8 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, separat
     return channels_all, surfaces_all
 
 
-def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, separate=False, **kwargs):
+def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, 
+    separate=False, **kwargs):
     """Compute surface cavities for each frame in a trajectory or multi-model PDB.
 
     This function calculates surface cavities for each frame of a trajectory or
@@ -1641,10 +1652,12 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, 
 
     Example usage:
     protein = parsePDB('1tqn').select('protein')
-    cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, trajectory=traj, output_path="surface_cavities",
-        r1=4.5, r2=2.0, min_depth=1.5, max_depth=2.5, min_volume=50)
+    cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, 
+                                trajectory=traj, output_path="surface_cavities",
+                                r1=4.5, r2=2.0, min_depth=1.5, max_depth=2.5, min_volume=50)
 
-    cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, start_frame=0, stop_frame=10, r1=4.5, r2=2.0) """
+    cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, start_frame=0, 
+                                stop_frame=10, r1=4.5, r2=2.0) """
 
     if PY3K:
         if not checkAndImport('pathlib'):
@@ -2374,7 +2387,8 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
     for frame/model ``i`` are analyzed against the protein coordinates from 
     frame/model ``i``.
 
-    This function should be used with results returned by :func:`calcSurfaceCavitiesMultipleFrames`.
+    This function should be used with results returned by 
+    :func:`calcSurfaceCavitiesMultipleFrames`.
 
     :arg atoms: an Atomic object from which residues are selected.
     :type atoms: :class:`.Atomic`
@@ -2490,8 +2504,8 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         getChannelResidues(), default is False 
     :type residues_file: bool
 
-    :arg param_file: File with residues forming the channel created by getChannelParameters()
-                     default is False
+    :arg param_file: File with residues forming the channel created by 
+        getChannelParameters(). Default is False.
     :type param_file: bool  """
 
     try:
@@ -2665,16 +2679,18 @@ def calcChannelSurfaceOverlaps(**kwargs):
     
     from pathlib import Path
     pqr_files = [str(f) for f in Path(".").glob("channels_*.pqr")]
-    calcChannelSurfaceOverlaps(pqr_files=pqr_files, output_file_name='results.pdb', max_proc=4)
-    - files with the "channels_" prefix will be selected from the current folder and analyzed using 
-    four parallel processes.
+    calcChannelSurfaceOverlaps(pqr_files=pqr_files, 
+                output_file_name='results.pdb', max_proc=4)
+    - files with the "channels_" prefix will be selected from the current folder 
+    and analyzed using four parallel processes.
     
-    calcChannelSurfaceOverlaps(pqr_files='./DATA', output_file_name='results.pdb') - only files from 
-    the DATA folder will be analyzed and results will be saved as results.pdb
+    calcChannelSurfaceOverlaps(pqr_files='./DATA', output_file_name='results.pdb') 
+    - only files from the DATA folder will be analyzed and results will be saved 
+    as results.pdb
     
     list_of_files = ['file1.pqr', 'file2.pqr', 'file3.pqr', ..]
-    calcChannelSurfaceOverlaps(pqr_files=list_of_files, output_file_name='results.pdb') - files from 
-    the list will be analyzed and results will be saved as results.pdb
+    calcChannelSurfaceOverlaps(pqr_files=list_of_files, output_file_name='results.pdb') 
+    - files from the list will be analyzed and results will be saved as results.pdb
     """
     
     import os
@@ -2807,8 +2823,8 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
     :type output_path: str or None
 
     :arg separate: If True, each detected cavity is saved to a separate PQR 
-        file. If False, all cavities are saved in a single PQR file. Default is
-         False.
+        file. If False, all cavities are saved in a single PQR file. Default is 
+        False.
     :type separate: bool
 
     :arg r1: The first radius threshold used during the deletion of simplices, 
@@ -2820,8 +2836,8 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
     :type r2: float
 
     :arg min_depth: The minimum depth, in Angstrom, a cavity must reach to be
-        considered. Depth is the geodesic distance from the surface opening along the
-        Voronoi network, a physical length independent of tessellation density.
+        considered. Depth is the geodesic distance from the surface opening along 
+        the Voronoi network, a physical length independent of tessellation density.
         Default is 1.5.
     :type min_depth: float
 
