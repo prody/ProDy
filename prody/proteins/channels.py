@@ -753,7 +753,7 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
                     sorted([tetra[1], tetra[2], tetra[3]])])
 
             surface_triangles = np.unique(np.array(triangles), axis=0, 
-                                          eturn_counts=True)[0]
+                                          return_counts=True)[0]
             cavity_mesh = o3d.geometry.TriangleMesh()
             cavity_mesh.vertices = o3d.utility.Vector3dVector(points)
             cavity_mesh.triangles = o3d.utility.Vector3iVector(surface_triangles)
