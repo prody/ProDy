@@ -31,6 +31,10 @@ for key, txt, val in [
     ('threshold', 'RMSD threshold to apply when forming clusters, can be tuple of floats', 'None'),
     ('no_sim', 'whether a short MD simulation is not performed after energy minimization (otherwise it is)', False),
     ('parallel', 'whether conformer generation will be parallelized', False),
+    ('parallel_sim', 'number of worker processes to parallelize per-conformer minimisation/MD across '
+                     '(0 means all CPUs; absent/False means off); independent of --parallel', False),
+    ('sim_devices', 'comma-separated physical GPU indices to round-robin the parallel-sim workers '
+                    'across, e.g. 0,1 (default: none, no GPU pinning)', None),
     ('v1', 'whether to use original sampling method with complete enumeration of ANM modes', False),
     ('no_outlier', 'whether to not exclude outliers in each generation when using implicit solvent (always False for explicit)', False),
     ('mzscore', 'modified z-score threshold to label conformers as outliers', 3.5),
@@ -101,6 +105,10 @@ def prody_clustenm(pdb, **kwargs):
     sim = not kwargs.pop('no_sim')
     temp = kwargs.pop('temp')
     parallel = kwargs.pop('parallel')
+    parallel_sim = kwargs.pop('parallel_sim')
+    sim_devices = kwargs.pop('sim_devices')
+    if isinstance(sim_devices, str):
+        sim_devices = [int(x) for x in sim_devices.split(',') if x.strip() != '']
     write_params = kwargs.pop("write_params")
 
     solvent = kwargs.pop('solvent')
@@ -170,7 +178,8 @@ def prody_clustenm(pdb, **kwargs):
             t_steps_g=eval(t_steps_g),
             outlier=outlier, mzscore=mzscore,
             sparse=sparse, kdtree=kdtree, turbo=turbo,
-            parallel=parallel, fitmap=fitmap,
+            parallel=parallel, parallel_sim=parallel_sim,
+            sim_devices=sim_devices, fitmap=fitmap,
             fit_resolution=fit_resolution,
             nproc=nproc, **kwargs)
 
@@ -282,7 +291,15 @@ population with all of them:
     group.add_argument('-B', '--parallel', dest='parallel',
         action='store_true',
         default=DEFAULTS['parallel'], help=HELPTEXT['parallel'])
-    
+
+    group.add_argument('--parallel_sim', dest='parallel_sim', type=int,
+        default=DEFAULTS['parallel_sim'], metavar='INT',
+        help=HELPTEXT['parallel_sim'] + ' (default: %(default)s)')
+
+    group.add_argument('--sim_devices', dest='sim_devices', type=str,
+        default=DEFAULTS['sim_devices'], metavar='STR',
+        help=HELPTEXT['sim_devices'] + ' (default: %(default)s)')
+
     group.add_argument('-E', '--write_params', dest='write_params',
         action='store_true',
         default=DEFAULTS['write_params'], help=HELPTEXT['write_params'])

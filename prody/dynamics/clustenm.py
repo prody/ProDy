@@ -54,6 +54,27 @@ norm = la.norm
 
 __all__ = ['ClustENM', 'ClustRTB', 'ClustImANM', 'ClustExANM']
 
+# Physical device index this parallel-simulation worker is pinned to (None = no pinning). Set in the
+# spawned worker by _worker_sim_init and read by _prep_sim when it builds the OpenMM Context, so each
+# worker's Context lands on a distinct GPU. A module global (not an attribute) because it must persist
+# in the worker process across tasks -- self is re-pickled per task, this is set once per worker.
+_WORKER_DEVICE_INDEX = None
+
+
+def _worker_sim_init(devices):
+    '''Pool initializer for parallel simulation: pin this worker to one device from *devices*
+    (round-robin by worker rank). *devices* is a list of physical device indices, or None/empty for
+    no pinning.'''
+    global _WORKER_DEVICE_INDEX
+    if devices:
+        from multiprocessing import current_process
+        try:
+            rank = int(current_process().name.rsplit('-', 1)[-1]) - 1
+        except Exception:
+            rank = 0
+        _WORKER_DEVICE_INDEX = devices[rank % len(devices)]
+
+
 class ClustENM(Ensemble):
 
     '''
@@ -98,8 +119,10 @@ class ClustENM(Ensemble):
         self._outlier = True
         self._mzscore = 3.5
         self._v1 = False
-        self._platform = None 
+        self._platform = None
         self._parallel = False
+        self._parallel_sim = False
+        self._sim_devices = None
 
         self._topology = None
         self._positions = None
@@ -392,6 +415,11 @@ class ClustENM(Ensemble):
             properties = {'Precision': 'single'}
         elif self._platform in ['CUDA', 'OpenCL']:
             properties = {'Precision': 'single'}
+            # pin this Context to the device assigned to this parallel-sim worker (read at build time,
+            # so it is immune to the CUDA_VISIBLE_DEVICES-vs-import timing race)
+            if _WORKER_DEVICE_INDEX is not None:
+                key = 'DeviceIndex' if self._platform == 'CUDA' else 'OpenCLDeviceIndex'
+                properties[key] = str(_WORKER_DEVICE_INDEX)
         elif self._platform == 'CPU':
             if self._threads == 0:
                 cpus = cpu_count()
@@ -463,39 +491,25 @@ class ClustENM(Ensemble):
 
             return np.nan, np.full_like(coords, np.nan)
 
-    @staticmethod
-    def _worker_gpu_init():
-
-        # Pin each Pool worker to ONE visible GPU (round-robin over CUDA_VISIBLE_DEVICES) so a multi-GPU
-        # parallel run spreads across the GPUs instead of all contending on GPU 0. No-op when fewer than
-        # two GPUs are visible (e.g. the CPU platform), so it is harmless for CPU-parallel runs.
-
-        import os
-        from multiprocessing import current_process
-        gpus = [g for g in os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',') if g != '']
-        if len(gpus) > 1:
-            try:
-                rank = int(current_process().name.rsplit('-', 1)[-1]) - 1
-            except Exception:
-                rank = 0
-            os.environ['CUDA_VISIBLE_DEVICES'] = gpus[rank % len(gpus)]
-
     def _min_sim_batch(self, coords_list):
 
         # Minimise (+ optional heat/sim) a batch of coordsets. Parallelised across conformers with a
-        # multiprocessing Pool when self._parallel is set (mirrors the _generate/_sample parallelisation),
-        # otherwise serial. Workers round-robin across visible GPUs (multi-GPU) via _worker_gpu_init.
+        # multiprocessing Pool when self._parallel_sim is set (independent of self._parallel, which
+        # parallelises conformer generation), otherwise serial. When self._sim_devices is set, workers
+        # round-robin across those GPUs via _worker_sim_init + the DeviceIndex property in _prep_sim.
         # Returns a list of (potential, coords) aligned with coords_list.
 
         coords_list = list(coords_list)
-        if self._parallel and len(coords_list) > 1:
-            repeats = cpu_count() if self._parallel is True else int(self._parallel)
+        if self._parallel_sim and len(coords_list) > 1:
+            repeats = cpu_count() if self._parallel_sim is True else int(self._parallel_sim)
             # 'spawn', not the default fork: OpenMM loads its CUDA platform plugin (initialising the CUDA
             # driver) at import in the parent, and that driver state does not survive a fork -- a forked
             # worker then fails Context creation with CUDA_ERROR_NOT_INITIALIZED. A spawned worker starts a
             # fresh interpreter and initialises CUDA cleanly on its assigned GPU. self pickles fine.
+            # (spawn re-imports the caller module, so the calling code must guard `if __name__=='__main__'`.)
             ctx = get_context('spawn')
-            with ctx.Pool(repeats, initializer=self._worker_gpu_init) as p:
+            with ctx.Pool(repeats, initializer=_worker_sim_init,
+                          initargs=(self._sim_devices,)) as p:
                 return p.map(self._min_sim, coords_list)
         return [self._min_sim(c) for c in coords_list]
 
@@ -1246,14 +1260,26 @@ class ClustENM(Ensemble):
             'CPU' is needed for setting threads per simulation.
         :type platform: str
 
-        :arg parallel: If it is True (default is False), conformer generation AND the energy
-            minimisation / MD of each conformer are parallelized across worker processes.
-            This can also be set to a number for how many workers are used.
-            Setting 0 or True means run as many as there are CPUs on the machine. With a GPU
-            platform, workers are round-robined across the visible GPUs. The worker pool uses the
-            'spawn' start method (OpenMM+CUDA cannot be forked), so the calling code MUST be guarded
-            by ``if __name__ == '__main__':``.
+        :arg parallel: If it is True (default is False), conformer generation will be parallelized.
+            This can also be set to a number for how many CPUs are used in parallel conformer generation.
+            Setting 0 or True means run as many as there are CPUs on the machine.
         :type parallel: bool
+
+        :arg parallel_sim: Parallelize the per-conformer energy minimisation / MD across worker
+            processes (default False). Independent of *parallel* (which parallelizes conformer
+            generation): use this to speed up the simulation step, most useful for longer MD or large
+            ensembles. True or 0 uses as many workers as CPUs; an int sets the worker count.
+            The worker pool uses the 'spawn' start method (OpenMM+CUDA cannot be forked), so when
+            *parallel_sim* is used the calling code MUST be guarded by ``if __name__ == '__main__':``.
+        :type parallel_sim: bool, int
+
+        :arg sim_devices: How the parallel simulation is distributed over GPUs (default None = no
+            pinning; every worker uses the platform's default device). A list of physical device
+            indices, or an int N meaning ``[0..N-1]``, over which the parallel-sim workers are
+            round-robined (applied via the OpenMM DeviceIndex property at Context creation, so it is
+            not affected by CUDA_VISIBLE_DEVICES import-time ordering). Only meaningful with
+            *parallel_sim* and a CUDA/OpenCL platform.
+        :type sim_devices: list, int, None
 
         :arg threads: Number of threads to use for an individual simulation using the thread setting from OpenMM
             Default of 0 uses all CPUs on the machine.
@@ -1301,6 +1327,27 @@ class ClustENM(Ensemble):
         elif not isinstance(self._parallel, bool) and self._parallel == 0:
             # this is a deliberate choice and is documented
             self._parallel = True
+
+        # parallel_sim: parallelise the per-conformer energy minimisation / MD (independent of `parallel`,
+        # which parallelises conformer generation). bool or int worker count; True/0 -> cpu_count.
+        self._parallel_sim = kwargs.pop('parallel_sim', False)
+        if not isinstance(self._parallel_sim, (int, bool)):
+            raise TypeError('parallel_sim should be an int or bool')
+        if not isinstance(self._parallel_sim, bool) and self._parallel_sim == 1:
+            self._parallel_sim = False
+        elif not isinstance(self._parallel_sim, bool) and self._parallel_sim == 0:
+            self._parallel_sim = True
+
+        # sim_devices: how the parallel simulation spreads over GPUs. A list of physical device indices,
+        # or an int N meaning devices [0..N-1], to round-robin the parallel-sim workers across (applied via
+        # the OpenMM DeviceIndex property at Context creation). None = no pinning (all workers default to
+        # the platform's default device). Only meaningful with parallel_sim and a CUDA/OpenCL platform.
+        sim_devices = kwargs.pop('sim_devices', None)
+        if isinstance(sim_devices, int) and not isinstance(sim_devices, bool):
+            sim_devices = list(range(sim_devices))
+        elif sim_devices is not None:
+            sim_devices = [int(d) for d in sim_devices]
+        self._sim_devices = sim_devices
 
         self._threads = kwargs.pop('threads', 0)
         self._targeted = kwargs.pop('targeted', False)
