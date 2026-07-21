@@ -269,8 +269,18 @@ class PCA(NMA):
         dof = n_atoms * 3
         deviations = deviations.reshape((n_confs, dof)).T
 
-        vectors, values, self._temp = linalg.svd(deviations,
-                                                 full_matrices=False)
+        if linalg.__package__.startswith('torch'):
+            import torch
+            dev = torch.from_numpy(np.asarray(deviations))
+            if torch.cuda.is_available():
+                dev = dev.cuda()
+            vectors, values, self._temp = linalg.svd(dev, full_matrices=False)
+            vectors = vectors.detach().cpu().numpy()
+            values = values.detach().cpu().numpy()
+            self._temp = self._temp.detach().cpu().numpy()
+        else:
+            vectors, values, self._temp = linalg.svd(deviations,
+                                                     full_matrices=False)
         values = (values ** 2) / n_confs
         self._dof = dof
         self._n_atoms = n_atoms
