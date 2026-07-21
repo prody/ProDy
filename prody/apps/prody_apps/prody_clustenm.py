@@ -110,17 +110,28 @@ def prody_clustenm(pdb, **kwargs):
     outlier = not kwargs.pop('no_outlier')
     mzscore = kwargs.pop('mzscore')
 
-    pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
+    # a single PDB identifier/filename, or several comma-separated ones -> multi-start ClustENM.
+    # The extra structures seed the initial population as gen-1-style conformers; after selection
+    # they must share the topology of the first. Mirrors setAtoms() accepting a list of AtomGroups.
+    pdbs = [p.strip() for p in pdb.split(',') if p.strip()]
+    ags = [prody.parsePDB(p, model=model, altloc=altloc) for p in pdbs]
+    pdb = ags[0]
     if prefix == '_clustenm':
         prefix = pdb.getTitle() + '_clustenm'
 
-    select = pdb.select(selstr)
-    if select is None:
-        LOGGER.warn('Selection {0} did not match any atoms.'
-                    .format(repr(selstr)))
-        return
-    LOGGER.info('{0} atoms will be used for ClustENM calculations.'
-                .format(len(select)))
+    selects = []
+    for ag in ags:
+        sel = ag.select(selstr)
+        if sel is None:
+            LOGGER.warn('Selection {0} did not match any atoms in {1}.'
+                        .format(repr(selstr), ag.getTitle()))
+            return
+        selects.append(sel)
+    select = selects[0]
+    LOGGER.info('{0} atoms will be used for ClustENM calculations{1}.'
+                .format(len(select),
+                        ' (%d starting structures)' % len(selects)
+                        if len(selects) > 1 else ''))
     
     try:
         gamma = float(kwargs.pop('gamma'))
@@ -149,7 +160,7 @@ def prody_clustenm(pdb, **kwargs):
             raise TypeError("Please provide cutoff as a float or equation using math")
 
     ens = prody.ClustENM(pdb.getTitle())
-    ens.setAtoms(select)
+    ens.setAtoms(selects if len(selects) > 1 else select)
     ens.run(n_gens=ngens, n_modes=nmodes,
             n_confs=nconfs, rmsd=eval(rmsd),
             cutoff=cutoff, gamma=gamma,
@@ -207,7 +218,13 @@ Fetch PDB 1aar, run ClustENM(D) simulations using default parameters for chain A
 carbon alpha atoms with residue numbers less than 70, and save all of the
 graphical output files:
 
-  $ prody clustenm 1aar -s "calpha and chain A and resnum < 70" -A""",
+  $ prody clustenm 1aar -s "calpha and chain A and resnum < 70" -A
+
+Start ClustENM(D) from multiple structures (comma-separated identifiers or
+filenames sharing the same topology after selection), seeding the initial
+population with all of them:
+
+  $ prody clustenm model1.pdb,model2.pdb,model3.pdb""",
   test_examples=[0, 1])
 
     group = addNMAParameters(subparser, include_nproc=True)
@@ -350,7 +367,9 @@ graphical output files:
         default=DEFAULTS['platform'], metavar='STR',
         help=HELPTEXT['platform'] + ' (default: %(default)s)')
 
-    subparser.add_argument('pdb', help='PDB identifier or filename')
+    subparser.add_argument('pdb', help='PDB identifier or filename; or several comma-separated '
+        'identifiers/filenames (sharing topology after selection) to start ClustENM from multiple '
+        'structures')
 
     subparser.set_defaults(func=lambda ns: prody_clustenm(ns.__dict__.pop('pdb'),
                                                           **ns.__dict__))
