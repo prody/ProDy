@@ -136,16 +136,47 @@ class ClustENM(Ensemble):
 
         return self._confs is not None
 
-    def setAtoms(self, atoms, pH=7.0):
+    def setAtoms(self, atoms, pH=7.0, fix=True):
 
         '''
         Sets atoms.
-        
-        :arg atoms: *atoms* parsed by parsePDB
+
+        :arg atoms: a single AtomGroup parsed by parsePDB, OR a list/tuple of AtomGroups to seed a
+            MULTI-START run. In the multi-start case the topology is built from the first structure and a
+            matching coordinate set is collected from each; they become the generation-0 initial
+            population (each is minimised), so a run can start from a *set* of structures rather than one.
+            The members must be the same molecule (identical atom count after preparation).
 
         :arg pH: pH based on which to select protonation states for adding missing hydrogens, default is 7.0.
         :type pH: float
+
+        :arg fix: run PDBFixer (replace nonstandard residues, add missing atoms + hydrogens) via _fix.
+            Default True. Set False to SKIP PDBFixer and build the OpenMM topology directly from *atoms*
+            as-is -- only valid when *atoms* is already complete AND protonated; the forcefield build will
+            fail otherwise (e.g. heavy-atom-only inputs must keep fix=True).
+        :type fix: bool
         '''
+
+        # Multi-start: a list/tuple of AtomGroups -> set up the topology from the first, then collect one
+        # topology-matching coordset from each (the gen-0 initial population).
+        if isinstance(atoms, (list, tuple)):
+            ags = list(atoms)
+            if len(ags) == 0:
+                raise ValueError('setAtoms received an empty list of structures')
+            self.setAtoms(ags[0], pH=pH, fix=fix)          # single-structure setup -> topology + self._atoms
+            coordsets = [self._atoms.getCoords()]
+            for ag in ags[1:]:
+                c = self._fix_multi(ag, pH, fix)
+                if c.shape[0] != self._n_atoms:
+                    raise ValueError('multi-start member %r has %d atoms after preparation; expected %d '
+                                     '(all members must be the same molecule)'
+                                     % (ag.getTitle(), c.shape[0], self._n_atoms))
+                coordsets.append(c)
+            self._start_coordsets = coordsets
+            LOGGER.info('Multi-start: %d initial structures set.' % len(coordsets))
+            return
+
+        self._start_coordsets = None
 
         atoms = atoms.select('not hetatm')
 
@@ -167,12 +198,16 @@ class ClustENM(Ensemble):
         if self._isBuilt():
             super(ClustENM, self).setAtoms(atoms)
         else:
-            LOGGER.info('Fixing the structure ...')
-            LOGGER.timeit('_clustenm_fix')
             self._ph = pH
-            self._fix(atoms)
-            LOGGER.report('The structure was fixed in %.2fs.',
-                          label='_clustenm_fix')
+            if fix:
+                LOGGER.info('Fixing the structure ...')
+                LOGGER.timeit('_clustenm_fix')
+                self._fix(atoms)
+                LOGGER.report('The structure was fixed in %.2fs.',
+                              label='_clustenm_fix')
+            else:
+                LOGGER.info('Skipping PDBFixer (fix=False); building topology from atoms as-is ...')
+                self._nofix(atoms)
 
             if self._nuc is None:
                 self._idx_cg = self._atoms.ca.getIndices()
@@ -244,6 +279,64 @@ class ClustENM(Ensemble):
 
         self._topology = fixed.topology
         self._positions = fixed.positions
+
+    def _nofix(self, atoms):
+
+        # Build the OpenMM topology/positions directly from atoms, SKIPPING PDBFixer. Requires atoms to be
+        # already complete AND protonated (the forcefield build fails otherwise). Mirrors _fix's tail only.
+
+        try:
+            from openmm.app import PDBFile
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
+
+        title = atoms.getTitle()
+        stream = createStringIO()
+        writePDBStream(stream, atoms)
+        stream.seek(0)
+        pdb = PDBFile(stream)
+        stream.close()
+
+        self._atoms = atoms.copy()
+        self._atoms.setTitle(title)
+        self._topology = pdb.topology
+        self._positions = pdb.positions
+
+    def _fix_multi(self, atoms, pH, fix):
+
+        # Return coords of `atoms` after the SAME (optional) PDBFixer processing as _fix, so they match the
+        # topology built from the reference structure -- used to collect a multi-start population.
+
+        atoms = atoms.select('not hetatm')
+        if not fix:
+            return atoms.getCoords()
+
+        try:
+            from pdbfixer import PDBFixer
+            from openmm.app import PDBFile
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
+
+        stream = createStringIO()
+        writePDBStream(stream, atoms)
+        stream.seek(0)
+        fixed = PDBFixer(pdbfile=stream)
+        stream.close()
+
+        fixed.missingResidues = {}
+        fixed.findNonstandardResidues()
+        fixed.replaceNonstandardResidues()
+        fixed.removeHeterogens(False)
+        fixed.findMissingAtoms()
+        fixed.addMissingAtoms()
+        fixed.addMissingHydrogens(pH)
+
+        out = createStringIO()
+        PDBFile.writeFile(fixed.topology, fixed.positions, out, keepIds=True)
+        out.seek(0)
+        ag = parsePDBStream(out)
+        out.close()
+        return ag.getCoords()
 
     def _prep_sim(self, coords, external_forces=[]):
 
@@ -1256,24 +1349,30 @@ class ClustENM(Ensemble):
         else:
             LOGGER.info('Minimization in generation 0 ...')
         LOGGER.timeit('_clustenm_min')
-        potential, conformer = self._min_sim(self._atoms.getCoords())
-        if np.isnan(potential):
-            raise ValueError('Initial structure could not be minimized. Try again and/or check your structure.')
+        # Multi-start: skip the single-conformer gen-0 and seed directly with the N provided structures
+        # (each minimised) as the initial population; equivalent to gen-0 when there is only one. The
+        # generation loop below then samples normal modes from all of them. (Single-structure default =
+        # the one reference conformer.)
+        starts = self._start_coordsets if getattr(self, '_start_coordsets', None) else [self._atoms.getCoords()]
+        if len(starts) > 1:
+            LOGGER.info('Multi-start: minimising %d initial structures (gen-0 single-conformer step skipped) ...'
+                        % len(starts))
+        pot_conf = [self._min_sim(sc) for sc in starts]
+        pots0 = [pc[0] for pc in pot_conf]
+        if np.any(np.isnan(pots0)):
+            raise ValueError('An initial structure could not be minimized. Try again and/or check your structure(s).')
 
         LOGGER.report(label='_clustenm_min')
 
         LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
-        self.setCoords(conformer)
+        confs0 = np.array([pc[1] for pc in pot_conf])
+        self.setCoords(confs0[0])
 
-        potentials = [potential]
-        sizes = [1]
-        new_shape = [1]
-        for s in conformer.shape:
-            new_shape.append(s)
-        conf = conformer.reshape(new_shape)
-        conformers = start_confs = conf
-        keys = [(0, 0)]
+        potentials = list(pots0)
+        sizes = [1] * len(pots0)
+        conformers = start_confs = confs0
+        keys = [(0, j) for j in range(len(pots0))]
 
         for i in range(1, self._n_gens+1):
             self._cycle += 1
