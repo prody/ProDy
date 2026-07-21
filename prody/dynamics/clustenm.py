@@ -1475,6 +1475,19 @@ class ClustENM(Ensemble):
         conformers = start_confs = confs0
         keys = [(0, j) for j in range(len(pots0))]
 
+        if self._fitmap is not None and len(starts) > 1:
+            # multi-start with fitting: the starting CC above was recorded for the first seed only, but
+            # gen-0 now holds one conformer per seed. Record a starting CC for each extra seed too, so
+            # self._cc stays aligned with the gen-0 conformers (labels (0, j)).
+            saved = self._atoms.getCoords()
+            for j in range(1, len(starts)):
+                self._atoms.setCoords(starts[j])
+                sim_map = self._blurrer(self._atoms.toTEMPyStructure(),
+                                        self._fit_resolution, self._fitmap)
+                self._cc.append(float(self._scorer.CCC(self._fitmap, sim_map)))
+            self._atoms.setCoords(saved)
+            self._cc_prev = max(self._cc)
+
         for i in range(1, self._n_gens+1):
             self._cycle += 1
             LOGGER.info('Generation %d ...' % i)
