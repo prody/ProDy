@@ -463,16 +463,34 @@ class ClustENM(Ensemble):
 
             return np.nan, np.full_like(coords, np.nan)
 
+    @staticmethod
+    def _worker_gpu_init():
+
+        # Pin each Pool worker to ONE visible GPU (round-robin over CUDA_VISIBLE_DEVICES) so a multi-GPU
+        # parallel run spreads across the GPUs instead of all contending on GPU 0. No-op when fewer than
+        # two GPUs are visible (e.g. the CPU platform), so it is harmless for CPU-parallel runs.
+
+        import os
+        from multiprocessing import current_process
+        gpus = [g for g in os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',') if g != '']
+        if len(gpus) > 1:
+            try:
+                rank = int(current_process().name.rsplit('-', 1)[-1]) - 1
+            except Exception:
+                rank = 0
+            os.environ['CUDA_VISIBLE_DEVICES'] = gpus[rank % len(gpus)]
+
     def _min_sim_batch(self, coords_list):
 
         # Minimise (+ optional heat/sim) a batch of coordsets. Parallelised across conformers with a
         # multiprocessing Pool when self._parallel is set (mirrors the _generate/_sample parallelisation),
-        # otherwise serial. Returns a list of (potential, coords) aligned with coords_list.
+        # otherwise serial. Workers round-robin across visible GPUs (multi-GPU) via _worker_gpu_init.
+        # Returns a list of (potential, coords) aligned with coords_list.
 
         coords_list = list(coords_list)
         if self._parallel and len(coords_list) > 1:
             repeats = cpu_count() if self._parallel is True else int(self._parallel)
-            with Pool(repeats) as p:
+            with Pool(repeats, initializer=self._worker_gpu_init) as p:
                 return p.map(self._min_sim, coords_list)
         return [self._min_sim(c) for c in coords_list]
 
