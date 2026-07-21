@@ -25,7 +25,7 @@ __credits__ = ['Pemra Doruker', 'She Zhang']
 __email__ = ['burak.kaynak@pitt.edu', 'doruker@pitt.edu', 'shz66@pitt.edu']
 
 from itertools import product
-from multiprocessing import cpu_count, Pool
+from multiprocessing import cpu_count, get_context, Pool
 from collections import OrderedDict
 from os import chdir, mkdir
 from os.path import isdir
@@ -490,7 +490,12 @@ class ClustENM(Ensemble):
         coords_list = list(coords_list)
         if self._parallel and len(coords_list) > 1:
             repeats = cpu_count() if self._parallel is True else int(self._parallel)
-            with Pool(repeats, initializer=self._worker_gpu_init) as p:
+            # 'spawn', not the default fork: OpenMM loads its CUDA platform plugin (initialising the CUDA
+            # driver) at import in the parent, and that driver state does not survive a fork -- a forked
+            # worker then fails Context creation with CUDA_ERROR_NOT_INITIALIZED. A spawned worker starts a
+            # fresh interpreter and initialises CUDA cleanly on its assigned GPU. self pickles fine.
+            ctx = get_context('spawn')
+            with ctx.Pool(repeats, initializer=self._worker_gpu_init) as p:
                 return p.map(self._min_sim, coords_list)
         return [self._min_sim(c) for c in coords_list]
 
@@ -1241,9 +1246,13 @@ class ClustENM(Ensemble):
             'CPU' is needed for setting threads per simulation.
         :type platform: str
 
-        :arg parallel: If it is True (default is False), conformer generation will be parallelized.
-            This can also be set to a number for how many CPUs are used in parallel conformer generation.
-            Setting 0 or True means run as many as there are CPUs on the machine.
+        :arg parallel: If it is True (default is False), conformer generation AND the energy
+            minimisation / MD of each conformer are parallelized across worker processes.
+            This can also be set to a number for how many workers are used.
+            Setting 0 or True means run as many as there are CPUs on the machine. With a GPU
+            platform, workers are round-robined across the visible GPUs. The worker pool uses the
+            'spawn' start method (OpenMM+CUDA cannot be forked), so the calling code MUST be guarded
+            by ``if __name__ == '__main__':``.
         :type parallel: bool
 
         :arg threads: Number of threads to use for an individual simulation using the thread setting from OpenMM
