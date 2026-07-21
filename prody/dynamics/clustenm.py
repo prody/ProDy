@@ -411,12 +411,25 @@ class ClustENM(Ensemble):
         # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
 
         try:
+            from openmm import Vec3
             from openmm.app import StateDataReporter
-            from openmm.unit import kelvin, angstrom, nanometer, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
+            from openmm.unit import kelvin, angstrom, nanometer, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R, Quantity
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
 
-        simulation = self._prep_sim(coords=coords)
+        # Build-once: an implicit-solvent system depends only on the (fixed) topology, so cache the
+        # Simulation and reuse its Context across conformers (setPositions per call) instead of rebuilding
+        # createSystem every call -- speeds up multi-conformer generations and multi-start. Explicit
+        # solvent adds a per-conformer solvent box, so it is NOT cached (rebuilt each call, as before).
+        if self._sol == 'imp' and getattr(self, '_sim_cache', None) is not None:
+            simulation = self._sim_cache
+            simulation.context.setPositions(Quantity([Vec3(*xyz) for xyz in coords], angstrom))
+            if self._sim:
+                simulation.context.setVelocitiesToTemperature(0)   # fresh start for the heating loop
+        else:
+            simulation = self._prep_sim(coords=coords)
+            if self._sol == 'imp':
+                self._sim_cache = simulation
 
         # automatic conversion into nanometer will be carried out.
         # simulation.context.setPositions(coords * angstrom)
@@ -449,6 +462,19 @@ class ClustENM(Ensemble):
             LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
 
             return np.nan, np.full_like(coords, np.nan)
+
+    def _min_sim_batch(self, coords_list):
+
+        # Minimise (+ optional heat/sim) a batch of coordsets. Parallelised across conformers with a
+        # multiprocessing Pool when self._parallel is set (mirrors the _generate/_sample parallelisation),
+        # otherwise serial. Returns a list of (potential, coords) aligned with coords_list.
+
+        coords_list = list(coords_list)
+        if self._parallel and len(coords_list) > 1:
+            repeats = cpu_count() if self._parallel is True else int(self._parallel)
+            with Pool(repeats) as p:
+                return p.map(self._min_sim, coords_list)
+        return [self._min_sim(c) for c in coords_list]
 
     def _targeted_sim(self, coords0, coords1, tmdk=15., d_steps=100, n_max_steps=10000, ddtol=1e-3, n_conv=5):
 
@@ -1348,6 +1374,7 @@ class ClustENM(Ensemble):
                 LOGGER.info('Minimization & heating-up in generation 0 ...')
         else:
             LOGGER.info('Minimization in generation 0 ...')
+        self._sim_cache = None   # build-once OpenMM sim cache (imp solvent); rebuilt fresh each run
         LOGGER.timeit('_clustenm_min')
         # Multi-start: skip the single-conformer gen-0 and seed directly with the N provided structures
         # (each minimised) as the initial population; equivalent to gen-0 when there is only one. The
@@ -1357,7 +1384,7 @@ class ClustENM(Ensemble):
         if len(starts) > 1:
             LOGGER.info('Multi-start: minimising %d initial structures (gen-0 single-conformer step skipped) ...'
                         % len(starts))
-        pot_conf = [self._min_sim(sc) for sc in starts]
+        pot_conf = self._min_sim_batch(starts)
         pots0 = [pc[0] for pc in pot_conf]
         if np.any(np.isnan(pots0)):
             raise ValueError('An initial structure could not be minimized. Try again and/or check your structure(s).')
@@ -1387,7 +1414,7 @@ class ClustENM(Ensemble):
                 LOGGER.info('Minimization in generation %d ...' % i)
             LOGGER.timeit('_clustenm_min_sim')
 
-            pot_conf = [self._min_sim(conf) for conf in confs]
+            pot_conf = self._min_sim_batch(confs)
 
             LOGGER.report('Structures were sampled in %.2fs.',
                           label='_clustenm_min_sim')
