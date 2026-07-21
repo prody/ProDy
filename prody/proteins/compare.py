@@ -554,6 +554,32 @@ def matchChains(atoms1, atoms2, **kwargs):
     :keyword pwalign: perform pairwise sequence alignment
     :type pwalign: bool
 
+    :keyword seq_alignment_method: pairwise sequence alignment mode passed to
+        Biopython, one of ``"local"`` or ``"global"``. Defaults to the module
+        constant ``ALIGNMENT_METHOD`` (``"local"`` unless changed with
+        :func:`.setAlignmentMethod`)
+    :type seq_alignment_method: str
+
+    :keyword match_score: reward for finding a match in the sequence alignment.
+        Defaults to the module constant ``MATCH_SCORE`` (see
+        :func:`.setMatchScore`)
+    :type match_score: float
+
+    :keyword mismatch_score: penalty for finding a mismatch in the sequence
+        alignment. Defaults to the module constant ``MISMATCH_SCORE`` (see
+        :func:`.setMismatchScore`)
+    :type mismatch_score: float
+
+    :keyword gap_penalty: penalty for opening a gap in the sequence alignment.
+        Defaults to the module constant ``GAP_PENALTY`` (see
+        :func:`.setGapPenalty`)
+    :type gap_penalty: float
+
+    :keyword gap_ext_penalty: penalty for extending a gap in the sequence
+        alignment. Defaults to the module constant ``GAP_EXT_PENALTY`` (see
+        :func:`.setGapExtPenalty`)
+    :type gap_ext_penalty: float
+
     If *subset* is set to *calpha* or *backbone*, only alpha carbon
     atoms or backbone atoms will be paired. If set to *all*, all atoms
     common to matched residues will be returned.
@@ -650,13 +676,14 @@ def matchChains(atoms1, atoms2, **kwargs):
     if pwalign or (not matches and (pwalign is None or pwalign)):
         if unmatched:
             LOGGER.debug('Trying to match chains based on {0} sequence '
-                        'alignment:'.format(ALIGNMENT_METHOD))
+                        'alignment:'.format(kwargs.get('seq_alignment_method',
+                                                       ALIGNMENT_METHOD)))
             for simpch1, simpch2 in unmatched:
                 LOGGER.debug(' Comparing {0} (len={1}) and {2} '
                             '(len={3}):'
                             .format(simpch1.getTitle(), len(simpch1),
                                     simpch2.getTitle(), len(simpch2)))
-                match1, match2, nmatches = getAlignedMatch(simpch1, simpch2)
+                match1, match2, nmatches = getAlignedMatch(simpch1, simpch2, **kwargs)
                 _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
                 _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
                 if _seqid >= seqid and _cover >= coverage:
@@ -772,24 +799,19 @@ def getTrivialMatch(ach, bch):
     return amatch, bmatch, match
 
 
-def getAlignedMatch(ach, bch):
+def getAlignedMatch(ach, bch, **kwargs):
     """Returns list of matching residues (match is based on sequence alignment).
     """
 
-    if ALIGNMENT_METHOD == 'local':
-        alignment = alignBioPairwise(ach.getSequence(),
-                                     bch.getSequence(),
-                                     "local",
-                                     MATCH_SCORE, MISMATCH_SCORE,
-                                     GAP_PENALTY, GAP_EXT_PENALTY,
-                                     max_alignments=1)
-    else:
-        alignment = alignBioPairwise(ach.getSequence(),
-                                     bch.getSequence(),
-                                     "global",
-                                     MATCH_SCORE, MISMATCH_SCORE,
-                                     GAP_PENALTY, GAP_EXT_PENALTY,
-                                     max_alignments=1)
+    alignment = alignBioPairwise(
+        ach.getSequence(), bch.getSequence(),
+        kwargs.get("seq_alignment_method", ALIGNMENT_METHOD),
+        kwargs.get("match_score", MATCH_SCORE),
+        kwargs.get("mismatch_score", MISMATCH_SCORE),
+        kwargs.get("gap_penalty", GAP_PENALTY),
+        kwargs.get("gap_ext_penalty", GAP_EXT_PENALTY),
+        max_alignments=1,
+    )
 
     amatch = []
     bmatch = []
@@ -936,8 +958,34 @@ def mapChainOntoChain(mobile, target, **kwargs):
         based on residue numbers (as well as insertion codes). This will be 
         overridden by the *mapping* keyword's value.
     :type pwalign: bool
-    
-    .. [IS98] Shindyalov IN, Bourne PE. Protein structure alignment by 
+
+    :keyword seq_alignment_method: pairwise sequence alignment mode passed to
+        Biopython, one of ``"local"`` or ``"global"``. Defaults to the module
+        constant ``ALIGNMENT_METHOD`` (``"local"`` unless changed with
+        :func:`.setAlignmentMethod`)
+    :type seq_alignment_method: str
+
+    :keyword match_score: reward for finding a match in the sequence alignment.
+        Defaults to the module constant ``MATCH_SCORE`` (see
+        :func:`.setMatchScore`)
+    :type match_score: float
+
+    :keyword mismatch_score: penalty for finding a mismatch in the sequence
+        alignment. Defaults to the module constant ``MISMATCH_SCORE`` (see
+        :func:`.setMismatchScore`)
+    :type mismatch_score: float
+
+    :keyword gap_penalty: penalty for opening a gap in the sequence alignment.
+        Defaults to the module constant ``GAP_PENALTY`` (see
+        :func:`.setGapPenalty`)
+    :type gap_penalty: float
+
+    :keyword gap_ext_penalty: penalty for extending a gap in the sequence
+        alignment. Defaults to the module constant ``GAP_EXT_PENALTY`` (see
+        :func:`.setGapExtPenalty`)
+    :type gap_ext_penalty: float
+
+    .. [IS98] Shindyalov IN, Bourne PE. Protein structure alignment by
        incremental combinatorial extension (CE) of the optimal path. 
        *Protein engineering* **1998** 11(9):739-47.
     """
@@ -1010,8 +1058,9 @@ def mapChainOntoChain(mobile, target, **kwargs):
                     '(seqid={0:.0f}%, overlap={1:.0f}%).'
                     .format(_seqid, _cover))
 
+    seq_alignment_method = kwargs.get("seq_alignment_method", ALIGNMENT_METHOD)
     if pwalign and mapping is None:
-        SEQ_ALIGNMENT = ('seq', ALIGNMENT_METHOD + ' sequence alignment', seqid, coverage)
+        SEQ_ALIGNMENT = ('seq', seq_alignment_method + ' sequence alignment', seqid, coverage)
         CE_ALIGNMENT = ('ce', 'CEalign', 0., coverage)
 
         if not 'seqid' in kwargs:
@@ -1041,12 +1090,12 @@ def mapChainOntoChain(mobile, target, **kwargs):
             if method == 'ce':
                 result = getCEAlignMapping(simple_target, simple_mobile)
             elif method == 'seq':
-                result = getAlignedMapping(simple_target, simple_mobile)
+                result = getAlignedMapping(simple_target, simple_mobile, **kwargs)
             else:
                 if isinstance(alignment, dict):
                     result = getDictMapping(simple_target, simple_mobile, alignment)
                 else:
-                    result = getAlignedMapping(simple_target, simple_mobile, alignment)
+                    result = getAlignedMapping(simple_target, simple_mobile, alignment, **kwargs)
 
             if result is not None:
                 target_list, chain_list, n_match, n_mapped = result
@@ -1176,8 +1225,12 @@ def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
     :arg match_func: function determines which chains from ``ref`` and ``atoms`` are matched.
         Default is to use the best match.
     :type match_func: func
+
+    See :func:`.mapChainOntoChain` for other keyword arguments, including the
+    pairwise sequence alignment parameters (*seq_alignment_method*,
+    *match_score*, *mismatch_score*, *gap_penalty* and *gap_ext_penalty*).
     """
-    
+
     if not isinstance(atoms, (SimpleChain, AtomGroup, AtomSubset)):
         raise TypeError('atoms must be an AtomGroup or a AtomSubset (Chain, '
                         'Segment, etc.) instance')
@@ -1331,25 +1384,21 @@ def getDictMapping(target, chain, map_dict):
 
     return amatch, bmatch, n_match, n_mapped
 
-def getAlignedMapping(target, chain, alignment=None):
+def getAlignedMapping(target, chain, alignment=None, **kwargs):
     """Returns lists of matching residues (map based on pairwise 
     alignment or predefined alignment)."""
 
     if alignment is None:
-        if ALIGNMENT_METHOD == 'local':
-            alignments = alignBioPairwise(target.getSequence(),
-                                          chain.getSequence(),
-                                          "local",
-                                          MATCH_SCORE, MISMATCH_SCORE,
-                                          GAP_PENALTY,  GAP_EXT_PENALTY,
-                                          max_alignments=1)
-        else:
-            alignments = alignBioPairwise(target.getSequence(),
-                                          chain.getSequence(),
-                                          "global",
-                                          MATCH_SCORE, MISMATCH_SCORE,
-                                          GAP_PENALTY, GAP_EXT_PENALTY,
-                                          max_alignments=1)
+        alignments = alignBioPairwise(
+            target.getSequence(), chain.getSequence(),
+            kwargs.get("seq_alignment_method", ALIGNMENT_METHOD),
+            kwargs.get("match_score", MATCH_SCORE), 
+            kwargs.get("mismatch_score", MISMATCH_SCORE),
+            kwargs.get("gap_penalty", GAP_PENALTY),
+            kwargs.get("gap_ext_penalty", GAP_EXT_PENALTY), 
+            max_alignments=1,
+        )
+
         alignment = alignments[0]
         this, that = alignment[:2]
     else:
