@@ -33,7 +33,7 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, rever
             else:
                 eigvals = (0, n_modes+expct_n_zeros-1)
 
-    def _eigh(M, eigvals=None, turbo=True):
+    def _eigh(M, eigvals=None, turbo=True, n_modes=n_modes):
         if linalg.__package__.startswith('scipy'):
             from scipy.sparse import issparse
 
@@ -70,11 +70,25 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, expct_n_zeros=None, rever
                 values = values[j:k]
                 vectors = vectors[:, j:k]
         else:
-            if n_modes is not None:
-                LOGGER.info('Scipy is not found, all modes were calculated.')
+            if linalg.__package__.startswith('torch'):
+                import torch
+                Mt = torch.from_numpy(np.asarray(M))
+                if torch.cuda.is_available():
+                    Mt = Mt.cuda()
+                values, vectors = linalg.eigh(Mt)
+                values = values.detach().cpu().numpy()
+                vectors = vectors.detach().cpu().numpy()
             else:
-                n_modes = dof
-            values, vectors = linalg.eigh(M)
+                values, vectors = linalg.eigh(M)
+
+            # numpy/torch eigh return the FULL ascending spectrum, whereas the scipy branch returns
+            # only the requested `eigvals` index range. Apply that same subset here, otherwise the
+            # caller's downstream slicing selects the wrong (smallest) modes.
+            if eigvals is not None:
+                lo, hi = int(eigvals[0]), int(eigvals[1])
+                values = values[lo:hi + 1]
+                vectors = vectors[:, lo:hi + 1]
+                
         return values, vectors
 
     def _calc_n_zero_modes(M):
