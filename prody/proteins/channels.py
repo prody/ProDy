@@ -31,7 +31,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getSurfaceCavityResidueNamesMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
            'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
-           'getChannelResidueNamesMultipleFrames']
+           'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -1493,7 +1493,90 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
+
+def calcPoresFromChannels(channels, details):
+    """Compute pores using channels identified using :func:`calcChannels`.
+    ``return_details`` in :func:`calcChannels` is require for the identification of
+    pores using :func:`calcPoresFromChannels`.  """
+    
+    calculator = details['calculator']
+    simplices = details['simplices']
+    vertices = details['vertices']
+    coords = details['coords']
+    vdw_radii = details['vdw_radii']
+    neighbors = details['neighbors']
+    
+    pores = []
+    pore_paths = []
+    seen_paths = set()
+    channel_groups = {}
+    
+    # Group channels using their starting tetrahedron
+    for channel_index, channel in enumerate(channels):
+        path = np.asarray(channel.tetrahedra, dtype=np.intp)
+        # If channel is smaller than two tetrahedra (probably very rare)
+        # Those channels should be excluded because they can not be connected with others
+        if len(path) < 2:
+            continue
+
+        start_tetrahedron = int(path[0])
+        channel_groups.setdefault(start_tetrahedron, []).append((channel_index, channel, path))
+        
+    from itertools import combinations
+    # Generate all channel pairs within each group
+    for start_tetrahedron, group in channel_groups.items():
+        if len(group) < 2:
+            continue
+
+        for (channel1_index, channel1, path1), (channel2_index, channel2, path2) in combinations(group, 2):
+            common_length = 0
+
+            for tetrahedron1, tetrahedron2 in zip(path1, path2):
+                if tetrahedron1 != tetrahedron2:
+                    break
+                common_length += 1
+
+            if common_length == 0:
+                continue
+
+            # If we have for example: path1: start → A → B → C → mouth 1 and path2: start → A → B → D → mouth 2
+            # it will create mouth 1 → C → B → D → mouth 2
+            branch_index = common_length - 1
+            pore_path = np.concatenate((path1[branch_index:][::-1], path2[branch_index + 1:]))
             
+            # Reject paths containing loops
+            if len(np.unique(pore_path)) != len(pore_path):
+                continue
+
+            # Continulity check of the pores (neighbours)
+            is_continuous = True
+            for tetrahedron1, tetrahedron2 in zip(pore_path[:-1], pore_path[1:]):
+                if tetrahedron2 not in neighbors[tetrahedron1]:
+                    is_continuous = False
+                    break
+            if not is_continuous:
+                continue
+                
+            # Remove identical paths            
+            path_key = tuple(int(tetrahedron) for tetrahedron in pore_path)
+            canonical_key = min(path_key, path_key[::-1])
+
+            if canonical_key in seen_paths:
+                continue
+
+            seen_paths.add(canonical_key)
+            pore_paths.append(pore_path)
+    
+    # Pores reconstruction
+    for pore_path in pore_paths:
+        centerline_spline, radius_spline, length, bottleneck, volume = calculator.processChannel(
+                                                pore_path, vertices, coords, vdw_radii, simplices)
+        pore = Channel(pore_path, centerline_spline, radius_spline, length, bottleneck, volume, 0.0)
+        pores.append(pore)
+
+    return pores
+            
+                
 def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, 
     separate=False, start_point=None, **kwargs):
     """Compute channels for each frame in a given trajectory or multi-model 
