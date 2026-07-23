@@ -1495,9 +1495,38 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
 
 def calcPoresFromChannels(channels, details):
-    """Compute pores using channels identified using :func:`calcChannels`.
-    ``return_details`` in :func:`calcChannels` is require for the identification of
-    pores using :func:`calcPoresFromChannels`.  """
+    """Construct potential pores from previously identified channels using 
+    :func:`calcChannels`. This function performs a post-processing analysis of 
+    channels and requires ``return_details`` set to ``True`` in :func:`calcChannels`.
+    
+    The pore-construction procedure consists of the following steps:
+
+    1. Group channels according to their starting tetrahedron.
+    2. Generate all unique pairs of channels within each group.
+    3. Identify the common initial segment and the last tetrahedron shared by
+       each pair of channel paths.
+    4. Join the non-overlapping parts of the two channels at their branching
+       tetrahedron to obtain a surface-to-surface path.
+    5. Reject paths containing loops or discontinuities between neighboring
+       tetrahedra.
+    6. Remove identical paths and paths differing only in direction.
+    7. Recalculate the centerline spline, radius profile, length, bottleneck,
+       and volume of each resulting pore using approach implemented for channels
+       identification and visualization.
+    
+    :arg channels: A list of channel objects or a single channel object. Each 
+        channel should have a `getSplines()` method that returns two 
+        CubicSpline objects: one for the centerline and one for the radii.
+    :type channels: list or single channel object
+    
+    :arg details: Additional calculation data returned by
+        :func:`calcChannels` with ``return_details=True``. The dictionary must
+        contain ``calculator``, ``simplices``, ``neighbors``, ``vertices``,
+        ``coords``, and ``vdw_radii``.
+    :type details: dict
+
+    :returns: Potential pores constructed from compatible channel pairs.
+    :rtype: list of Channel """
     
     calculator = details['calculator']
     simplices = details['simplices']
