@@ -367,7 +367,7 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
 
 
 def showChannels(channels, model=None, surface=None):
-    """Visualizes the channels, and optionally, the molecular model and 
+    """Visualizes the channels or pores, and optionally, the molecular model and 
     surface, using Open3D.
     
     This function renders a 3D visualization of molecular channels based on 
@@ -487,14 +487,7 @@ def showChannels(channels, model=None, surface=None):
     else:
         LOGGER.info("Nothing to visualize.")
 
-
-def showPores(pores, model=None, show_surface=False, surface=None, **kwargs):
-    """Visualize pores calculated with :func:`calcPoresFromChannels`.
-
-    :arg pores: Pore or sequence of Pore objects to visualize.
-    :type pores: Pore or list """
-
-    return showChannels(pores, model=model, surface=surface, **kwargs)
+showPores = showChannels
 
 
 def showCavities(surface, show_surface=False):
