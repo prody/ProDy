@@ -823,7 +823,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
     diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
     similarity=0.8, route_tolerance=1.0, min_enclosure=0.70, max_peel_depth=None,
-    weighted_cache=True, weighted_mouth_depth=2.5, edge_cost=None):
+    weighted_cache=True, weighted_mouth_depth=2.5, edge_cost=None,
+    return_details=False):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
 
@@ -1099,6 +1100,12 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         straight-chord integral cannot price). The reported bottleneck radius is
         unaffected by this choice.
     :type edge_cost: str or None
+
+    :arg return_details: If True return an additional dictionary containing 
+        internal calculation data, including the channel calculator, simplices,
+        neighboring tetrahedra, Voronoi vertices, atomic coordinates, and van der
+        Waals radii. Default is False.
+    :type return_details: bool
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an 
@@ -1401,7 +1408,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                 c_filtered_cavities, min_volume, max_volume)
     
     merged_cavities = calculator.mergeCavities(c_filtered_cavities, s_clr.simp)
-    
+
     # Early-return for the calcSurfaceCavities function:
     if cavities_only:
         LOGGER.info("Returning surface cavities")
@@ -1424,7 +1431,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
         LOGGER.report('Surface cavity calculation completed in %.2fs.', '_prody_calcChannels')
         return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp, s_clr.verti]
-        
+
     LOGGER.timeit('_prody_channels_pathfinding')
     # build the weighted adjacency matrix once for the whole cleared
     # state, then run a single multi-target Dijkstra per cavity (scipy csgraph),
@@ -1472,6 +1479,18 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         LOGGER.info("No output path given.")
 
     LOGGER.report('Channel calculation completed in %.2fs.', '_prody_calcChannels')
+
+    # Additional information can be obtained
+    if return_details:
+        details = {'calculator': calculator, 
+                    'simplices': s_clr.simp, 
+                    'neighbors': s_clr.neigh, 
+                    'vertices': s_clr.verti, 
+                    'coords': coords, 
+                    'vdw_radii': vdw_radii}
+        
+        return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp], details
+
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
             
