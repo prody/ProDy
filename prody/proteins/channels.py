@@ -31,7 +31,8 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getSurfaceCavityResidueNamesMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
            'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
-           'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels']
+           'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels',
+           'showPores']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -485,6 +486,15 @@ def showChannels(channels, model=None, surface=None):
         o3d.visualization.draw_geometries(meshes_to_visualize)
     else:
         LOGGER.info("Nothing to visualize.")
+
+
+def showPores(pores, model=None, show_surface=False, surface=None, **kwargs):
+    """Visualize pores calculated with :func:`calcPoresFromChannels`.
+
+    :arg pores: Pore or sequence of Pore objects to visualize.
+    :type pores: Pore or list """
+
+    return showChannels(pores, model=model, surface=surface, **kwargs)
 
 
 def showCavities(surface, show_surface=False):
