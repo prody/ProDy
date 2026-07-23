@@ -1526,7 +1526,11 @@ def calcPoresFromChannels(channels, details):
     :type details: dict
 
     :returns: Potential pores constructed from compatible channel pairs.
-    :rtype: list of Channel """
+    :rtype: list of Channel 
+    
+    Usage:
+    channels, surface, details = calcChannels(protein, return_details=True)
+    pores = calcPoresFromChannels(channels, details)    """
     
     calculator = details['calculator']
     simplices = details['simplices']
