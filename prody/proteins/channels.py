@@ -32,7 +32,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
            'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
            'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels',
-           'showPores']
+           'showPores', 'getPoreParameters']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -1967,6 +1967,62 @@ def getChannelParameters(channels, **kwargs):
         return multi_model_param
 
 
+def getPoreParameters(pores, **kwargs):
+    """Extracts and returns the lengths, bottlenecks, and volumes of each 
+    pore in a given list of pores identified using :func:`calcPoresFromChannels`.
+
+    This function iterates through a list of pore objects, extracting the
+    length, bottleneck, and volume of each pore. These values are collected
+    into separate lists, which are returned as a tuple for further use.
+
+    :arg pores: A list of pores objects, where each pore has attributes
+      `length`, `bottleneck`,and `volume`. These attributes represent the 
+      length of the pore, the minimum radius (bottleneck) along its path, 
+      and the total volume of the pore, respectively.
+    :type pores: list
+
+    :arg param_file_name: The files with parameters will be saved in a text 
+        file with the provided name. Use one word which will be added to
+        '_Parameters_All_pores.txt' suffix.
+    :type param_file_name: str 
+
+    :returns: Three lists containing the lengths, bottlenecks, and volumes of 
+        the pores.
+    :rtype: tuple (list, list, list)
+
+    Example usage:
+    lengths, bottlenecks, volumes = getPoreParameters(pores) """
+    
+    multi_model_param = []
+    param_file_name = kwargs.get('param_file_name', None)
+
+    try:
+        results_L_B_V = parseParameters(pores, **kwargs)
+        lengths, bottlenecks, volumes = results_L_B_V
+        LOGGER.info("Pore {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]',
+                                                             'Length [Å]', 
+                                                             'Bottleneck [Å]'))
+        for i in range(len(lengths)):
+            LOGGER.info("pore {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
+        return results_L_B_V
+
+    except:
+        for nr_i,i in enumerate(pores):
+            safe_param_file_name = param_file_name if param_file_name is not None else ""
+            results = parseParameters(pores[nr_i], param_file_name=safe_param_file_name + str(nr_i))
+            multi_model_param.append(results) 
+            
+        LOGGER.info("Pore {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 
+                                                            'Length [Å]', 
+                                                            'Bottleneck [Å]'))
+        for frame_nr, frame in enumerate(multi_model_param):
+            lengths, bottlenecks, volumes = frame
+            LOGGER.info("Frame {0}".format(frame_nr))
+            for i in range(len(lengths)):
+                LOGGER.info("pore {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
+        return multi_model_param
+
+
 def getChannelParametersMultipleFrames(channels_all, **kwargs):
     """Extract channel parameters for multiple frames or models.
 
@@ -2302,7 +2358,7 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         LOGGER.info("Channel residues were saved to: {0}".format(output_file))
                 
     return selected_residues_ch
-
+    
 
 def getChannelResidueNamesMultipleFrames(atoms, channels_all, trajectory=None, **kwargs):
     """Provides residue names for channels calculated for multiple frames/models.
