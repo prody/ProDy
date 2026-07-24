@@ -1497,7 +1497,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
 
-def calcPoresFromChannels(channels, details):
+def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end=None):
     """Construct potential pores from previously identified channels using 
     :func:`calcChannels`. This function performs a post-processing analysis of 
     channels and requires ``return_details`` set to ``True`` in :func:`calcChannels`.
@@ -1605,11 +1605,18 @@ def calcPoresFromChannels(channels, details):
     
     # Pores reconstruction
     for pore_path in pore_paths:
+        # Filters - Distance between two ends of the pore
+        end_to_end = np.linalg.norm(vertices[pore_path[0]] - vertices[pore_path[-1]])
+        
+        if min_end_to_end is not None and end_to_end < min_end_to_end:
+            continue
+        if max_end_to_end is not None and end_to_end > max_end_to_end:
+            continue
+    
         centerline_spline, radius_spline, length, bottleneck, volume = calculator.processChannel(
                                                 pore_path, vertices, coords, vdw_radii, simplices)
         pore = Channel(pore_path, centerline_spline, radius_spline, length, bottleneck, volume, 0.0)
         pores.append(pore)
-
     return pores
             
                 
