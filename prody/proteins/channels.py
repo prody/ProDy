@@ -1497,7 +1497,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
 
-def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end=None):
+def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end=None,
+    min_bottleneck=None, max_bottleneck=None):
     """Construct potential pores from previously identified channels using 
     :func:`calcChannels`. This function performs a post-processing analysis of 
     channels and requires ``return_details`` set to ``True`` in :func:`calcChannels`.
@@ -1527,6 +1528,26 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         contain ``calculator``, ``simplices``, ``neighbors``, ``vertices``,
         ``coords``, and ``vdw_radii``.
     :type details: dict
+
+    :arg min_end_to_end: Minimum allowed distance between the two pore
+        openings. Pores with a smaller end-to-end distance will be excluded.
+        Default is None.
+    :type min_end_to_end: int, float
+
+    :arg max_end_to_end: Maximum allowed distance between the two pore
+        openings. Pores with a larger end-to-end distance will be excluded.
+        Default is None.
+    :type max_end_to_end: int, float
+
+    :arg min_bottleneck: Minimum allowed bottleneck radius of the pore.
+        Pores with a smaller bottleneck will be excluded.
+        Default is None.
+    :type min_bottleneck: int, float
+
+    :arg max_bottleneck: Maximum allowed bottleneck radius of the pore.
+        Pores with a larger bottleneck will be excluded.
+        Default is None.
+    :type max_bottleneck: int, float
 
     :returns: Potential pores constructed from compatible channel pairs.
     :rtype: list of Channel 
@@ -1615,6 +1636,13 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
     
         centerline_spline, radius_spline, length, bottleneck, volume = calculator.processChannel(
                                                 pore_path, vertices, coords, vdw_radii, simplices)
+        
+        # Filters - bottleneck
+        if min_bottleneck is not None and bottleneck < min_bottleneck:
+            continue
+        if max_bottleneck is not None and bottleneck > max_bottleneck:
+            continue
+        
         pore = Channel(pore_path, centerline_spline, radius_spline, length, bottleneck, volume, 0.0)
         pores.append(pore)
     return pores
