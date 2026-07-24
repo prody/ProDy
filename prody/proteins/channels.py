@@ -2319,7 +2319,8 @@ def getChannelResidueNames(atoms, channels, **kwargs):
             if residues is not None:
                 resnames = residues.select('name CA').getResnames()
                 if one_letter_aa == True:
-                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP") else AAMAP[aa] for aa in resnames]
+                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
+                                                    else AAMAP[aa] for aa in resnames]
                     resnames = resnames_1letter
                                     
                 resnums = residues.select('name CA').getResnums()
@@ -2339,7 +2340,8 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         if residues is not None:
             resnames = residues.select('name CA').getResnames()
             if one_letter_aa == True:
-                resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP") else AAMAP[aa] for aa in resnames]
+                resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
+                                                else AAMAP[aa] for aa in resnames]
                 resnames = resnames_1letter
 
             resnums = residues.select('name CA').getResnums()
