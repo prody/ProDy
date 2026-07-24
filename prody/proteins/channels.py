@@ -1498,7 +1498,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
 
 def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end=None,
-    min_bottleneck=None, max_bottleneck=None, min_length=None, max_length=None):
+    min_bottleneck=None, max_bottleneck=None, min_length=None, max_length=None,
+    min_volume=None, max_volume=None):
     """Construct potential pores from previously identified channels using 
     :func:`calcChannels`. This function performs a post-processing analysis of 
     channels and requires ``return_details`` set to ``True`` in :func:`calcChannels`.
@@ -1517,6 +1518,9 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
     7. Recalculate the centerline spline, radius profile, length, bottleneck,
        and volume of each resulting pore using approach implemented for channels
        identification and visualization.
+    8. Pores are filtered based on the given criteria (``min_end_to_end``, 
+       ``max_end_to_end``, ``min_bottleneck``, ``max_bottleneck``, ``min_length``, 
+       ``max_length``, ``min_volume``, ``max_volume``). 
     
     :arg channels: A list of channel objects or a single channel object. Each 
         channel should have a `getSplines()` method that returns two 
@@ -1556,6 +1560,14 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
     :arg max_length: Maximum allowed length of the pore. Pores longer than this 
         value will be excluded. Default is None.
     :type max_length: int, float
+
+    :arg min_volume: Minimum allowed volume of the pore. Pores with a smaller volume 
+        will be excluded. The value is given in cubic Angstroms. Default is None.
+    :type min_volume: int, float
+
+    :arg max_volume: Maximum allowed volume of the pore. Pores with a larger volume 
+        will be excluded. The value is given in cubic Angstroms. Default is None.
+    :type max_volume: int, float
 
     :returns: Potential pores constructed from compatible channel pairs.
     :rtype: list of Channel 
@@ -1645,7 +1657,7 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         centerline_spline, radius_spline, length, bottleneck, volume = calculator.processChannel(
                                                 pore_path, vertices, coords, vdw_radii, simplices)
         
-        # Filters - bottleneck, length
+        # Filters - bottleneck, length, volume
         if min_bottleneck is not None and bottleneck < min_bottleneck:
             continue
         if max_bottleneck is not None and bottleneck > max_bottleneck:
@@ -1654,6 +1666,11 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         if min_length is not None and length < min_length:
             continue
         if max_length is not None and length > max_length:
+            continue
+
+        if min_volume is not None and volume < min_volume:
+            continue
+        if max_volume is not None and volume > max_volume:
             continue
         
         pore = Channel(pore_path, centerline_spline, radius_spline, length, bottleneck, volume, 0.0)
