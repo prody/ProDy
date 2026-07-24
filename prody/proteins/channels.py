@@ -32,7 +32,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
            'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
            'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels',
-           'showPores', 'getPoreParameters']
+           'showPores', 'getPoreParameters', 'getPoreResidueNames']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -2262,6 +2262,123 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
     return channels_atomic
 
 
+def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
+    '''Provides the resnames and resid of residues that are forming the object(s). 
+    Residues are extracted based on distA which is the distance between FIL atoms 
+    (object atoms) and protein residues.
+    Results could be save as txt file by providing the `residues_file_name` parameter.
+    
+    :arg atoms: an Atomic object from which residues are selected 
+    :type atoms: :class:`.Atomic`
+
+    :arg objects: A list of objects. Each object has a method 
+        `getSplines()` that returns the centerline spline and radius spline of 
+        the object.
+    :type objects: list
+    
+    :arg object_type: Type of the object; "channel" or "pore".
+        Default is "channel".
+    :type object_type: str
+
+    :arg distA: Residues will be provided based on this value.
+        default is 4 [Ang]
+    :type distA: int, float 
+    
+    :arg residues_file_name: The file with residues will be saved in a text 
+        file with the provided name. Use one word which will be added to 
+        '_Residues_All_{object_type}.txt' sufix. If further analysis will be 
+        performed with selectChannelBySelection() function, the preferable 
+        residues_file_name is PDB+chain for example: '1bbhA'.
+    :type residues_file_name: str  
+    
+    :arg one_letter_aa: Whether to apply 1-latter code to residue name
+        by defult is False
+    :type one_letter_aa: bool  '''
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    if object_type not in ('channel', 'pore'):
+        raise ValueError("object_type must be 'channel' or 'pore'")
+
+    distA = kwargs.pop('distA', 4)
+    residues_file_name = kwargs.pop('residues_file_name', None) 
+    
+    one_letter_aa = kwargs.pop('one_letter_aa', False)
+    if one_letter_aa == True:
+        from prody.atomic.atomic import AAMAP    
+    
+    if isinstance(objects, list):
+        # Multiple objects
+        selected_residues_ch = []
+    
+        for i, object in enumerate(objects):
+            atoms_protein = getChannelAtoms(object, atoms)
+            residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
+    
+            if residues is not None:
+                resnames = residues.select('name CA').getResnames()
+                if one_letter_aa == True:
+                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
+                                                    else AAMAP[aa] for aa in resnames]
+                    resnames = resnames_1letter
+                                    
+                resnums = residues.select('name CA').getResnums()
+                residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
+                residues_list = ", ".join(residues_info)
+                if object_type == "channel":
+                    residues_list = 'channel'+str(i)+': '+residues_list
+                elif object_type == "pore":
+                    residues_list = "pore"+str(i)+': '+residues_list
+                selected_residues_ch.append(residues_list)
+            else:
+                residues_list = "None"
+            
+    else:
+        # Single object analysis in case someone provide objects[0]
+        atoms_protein = getChannelAtoms(objects, atoms)
+        residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
+        selected_residues_ch = []
+        
+        if residues is not None:
+            resnames = residues.select('name CA').getResnames()
+            if one_letter_aa == True:
+                resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
+                                                else AAMAP[aa] for aa in resnames]
+                resnames = resnames_1letter
+
+            resnums = residues.select('name CA').getResnums()
+            residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
+            residues_list = ", ".join(residues_info)
+            selected_residues_ch.append(residues_list)
+        else:
+            selected_residues_ch.append("None")
+
+    if residues_file_name is not None:
+        if object_type == "channel":
+            output_file = residues_file_name + '_Residues_All_channels.txt'
+        elif object_type == "pore":
+            output_file = residues_file_name + '_Residues_All_pores.txt'
+            
+        with open(output_file, "a") as f_res:
+            for k in selected_residues_ch:
+                f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
+        
+        if object_type == "channel":
+            LOGGER.info("Channel residues were saved to: {0}".format(output_file))
+        elif object_type == "pore":
+            LOGGER.info("Pore residues were saved to: {0}".format(output_file))
+                
+    return selected_residues_ch
+
+
 def getChannelResidueNames(atoms, channels, **kwargs):
     '''Provides the resnames and resid of residues that are forming the channel(s). 
     Residues are extracted based on distA which is the distance between FIL atoms 
@@ -2269,7 +2386,7 @@ def getChannelResidueNames(atoms, channels, **kwargs):
     Results could be save as txt file by providing the `residues_file_name` parameter.
     
     :arg atoms: an Atomic object from which residues are selected 
-    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+    :type atoms: :class:`.Atomic`
 
     :arg channels: A list of channel objects. Each channel has a method 
         `getSplines()` that returns the centerline spline and radius spline of 
@@ -2291,76 +2408,40 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         by defult is False
     :type one_letter_aa: bool  '''
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+    return getObjectResidueNames(atoms, channels, object_type='channel', **kwargs)
 
-    distA = kwargs.pop('distA', 4)
-    residues_file_name = kwargs.pop('residues_file_name', None) 
-    
-    one_letter_aa = kwargs.pop('one_letter_aa', False)
-    if one_letter_aa == True:
-        from prody.atomic.atomic import AAMAP    
-    
-    if isinstance(channels, list):
-        # Multiple channels
-        selected_residues_ch = []
-    
-        for i, channel in enumerate(channels):
-            atoms_protein = getChannelAtoms(channel, atoms)
-            residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-    
-            if residues is not None:
-                resnames = residues.select('name CA').getResnames()
-                if one_letter_aa == True:
-                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
-                                                    else AAMAP[aa] for aa in resnames]
-                    resnames = resnames_1letter
-                                    
-                resnums = residues.select('name CA').getResnums()
-                residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
-                residues_list = ", ".join(residues_info)
-                residues_list = 'channel'+str(i)+': '+residues_list
-                selected_residues_ch.append(residues_list)
-            else:
-                residues_list = "None"
-            
-    else:
-        # Single channel analysis in case someone provide channels[0]
-        atoms_protein = getChannelAtoms(channels, atoms)
-        residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-        selected_residues_ch = []
-        
-        if residues is not None:
-            resnames = residues.select('name CA').getResnames()
-            if one_letter_aa == True:
-                resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
-                                                else AAMAP[aa] for aa in resnames]
-                resnames = resnames_1letter
 
-            resnums = residues.select('name CA').getResnums()
-            residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
-            residues_list = ", ".join(residues_info)
-            selected_residues_ch.append(residues_list)
-        else:
-            residues_list = "None"
+def getPoreResidueNames(atoms, pores, **kwargs):
+    '''Provides the resnames and resid of residues that are forming the pore(s). 
+    Residues are extracted based on distA which is the distance between FIL atoms 
+    (pore atoms) and protein residues.
+    Results could be save as txt file by providing the `residues_file_name` parameter.
+    
+    :arg atoms: an Atomic object from which residues are selected 
+    :type atoms: :class:`.Atomic`
 
-    if residues_file_name is not None:
-        output_file = residues_file_name + '_Residues_All_channels.txt'
-        with open(output_file, "a") as f_res:
-            for k in selected_residues_ch:
-                f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
-        
-        LOGGER.info("Channel residues were saved to: {0}".format(output_file))
+    :arg pores: A list of pore objects. Each pore has a method 
+        `getSplines()` that returns the centerline spline and radius spline of 
+        the pore.
+    :type pores: list
+
+    :arg distA: Residues will be provided based on this value.
+        default is 4 [Ang]
+    :type distA: int, float 
+    
+    :arg residues_file_name: The file with residues will be saved in a text 
+        file with the provided name. Use one word which will be added to 
+        '_Residues_All_pores.txt' sufix. If further analysis will be 
+        performed with selectChannelBySelection() function, the preferable 
+        residues_file_name is PDB+chain for example: '1bbhA'.
+    :type residues_file_name: str  
+    
+    :arg one_letter_aa: Whether to apply 1-latter code to residue name
+        by defult is False
+    :type one_letter_aa: bool  '''
+
+    return getObjectResidueNames(atoms, pores, object_type='pore', **kwargs)
                 
-    return selected_residues_ch
-    
 
 def getChannelResidueNamesMultipleFrames(atoms, channels_all, trajectory=None, **kwargs):
     """Provides residue names for channels calculated for multiple frames/models.
