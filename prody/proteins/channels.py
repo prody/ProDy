@@ -1498,7 +1498,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
 
 def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end=None,
-    min_bottleneck=None, max_bottleneck=None):
+    min_bottleneck=None, max_bottleneck=None, min_length=None, max_length=None):
     """Construct potential pores from previously identified channels using 
     :func:`calcChannels`. This function performs a post-processing analysis of 
     channels and requires ``return_details`` set to ``True`` in :func:`calcChannels`.
@@ -1548,6 +1548,14 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         Pores with a larger bottleneck will be excluded.
         Default is None.
     :type max_bottleneck: int, float
+
+    :arg min_length: Minimum allowed length of the pore. Pores shorter than this 
+        value will be excluded. Default is None.
+    :type min_length: int, float
+
+    :arg max_length: Maximum allowed length of the pore. Pores longer than this 
+        value will be excluded. Default is None.
+    :type max_length: int, float
 
     :returns: Potential pores constructed from compatible channel pairs.
     :rtype: list of Channel 
@@ -1637,10 +1645,15 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         centerline_spline, radius_spline, length, bottleneck, volume = calculator.processChannel(
                                                 pore_path, vertices, coords, vdw_radii, simplices)
         
-        # Filters - bottleneck
+        # Filters - bottleneck, length
         if min_bottleneck is not None and bottleneck < min_bottleneck:
             continue
         if max_bottleneck is not None and bottleneck > max_bottleneck:
+            continue
+            
+        if min_length is not None and length < min_length:
+            continue
+        if max_length is not None and length > max_length:
             continue
         
         pore = Channel(pore_path, centerline_spline, radius_spline, length, bottleneck, volume, 0.0)
