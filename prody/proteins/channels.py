@@ -31,7 +31,8 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getSurfaceCavityResidueNamesMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
            'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
-           'getChannelResidueNamesMultipleFrames']
+           'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels',
+           'showPores', 'getPoreParameters', 'getPoreResidueNames']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -366,7 +367,7 @@ def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
 
 
 def showChannels(channels, model=None, surface=None):
-    """Visualizes the channels, and optionally, the molecular model and 
+    """Visualizes the channels or pores, and optionally, the molecular model and 
     surface, using Open3D.
     
     This function renders a 3D visualization of molecular channels based on 
@@ -485,6 +486,8 @@ def showChannels(channels, model=None, surface=None):
         o3d.visualization.draw_geometries(meshes_to_visualize)
     else:
         LOGGER.info("Nothing to visualize.")
+
+showPores = showChannels
 
 
 def showCavities(surface, show_surface=False):
@@ -823,7 +826,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
     diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
     similarity=0.8, route_tolerance=1.0, min_enclosure=0.70, max_peel_depth=None,
-    weighted_cache=True, weighted_mouth_depth=2.5, edge_cost=None):
+    weighted_cache=True, weighted_mouth_depth=2.5, edge_cost=None,
+    return_details=False):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
 
@@ -1099,6 +1103,12 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         straight-chord integral cannot price). The reported bottleneck radius is
         unaffected by this choice.
     :type edge_cost: str or None
+
+    :arg return_details: If True return an additional dictionary containing 
+        internal calculation data, including the channel calculator, simplices,
+        neighboring tetrahedra, Voronoi vertices, atomic coordinates, and van der
+        Waals radii. Default is False.
+    :type return_details: bool
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an 
@@ -1401,7 +1411,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                 c_filtered_cavities, min_volume, max_volume)
     
     merged_cavities = calculator.mergeCavities(c_filtered_cavities, s_clr.simp)
-    
+
     # Early-return for the calcSurfaceCavities function:
     if cavities_only:
         LOGGER.info("Returning surface cavities")
@@ -1424,7 +1434,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
         LOGGER.report('Surface cavity calculation completed in %.2fs.', '_prody_calcChannels')
         return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp, s_clr.verti]
-        
+
     LOGGER.timeit('_prody_channels_pathfinding')
     # build the weighted adjacency matrix once for the whole cleared
     # state, then run a single multi-target Dijkstra per cavity (scipy csgraph),
@@ -1472,9 +1482,202 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         LOGGER.info("No output path given.")
 
     LOGGER.report('Channel calculation completed in %.2fs.', '_prody_calcChannels')
+
+    # Additional information can be obtained
+    if return_details:
+        details = {'calculator': calculator, 
+                    'simplices': s_clr.simp, 
+                    'neighbors': s_clr.neigh, 
+                    'vertices': s_clr.verti, 
+                    'coords': coords, 
+                    'vdw_radii': vdw_radii}
+        
+        return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp], details
+
     return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp]
 
+
+def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end=None,
+    min_bottleneck=None, max_bottleneck=None, min_length=None, max_length=None,
+    min_volume=None, max_volume=None):
+    """Construct potential pores from previously identified channels using 
+    :func:`calcChannels`. This function performs a post-processing analysis of 
+    channels and requires ``return_details`` set to ``True`` in :func:`calcChannels`.
+    
+    The pore-construction procedure consists of the following steps:
+
+    1. Group channels according to their starting tetrahedron.
+    2. Generate all unique pairs of channels within each group.
+    3. Identify the common initial segment and the last tetrahedron shared by
+       each pair of channel paths.
+    4. Join the non-overlapping parts of the two channels at their branching
+       tetrahedron to obtain a surface-to-surface path.
+    5. Reject paths containing loops or discontinuities between neighboring
+       tetrahedra.
+    6. Remove identical paths and paths differing only in direction.
+    7. Recalculate the centerline spline, radius profile, length, bottleneck,
+       and volume of each resulting pore using approach implemented for channels
+       identification and visualization.
+    8. Pores are filtered based on the given criteria (``min_end_to_end``, 
+       ``max_end_to_end``, ``min_bottleneck``, ``max_bottleneck``, ``min_length``, 
+       ``max_length``, ``min_volume``, ``max_volume``). 
+    
+    :arg channels: A list of channel objects or a single channel object. Each 
+        channel should have a `getSplines()` method that returns two 
+        CubicSpline objects: one for the centerline and one for the radii.
+    :type channels: list or single channel object
+    
+    :arg details: Additional calculation data returned by
+        :func:`calcChannels` with ``return_details=True``. The dictionary must
+        contain ``calculator``, ``simplices``, ``neighbors``, ``vertices``,
+        ``coords``, and ``vdw_radii``.
+    :type details: dict
+
+    :arg min_end_to_end: Minimum allowed distance between the two pore
+        openings. Pores with a smaller end-to-end distance will be excluded.
+        Default is None.
+    :type min_end_to_end: int, float
+
+    :arg max_end_to_end: Maximum allowed distance between the two pore
+        openings. Pores with a larger end-to-end distance will be excluded.
+        Default is None.
+    :type max_end_to_end: int, float
+
+    :arg min_bottleneck: Minimum allowed bottleneck radius of the pore.
+        Pores with a smaller bottleneck will be excluded.
+        Default is None.
+    :type min_bottleneck: int, float
+
+    :arg max_bottleneck: Maximum allowed bottleneck radius of the pore.
+        Pores with a larger bottleneck will be excluded.
+        Default is None.
+    :type max_bottleneck: int, float
+
+    :arg min_length: Minimum allowed length of the pore. Pores shorter than this 
+        value will be excluded. Default is None.
+    :type min_length: int, float
+
+    :arg max_length: Maximum allowed length of the pore. Pores longer than this 
+        value will be excluded. Default is None.
+    :type max_length: int, float
+
+    :arg min_volume: Minimum allowed volume of the pore. Pores with a smaller volume 
+        will be excluded. The value is given in cubic Angstroms. Default is None.
+    :type min_volume: int, float
+
+    :arg max_volume: Maximum allowed volume of the pore. Pores with a larger volume 
+        will be excluded. The value is given in cubic Angstroms. Default is None.
+    :type max_volume: int, float
+
+    :returns: Potential pores constructed from compatible channel pairs.
+    :rtype: list of Channel 
+    
+    Usage:
+    channels, surface, details = calcChannels(protein, return_details=True)
+    pores = calcPoresFromChannels(channels, details)    """
+    
+    calculator = details['calculator']
+    simplices = details['simplices']
+    vertices = details['vertices']
+    coords = details['coords']
+    vdw_radii = details['vdw_radii']
+    neighbors = details['neighbors']
+    
+    pores = []
+    pore_paths = []
+    seen_paths = set()
+    channel_groups = {}
+    
+    # Group channels using their starting tetrahedron
+    for channel_index, channel in enumerate(channels):
+        path = np.asarray(channel.tetrahedra, dtype=np.intp)
+        # If channel is smaller than two tetrahedra (probably very rare)
+        # Those channels should be excluded because they can not be connected with others
+        if len(path) < 2:
+            continue
+
+        start_tetrahedron = int(path[0])
+        channel_groups.setdefault(start_tetrahedron, []).append((channel_index, channel, path))
+        
+    from itertools import combinations
+    # Generate all channel pairs within each group
+    for start_tetrahedron, group in channel_groups.items():
+        if len(group) < 2:
+            continue
+
+        for (channel1_index, channel1, path1), (channel2_index, channel2, path2) in combinations(group, 2):
+            common_length = 0
+
+            for tetrahedron1, tetrahedron2 in zip(path1, path2):
+                if tetrahedron1 != tetrahedron2:
+                    break
+                common_length += 1
+
+            if common_length == 0:
+                continue
+
+            # If we have for example: path1: start → A → B → C → mouth 1 and path2: start → A → B → D → mouth 2
+            # it will create mouth 1 → C → B → D → mouth 2
+            branch_index = common_length - 1
+            pore_path = np.concatenate((path1[branch_index:][::-1], path2[branch_index + 1:]))
             
+            # Reject paths containing loops
+            if len(np.unique(pore_path)) != len(pore_path):
+                continue
+
+            # Continulity check of the pores (neighbours)
+            is_continuous = True
+            for tetrahedron1, tetrahedron2 in zip(pore_path[:-1], pore_path[1:]):
+                if tetrahedron2 not in neighbors[tetrahedron1]:
+                    is_continuous = False
+                    break
+            if not is_continuous:
+                continue
+                
+            # Remove identical paths            
+            path_key = tuple(int(tetrahedron) for tetrahedron in pore_path)
+            canonical_key = min(path_key, path_key[::-1])
+
+            if canonical_key in seen_paths:
+                continue
+
+            seen_paths.add(canonical_key)
+            pore_paths.append(pore_path)
+    
+    # Pores reconstruction
+    for pore_path in pore_paths:
+        # Filters - Distance between two ends of the pore
+        end_to_end = np.linalg.norm(vertices[pore_path[0]] - vertices[pore_path[-1]])
+        
+        if min_end_to_end is not None and end_to_end < min_end_to_end:
+            continue
+        if max_end_to_end is not None and end_to_end > max_end_to_end:
+            continue
+    
+        centerline_spline, radius_spline, length, bottleneck, volume = calculator.processChannel(
+                                                pore_path, vertices, coords, vdw_radii, simplices)
+        
+        # Filters - bottleneck, length, volume
+        if min_bottleneck is not None and bottleneck < min_bottleneck:
+            continue
+        if max_bottleneck is not None and bottleneck > max_bottleneck:
+            continue
+            
+        if min_length is not None and length < min_length:
+            continue
+        if max_length is not None and length > max_length:
+            continue
+
+        if min_volume is not None and volume < min_volume:
+            continue
+        if max_volume is not None and volume > max_volume:
+            continue
+        
+        pore = Channel(pore_path, centerline_spline, radius_spline, length, bottleneck, volume, 0.0)
+        pores.append(pore)
+    return pores
+            
+                
 def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, 
     separate=False, start_point=None, **kwargs):
     """Compute channels for each frame in a given trajectory or multi-model 
@@ -1829,6 +2032,62 @@ def getChannelParameters(channels, **kwargs):
         return multi_model_param
 
 
+def getPoreParameters(pores, **kwargs):
+    """Extracts and returns the lengths, bottlenecks, and volumes of each 
+    pore in a given list of pores identified using :func:`calcPoresFromChannels`.
+
+    This function iterates through a list of pore objects, extracting the
+    length, bottleneck, and volume of each pore. These values are collected
+    into separate lists, which are returned as a tuple for further use.
+
+    :arg pores: A list of pores objects, where each pore has attributes
+      `length`, `bottleneck`,and `volume`. These attributes represent the 
+      length of the pore, the minimum radius (bottleneck) along its path, 
+      and the total volume of the pore, respectively.
+    :type pores: list
+
+    :arg param_file_name: The files with parameters will be saved in a text 
+        file with the provided name. Use one word which will be added to
+        '_Parameters_All_pores.txt' suffix.
+    :type param_file_name: str 
+
+    :returns: Three lists containing the lengths, bottlenecks, and volumes of 
+        the pores.
+    :rtype: tuple (list, list, list)
+
+    Example usage:
+    lengths, bottlenecks, volumes = getPoreParameters(pores) """
+    
+    multi_model_param = []
+    param_file_name = kwargs.get('param_file_name', None)
+
+    try:
+        results_L_B_V = parseParameters(pores, **kwargs)
+        lengths, bottlenecks, volumes = results_L_B_V
+        LOGGER.info("Pore {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]',
+                                                             'Length [Å]', 
+                                                             'Bottleneck [Å]'))
+        for i in range(len(lengths)):
+            LOGGER.info("pore {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
+        return results_L_B_V
+
+    except:
+        for nr_i,i in enumerate(pores):
+            safe_param_file_name = param_file_name if param_file_name is not None else ""
+            results = parseParameters(pores[nr_i], param_file_name=safe_param_file_name + str(nr_i))
+            multi_model_param.append(results) 
+            
+        LOGGER.info("Pore {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 
+                                                            'Length [Å]', 
+                                                            'Bottleneck [Å]'))
+        for frame_nr, frame in enumerate(multi_model_param):
+            lengths, bottlenecks, volumes = frame
+            LOGGER.info("Frame {0}".format(frame_nr))
+            for i in range(len(lengths)):
+                LOGGER.info("pore {0}: \t{1} \t\t{2} \t\t{3}".format(i, np.round(volumes[i],2), np.round(lengths[i], 2), np.round(bottlenecks[i], 2)))
+        return multi_model_param
+
+
 def getChannelParametersMultipleFrames(channels_all, **kwargs):
     """Extract channel parameters for multiple frames or models.
 
@@ -2068,6 +2327,123 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
     return channels_atomic
 
 
+def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
+    '''Provides the resnames and resid of residues that are forming the object(s). 
+    Residues are extracted based on distA which is the distance between FIL atoms 
+    (object atoms) and protein residues.
+    Results could be save as txt file by providing the `residues_file_name` parameter.
+    
+    :arg atoms: an Atomic object from which residues are selected 
+    :type atoms: :class:`.Atomic`
+
+    :arg objects: A list of objects. Each object has a method 
+        `getSplines()` that returns the centerline spline and radius spline of 
+        the object.
+    :type objects: list
+    
+    :arg object_type: Type of the object; "channel" or "pore".
+        Default is "channel".
+    :type object_type: str
+
+    :arg distA: Residues will be provided based on this value.
+        default is 4 [Ang]
+    :type distA: int, float 
+    
+    :arg residues_file_name: The file with residues will be saved in a text 
+        file with the provided name. Use one word which will be added to 
+        '_Residues_All_{object_type}.txt' sufix. If further analysis will be 
+        performed with selectChannelBySelection() function, the preferable 
+        residues_file_name is PDB+chain for example: '1bbhA'.
+    :type residues_file_name: str  
+    
+    :arg one_letter_aa: Whether to apply 1-latter code to residue name
+        by defult is False
+    :type one_letter_aa: bool  '''
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    if object_type not in ('channel', 'pore'):
+        raise ValueError("object_type must be 'channel' or 'pore'")
+
+    distA = kwargs.pop('distA', 4)
+    residues_file_name = kwargs.pop('residues_file_name', None) 
+    
+    one_letter_aa = kwargs.pop('one_letter_aa', False)
+    if one_letter_aa == True:
+        from prody.atomic.atomic import AAMAP    
+    
+    if isinstance(objects, list):
+        # Multiple objects
+        selected_residues_ch = []
+    
+        for i, object in enumerate(objects):
+            atoms_protein = getChannelAtoms(object, atoms)
+            residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
+    
+            if residues is not None:
+                resnames = residues.select('name CA').getResnames()
+                if one_letter_aa == True:
+                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
+                                                    else AAMAP[aa] for aa in resnames]
+                    resnames = resnames_1letter
+                                    
+                resnums = residues.select('name CA').getResnums()
+                residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
+                residues_list = ", ".join(residues_info)
+                if object_type == "channel":
+                    residues_list = 'channel'+str(i)+': '+residues_list
+                elif object_type == "pore":
+                    residues_list = "pore"+str(i)+': '+residues_list
+                selected_residues_ch.append(residues_list)
+            else:
+                residues_list = "None"
+            
+    else:
+        # Single object analysis in case someone provide objects[0]
+        atoms_protein = getChannelAtoms(objects, atoms)
+        residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
+        selected_residues_ch = []
+        
+        if residues is not None:
+            resnames = residues.select('name CA').getResnames()
+            if one_letter_aa == True:
+                resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
+                                                else AAMAP[aa] for aa in resnames]
+                resnames = resnames_1letter
+
+            resnums = residues.select('name CA').getResnums()
+            residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
+            residues_list = ", ".join(residues_info)
+            selected_residues_ch.append(residues_list)
+        else:
+            selected_residues_ch.append("None")
+
+    if residues_file_name is not None:
+        if object_type == "channel":
+            output_file = residues_file_name + '_Residues_All_channels.txt'
+        elif object_type == "pore":
+            output_file = residues_file_name + '_Residues_All_pores.txt'
+            
+        with open(output_file, "a") as f_res:
+            for k in selected_residues_ch:
+                f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
+        
+        if object_type == "channel":
+            LOGGER.info("Channel residues were saved to: {0}".format(output_file))
+        elif object_type == "pore":
+            LOGGER.info("Pore residues were saved to: {0}".format(output_file))
+                
+    return selected_residues_ch
+
+
 def getChannelResidueNames(atoms, channels, **kwargs):
     '''Provides the resnames and resid of residues that are forming the channel(s). 
     Residues are extracted based on distA which is the distance between FIL atoms 
@@ -2075,7 +2451,7 @@ def getChannelResidueNames(atoms, channels, **kwargs):
     Results could be save as txt file by providing the `residues_file_name` parameter.
     
     :arg atoms: an Atomic object from which residues are selected 
-    :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
+    :type atoms: :class:`.Atomic`
 
     :arg channels: A list of channel objects. Each channel has a method 
         `getSplines()` that returns the centerline spline and radius spline of 
@@ -2097,74 +2473,40 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         by defult is False
     :type one_letter_aa: bool  '''
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+    return getObjectResidueNames(atoms, channels, object_type='channel', **kwargs)
 
-    distA = kwargs.pop('distA', 4)
-    residues_file_name = kwargs.pop('residues_file_name', None) 
-    
-    one_letter_aa = kwargs.pop('one_letter_aa', False)
-    if one_letter_aa == True:
-        from prody.atomic.atomic import AAMAP    
-    
-    if isinstance(channels, list):
-        # Multiple channels
-        selected_residues_ch = []
-    
-        for i, channel in enumerate(channels):
-            atoms_protein = getChannelAtoms(channel, atoms)
-            residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-    
-            if residues is not None:
-                resnames = residues.select('name CA').getResnames()
-                if one_letter_aa == True:
-                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP") else AAMAP[aa] for aa in resnames]
-                    resnames = resnames_1letter
-                                    
-                resnums = residues.select('name CA').getResnums()
-                residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
-                residues_list = ", ".join(residues_info)
-                residues_list = 'channel'+str(i)+': '+residues_list
-                selected_residues_ch.append(residues_list)
-            else:
-                residues_list = "None"
-            
-    else:
-        # Single channel analysis in case someone provide channels[0]
-        atoms_protein = getChannelAtoms(channels, atoms)
-        residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-        selected_residues_ch = []
-        
-        if residues is not None:
-            resnames = residues.select('name CA').getResnames()
-            if one_letter_aa == True:
-                resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP") else AAMAP[aa] for aa in resnames]
-                resnames = resnames_1letter
 
-            resnums = residues.select('name CA').getResnums()
-            residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
-            residues_list = ", ".join(residues_info)
-            selected_residues_ch.append(residues_list)
-        else:
-            residues_list = "None"
+def getPoreResidueNames(atoms, pores, **kwargs):
+    '''Provides the resnames and resid of residues that are forming the pore(s). 
+    Residues are extracted based on distA which is the distance between FIL atoms 
+    (pore atoms) and protein residues.
+    Results could be save as txt file by providing the `residues_file_name` parameter.
+    
+    :arg atoms: an Atomic object from which residues are selected 
+    :type atoms: :class:`.Atomic`
 
-    if residues_file_name is not None:
-        output_file = residues_file_name + '_Residues_All_channels.txt'
-        with open(output_file, "a") as f_res:
-            for k in selected_residues_ch:
-                f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
-        
-        LOGGER.info("Channel residues were saved to: {0}".format(output_file))
+    :arg pores: A list of pore objects. Each pore has a method 
+        `getSplines()` that returns the centerline spline and radius spline of 
+        the pore.
+    :type pores: list
+
+    :arg distA: Residues will be provided based on this value.
+        default is 4 [Ang]
+    :type distA: int, float 
+    
+    :arg residues_file_name: The file with residues will be saved in a text 
+        file with the provided name. Use one word which will be added to 
+        '_Residues_All_pores.txt' sufix. If further analysis will be 
+        performed with selectChannelBySelection() function, the preferable 
+        residues_file_name is PDB+chain for example: '1bbhA'.
+    :type residues_file_name: str  
+    
+    :arg one_letter_aa: Whether to apply 1-latter code to residue name
+        by defult is False
+    :type one_letter_aa: bool  '''
+
+    return getObjectResidueNames(atoms, pores, object_type='pore', **kwargs)
                 
-    return selected_residues_ch
-
 
 def getChannelResidueNamesMultipleFrames(atoms, channels_all, trajectory=None, **kwargs):
     """Provides residue names for channels calculated for multiple frames/models.
