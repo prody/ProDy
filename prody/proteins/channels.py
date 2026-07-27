@@ -1757,7 +1757,6 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, 
                                     output_path="channels.pdb", separate=False, 
                                     start_point=[-10.353, -0.133, 5.608]) """
-
     
     if PY3K:
         if not checkAndImport('pathlib'):
@@ -2035,7 +2034,7 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
         protein, trajectory=dcd, return_details=True)
 
     pores_all = calcPoresFromChannelsMultipleFrames(channels_all, details_all, 
-        min_end_to_end=40, min_bottleneck=0.7)"""
+        min_end_to_end=40, min_bottleneck=0.7, output_path='poresALL_', separate=True)"""
 
     if PY3K:
         from pathlib import Path
