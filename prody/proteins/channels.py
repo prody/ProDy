@@ -2000,7 +2000,8 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
     return cavities_all, surfaces_all
 
 
-def calcPoresFromChannelsMultipleFrames(channels_all, details_all, **kwargs):
+def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=None, 
+    separate=False, **kwargs):
     """Construct pores for multiple trajectory frames or multi-model PDBs from 
     channels previously calculated with :func:`calcChannelsMultipleFrames`.
 
@@ -2035,15 +2036,33 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, **kwargs):
 
     pores_all = calcPoresFromChannelsMultipleFrames(channels_all, details_all, 
         min_end_to_end=40, min_bottleneck=0.7)"""
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
     
     if len(channels_all) != len(details_all):
         raise ValueError("channels_all and details_all must contain the same number of frames")
 
     pores_all = []
 
+    if output_path is not None:
+        output_path = Path(output_path)
+        if output_path.suffix not in ('.pqr', '.pdb'):
+            output_path = output_path.with_suffix('.pqr')
+
     for frame_nr, (channels, details) in enumerate(zip(channels_all, details_all)):
         LOGGER.info("Frame/model: {0}".format(frame_nr))
-        pores = calcPoresFromChannels(channels, details, **kwargs)
+        
+        if output_path is not None:
+            frame_output_path = output_path.with_name(
+                    "{0}_frame{1}{2}".format(output_path.stem, frame_nr, output_path.suffix))
+        else:
+            frame_output_path = None
+        
+        pores = calcPoresFromChannels(channels, details, output_path=frame_output_path, 
+                                                        separate=separate, **kwargs)
         pores_all.append(pores)
 
     return pores_all    
