@@ -32,7 +32,8 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
            'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
            'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels',
-           'showPores', 'getPoreParameters', 'getPoreResidueNames']
+           'showPores', 'getPoreParameters', 'getPoreResidueNames',
+           'calcPoresFromChannelsMultipleFrames']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -1757,6 +1758,9 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
 
     channels_all = []
     surfaces_all = []
+    details_all = []
+    
+    return_details = kwargs.pop('return_details', False)
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
     
@@ -1782,9 +1786,17 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
             LOGGER.info("Frame: {0}".format(j0))
             atoms_copy.setCoords(frame0.getCoords())
             if output_path:
-                channels, surfaces = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), separate, start_point=start_point, **kwargs)
+                result = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), 
+                                                    separate, start_point=start_point, return_details=return_details, **kwargs)
             else:
-                channels, surfaces = calcChannels(atoms_copy, start_point=start_point, **kwargs)
+                result = calcChannels(atoms_copy, start_point=start_point, return_details=return_details, **kwargs)
+            
+            if return_details:
+                channels, surfaces, details = result
+                details_all.append(details)
+            else:
+                channels, surfaces = result
+            
             channels_all.append(channels)
             surfaces_all.append(surfaces)
         trajectory._nfi = nfi
@@ -1795,14 +1807,25 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
                 LOGGER.info("Model: {0}".format(i+start_frame))
                 atoms.setACSIndex(i+start_frame)
                 if output_path:
-                    channels, surfaces = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, start_point=start_point, **kwargs)
+                    result = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, 
+                                                            start_point=start_point, return_details=return_details, **kwargs)
                 else:
-                    channels, surfaces = calcChannels(atoms, start_point=start_point, **kwargs)
+                    result = calcChannels(atoms, start_point=start_point, return_details=return_details, **kwargs)
+                
+                if return_details:
+                    channels, surfaces, details = result
+                    details_all.append(details)
+                else:
+                    channels, surfaces = result
+
                 channels_all.append(channels)
                 surfaces_all.append(surfaces)
         else:
             LOGGER.info("Include trajectory or use multi-model PDB file.")
 
+    if return_details:
+        return channels_all, surfaces_all, details_all
+        
     return channels_all, surfaces_all
 
 
@@ -1953,6 +1976,55 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
     return cavities_all, surfaces_all
 
 
+def calcPoresFromChannelsMultipleFrames(channels_all, details_all, **kwargs):
+    """Construct pores for multiple trajectory frames or multi-model PDBs from 
+    channels previously calculated with :func:`calcChannelsMultipleFrames`.
+
+    This function applies :func:`calcPoresFromChannels` independently to each
+    frame or model. The channel list and calculation details at the same index
+    must correspond to the same frame/model.
+
+    :arg channels_all: Lists of channels returned by :func:`calcChannelsMultipleFrames`. 
+        Each element contains channels calculated for one trajectory frame or model.
+    :type channels_all: list of lists
+
+    :arg details_all: Calculation details returned by :func:`calcChannelsMultipleFrames` 
+        with ``return_details=True``. Each dictionary must contain ``calculator``, 
+        ``simplices``, ``neighbors``, ``vertices``, ``coords``, and ``vdw_radii`` 
+        for the corresponding frame/model.
+    :type details_all: list of dict
+
+    :arg kwargs: Pore-filtering parameters passed to
+        :func:`calcPoresFromChannels`, including ``min_end_to_end``,
+        ``max_end_to_end``, ``min_bottleneck``, ``max_bottleneck``,
+        ``min_length``, ``max_length``, ``min_volume``, and ``max_volume``.
+    :type kwargs: dict
+
+    :returns: A list containing pores constructed for each frame/model.
+        Each element corresponds to the channels and calculation details at
+        the same index in ``channels_all`` and ``details_all``.
+    :rtype: list of lists
+
+    Example usage:
+    channels_all, surfaces_all, details_all = calcChannelsMultipleFrames(
+        protein, trajectory=dcd, return_details=True)
+
+    pores_all = calcPoresFromChannelsMultipleFrames(channels_all, details_all, 
+        min_end_to_end=40, min_bottleneck=0.7)"""
+    
+    if len(channels_all) != len(details_all):
+        raise ValueError("channels_all and details_all must contain the same number of frames")
+
+    pores_all = []
+
+    for frame_nr, (channels, details) in enumerate(zip(channels_all, details_all)):
+        LOGGER.info("Frame/model: {0}".format(frame_nr))
+        pores = calcPoresFromChannels(channels, details, **kwargs)
+        pores_all.append(pores)
+
+    return pores_all    
+    
+    
 def parseParameters(channels, **kwargs):
     """Extracts and returns the lengths, bottlenecks, and volumes of each 
     channel in a given list of channels. """
