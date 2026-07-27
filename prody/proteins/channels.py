@@ -33,7 +33,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
            'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels',
            'showPores', 'getPoreParameters', 'getPoreResidueNames',
-           'calcPoresFromChannelsMultipleFrames']
+           'calcPoresFromChannelsMultipleFrames', 'getPoreParametersMultipleFrames']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -2189,6 +2189,40 @@ def getChannelParametersMultipleFrames(channels_all, **kwargs):
     for frame_nr, channels in enumerate(channels_all):
         LOGGER.info("Frame/model: {0}".format(frame_nr))
         params = getChannelParameters(channels, **kwargs)
+        parameters_all.append(params)
+
+    return parameters_all
+
+
+def getPoreParametersMultipleFrames(pores_all, **kwargs):
+    """Extract pore parameters for multiple frames or models.
+
+    This function is a multi-frame wrapper for :func:`getPoreParameters`.
+    It extracts pore parameters for each model or trajectory frame separately.
+    Each element of ``pores_all`` is treated as the list of pores calculated
+    for one frame/model.
+
+    This function should be used with pores returned by
+    :func:`calcPoresMultipleFrames`.
+
+    :arg pores_all: list of pore lists returned by
+        :func:`calcChannelsMultipleFrames`. Each element corresponds to one
+        model or trajectory frame.
+    :type pores_all: list
+
+    :arg param_file_name: base name for the output parameter files. If provided,
+        one file will be written for each model/frame with the frame/model index
+        added to the file name.
+    :type param_file_name: str
+
+    :returns: A list of parameter tuples for each model/frame. Each tuple contains
+        pore lengths, bottlenecks, and volumes.
+    :rtype: list  """
+
+    parameters_all = []
+    for frame_nr, pores in enumerate(pores_all):
+        LOGGER.info("Frame/model: {0}".format(frame_nr))
+        params = getPoreParameters(pores, **kwargs)
         parameters_all.append(params)
 
     return parameters_all
