@@ -1501,10 +1501,12 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
 def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end=None,
     min_bottleneck=None, max_bottleneck=None, min_length=None, max_length=None,
-    min_volume=None, max_volume=None):
+    min_volume=None, max_volume=None, output_path=None, separate=False):
     """Construct potential pores from previously identified channels using 
     :func:`calcChannels`. This function performs a post-processing analysis of 
     channels and requires ``return_details`` set to ``True`` in :func:`calcChannels`.
+    The `separate` parameter controls whether each pore is additionally saved to a 
+    separate file.
     
     The pore-construction procedure consists of the following steps:
 
@@ -1571,12 +1573,23 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         will be excluded. The value is given in cubic Angstroms. Default is None.
     :type max_volume: int, float
 
+    :arg output_path: Optional path to save the resulting pores and 
+        associated data in PQR (or PDB) format. If None, results are not saved. 
+        Default is None.
+    :type output_path: str or None
+
     :returns: Potential pores constructed from compatible channel pairs.
     :rtype: list of Channel 
     
     Usage:
     channels, surface, details = calcChannels(protein, return_details=True)
-    pores = calcPoresFromChannels(channels, details)    """
+    pores = calcPoresFromChannels(channels, details, output_path='pores', separate=True)   
+    """
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
     
     calculator = details['calculator']
     simplices = details['simplices']
@@ -1677,6 +1690,16 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         
         pore = Channel(pore_path, centerline_spline, radius_spline, length, bottleneck, volume, 0.0)
         pores.append(pore)
+    
+    if output_path:
+        output_path = Path(output_path)
+        if output_path.is_dir():
+            output_path = output_path / "pores.pqr"
+        elif output_path.suffix not in (".pdb", ".pqr"):
+            output_path = output_path.with_suffix(".pqr")
+
+        calculator.saveChannelsToPdb(pores, output_path, separate=separate)
+
     return pores
             
                 
