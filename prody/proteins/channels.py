@@ -3317,6 +3317,16 @@ def calcChannelSurfaceOverlaps(**kwargs):
         PQR files. If 1, files are processed serially. If None, all available CPU
         cores are used. Default is 2.
     :type max_proc: int or None
+    
+    :arg mp_context: Multiprocessing start method used for parallel pore
+        calculations. If `None`, the default method for the operating system
+        is used. Windows and macOS use the ``'spawn'`` method by default,
+        whereas Linux typically uses ``'fork'``. Setting
+        ``mp_context='spawn'`` can be potentially used on Linux, but might 
+        be slower. Available values may include ``'spawn'``, ``'fork'``,
+        and ``'forkserver'``, depending on the operating system. 
+        Default is `None`.
+    :type mp_context: str or None
 
     :arg output_file_name: The name of the PDB file with overlapping surfaces.
     :type output_file_name: str
@@ -3354,6 +3364,7 @@ def calcChannelSurfaceOverlaps(**kwargs):
 
     resolution = kwargs.pop('resolution', 0.5)
     max_proc = kwargs.pop('max_proc', 2)
+    mp_context = kwargs.pop('mp_context', None)
      
     pqr_files = kwargs.pop('pqr_files', False)
     if pqr_files == False or pqr_files is None:
@@ -3370,7 +3381,18 @@ def calcChannelSurfaceOverlaps(**kwargs):
         raise ValueError('Please provide list with PQR files, folder path, or nothing to analyze PQRs in the current folder')
 
     output_file_name = kwargs.pop('output_file_name','overlap_regions.pdb')
-    
+
+    # PRQ files might be empty    
+    valid_pqr_files = []
+    for pqr_file in pqr_files:
+        if not os.path.isfile(pqr_file) or os.path.getsize(pqr_file) == 0:
+            LOGGER.warn("Skipping empty PQR file: {0}".format(pqr_file))
+            continue
+
+        valid_pqr_files.append(pqr_file)
+
+    pqr_files = valid_pqr_files
+
     if len(pqr_files) == 0:
         LOGGER.info("No PQR files found.")
         return None
@@ -3397,7 +3419,12 @@ def calcChannelSurfaceOverlaps(**kwargs):
     if max_proc > 1:
         LOGGER.info("Calculating overlaps using {0} processes.".format(max_proc))
         chunksize = max(1, len(tasks) // (max_proc * 4))
-        with multiprocessing.Pool(processes=max_proc) as pool:
+        if mp_context is None:
+            ctx = multiprocessing.get_context()
+        else:
+            ctx = multiprocessing.get_context(mp_context)
+        
+        with ctx.Pool(processes=max_proc) as pool:
             for surface in pool.imap_unordered(_surfaceFromPqrWorker, tasks,
                                                chunksize=chunksize):
                 merged_surface.update(surface)
