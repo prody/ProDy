@@ -254,6 +254,12 @@ DATA_FILES = {
         'atoms': 12793,
         'last_coords': array([50.327, -11.971, -19.976])
     },
+    'scipion_cif': {
+        'pdb': '4ake',
+        'file': 'mmcif_4ake_scipion.cif',
+        'atoms': 3459,
+        'last_coords': array([ 1.413, -6.322, -9.968])
+    },
     'big_biomols_cif': {
         'pdb': '7cth',
         'file': 'mmcif_7cth.cif',
@@ -447,6 +453,12 @@ DATA_FILES = {
         'n_atoms': 4,
         'long_resname': 'ACET',
         'short_resname': 'ACE'
+    },
+    'modres_ncaa': {
+        'file': 'pdb_modres_ncaa.pdb'
+    },
+    'sep_modres': {
+        'file': 'pdb5fc2_sep_modres.pdb'
     }
 }
 

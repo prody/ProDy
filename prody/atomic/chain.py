@@ -11,13 +11,29 @@ __all__ = ['Chain']
 def getSequence(resnames, **kwargs):
     """Returns polypeptide sequence from a list of *resnames* using one-letter residue
     name abbreviations by default, or long (usually three letter) abbrevations
-    if *longSeq* is **True**."""
+    if *longSeq* or *threeLetter* is **True**.
 
-    longSeq = kwargs.get('longSeq', False)
+    :arg extra_map: a dictionary mapping non-canonical residue names (three-letter)
+        to their standard (canonical) three-letter residue names, used as a fallback
+        when a residue name is not found in :data:`.AAMAP`.  This is typically
+        populated from MODRES records in a PDB file.
+    :type extra_map: dict"""
+
+    longSeq = kwargs.get('longSeq', kwargs.get('threeLetter', False))
     if longSeq:
         return ' '.join(resnames)
 
+    extra_map = kwargs.get('extra_map', None)
     get = AAMAP.get
+    if extra_map:
+        result = []
+        for rn in resnames:
+            aa = get(rn, None)
+            if aa is None:
+                stdname = extra_map.get(rn)
+                aa = get(stdname, 'X') if stdname else 'X'
+            result.append(aa)
+        return ''.join(result)
     return ''.join([get(rn, 'X') for rn in resnames])
 
 
@@ -37,13 +53,12 @@ class Chain(AtomSubset):
          - *slice* (:func:`slice`), e.g, ``10:20``, returns a list of
            :class:`.Residue` instances"""
 
-    __slots__ = ['_ag', '_indices', '_hv', '_acsi', '_selstr', '_seq']
+    __slots__ = ['_ag', '_indices', '_hv', '_acsi', '_selstr']
 
     def __init__(self, ag, indices, hv, acsi=None, **kwargs):
 
         AtomSubset.__init__(self, ag, indices, acsi, **kwargs)
         self._hv = hv
-        self._seq = None
 
     def __repr__(self):
 
@@ -135,23 +150,21 @@ class Chain(AtomSubset):
         """Returns one-letter sequence string for amino acids in the chain.
         When *allres* keyword argument is **True**, sequence will include all
         residues (e.g. water molecules) in the chain and **X** will be used for
-        non-standard residue names."""
+        non-standard residue names. Set *longSeq* or *threeLetter* to **True**
+        to return long residue names."""
 
         if kwargs.get('allres', False):
             get = AAMAP.get
-            if kwargs.get('longSeq', False):
+            if kwargs.get('longSeq', kwargs.get('threeLetter', False)):
                 seq = ' '.join([res.getResname() for res in self])
             else:
                 seq = ''.join([get(res.getResname(), 'X') for res in self])
-        elif self._seq:
-            seq = self._seq
         else:
             calpha = self.calpha
             if calpha:
                 seq = getSequence(calpha.getResnames(), **kwargs)
             else:
                 seq = ''
-            self._seq = seq
         return seq
 
     def getSelstr(self):

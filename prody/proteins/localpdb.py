@@ -10,7 +10,7 @@ from prody.utilities import makePath, gunzip, relpath, copyFile, isWritable
 from prody.utilities import sympath, isListLike
 
 from . import wwpdb
-from .wwpdb import checkIdentifiers, fetchPDBviaFTP, fetchPDBviaHTTP
+from .wwpdb import checkIdentifiers, fetchPDBviaFTP, fetchPDBviaHTTP, _getPDBSubfolder
 
 
 __all__ = ['pathPDBFolder', 'pathPDBMirror',
@@ -173,7 +173,7 @@ def fetchPDBfromMirror(*pdb, **kwargs):
         if pdb is None:
             append(None)
             continue
-        fn = join(mirror, ftp_divided, pdb[1:3],
+        fn = join(mirror, ftp_divided, _getPDBSubfolder(pdb),
                   ftp_prefix + pdb + ftp_pdbext)
         if isfile(fn):
             if folder or not compressed:
@@ -270,7 +270,7 @@ def fetchPDB(*pdb, **kwargs):
         temp, not_found = not_found, []
         for i, pdb in temp:
             if is_divided:
-                fn = join(local_folder, pdb[1:3], 'pdb' + pdb + '.pdb.gz')
+                fn = join(local_folder, _getPDBSubfolder(pdb), 'pdb' + pdb + '.pdb.gz')
             else:
                 fn = join(local_folder, pdb + '.pdb.gz')
             if isfile(fn):
@@ -501,4 +501,3 @@ def findPDBFiles(path, case=None, **kwargs):
             pdbs[pdb] = fn
 
     return pdbs
-
