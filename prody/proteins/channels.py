@@ -163,6 +163,18 @@ def _surfaceFromPqrWorker(args):
     return surface
 
 
+def _calcChannelsMultipleFramesWorker(args):
+    """Compute channels. Supporting function for muliprocessing in :func:`calcChannelsMultipleFrames`."""
+    frame_nr, atoms, frame_coords, frame_output_path, separate, start_point, return_details, kwargs = args
+
+    LOGGER.info("Frame/model: {0}".format(frame_nr))
+    atoms_copy = atoms.copy()
+    atoms_copy.setCoords(frame_coords)
+
+    return calcChannels(atoms_copy, output_path=frame_output_path, separate=separate,
+                        start_point=start_point, return_details=return_details, **kwargs)
+
+
 def _calcPoresFromChannelsWorker(args):
     """Reconstruct pores from channels. Supporting function for multiprocessing
     in :func:`calcPoresFromChannelsMultipleFrames`."""
@@ -1713,7 +1725,7 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
             
                 
 def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None, 
-    separate=False, start_point=None, **kwargs):
+    separate=False, start_point=None, max_proc=2, mp_context=None, **kwargs):
     """Compute channels for each frame in a given trajectory or multi-model 
     PDB file.
 
@@ -1747,6 +1759,21 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
         to this point as the starting tetrahedron (overriding the default automatic 
         seed selection based on the deepest tetrahedron). Coordinates must be given in Å.
     :type start_point: list, tuple, or ndarray (length 3), or None 
+
+    :arg max_proc: Maximum number of parallel processes used for calculation. 
+        If 1, files are processed serially. If None, all available CPU
+        cores are used. Default is 2.
+    :type max_proc: int or None
+
+    :arg mp_context: Multiprocessing start method used for parallel pore
+        calculations. If `None`, the default method for the operating system
+        is used. Windows and macOS use the ``'spawn'`` method by default,
+        whereas Linux typically uses ``'fork'``. Setting
+        ``mp_context='spawn'`` can be potentially used on Linux, but might 
+        be slower. Available values may include ``'spawn'``, ``'fork'``,
+        and ``'forkserver'``, depending on the operating system. 
+        Default is `None`.
+    :type mp_context: str or None
 
     :arg kwargs: Additional parameters required for channel calculation. This can 
         include parameters such as radius values (r1, r2), minimum depth (min_depth), 
@@ -1791,7 +1818,8 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
     channels_all = []
     surfaces_all = []
     details_all = []
-    
+    tasks = []
+
     return_details = kwargs.pop('return_details', False)
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
@@ -1812,52 +1840,72 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
             traj = trajectory[start_frame:]
         else:
             traj = trajectory[start_frame:stop_frame+1]
-
+        
         atoms_copy = atoms.copy()
         for j0, frame0 in enumerate(traj, start=start_frame):
-            LOGGER.info("Frame: {0}".format(j0))
-            atoms_copy.setCoords(frame0.getCoords())
             if output_path:
-                result = calcChannels(atoms_copy, str(output_path) + "{0}.pqr".format(j0), 
-                                                    separate, start_point=start_point, return_details=return_details, **kwargs)
+                frame_output_path = str(output_path) + "{0}.pqr".format(j0)
             else:
-                result = calcChannels(atoms_copy, start_point=start_point, return_details=return_details, **kwargs)
+                frame_output_path = None
             
-            if return_details:
-                channels, surfaces, details = result
-                details_all.append(details)
-            else:
-                channels, surfaces = result
-            
-            channels_all.append(channels)
-            surfaces_all.append(surfaces)
+            tasks.append((j0, atoms_copy, np.array(frame0.getCoords(), copy=True),
+                            frame_output_path, separate, start_point, return_details, kwargs))
         trajectory._nfi = nfi
 
     else:
         if atoms.numCoordsets() > 1:
+            coordsets = atoms.getCoordsets()
             for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info("Model: {0}".format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                if output_path:
-                    result = calcChannels(atoms, str(output_path) + "{0}.pqr".format(i+start_frame), separate, 
-                                                            start_point=start_point, return_details=return_details, **kwargs)
-                else:
-                    result = calcChannels(atoms, start_point=start_point, return_details=return_details, **kwargs)
-                
-                if return_details:
-                    channels, surfaces, details = result
-                    details_all.append(details)
-                else:
-                    channels, surfaces = result
+                model_nr = i + start_frame
 
-                channels_all.append(channels)
-                surfaces_all.append(surfaces)
+                if output_path:
+                    frame_output_path = str(output_path) + "{0}.pqr".format(model_nr)
+                else:
+                    frame_output_path = None
+                
+                tasks.append((model_nr, atoms, np.array(coordsets[model_nr], copy=True),
+                                frame_output_path, separate, start_point, return_details, kwargs))
+                
         else:
             LOGGER.info("Include trajectory or use multi-model PDB file.")
 
+
+    import multiprocessing
+
+    if len(tasks) == 0:
+        if return_details:
+            return channels_all, surfaces_all, details_all
+        return channels_all, surfaces_all
+
+    if max_proc is None:
+        max_proc = multiprocessing.cpu_count()
+
+    max_proc = max(1, min(int(max_proc), len(tasks)))
+
+    if max_proc == 1:
+        results = [_calcChannelsMultipleFramesWorker(task) for task in tasks]
+    else:
+        if mp_context is None:
+            ctx = multiprocessing.get_context()
+        else:
+            ctx = multiprocessing.get_context(mp_context)
+
+        with ctx.Pool(processes=max_proc) as pool:
+            results = pool.map(_calcChannelsMultipleFramesWorker, tasks)
+
+    for result in results:
+        if return_details:
+            channels, surfaces, details = result
+            details_all.append(details)
+        else:
+            channels, surfaces = result
+
+        channels_all.append(channels)
+        surfaces_all.append(surfaces)
+
     if return_details:
         return channels_all, surfaces_all, details_all
-        
+
     return channels_all, surfaces_all
 
 
