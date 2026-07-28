@@ -2009,14 +2009,18 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
 
 
 def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=None, 
-    separate=False, max_proc=2, **kwargs):
+    separate=False, max_proc=2, mp_context=None, **kwargs):
     """Construct pores for multiple trajectory frames or multi-model PDBs from 
     channels previously calculated with :func:`calcChannelsMultipleFrames`.
 
     This function applies :func:`calcPoresFromChannels` independently to each
     frame or model. The channel list and calculation details at the same index
     must correspond to the same frame/model.
-
+    
+    When using parallel calculations on Windows or macOS, the call to this
+    function should be placed inside an ``if __name__ == '__main__':`` block
+    to prevent child processes from executing the main script again.
+    
     :arg channels_all: Lists of channels returned by :func:`calcChannelsMultipleFrames`. 
         Each element contains channels calculated for one trajectory frame or model.
     :type channels_all: list of lists
@@ -2032,6 +2036,16 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
         cores are used. Default is 2.
     :type max_proc: int or None
 
+    :arg mp_context: Multiprocessing start method used for parallel pore
+        calculations. If `None`, the default method for the operating system
+        is used. Windows and macOS use the ``'spawn'`` method by default,
+        whereas Linux typically uses ``'fork'``. Setting
+        ``mp_context='spawn'`` can be potentially used on Linux, but might 
+        be slower. Available values may include ``'spawn'``, ``'fork'``,
+        and ``'forkserver'``, depending on the operating system. 
+        Default is `None`.
+    :type mp_context: str or None
+    
     :arg kwargs: Pore-filtering parameters passed to
         :func:`calcPoresFromChannels`, including ``min_end_to_end``,
         ``max_end_to_end``, ``min_bottleneck``, ``max_bottleneck``,
@@ -2083,7 +2097,12 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
     if max_proc == 1:
         pores_all = [_calcPoresFromChannelsWorker(task) for task in tasks]
     else:
-        with multiprocessing.Pool(processes=max_proc) as pool:
+        if mp_context is None:
+            ctx = multiprocessing.get_context()
+        else:
+            ctx = multiprocessing.get_context(mp_context)
+        
+        with ctx.Pool(processes=max_proc) as pool:
             pores_all = pool.map(_calcPoresFromChannelsWorker, tasks)
     
     return pores_all    
