@@ -419,7 +419,7 @@ void cross(double x[], double y[], double z[])
 int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB, 
 			int nres, int nblx, int bmx)
 {
-  double **X, **I, **IC, *CM, *W, **A, **ISQT;
+  double **X, **Ii, **IC, *CM, *W, **A, **ISQT;
   double x, tr, dd, df;
   int *IDX, nbp, b, i, j, k, ii, jj, aa, bb, elm;
 
@@ -429,7 +429,7 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
   X = dmatrix(1, bmx, 1, 3);
   IDX = ivector(1, bmx);
   CM = dvector(1, 3);
-  I = dmatrix(1, 3, 1, 3);
+  Ii = dmatrix(1, 3, 1, 3);
   IC = dmatrix(1, 3, 1, 3);
   W = dvector(1, 3);
   A = dmatrix(1, 3, 1, 3);
@@ -442,7 +442,7 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
     for(j=1; j<=3; j++)
     {
       CM[j] = 0.0;
-      for(i=1; i<=3; i++) I[i][j] = 0.0;
+      for(i=1; i<=3; i++) Ii[i][j] = 0.0;
       for(i=1; i<=bmx; i++) X[i][j] = 0.0;
     }
 
@@ -478,11 +478,11 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
       }
       for(i=1; i<=3; i++)
       {
-        I[i][i] += (dd - X[k][i] * X[k][i]);
+        Ii[i][i] += (dd - X[k][i] * X[k][i]);
         for(j=i+1; j<=3; j++)
         {
-          I[i][j] -= X[k][i]*X[k][j];
-          I[j][i] = I[i][j];
+          Ii[i][j] -= X[k][i]*X[k][j];
+          Ii[j][i] = Ii[i][j];
 	      }
       }
     }
@@ -490,7 +490,7 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
     /* DIAGONALIZE INERTIA TENSOR */
     for (i=1; i<=3; i++)
       for (j=1; j<=3; j++)
-	      IC[i][j]=I[i][j];
+	      IC[i][j]=Ii[i][j];
     dsvdcmp(IC, 3, 3, W, A);
     deigsrt(W, A, 3);
     righthand2(W, A, 3);
@@ -545,7 +545,7 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
   free_dmatrix(X, 1, bmx, 1, 3);
   free_ivector(IDX, 1, bmx);
   free_dvector(CM, 1, 3);
-  free_dmatrix(I, 1, 3, 1, 3);
+  free_dmatrix(Ii, 1, 3, 1, 3);
   free_dmatrix(IC, 1, 3, 1, 3);
   free_dvector(W, 1, 3);
   free_dmatrix(A, 1, 3, 1, 3);

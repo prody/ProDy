@@ -45,7 +45,7 @@ def joinTerms(terms, sep=', ', last=None, sort=False):
 
 
 def wrapText(text, width=70, join='\n', **kwargs):
-    """Returns wrapped lines from :func:`textwrap.wrap` after *join*\ing them.
+    """Returns wrapped lines from :func:`textwrap.wrap` after *join*ing them.
     """
 
     try:

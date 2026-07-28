@@ -273,10 +273,35 @@ class AtomPointer(Atomic):
                             .intersection(set(self._getIndices()))), int)
         subset.sort()
         return subset
+    
+    def getAnisous(self):
+        """Returns a copy of anisotropic temperature factors from the active coordinate set."""
+
+        if self._ag._anisous is not None:
+            # Since this is not slicing, a view is not returned
+            return self._ag._anisous[self.getACSIndex(), self._indices]
+
+    _getAnisous = getAnisous
+
+    def getBonds(self):
+        """Returns bonds.  Use :meth:`setBonds` or
+        :meth:`inferBonds` from parent AtomGroup for setting bonds."""
+
+        if self._ag._bonds is not None:
+            iset = set(self._getIndices())
+            acsi = self._acsi
+            return array([Bond(self, bond, acsi) for bond in self._ag._bonds
+                          if bond[0] in iset and bond[1] in iset])
+        return None
+
+    def numBonds(self):
+        """Returns number of bonds.  Use :meth:`setBonds` or
+        :meth:`inferBonds` from parent AtomGroup for setting bonds."""
+        return len(self.getBonds())
 
     def _iterBonds(self):
         """Yield pairs of indices for bonded atoms that are within the pointer.
-        Use :meth:`setBonds` for setting bonds."""
+        Use :meth:`setBonds` from parent AtomGroup for setting bonds."""
 
         if self._ag._bonds is None:
             LOGGER.warning('bonds are not set, use `setBonds` or `inferBonds`')

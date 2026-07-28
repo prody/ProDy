@@ -17,11 +17,18 @@ sdist
 develop-eggs
 .installed.cfg
 __pycache__
+.DS_Store
 
 # ProDy
 *.nmd
 *.pdb
 *.pdb.gz
+*.cif
+*.cif.gz
+*.mmtf
+*.map
+*.mrc
+*.dcd
 
 # Docs
 /docs/_build/

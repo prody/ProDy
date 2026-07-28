@@ -101,6 +101,50 @@ Use the following to parse and access header data in PDB files:
   * :class:`.Polymer` - store PDB polymer (macromolecule) component data
   * :class:`.DBRef` - store polymer sequence database reference records
 
+Analyze interactions and stability with InSty and find water bridges with WatFinder
+====================
+
+Use the following to analyze interactions within protein structure or
+between protein and ligand structure in single PDB file or in trajectory:
+
+  * :func:`.addHydrogens` - add missing hydrogens to :file:`.pdb` files
+  * :func:`.calcHydrogenBonds` - compute hydrogen bonds in proteins
+  * :func:`.calcSaltBridges` - compute salt bridges in proteins
+  * :func:`.calcRepulsiveIonicBonding` - compute repulsive ionic bonding in proteins
+  * :func:`.calcPiStacking` - compute Pi-stacking interactions in proteins
+  * :func:`.calcPiCation` - compute Pi-cation interactions in proteins
+  * :func:`.calcHydrophobic` - compute hydrophobic interactions in proteins
+  * :func:`.calcProteinInteractions` - compute all above interaction types at once
+  * :func:`.showProteinInteractions_VMD` - return TCL file for visualization in VMD 
+
+  * :func:`.calcHydrogenBondsDCD` - compute hydrogen bonds in a trajectory for proteins
+  * :func:`.calcSaltBridgesDCD` - ompute salt bridges in a trajectory for proteins
+  * :func:`.calcRepulsiveIonicBondingDCD` - compute repulsive ionic bonding in a trajectory for proteins    
+  * :func:`.calcPiStackingDCD` - compute Pi-stacking interactions in a trajectory for proteins
+  * :func:`.calcPiCationDCD` - compute Pi-cation interactions in a trajectory for proteins
+  * :func:`.calcHydrophobicDCD` - compute hydrophobic interactions in a trajectory for proteins
+  * :func:`.calcStatisticsInteractions` - return statistical information for each interaction type 
+
+  * :func:`.calcLigandInteractions` - compute all type of interactions between protein and ligand
+  * :func:`.listLigandInteractions` - return list of interactions between protein and ligand
+  * :func:`.showLigandInteraction_VMD` - return TCL file for visualization of interactions for VMD
+
+  * :class:`.Interactions` - store inteactions for a single PDB structure
+  * :class:`.InteractionsDCD` - store interactions for a trajectory
+
+Detect channels, tunnels and pores with CaviFinder
+====================
+
+Use the following to analyze cavities within protein structures
+in single PDB file or in trajectory:
+
+  * :func:`.getVmdModel` - generates a 3D model of proten, using VMD, which is then use for visualization
+  * :func:`.calcChannels` - computes and identifies channels
+  * :func:`.calcChannelsMultipleFrames` - compute channels for each frame in a given trajectory or PDB ensemble
+  * :func:`.getChannelParameters` - extracts and returns the lengths, bottlenecks, and volumes of each channel
+  * :func:`.getChannelAtoms` - generates an AtomGroup object representing the atoms along the paths of the given channels
+  * :func:`.showChannels` - visualizes the channels using Open3D
+  * :func:`.showCavities` - visualizes the cavities using Open3D
 
 Compare/align chains
 ====================
@@ -148,6 +192,14 @@ Use the following to parse and access header data in EMD files:
   * :class:`.EMDMAP` - access structural data from :file:`.emd` files
   * :class:`.TRNET` - fit pseudoatoms to EM density maps using the TRN algorithm
 
+Add missing atoms including hydrogens
+===========
+
+Use the following to add missing atoms
+
+  * :func:`.addMissingAtoms` - add missing atoms with separately installed OpenBabel or PDBFixer
+
+Missing residues can also be added if a PDB or mmCIF file with SEQRES entries is provided.
 """
 
 __all__ = []
@@ -196,6 +248,10 @@ from . import pdbfile
 from .pdbfile import *
 __all__.extend(pdbfile.__all__)
 
+from . import mmtffile
+from .mmtffile import *
+__all__.extend(mmtffile.__all__)
+
 from . import emdfile
 from .emdfile import *
 __all__.extend(emdfile.__all__)
@@ -204,9 +260,39 @@ from . import ciffile
 from .ciffile import *
 __all__.extend(ciffile.__all__)
 
+_getPDBid  = ciffile._getPDBid = pdbfile._getPDBid
+long_id_check_str = ciffile.long_id_check_str = pdbfile.long_id_check_str
+wwpdb.long_id_check_str = long_id_check_str
+
 from . import starfile
 from .starfile import *
 __all__.extend(starfile.__all__)
 
-from .pdbfile import PDBParseError
+from . import interactions
+from .interactions import *
+__all__.extend(interactions.__all__)
 
+try:
+    from . import waterbridges
+    from .waterbridges import *
+except SyntaxError:
+    import logging
+    logger = logging.getLogger()
+    logger.warn("Cannot import waterbridges")
+else:
+    __all__.extend(waterbridges.__all__)
+
+from . import channels
+from .channels import *
+__all__.extend(channels.__all__)
+
+from . import fixer
+from .fixer import *
+__all__.extend(fixer.__all__)
+
+from .pdbfile import PDBParseError
+from .ciffile import MMCIFParseError
+
+from . import opm
+from .opm import *
+__all__.extend(opm.__all__)

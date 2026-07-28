@@ -6,10 +6,9 @@ from prody.tests import TestCase, skipIf, skipUnless
 from subprocess import Popen, PIPE
 
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    from numpy.testing import dec
+
+from prody.utilities import importDec
+dec = importDec()
 
 from prody import LOGGER
 LOGGER.verbosity = None
@@ -25,17 +24,18 @@ TESTDIR = os.path.join(TEMPDIR, 'prody_tests')
 class TestCommandExamples(TestCase):
 
     def setUp(self):
-
         self.cwd = os.getcwd()
         if not os.path.isdir(TESTDIR):
             os.mkdir(TESTDIR)
         os.chdir(TESTDIR)
 
     def tearDown(self):
-
         if os.path.isdir(TESTDIR):
             for fn in glob.glob(os.path.join(TESTDIR, '*')):
-                os.remove(fn)
+                try:
+                    os.remove(fn)
+                except OSError:
+                    pass
         os.chdir(self.cwd)
 
 
@@ -67,12 +67,17 @@ for cmd in prody_commands.choices:
         def func(self, examples=egs):
 
             for eg in examples:
+                # --- FIX APPLIED ---
+                # 1. stdin=PIPE allows us to send input to the subprocess
+                # 2. stdout/stderr=PIPE captures output
                 pipe = Popen(shlex.split(eg + ' --quiet'),
-                             stdout=PIPE, stderr=PIPE)
-                stdout = pipe.stdout.read()
-                pipe.stdout.close()
-                stderr = pipe.stderr.read()
-                pipe.stderr.close()
+                             stdout=PIPE, stderr=PIPE, stdin=PIPE)
+                
+                # communicate() reads both stdout and stderr buffers simultaneously
+                # preventing the buffer fill deadlock.
+                # input=b'n\n' sends "n" + Enter to the process. 
+                # If the app asks "Overwrite? [y/n]", this answers "no" and unblocks it.
+                stdout, stderr = pipe.communicate(input=b'n\n')
 
         func.__name__ = 'testCommandExample{0:d}'.format(count)
         func.__doc__ = 'Test example: $ {0:s}'.format(' $ '.join(egs))

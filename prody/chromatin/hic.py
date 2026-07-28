@@ -525,9 +525,9 @@ def saveHiC(hic, filename=None, map=True, **kwargs):
     if filename is None:
         filename = hic.getTitle().replace(' ', '_')
     
-    if filename.endswith('.hic'):
+    if filename.lower().endswith('.hic'):
         filename += '.npz'
-    elif not filename.endswith('.hic.npz'):
+    elif not filename.lower().endswith('.hic.npz'):
         filename += '.hic.npz'
 
     attr_dict = hic.__dict__.copy()
@@ -574,9 +574,9 @@ def saveHiC_h5(hic, filename=None, **kwargs):
     if filename is None:
         filename = hic.getTitle().replace(' ', '_')
     
-    if filename.endswith('.hic'):
+    if filename.lower().endswith('.hic'):
         filename += '.hic'
-    elif not filename.endswith('.hic.h5'):
+    elif not filename.lower().endswith('.hic.h5'):
         filename += '.hic.h5'
 
     attr_dict = hic.__dict__.copy()

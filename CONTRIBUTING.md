@@ -1,4 +1,4 @@
-This is a first draft, which is based on the ProDy website page http://prody.csb.pitt.edu/manual/devel/develop.html. Please see that page for updates.
+This is a first draft, which is based on the ProDy website page http://www.bahargroup.org/prody/manual/devel/develop.html. Please see that page for updates.
 
 
 Install Git and a GUI

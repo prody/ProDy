@@ -72,7 +72,10 @@ class TestSaveLoad(unittest.TestCase):
 
     def testSaveLoad(self):
 
-        atoms = loadAtoms(saveAtoms(ATOMS, os.path.join(TEMPDIR, 'atoms')))
+        filename = saveAtoms(ATOMS, os.path.join(TEMPDIR, 'atoms'))
+        assert_equal(filename, os.path.join(TEMPDIR, 'atoms.ag.npz'))
+
+        atoms = loadAtoms(filename)
         assert_equal(atoms.getCoordsets(), ATOMS.getCoordsets())
         for label in ATOMS.getDataLabels():
             assert_equal(atoms.getData(label), ATOMS.getData(label),
@@ -88,6 +91,8 @@ class TestPickling(unittest.TestCase):
         s1 = atoms1.__getstate__()
         s2 = atoms2.__getstate__()
         for key in s1:
+            if key == '_hv':
+                continue # new objects are created by __getstate__
             assert_equal(s1[key], s2[key])
         self.assertEqual(atoms1, atoms2)
 

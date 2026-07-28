@@ -5,27 +5,26 @@ from collections import OrderedDict
 import datetime
 
 import os
-from os.path import abspath, join, isfile, isdir, split, splitext
+from os.path import isdir, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS, PY3K
+from prody import LOGGER
 from prody.atomic import Atomic, AtomSubset
-from prody.utilities import openFile, openSQLite, isExecutable, which, PLATFORM, addext, wrapModes
-from prody.proteins import parseSTAR, writeSTAR, alignChains, parsePDB
+from prody.utilities import openFile, openSQLite
+from prody.proteins import (parseSTAR, writeSTAR, StarDict, 
+                            alignChains, parsePDB)
+
 from prody.ensemble import PDBEnsemble
 
 from .nma import NMA, MaskedNMA
 from .anm import ANM, ANMBase, MaskedANM
-from .analysis import calcCollectivity, calcScipionScore
-from .analysis import calcProjection
-from .analysis import calcCollectivity
+from .analysis import calcProjection, calcCollectivity, calcScipionScore
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
 from .rtb import RTB
 from .pca import PCA, EDA
 from .imanm import imANM
-from .exanm import exANM
 from .mode import Vector, Mode, VectorBase
 from .modeset import ModeSet
 from .editing import sliceModel, reduceModel, trimModel
@@ -315,22 +314,81 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def parseScipionModes(run_path, title=None, pdb=None):
-    """Returns :class:`.NMA` containing eigenvectors and eigenvalues 
-    parsed from a ContinuousFlex FlexProtNMA Run directory.
+def parseScipionModes(metadata_file, title=None, pdb=None, parseIndices=False):
+    """Returns :class:`.NMA` or :class:`.GNM` containing eigenvectors and eigenvalues 
+    parsed from an NMA, GNM or PCA protocol path from ContinuousFlex or Scipion-EM-ProDy.
 
-    :arg run_path: path to the Run directory
-    :type run_path: str
+    :arg metadata_file: metadata sqlite file in Scipion protocol path
+        The location of this file is currently limited to the top level of the project path
+        and not to deep directories like the extra path.
+    :type metadata_file: str
     
     :arg title: title for :class:`.NMA` object
     :type title: str
-    """
-    if run_path.endswith("/"):
-        run_path = run_path[:-1]
-    run_name = os.path.split(run_path)[-1]
-    top_dirs = os.path.split(run_path)[0][:-4] # exclude "Runs"
 
-    star_data = parseSTAR(run_path + '/modes.xmd')
+    :arg pdb: pdb file to help define dof
+    :type pdb: str
+
+    :arg parseIndices: whether to parse indices and output a ModeSet
+        default *False*
+    :type parseIndices: bool
+    """
+    # Fill variables about how to find files based on the assumed location
+    # It may be a good idea to make this more general somehow, 
+    # but it shouldn't be too hard to keep the sqlite in the right place.
+    run_path = os.path.split(metadata_file)[0]
+    top_dirs = os.path.split(run_path)[0][:-4]
+    run_name = os.path.split(run_path)[-1]
+
+    if metadata_file.endswith('.xmd'):
+        star_data = parseSTAR(metadata_file)
+        
+    elif metadata_file.endswith('.sqlite'):
+        # reconstruct star data from sqlite
+
+        sql_con = openSQLite(metadata_file)
+        cursor = sql_con.cursor()
+
+        star_dict = OrderedDict()
+        star_block_dict = OrderedDict()
+        
+        star_loop_dict = OrderedDict()
+        star_loop_dict["fields"] = OrderedDict([(0, '_enabled'),
+                                            (1, '_nmaCollectivity'),
+                                            (2, '_nmaModefile'),
+                                            (3, '_nmaScore'),
+                                            (4, '_nmaEigenval'),
+                                            (5, '_order_')])
+        star_loop_dict["data"] = OrderedDict()
+
+        for row in cursor.execute("SELECT * FROM Objects;"):
+        
+            id_ = row[0]
+            key = id_ - 1 # sqlite ids start from 1 not 0
+
+            star_loop_dict["data"][key] = OrderedDict()
+
+            star_loop_dict["data"][key]['_order_'] = id_
+
+            star_loop_dict["data"][key]['_enabled'] = row[1]
+
+            star_loop_dict["data"][key]['_nmaCollectivity'] = row[6]
+
+            star_loop_dict["data"][key]['_nmaModefile'] = row[5]
+
+            star_loop_dict["data"][key]['_nmaScore'] = row[7]
+
+            if len(row) > 8:
+                star_loop_dict["data"][key]['_nmaEigenval'] = row[8]
+
+        star_block_dict[0] = star_loop_dict
+        star_dict[0] = star_block_dict
+
+        star_data = StarDict(star_dict, prog='XMIPP')
+
+    else:
+        raise ValueError("Metadata file should be an xmd or sqlite file")
+
     star_loop = star_data[0][0]
     
     n_modes = star_loop.numRows()
@@ -349,22 +407,40 @@ def parseScipionModes(run_path, title=None, pdb=None):
     vectors = np.zeros((dof, n_modes))
     vectors[:, 0] = mode1
 
-    eigvals = np.zeros(n_modes)
+    eigvals = {}
+    indices = []
 
     try:
-        eigvals[0] = float(row1['_nmaEigenval'])
+        indices.append(int(row1['_order_'])-1)
+        if parseIndices:
+            found_indices = True
+        else:
+            found_indices = False
+    except KeyError:
+        found_indices = False
+
+    try:
+        if found_indices:
+            eigvals[indices[0]] = float(row1['_nmaEigenval'])
+        else:
+            eigvals[0] = float(row1['_nmaEigenval'])
         found_eigvals = True
-    except:
+    except KeyError:
         found_eigvals = False
 
     for i, row in enumerate(star_loop[1:]):
         vectors[:, i+1] = parseArray(top_dirs + row['_nmaModefile']).reshape(-1)
-        if found_eigvals:
+        if found_eigvals and not found_indices:
             eigvals[i+1] = float(row['_nmaEigenval'])
+        if found_indices:
+            index = int(row['_order_'])-1
+            indices.append(index)
+            if found_eigvals:
+                eigvals[index] = float(row['_nmaEigenval'])
     
     if not found_eigvals:
-        log_fname = run_path + '/logs/run.stdout'
-        fi = open(log_fname, 'r')
+        logFileName = run_path + '/logs/run.stdout'
+        fi = open(logFileName, 'r')
         lines = fi.readlines()
         fi.close()
 
@@ -388,7 +464,22 @@ def parseScipionModes(run_path, title=None, pdb=None):
     else:
         nma = GNM(title)
 
-    nma.setEigens(vectors, eigvals)
+    nma.setEigens(vectors, np.array(list(eigvals.values())))
+
+    if found_indices:
+        n_modes = np.max(indices) + 1
+        vectors2 = np.ones((dof, n_modes))
+        eigvals2 = np.ones((n_modes))
+
+        for i, index in enumerate(indices):
+            vectors2[:, index] = vectors[:, i]
+            eigvals2[index] = eigvals[index]
+
+        nma2 = type(nma)(title)
+        nma2.setEigens(vectors2, eigvals2)
+
+        nma = nma2[indices]
+
     return nma
 
 
@@ -448,7 +539,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         raise TypeError('collectivityThreshold should be float, not {0}'
                         .format(type(collectivityThreshold)))
 
-    if modes.numModes() == 1 and not isinstance(modes, NMA):
+    if modes.numModes() == 1 and not isinstance(modes, (NMA, ModeSet)):
         old_modes = modes
         modes = NMA(old_modes)
         modes.setEigens(old_modes.getArray().reshape(-1, 1))
@@ -499,10 +590,11 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     classes = [(1, 'self', 'c00', 'NormalMode'),
                (2, '_modeFile', 'c01', 'String'),
                (3, '_collectivity', 'c02', 'Float'),
-               (4, '_score', 'c03', 'Float')]
+               (4, '_score', 'c03', 'Float'),
+               (5, '_eigenval', 'c04', 'Float')]
     cursor.executemany('''INSERT INTO Classes VALUES(?,?,?,?);''', classes);
     
-    cursor.execute('''CREATE TABLE Objects(id primary key, enabled, label, comment, creation, c01, c02, c03)''')
+    cursor.execute('''CREATE TABLE Objects(id primary key, enabled, label, comment, creation, c01, c02, c03, c04)''')
     
     star_dict = OrderedDict()
 
@@ -542,14 +634,14 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         c03 = scores[i]
         loop_dict['data'][i]['_nmaScore'] = '%8.6f' % c03
 
-        eigval = eigvals[i]
-        if float('%9.6f' % eigval) > 0:
-            loop_dict['data'][i]['_nmaEigenval'] = '%9.6f' % eigval
+        c04 = eigvals[i]
+        if float('%9.6f' % c04) > 0:
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6f' % c04
         else:
-            loop_dict['data'][i]['_nmaEigenval'] = '%9.6e' % eigval
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6e' % c04
         
-        cursor.execute('''INSERT INTO Objects VALUES(?,?,?,?,?,?,?,?)''',
-                       (id, enab, label, comment, creation, c01, c02, c03))
+        cursor.execute('''INSERT INTO Objects VALUES(?,?,?,?,?,?,?,?,?)''',
+                       (id, enab, label, comment, creation, c01, c02, c03, c04))
 
     if write_star:
         writeSTAR(output_path + '/modes.xmd', star_dict)
@@ -742,6 +834,35 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         exanm.buildHessian(atoms, gamma=gamma, **kwargs)
         enm = exanm
         MaskedModel = MaskedExANM
+    elif model.lower() in ('genanm', 'generalized', 'generalized_anm'):
+        # Generalized ANM model
+        try:
+            from generalized_anm import genANM  # your local file
+        except ImportError:
+            from .generalized_anm import genANM
+        genanm = genANM(title)
+
+        # Extract generalized-ANM parameters, with defaults if missing
+        cutoff = kwargs.pop('cutoff', 15.0)
+        k_theta = kwargs.pop('k_theta', 10.0)
+        k_phi = kwargs.pop('k_phi', 1.0)
+        kappa = kwargs.pop('kappa', 20.0)
+        include_sequential = kwargs.pop('include_sequential', True)
+        symmetrize = kwargs.pop('symmetrize', True)
+
+        # Build generalized Hessian
+        genanm.buildHessian(atoms,
+                          cutoff=cutoff,
+                          gamma=gamma,
+                          k_theta=k_theta,
+                          k_phi=k_phi,
+                          kappa=kappa,
+                          include_sequential=include_sequential,
+                          symmetrize=symmetrize)
+
+        enm = genanm
+        # Reuse the same masked model as ANM because genANM is a subclass of ANM
+        MaskedModel = MaskedANM
     else:
         raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
     
@@ -794,28 +915,21 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
         or ``"pca"``. If it is not changed to ``"pca"`` then ``"nma"`` will be assumed.
     :type model: str
 
-    :arg eigval_fname: filename or path for xvg file containing eigenvalues
+    :arg eigval_fname: filename for xvg file containing eigenvalues
         Default is ``"eigenval.xvg"`` as this is the default from Gromacs
     :type eigval_fname: str
 
-    :arg eigvec_fname: filename or path for trr file containing eigenvectors
+    :arg eigvec_fname: filename for trr file containing eigenvectors
         Default is ``"eigenvec.trr"`` as this is the default from Gromacs
     :type eigvec_fname: str
-
-    :arg pdb_fname: filename or path for pdb file containing the reference structure
-        Default is ``"average.pdb"`` although this is probably suboptimal
-    :type pdb_fname: str
     """ 
     try:
-        from mdtraj import load_trr
+        from MDAnalysis.coordinates import TRR
     except ImportError:
-        raise ImportError('Please install mdtraj in order to use parseGromacsModes.')
+        raise ImportError('Please install MDAnalysis in order to use parseGromacsModes.')
 
     if not isinstance(run_path, str):
         raise TypeError('run_path should be a string')
-
-    if not run_path.endswith('/'):
-        run_path += '/'
 
     if not isinstance(title, str):
         raise TypeError('title should be a string')
@@ -827,46 +941,15 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
             LOGGER.warn('model not recognised so using NMA')
         result = NMA(title)
 
-
     eigval_fname = kwargs.get('eigval_fname', 'eigenval.xvg')
     if not isinstance(eigval_fname, str):
         raise TypeError('eigval_fname should be a string')
 
-    if isfile(eigval_fname):
-        vals_fname = eigval_fname
-    elif isfile(run_path + eigval_fname):
-        vals_fname = run_path + eigval_fname
-    else:
-        raise ValueError('eigval_fname should point be a path to a file '
-                         'either relative to run_path or an absolute one')
-
-
     eigvec_fname = kwargs.get('eigvec_fname', 'eigenvec.trr')
     if not isinstance(eigvec_fname, str):
         raise TypeError('eigvec_fname should be a string')
-
-    if isfile(eigvec_fname):
-        vecs_fname = eigval_fname
-    elif isfile(run_path + eigvec_fname):
-        vecs_fname = run_path + eigvec_fname
-    else:
-        raise ValueError('eigvec_fname should point be a path to a file '
-                         'either relative to run_path or an absolute one')
-
-
-    pdb_fname = kwargs.get('pdb_fname', 'average.pdb')
-    if not isinstance(pdb_fname, str):
-        raise TypeError('pdb_fname should be a string')
-
-    if isfile(pdb_fname):
-        pdb = eigval_fname
-    elif isfile(run_path + pdb_fname):
-        pdb = run_path + pdb_fname
-    else:
-        raise ValueError('pdb_fname should point be a path to a file '
-                         'either relative to run_path or an absolute one')
     
-    
+    vals_fname = run_path + eigval_fname
     fi = open(vals_fname, 'r')
     lines = fi.readlines()
     fi.close()
@@ -878,11 +961,12 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     eigvals = np.array(eigvals)
 
-    # Parse eigenvectors trr with mdtraj, which uses nm so doesn't rescale
-    vecs_traj = load_trr(vecs_fname, top=pdb)
+    # Parse eigenvectors trr with MDAnalysis, which assumes trajectory and multiplies by 10
+    # to get A even though actually they are unit vectors
+    vecs_traj = TRR.TRRReader(run_path + eigvec_fname)
 
-    # format vectors appropriately, skipping initial and average structures
-    vectors = np.array([frame.xyz.flatten() for frame in vecs_traj[2:]]).T
+    # format vectors appropriately, reversing *10 and skipping initial and average structures
+    vectors = np.array([frame.positions.flatten()/10 for frame in vecs_traj[2:]]).T
 
     result.setEigens(vectors, eigvals)
     return result

@@ -21,6 +21,8 @@ UBI_RADIUS = 20
 UBI_CONTACTS = Contacts(UBI_XYZ)
 UBI_CONTACTS_PBC = Contacts(UBI_XYZ, UBI_UC)
 
+UBI_ADDH = parseDatafile('1ubi_addH')
+
 
 class TestContacts(unittest.TestCase):
 
@@ -91,6 +93,13 @@ class TestNeighbors(unittest.TestCase):
         neighbors1.sort()
         neighbors2.sort()
         self.assertEqual(neighbors1, neighbors2)
+
+    def testSeqsep(self):
+
+        neighbors = findNeighbors(UCA, UCA_RADIUS, seqsep=3)
+        n_neighbors = (buildDistMatrix(UCA, seqsep=3, 
+                                       format='arr') <= UCA_RADIUS).sum()
+        assert_equal(len(neighbors), n_neighbors)
 
     def testPBCCoordArgumentSwitching(self):
 

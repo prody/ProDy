@@ -63,11 +63,27 @@ class AtomSubset(AtomPointer):
 
     _getCoords = getCoords
 
+    def getAnisous(self):
+        """Returns a copy of anisotropic temperature factors from the active coordinate set."""
+
+        if self._ag._anisous is not None:
+            # Since this is not slicing, a view is not returned
+            return self._ag._anisous[self.getACSIndex(), self._indices]
+
+    _getAnisous = getAnisous
+
     def setCoords(self, coords):
         """Set coordinates in the active coordinate set."""
 
         if self._ag._coords is not None:
             self._ag._coords[self.getACSIndex(), self._indices] = coords
+            self._ag._setTimeStamp(self.getACSIndex())
+
+    def setAnisous(self, anisous):
+        """Set anisotropic temperature factors in the active coordinate set."""
+
+        if self._ag._anisous is not None:
+            self._ag._anisous[self.getACSIndex(), self._indices] = anisous
             self._ag._setTimeStamp(self.getACSIndex())
 
     def getCoordsets(self, indices=None):

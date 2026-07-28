@@ -55,7 +55,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
 
     if filename is None:
         filename = ag.getTitle().replace(' ', '_')
-    if '.ag.npz' not in filename:
+    if not filename.lower().endswith('.npz'):
         filename += '.ag.npz'
 
     attr_dict = {'title': title}
@@ -346,7 +346,10 @@ def extendAtoms(nodes, atoms, is3d=False):
         if res is None:
             raise ValueError('atoms must contain a residue for all atoms')
         if isinstance(res, list):
-            raise ValueError('not enough data to get a single residue for all atoms')
+            if len(res) == 1:
+                res = res[0]
+            else:
+                raise ValueError('not enough data to get a single residue for all atoms')
 
         res_atom_indices = res._getIndices()
         if not fastin(res, residues):
@@ -424,8 +427,14 @@ def extendAtoms(nodes, atoms, is3d=False):
         ag = atoms.getAtomGroup()
     except AttributeError:
         ag = atoms
+
+    if hasattr(atoms, "getTitle"):
+        title = atoms.getTitle()
+    else:
+        title = str(atoms)
+
     atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
-                      title=str(atoms), intarrays=True)
+                      title=title, intarrays=True)
     
     #LOGGER.report('Full atoms was extended in %2.fs.', label='_prody_extendAtoms')
 

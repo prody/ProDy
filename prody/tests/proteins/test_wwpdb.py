@@ -1,12 +1,13 @@
 """This module contains unit tests for :mod:`~prody.proteins`."""
 
 import os
+import tempfile
+from unittest import mock
 
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    from numpy.testing import dec
+
+from prody.utilities import importDec
+dec = importDec()
 
 from prody import *
 from prody import LOGGER
@@ -16,15 +17,15 @@ from prody.tests.datafiles import *
 LOGGER.verbosity = 'none'
 
 
-class TestFTP(unittest.TestCase):
+class TestHTTP(unittest.TestCase):
 
     def setUp(self):
 
         self.pdb = ['1ubi', '1aar', 'arg', 1234]
         self.fns = []
         self.len = [683, 1218, None, None]
-        self.fetch = fetchPDBviaFTP
-        self.protocol = 'FTP'
+        self.fetch = fetchPDBviaHTTP
+        self.protocol = 'HTTP'
 
 
     @dec.slow
@@ -71,11 +72,26 @@ class TestFTP(unittest.TestCase):
             except:
                 pass
 
-class TestHTTP(TestFTP):
 
-    def setUp(self):
+class TestExtendedPDBIDHandling(unittest.TestCase):
 
-        TestFTP.setUp(self)
-        self.fetch = fetchPDBviaHTTP
-        self.protocol = 'HTTP'
+    def testHTTPUsesCIFForExtendedIdentifiers(self):
+        requested_urls = []
 
+        class _Response(object):
+            def read(self):
+                return b'data'
+
+        def _openURL(url):
+            requested_urls.append(url)
+            return _Response()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with mock.patch('prody.proteins.wwpdb.openURL', side_effect=_openURL):
+                with mock.patch('prody.proteins.wwpdb.pathPDBFolder', return_value=None):
+                    with mock.patch('prody.proteins.wwpdb.wwPDBServer', return_value='us'):
+                        fn = fetchPDBviaHTTP('pdb_00006uv8', folder=tmpdir)
+
+        self.assertIsNotNone(fn)
+        self.assertTrue(requested_urls)
+        self.assertTrue(requested_urls[0].endswith('.cif.gz'))

@@ -380,7 +380,7 @@ def writeNMD(filename, modes, atoms):
           before it is written. It's length before normalization will be
           written as the scaling factor of the vector."""
 
-    if not '.nmd' in filename:
+    if not filename.lower().endswith(".nmd"):
         filename += '.nmd'
 
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
@@ -388,7 +388,7 @@ def writeNMD(filename, modes, atoms):
                         'not {0}'.format(type(modes)))
     if modes.numAtoms() != atoms.numAtoms():
         raise Exception('number of atoms do not match')
-    out = openFile(addext(filename, '.nmd'), 'w')
+    out = openFile(filename, 'w')
 
     #out.write('#!{0} -e\n'.format(VMDPATH))
     out.write('nmwiz_load {0}\n'.format(abspath(filename)))
@@ -422,10 +422,40 @@ def writeNMD(filename, modes, atoms):
     try:
         data = atoms.getResnums()
         if data is not None:
+            if data.max() > 9999:
+                LOGGER.warn('Residue numbers exceed 9999. Renumbering residues '
+                            'in NMD output to be compatible with NMWiz/VMD PDB '
+                            'format (max 9999 per chain).')
+                try:
+                    chids = atoms.getChids()
+                except Exception:
+                    chids = None
+                new_data = np.empty_like(data)
+                if chids is not None:
+                    for chid in np.unique(chids):
+                        mask = (chids == chid)
+                        chain_resnums = data[mask]
+                        unique_res = {}
+                        counter = 0
+                        for r in chain_resnums:
+                            if r not in unique_res:
+                                counter += 1
+                                unique_res[r] = (counter - 1) % 9999 + 1
+                        new_data[mask] = np.array([unique_res[r]
+                                                   for r in chain_resnums])
+                else:
+                    unique_res = {}
+                    counter = 0
+                    for i, r in enumerate(data):
+                        if r not in unique_res:
+                            counter += 1
+                            unique_res[r] = (counter - 1) % 9999 + 1
+                        new_data[i] = unique_res[r]
+                data = new_data
             out.write('resids ')
             data.tofile(out, ' ')
             out.write('\n')
-    except:
+    except Exception:
         pass
     try:
         data = atoms.getChids()

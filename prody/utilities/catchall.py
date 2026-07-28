@@ -8,9 +8,12 @@ from .checkers import checkCoords
 from .logger import LOGGER
 
 
-__all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
+__all__ = ['calcTree', 'clusterMatrix', 
+           'showLines', 'showMatrix', 'showBars', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies']
+           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
+           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters', 
+           'printAtomicMatrix', 'calcKmedoidClusters']
 
 class LinkageError(Exception):
     pass
@@ -52,14 +55,6 @@ def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne',
         from sklearn.manifold import TSNE
     except ImportError:
         raise ImportError('need sklearn module')
-        '''
-        try: 
-            import Bio 
-        except ImportError:
-            raise ImportError('Phylo module could not be imported. '
-                'Reinstall ProDy or install Biopython '
-                'to solve the problem.')
-        '''
         
 
     # Check inputs to make sure are of valid types/values
@@ -144,7 +139,12 @@ def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne',
     return best_labels
 
 def getCoords(data):
+    """Get coordinates from *data* if possible and handle errors well.
 
+    :arg data: a coordinate set or an object with ``getCoords`` method
+    :type data: :class:`numpy.ndarray`, :class:`Atomic`, 
+        :class:`Ensemble`, :class:`Trajectory`
+    """
     try:
         data = (data._getCoords() if hasattr(data, '_getCoords') else
                 data.getCoords())
@@ -240,13 +240,11 @@ def getTreeFromLinkage(names, linkage):
     :type linkage: :class:`~numpy.ndarray`
     """
     try: 
-        import Bio 
+        from Bio.Phylo.BaseTree import Tree, Clade
     except ImportError:
         raise ImportError('Phylo module could not be imported. '
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
-
-    from Bio.Phylo.BaseTree import Tree, Clade
     
     if not isinstance(linkage, np.ndarray):
         raise TypeError('linkage must be a numpy.ndarray instance')
@@ -309,12 +307,6 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
     :arg linkage: whether the linkage matrix is returned. Note that NJ trees do not support linkage
     :type linkage: bool
     """
-    try: 
-        import Bio 
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
             
     from .TreeConstruction import DistanceMatrix, DistanceTreeConstructor
     
@@ -323,7 +315,7 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
     
     method = method.lower().strip()
 
-    if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median']:
+    if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median', 'complete']:
         from scipy.cluster.hierarchy import linkage as hlinkage
         from scipy.spatial.distance import squareform
         
@@ -600,8 +592,78 @@ def showLines(*args, **kwargs):
 
     return lines, polys
 
+def showBars(ydata, xdata=None, *args, **kwargs):
+    """
+    Show 1-D data using :func:`~matplotlib.axes.Axes.bar`. 
+    
+    :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
+            column vectors.
+            If not provided, a range with the length of the y data will be used.
+    :type x: :class:`~numpy.ndarray`
+
+    :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
+            column vectors.
+    :type y: :class:`~numpy.ndarray`
+
+    :arg ticklabels: user-defined tick labels for x-axis.
+    :type ticklabels: list
+    """
+    
+    # note for developers: this function serves as a low-level 
+    # plotting function which provides basic utilities for other 
+    # plotting functions. Therefore showFigure is not handled 
+    # in this function as it should be already handled in the caller.
+
+    ticklabels = kwargs.pop('ticklabels', None)
+    gap = kwargs.pop('gap', False)
+    labels = kwargs.pop('label', None)
+
+    from matplotlib import cm, ticker
+    from matplotlib.pyplot import figure, gca, xlim
+    from .drawtools import IndexFormatter
+
+    if xdata is None:
+        xdata = list(range(len(ydata)))
+
+    ax = gca()
+    bars = ax.bar(xdata, ydata, *args, **kwargs)
+        
+    for i, bar in enumerate(bars):
+        x, y = bar.get_xy()
+        
+        if gap:
+            x_new, y_new = addEnds(x, y)
+            bar.set_data(x_new, y_new)
+        else:
+            x_new, y_new = x, y
+        
+        if labels is not None:
+            if np.isscalar(labels):
+                bar.set_label(labels)
+            else:
+                try:
+                    bar.set_label(labels[i])
+                except IndexError:
+                    raise ValueError('The number of labels ({0}) and that of y ({1}) do not match.'
+                                     .format(len(labels), len(bar)))
+
+    ax.margins(x=0)
+    if ticklabels is not None:
+        if callable(ticklabels):
+            ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(ticklabels))
+        else:
+            ax.get_xaxis().set_major_formatter(IndexFormatter(ticklabels))
+    
+    ax.xaxis.set_major_locator(ticker.AutoLocator())
+    ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+    return bars
+
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
-    """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
+    """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow` or
+    :meth:`~matplotlib.axes.Axes.scatter` if *markersize* is provided.
+
+    Curves on x- and y-axis can be added.
 
     :arg matrix: matrix to be displayed
     :type matrix: :class:`~numpy.ndarray`
@@ -616,12 +678,26 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
                      to *100-p*-th percentile
     :type percentile: float
 
+    :arg vmin: a minimum value threshold to remove outliers, i.e. only showing data greater than vmin
+               This overrides percentile.
+    :type vmin: float
+
+    :arg vmax: a maximum value threshold to remove outliers, i.e. only showing data less than vmax
+               This overrides percentile.
+    :type vmax: float
+
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
 
     :arg xtickrotation: how much to rotate the xticklabels in degrees
                         default is 0
     :type xtickrotation: float
+
+    :arg markersize: size of square markers for using :meth:`~matplotlib.axes.Axes.scatter`
+        to help show matrices with small data regions compared to zeros.
+        Note only non-zeros are plotted so the colorbar range may change if not using norm
+        Default is None, which results in using :meth:`~matplotlib.axes.Axes.imshow`
+    :type markersize: float
     """
 
     from matplotlib import ticker
@@ -642,6 +718,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     vcenter = kwargs.pop('vcenter', None)
     norm = kwargs.pop('norm', None)
 
+    markersize = kwargs.pop('markersize', None)
+
     if vcenter is not None and norm is None:
         if PY3K:
             try:
@@ -649,7 +727,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             except ImportError:
                 from matplotlib.colors import TwoSlopeNorm as DivergingNorm
 
-            norm = DivergingNorm(vmin=vmin, vcenter=0., vmax=vmax)
+            norm = DivergingNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
         else:
             LOGGER.warn('vcenter cannot be used in Python 2 so norm remains None')
 
@@ -668,17 +746,26 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     interactive = kwargs.pop('interactive', True)
 
+    import matplotlib
+    if float(matplotlib.__version__.split('.')[0]) >= 3 or float(matplotlib.__version__.split('.')[1]) >= 6:
+        LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
+        interactive = False
+
     cmap = kwargs.pop('cmap', 'jet')
     origin = kwargs.pop('origin', 'lower')
 
-    try: 
-        from Bio import Phylo
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
-    tree_mode_y = isinstance(y_array, Phylo.BaseTree.Tree)
-    tree_mode_x = isinstance(x_array, Phylo.BaseTree.Tree)
+    if not isinstance(x_array, np.ndarray) or not isinstance(y_array, np.ndarray):
+        try:
+            from Bio import Phylo
+        except ImportError:
+            raise ImportError('Phylo module could not be imported. '
+                'Reinstall ProDy or install Biopython '
+                'to solve the problem.')
+        tree_mode_y = isinstance(y_array, Phylo.BaseTree.Tree)
+        tree_mode_x = isinstance(x_array, Phylo.BaseTree.Tree)
+    else:
+        tree_mode_x = False
+        tree_mode_y = False
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -723,11 +810,20 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         ax3 = gca()
     
-    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, 
-                    norm=norm, cmap=cmap, origin=origin, **kwargs)
-                    
-    #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
-    #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
+    if markersize is None:
+        # default behaviour
+        im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax,
+                        norm=norm, cmap=cmap, origin=origin, **kwargs)
+    else:
+        zeros_matrix = np.zeros(matrix.shape)
+        im = ax3.imshow(zeros_matrix, vmin=-1, vmax=1, cmap='seismic')
+        plot_list = []
+        for rows,cols in zip(np.where(matrix!=0)[0],np.where(matrix!=0)[1]):
+            plot_list.append([cols,rows,matrix[rows,cols]])
+        plot_list = np.array(plot_list)
+
+        im = ax3.scatter(plot_list[:,0], plot_list[:,1], c=plot_list[:,2],
+                         s=markersize, marker='s', cmap=cmap, norm=norm, **kwargs)
 
     if xticklabels is not None:
         ax3.xaxis.set_major_formatter(IndexFormatter(xticklabels))
@@ -968,3 +1064,197 @@ def findSubgroups(tree, c, method='naive', **kwargs):
             subgroups[t-1].append(names[i])
 
     return subgroups
+
+
+def getAtomicTable(matrix, atoms_i=None, atoms_j=None, 
+                   fmt='%5d', sep='\t'):
+    """Generates a new table for a matrix with atom labels along 
+    the top and at the beginning of each line for :func:`.printAtomicTable`.
+
+    :arg matrix: any square 2D data with a size matching atoms
+    :type matrix: tuple, list, :class:`~numpy.ndarray`
+
+    :arg atoms_i: any :class:`.Atomic` object to label the rows
+    :type atoms_i: :class:`.Atomic`
+
+    :arg atoms_j: any :class:`.Atomic` object to label the columns
+        uses atoms_i by default
+    :type atoms_j: :class:`.Atomic`
+
+    :arg fmt: format string for formatting numbers
+    :type fmt: str
+    """
+    if not isListLike(matrix):
+        raise TypeError('matrix should be list-like')
+
+    matrix = np.array(matrix)
+    if matrix.ndim != 2:
+        raise ValueError('matrix should be 2-dimensional')
+
+    if atoms_j is None:
+        atoms_j = atoms_i
+
+    if atoms_i is not None and matrix.shape[0] != atoms_i.numAtoms():
+        raise ValueError('number of rows should be number of atoms_i')
+
+    if atoms_j is not None and matrix.shape[1] != atoms_j.numAtoms():
+        raise ValueError('number of cols should be number of atoms_j')
+
+    if not isinstance(fmt, str):
+        raise TypeError('fmt should be a string')
+
+    chars = [list(item) for item in fmt.split('.')]
+    nums = []
+    for item in chars:
+        num_str = ''
+        for char in item:
+            if char.isnumeric():
+                num_str += char
+        nums.append(int(num_str))
+
+    if len(nums) == 1:
+        length = nums[0]
+    else:
+        if nums[0] >= nums[1] + 2:
+            length = nums[0]
+        else:
+            length = nums[1] + 2
+
+    table = ' '*length
+
+    if atoms_i is None and atoms_j is None:
+        resnum_length = len(str(max(matrix.shape)))
+        chid_length = 0
+
+    elif atoms_i is None:
+        resnum_length = len(str(max(atoms_j.getResnums())))
+        chid_length = max([len(chid) for chid in atoms_j.getChids()])
+
+    elif atoms_j is None:
+        resnum_length = len(str(max(atoms_i.getResnums())))
+        chid_length = max([len(chid) for chid in atoms_i.getChids()])
+
+    else:        
+        resnum_length = max(len(str(max(atoms_i.getResnums()))),
+                            len(str(max(atoms_j.getResnums()))))
+        chid_length = max(max([len(chid) for chid in atoms_i.getChids()]),
+                        max([len(chid) for chid in atoms_j.getChids()]))
+    
+    for j in range(matrix.shape[1]):
+        table += sep
+        if length >= resnum_length + chid_length:
+            if atoms_j is None:
+                chid = ''
+            else:
+                chid = atoms_j[j].getChid()
+            table += ' '*(chid_length - len(chid)) + chid
+        if length >= resnum_length + chid_length + 1:
+            table += ' '
+        
+        if atoms_j is not None:
+            if length >= resnum_length + chid_length + 2:
+                table += atoms_j[j].getResname()
+
+            table += '%{0}d'.format(resnum_length) % atoms_j[j].getResnum()
+    table += '\n'
+
+    for i, row in enumerate(matrix):
+        if atoms_i is not None:
+            table += '\t{} {}'.format(atoms_i[i].getChid(),
+                                      atoms_i[i].getResname())
+            table += '%{0}d'.format(resnum_length) % atoms_i[i].getResnum()
+        for element in row:
+            table += fmt % element
+        table += '\n'
+
+    return table
+
+
+def printAtomicMatrix(matrix, atoms=None, step=10, 
+                      fmt='%8d', sep='\t'):
+    """Prints a new table for a matrix with
+    atom labels along the top and at the 
+    beginning of each line.
+
+    :arg matrix: any square 2D data with a size matching atoms
+    :type matrix: tuple, list, :class:`~numpy.ndarray`
+
+    :arg atoms: any :class:`.Atomic` object to label the data
+    :type atoms: :class:`.Atomic`
+    """
+    attempts = len(matrix)//step
+    if len(matrix) > step * attempts:
+        attempts += 1
+    for i in range(attempts):
+        start = step * i
+        stop = step * (i+1)
+        submatrix = matrix[:,start:stop,]
+        if atoms is not None:
+            atoms_i = atoms
+            atoms_j = atoms[start:stop]
+        else:
+            atoms_i = atoms
+            atoms_j = atoms
+        print(getAtomicTable(submatrix, atoms_i, atoms_j,
+                             fmt, sep))
+
+    return
+
+
+def calcRMSDclusters(rmsd_matrix, c, labels=None):
+    """
+    Divide **rmsd_matrix** into clusters using the gromos method 
+    with a cutoff **c** as implemented in gromacs (see 
+    https://manual.gromacs.org/documentation/current/onlinehelp/gmx-cluster.html)
+
+    Returns a list of lists with labels divided into clusters.
+    """    
+    clusters = []
+
+    useful_rmsd_matrix = rmsd_matrix
+    indices = list(range(len(rmsd_matrix)))
+    if labels is None:
+        elements = indices
+    else:
+        elements = labels
+
+    while len(elements) > 0:
+        neighbours = []
+        num_neighbours = np.zeros(len(elements))
+        for i, elem in enumerate(elements):
+            neighbours_i = list(np.array(elements)[list(np.where(useful_rmsd_matrix[i] <= c)[0])])
+            neighbours_i.pop(neighbours_i.index(elem))
+            neighbours.append(neighbours_i)
+            num_neighbours[i] = len(neighbours_i)
+
+        argmax_num_n = np.argmax(num_neighbours)
+        argmax_elem = elements[argmax_num_n]
+
+        clusters.append([])
+        for i, elem in enumerate(elements):
+            if argmax_elem in neighbours[i] or elem == argmax_elem:
+                clusters[-1].append(elem)
+
+                elements = list(elements)
+                indices.pop(elements.index(elem))
+                elements.pop(elements.index(elem))
+                elements = np.array(elements)
+
+        useful_rmsd_matrix = rmsd_matrix[:, list(indices)][list(indices), :]
+
+    return clusters
+
+calcGromosClusters = calcRMSDclusters
+calcGromacsClusters = calcRMSDclusters
+
+def calcKmedoidClusters(coordsets, nClusters):
+    try:
+        from sklearn_extra.cluster import KMedoids
+    except ImportError:
+        raise ImportError('Please install scikit-learn-extra to run this function')
+    
+    X = coordsets.reshape(coordsets.shape[0], -1)
+    c = KMedoids(n_clusters=nClusters, random_state=0).fit(X)
+    labels = c.labels_
+    _, counts = np.unique(labels, return_counts=True)
+    return c.medoid_indices_, labels, counts

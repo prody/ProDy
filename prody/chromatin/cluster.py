@@ -286,7 +286,7 @@ def showLinkage(V, **kwargs):
     return Z
     
 def calcGNMDomains(modes, method=Discretize, **kwargs):
-    """Uses spectral clustering to separate structural domains in the chromosome.
+    """Uses spectral clustering to separate structural domains in chromosomes and proteins.
     
     :arg modes: GNM modes used for segmentation
     :type modes: :class:`ModeSet`

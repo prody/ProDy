@@ -4,13 +4,13 @@ from prody.tests import TestCase
 import os
 from os.path import join
 
-from numpy import array, log, zeros, char
-from numpy.testing import assert_array_equal, dec
+from numpy.testing import assert_array_equal
 
 from prody.tests.datafiles import *
 from prody.tests import TEMPDIR
-from prody import MSA, MSAFile, parseMSA, LOGGER, writeMSA
-from prody.utilities import createStringIO
+from prody import MSAFile, parseMSA, LOGGER, writeMSA
+from prody.utilities import createStringIO, importDec
+dec = importDec()
 
 LOGGER.verbosity = None
 

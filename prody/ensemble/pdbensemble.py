@@ -382,7 +382,7 @@ class PDBEnsemble(Ensemble):
             msa = MSA(seqs, title=self.getTitle(), labels=labels)
             if self._msa is None:
                 if n_confs > 0:
-                    def_seqs = np.chararray((n_confs, n_atoms))
+                    def_seqs = np.empty((n_confs, n_atoms), dtype=np.bytes_)
                     def_seqs[:] = 'X'
 
                     old_labels = [self._labels[i] for i in range(n_confs)]
@@ -520,6 +520,10 @@ class PDBEnsemble(Ensemble):
         index.sort(reverse=True)
         for i in index:
             self._labels.pop(i)
+
+        if self._trans is not None:
+            for i in index:
+                self._trans = np.delete(self._trans, i, 0)
 
         if self._msa is not None:
             rest = []

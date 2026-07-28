@@ -14,7 +14,7 @@ This is a short guide for building the ProDy website.
 Environment Setup
 --------------
 
-First log in to the ProDy webserver (prody.csb.pitt.edu) then run the following::
+First log in to your ProDy webserver and then run the following::
 
   $ conda deactivate
 
@@ -34,7 +34,7 @@ ProDy-website-workdir. You can then copy files back over afterwards.
 
 It's recommended to have the symbolic link called test_prody pointing to 
 your build directory instead and then you can monitor changes by going to 
-http://prody.csb.pitt.edu/test_prody/_build/html/ in your web browser.
+http://yourdomainname/test_prody/_build/html/ in your web browser.
 
 
 Updating from GitHub
