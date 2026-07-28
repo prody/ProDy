@@ -340,7 +340,7 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
             continue
         try:
             url = getURL(pdb)
-            if kwargs.get('format', 'pdb') != 'pdb':
+            if format != 'pdb':
                 if url.find('.pdb') != -1:
                     url = url.replace('.pdb', extension)
                 elif url.find('.ent') != -1:
