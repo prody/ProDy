@@ -1,0 +1,39 @@
+ProDy 2.5 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+
+2.5.0 (Aug 14, 2024)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+* InSty module prody/proteins/interactions.py for protein interactions and stability
+* WatFinder module prody/proteins/waterbridges.py for analysing water bridges, chains and clusters
+* Membrane exANM and exGNM apps
+* kmedoid clustering
+* Logistic regression for differences between sub-ensembles
+* MMTF Parser by @vratins
+* Protein-ligand interactions including calcSminaBindingAffinity by @karolamik13
+* New support for Interpro Pfam
+* New modules for accessing Bioexcel cv19 simulation database (precursor to MDDB)
+
+**Bug Fixes and Improvements**:
+
+* add weights to showProjection and fix colors
+* fix catdcd frame selection
+* fix showAtomicLines gaps
+* update pyproject.toml and setup.py to limit scipy
+* fix clustenm saving and loading
+* fix adp matrix by @jamesmkrieger
+* several fixes related to fetching, parsing and writing pdb and cif files
+* limit pyparsing<=3.1.1
+
+**New Contributors**:
+
+* @jyaacoub made their first contribution in https://github.com/prody/ProDy/pull/1750
+* @vratins made their first contribution in https://github.com/prody/ProDy/pull/1752
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.4.1...v2.5.0

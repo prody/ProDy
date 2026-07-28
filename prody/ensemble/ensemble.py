@@ -257,15 +257,14 @@ class Ensemble(object):
                 self._indices = None
 
             else: # atoms is a subset
-                if not self._atoms:
-                    try:
-                        ag = atoms.getAtomGroup()
-                    except AttributeError:
-                        ag = atoms
-                    if ag.numAtoms() != n_atoms:
-                        raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
-                                        .format(n_atoms, ag.numAtoms()))
-                    self._atoms = ag
+                try:
+                    ag = atoms.getAtomGroup()
+                except AttributeError:
+                    ag = atoms
+                if ag.numAtoms() != n_atoms:
+                    raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
+                                    .format(n_atoms, ag.numAtoms()))
+                self._atoms = ag
                 self._indices, _ = sliceAtoms(self._atoms, atoms)
                 
         else: # if assigning atoms to a new ensemble

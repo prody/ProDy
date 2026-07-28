@@ -3,10 +3,9 @@
 import numpy as np
 from numpy import arange
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    from numpy.testing import dec
+
+from prody.utilities import importDec
+dec = importDec()
 
 from prody import *
 from prody import LOGGER
@@ -131,6 +130,13 @@ class TestANMResults(testGNMBase):
         assert_allclose(hessian.sum(1), zeros,
                         rtol=0, atol=ATOL,
                         err_msg='hessian rows do not add up to zero')
+        
+    def testModeSlicing(self):
+        indices1 = slice(227, 230)
+        assert_equal(anm[indices1].numModes(), 1,
+                         'slicing ANM for last mode does not work')
+        indices = slice(228, 230)
+        self.assertRaises(IndexError, anm.__getitem__, indices)
 
 class TestEXANMResults(testGNMBase):
 

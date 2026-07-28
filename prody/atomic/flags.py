@@ -40,10 +40,11 @@ from collections import defaultdict
 from numpy import array, ones, zeros
 
 from prody import SETTINGS, LOGGER
+from prody.utilities import openData
 from prody.utilities import joinLinks, joinTerms, wrapText
 
 __all__ = ['flagDefinition', 'listNonstdAAProps', 'getNonstdProperties',
-           'addNonstdAminoacid', 'delNonstdAminoacid']
+           'addNonstdAminoacid', 'delNonstdAminoacid', 'NAMAP']
 
 
 TIMESTAMP_KEY = 'flags_timestamp'
@@ -67,6 +68,8 @@ STANDARDAA = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS',
 NONSTANDARD = {
     'ASX': set(['acyclic', 'surface', 'polar', 'medium']),
     'GLX': set(['acyclic', 'surface', 'large', 'polar']),
+    'ASH': set(['acyclic', 'acidic', 'surface', 'polar', 'medium']),
+    'GLH': set(['acyclic', 'acidic', 'surface', 'large', 'polar']),
     'CSO': set(['acyclic', 'neutral', 'surface', 'medium', 'polar']),
     'CYX': set(['acyclic', 'neutral', 'buried', 'medium', 'polar']),
     'HIP': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
@@ -75,6 +78,12 @@ NONSTANDARD = {
     'HSD': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
     'HSE': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
     'HSP': set(['cyclic', 'acidic', 'surface', 'large', 'polar']),
+    'HISD': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
+    'HISE': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
+    'HISP': set(['cyclic', 'acidic', 'surface', 'large', 'polar']),
+    'LYN': set(['acyclic', 'neutral', 'surface', 'large', 'polar']),
+    'TYM': set(['cyclic', 'aromatic', 'surface', 'basic', 'large', 'polar']),
+    'ARN': set(['acyclic', 'neutral', 'surface', 'large', 'polar']),
     'MSE': set(['acyclic', 'neutral', 'buried', 'large']),
     'CME': set(['acyclic', 'neutral', 'buried', 'large']),
     'SEC': set(['acyclic', 'neutral', 'buried', 'polar', 'medium']),
@@ -132,8 +141,15 @@ DEFAULTS = {
 
     'nucleobase': set(['GUN', 'ADE', 'CYT', 'THY', 'URA']),
     'nucleotide': set(['DA', 'DC', 'DG', 'DT', 'DU', 'A', 'C', 'G', 'T', 'U']),
-    'nucleoside': set(['AMP', 'ADP', 'ATP', 'CDP', 'CTP', 'GMP', 'GDP', 'GTP',
-                       'TMP', 'TTP', 'UMP', 'UDP', 'UTP']),
+    'nucleoside': set(['ADN', 'AMP', 'ADP', 'ATP',
+                       'CMP', # cyclic AMP
+                       'A2P', 'A3P', # multi site diphosphates
+                       'AGS', # ATP-gamma-S
+                       'CTN', 'C5P', 'CDP', 'CTP',
+                       'C2P', 'C3P', # other site monophosphates
+                       'GMP', '5GP', 'GDP', 'GTP',
+                       'THM', 'TMP', 'TPP', 'TTP',
+                       'URI', 'UMP', 'UDP', 'UTP']),
 
     'at': set(['ADE', 'A', 'THY', 'T']),
     'cg': set(['CYT', 'C', 'GUN', 'G']),
@@ -141,12 +157,12 @@ DEFAULTS = {
     'pyrimidine': set(['CYT', 'C', 'THY', 'T', 'URA', 'U']),
 
     'water': set(['HOH', 'DOD', 'WAT', 'TIP3', 'H2O', 'OH2', 'TIP', 'TIP2',
-                  'TIP4']),
+                  'TIP4', 'SPC', 'SOL', 'T3P']),
 
     'ion': set(['AL', 'BA', 'CA', 'CD', 'CL', 'CO', 'CS', 'CU', 'CU1', 'CUA',
-                'HG', 'IN', 'IOD', 'K', 'MG', 'MN3', 'NA', 'PB', 'PT', 'RB',
+                'HG', 'IN', 'IOD', 'K', 'MG', 'MN', 'MN3', 'NA', 'PB', 'PT', 'RB',
                 'TB', 'TL', 'WO4', 'YB', 'ZN']),
-    'ion_other': set(['CAL', 'CES', 'CLA', 'POT', 'SOD', 'ZN2']),
+    'ion_other': set(['CAL', 'CES', 'CLA', 'POT', 'SOD', 'ZN2', 'CU2', 'CU2P']),
 
 
     'lipid': set(['GPE', 'LPP', 'OLA', 'SDS', 'STE']),
@@ -418,19 +434,36 @@ Nucleic
       =======  ==================================
 
    nucleoside
-      indicates following nucleoside derivatives that are recognized by *PDB*:
+      indicates following nucleosides and their derivatives that are recognized by *PDB*:
 
       =======  ================================
-      `AMP`_   adenosine monophosphate
+      `ADN`_   adenosine
+      `AMP`_   adenosine-5'-monophosphate
       `ADP`_   adenosine-5'-diphosphate
       `ATP`_   adenosine-5'-triphosphate
+      `AGS`_   adenosine-5'-triphosphate-gamma-S
+      `CMP`_   cyclic adenosine-3',5'-monophosphate
+      `A2P`_   adenosine-2',5'-diphosphate
+      `A3P`_   adenosine-3',5'-diphosphate
+
+      `CTN`_   cytidine
+      `C2P`_   cytidine-2'-monophosphate
+      `C3P`_   cytidine-3'-monophosphate
+      `C5P`_   cytidine-5'-monophosphate
       `CDP`_   cytidine-5'-diphosphate
       `CTP`_   cytidine-5'-triphosphate
+
       `GMP`_   guanosine
+      `5GP`_   guanosine-5'-monophosphate
       `GDP`_   guanosine-5'-diphosphate
       `GTP`_   guanosine-5'-triphosphate
-      `TMP`_   thymidine-5'-phosphate
+
+      `THM`_   thymidine
+      `TMP`_   thymidine-5'-monophosphate
+      `TPP`_   thymidine-5'-diphosphate
       `TTP`_   thymidine-5'-triphosphate
+
+      `URI`_   uridine (uracil plus ribose)
       `UMP`_   2'-deoxyuridine 5'-monophosphate
       `UDP`_   uridine 5'-diphosphate
       `UTP`_   uridine 5'-triphosphate
@@ -460,7 +493,7 @@ for resi in DEFAULTS['nucleotide']:
 for resi in DEFAULTS['nucleoside']:
     __doc__ += PDBLIGSUM.format(resi)
 
-__doc__ += """
+__doc__ += r"""
 
 Heteros
 -------------------------------------------------------------------------------
@@ -479,7 +512,7 @@ Heteros
 
    water
       indices `HOH`_ and `DOD`_ recognized by *PDB* and also WAT, TIP3, H2O,
-      OH2, TIP, TIP2, and TIP4 recognized by molecular dynamics (MD) force
+      OH2, TIP, TIP2, TIP4 and SPC recognized by molecular dynamics (MD) force
       fields.
 
       .. _HOH: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=HOH
@@ -487,7 +520,8 @@ Heteros
       .. _DOD: http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=DOD
 
       Previously used water types HH0, OHH, and SOL conflict with other
-      compounds in the *PDB*, so are removed from the definition of this flag.
+      compounds in the *PDB*, so are removed from the definition of this flag
+      except SOL (restored) as compound SOL (L-sorbose) is only used 3 times.
 
 
    ion
@@ -512,6 +546,7 @@ Heteros
       `K`_     potassium           Yes
       `MG`_    magnesium           Yes
       `MN3`_   manganese (iii)     Yes
+      `MN`_    manganese (ii)      Yes    
       `NA`_    sodium              Yes
       `PB`_    lead (ii)           Yes
       `PT`_    platinum (ii)       Yes
@@ -527,10 +562,15 @@ Heteros
       POT      potassium           No     CHARMM    Yes
       SOD      sodium              No     CHARMM    Yes
       ZN2      zinc                No     CHARMM    No
+      CU2P     copper (ii)         No     CHARMM    No
+      CU2      copper (ii)         No     CHARMM    No
       =======  ==================  =====  ========  ==========
 
       Ion identifiers that are obsoleted by *PDB* (MO3, MO4, MO5, MO6, NAW,
-      OC7, and ZN1) are removed from this definition.
+      OC7, and ZN1) are removed from this definition. 
+
+      CU2 comes from CU2P if parsing PDB files without long_resname
+      or writing them again (always trims to 3-character resnames).
 
 
    lipid
@@ -547,6 +587,11 @@ Heteros
    pdbter
       is available when atomic data is parsed from a PDB format file and
       indicates atoms that were followed by ``'TER'`` record.
+
+   selpdbter
+      is available when atomic data is parsed from a PDB format file and
+      then a selection is made and indicates selected atoms that should
+      be followed by ``'TER'`` record.
 
 """.format(
 
@@ -682,6 +727,25 @@ DEFINITIONS = None
 AMINOACIDS = None
 BACKBONE = None
 
+MODMAP = {}
+with openData('mod_res_map.dat') as f:
+    for line in f:
+        try:
+            mod, aa = line.strip().split(' ')
+            MODMAP[mod] = aa
+        except:
+            continue
+
+NAMAP = {'ADE': 'a', 'THY': 't', 'CYT': 'c',
+         'GUA': 'g', 'URA': 'u'}
+
+# add modified bases to NAMAP
+MODNAMAP = {}
+for mod, aa in MODMAP.items():
+    if aa in NAMAP:
+        MODNAMAP[mod] = NAMAP[aa]
+NAMAP.update(MODNAMAP)
+
 
 def updateDefinitions():
     """Update definitions and set some global variables.  This function must be
@@ -689,7 +753,7 @@ def updateDefinitions():
 
     global DEFINITIONS, AMINOACIDS, BACKBONE, TIMESTAMP
     DEFINITIONS = {}
-    user = SETTINGS.get('flag_definitions', {})
+    user = SETTINGS.get('flags_definitions', {})
 
     # nucleics
     nucleic = set()
@@ -697,6 +761,8 @@ def updateDefinitions():
         aset = set(user.get(key, DEFAULTS[key]))
         nucleic.update(aset)
         DEFINITIONS[key] = aset
+    for key in NAMAP:
+        nucleic.update(set(NAMAP.keys()))
     DEFINITIONS['nucleic'] = nucleic
 
     # heteros
@@ -783,6 +849,15 @@ def setProtein(ag, label):
         flags = torf[resindices]
     else:
         flags = zeros(ag.numAtoms(), bool)
+        
+    water = ag._getSubset("water")
+    if len(water):
+        flags[water] = False
+        
+    ions = ag._getSubset("ion")
+    if len(ions):
+        flags[ions] = False
+    
     ag._setFlags('protein', flags)
     return flags
 

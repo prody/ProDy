@@ -4,10 +4,9 @@ from os.path import isfile, join, split, splitext
 from prody.tests import TestCase, skipIf, skipUnless
 
 from numpy.testing import *
-try:
-    import numpy.testing.decorators as dec
-except ImportError:
-    from numpy.testing import dec
+
+from prody.utilities import importDec
+dec = importDec()
 
 from prody.tests.datafiles import TEMPDIR, pathDatafile
 
@@ -21,7 +20,7 @@ class TestGNMCommand(TestCase):
 
         self.command = ('gnm -e -r -o {outdir} -v -z -t all '
                         '-f %8g -d , -x .dat '
-                        '-R -Q '
+                        '-R -Q -S '
                         '-F png -D 120 -W 5 -H 4 ').format(outdir=TEMPDIR)
         self.suffixes = [
             '_gnm_cc.png',

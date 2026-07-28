@@ -83,7 +83,13 @@ class ProDyCitation(argparse.Action):
 
         print("Bakan A, Meireles LM, Bahar I "
               "ProDy: Protein Dynamics Inferred from Theory and Experiments "
-              "Bioinformatics 2011 27(11):1575-1577.")
+              "Bioinformatics 2011 27(11):1575-1577.\n"
+              "Bakan A, Dutta A, Mao W, Liu Y, Chennubhotla C, Lezon TR, Bahar I "
+              "Evol and ProDy for Bridging Protein Sequence Evolution and Structural Dynamics "
+              "Bioinformatics 2014 30(18):2681-2683.\n"
+              "Zhang S, Krieger JM, Zhang Y, Kaya C, Kaynak B, Mikulska-Ruminska K, Doruker P, Li H, Bahar I "
+              "ProDy 2.0: increased scale and scope after 10 years of protein dynamics modelling with Python "
+              "Bioinformatics 2021 30(18):2681-2683.")
         parser.exit()
 
 

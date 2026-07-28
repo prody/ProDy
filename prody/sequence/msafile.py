@@ -6,7 +6,7 @@ __author__ = 'Anindita Dutta, Ahmet Bakan'
 
 from os.path import isfile, splitext, split, getsize
 
-from numpy import array, fromstring, empty
+from numpy import array, fromstring, empty, frombuffer
 
 from .sequence import splitSeqLabel, Sequence
 
@@ -425,7 +425,10 @@ class MSAFile(object):
             try:
                 seq[slice]
             except Exception:
-                arr = fromstring(seq, '|S1')
+                try:
+                    arr = fromstring(seq, '|S1')
+                except:
+                    arr = frombuffer(seq, '|S1')
                 try:
                     arr[slice]
                 except Exception:
@@ -433,7 +436,7 @@ class MSAFile(object):
                 else:
                     self._slice = slice
                     self._slicer = lambda seq, slc=slice: fromstring(seq,
-                                                        '|S1')[slc].tostring()
+                                                        '|S1')[slc].tobytes()
             else:
                 self._slice = slice
                 self._slicer = lambda seq, slc=slice: seq[slc]

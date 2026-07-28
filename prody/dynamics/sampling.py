@@ -51,9 +51,10 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
 
     RMSD of the new conformation from :math:`R_0` can be calculated as
 
+
     .. math::
 
-      RMSD^k = \\sqrt{ {\\left( s \\sum_{i=1}^{m} r_i^k \\lambda^{-0.5}_i u_i  \\right)}^{2} / N } = \\frac{s}{ \\sqrt{N}} \\sqrt{ \\sum_{i=1}^{m} (r_i^k)^2 \\lambda^{-1}_i  }
+      RMSD^k = \\sqrt{  \\left[ s \\sum_{i=1}^{m} r_i^k \\lambda^{-0.5}_i u_i \\right] ^{2} / N } = \\frac{s}{ \\sqrt{N}} \\sqrt{ \\sum_{i=1}^{m} (r_i^k)^2 \\lambda^{-1}_i  }
 
 
     Average :math:`RMSD` of the generated conformations from the initial conformation is:
@@ -156,7 +157,8 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5, **kwargs):
 
     :arg n_steps: number of steps to take along each direction,
         for example, for ``n_steps=10``, 20 conformations will be
-        generated along the first mode, default is 10.
+        generated along *mode* with structure *atoms* in between, 
+        default is 10.
     :type n_steps: int
 
     :arg rmsd: maximum RMSD that the conformations will have with
@@ -169,7 +171,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5, **kwargs):
 
     :arg neg: whether to include steps in the negative mode
         direction, default is **True**
-    :type pos: bool
+    :type neg: bool
 
     :arg reverse: whether to reverse the direction
         default is **False**
@@ -258,8 +260,8 @@ def deformAtoms(atoms, mode, rmsd=None, replace=False, scale=None):
     generate a coordinate set with given RMSD distance to the active coordinate
     set."""
 
-    if not isinstance(atoms, AtomGroup):
-        raise TypeError('atoms must be an AtomGroup, not {0}'
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic object, not {0}'
                         .format(type(atoms)))
     if not isinstance(mode, VectorBase):
         raise TypeError('mode must be a Mode or Vector instance, '
@@ -278,15 +280,12 @@ def deformAtoms(atoms, mode, rmsd=None, replace=False, scale=None):
         rmsd = float(rmsd)
         # rmsd = ( ((scalar * array)**2).sum() / n_atoms )**0.5
         scalar = (atoms.numAtoms() * rmsd**2 / (array**2).sum())**0.5
+        scale *= scalar
         LOGGER.info('Mode is scaled by {0}.'.format(scalar))
-        if replace is False:
-            atoms.addCoordset(atoms.getCoords() + array * scalar * scale)
-        else:
-            atoms.setCoords(atoms.getCoords() + array * scalar * scale)
+
+    if replace is False:
+        atoms.addCoordset(atoms.getCoords() + array * scale)
     else:
-        if replace is False:
-            atoms.addCoordset(atoms.getCoords() + array * scale)
-        else:
-            atoms.setCoords(atoms.getCoords() + array * scale)
+        atoms.setCoords(atoms.getCoords() + array * scale)
 
 

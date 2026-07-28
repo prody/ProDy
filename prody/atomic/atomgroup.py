@@ -9,7 +9,8 @@ import numpy as np
 
 from prody import LOGGER, PY2K
 from prody.kdtree import KDTree
-from prody.utilities import checkCoords, rangeString, getDistance
+from prody.utilities import (checkCoords, checkAnisous, 
+                             rangeString, getDistance, copy)
 
 from .atomic import Atomic
 from .fields import ATOMIC_FIELDS, READONLY
@@ -126,11 +127,12 @@ class AtomGroup(Atomic):
                  '_timestamps', '_kdtrees',
                  '_bmap', '_angmap', '_dmap', '_imap',
                  '_domap', '_acmap', '_nbemap', '_cmap',
-                 '_bonds', '_angles', '_dihedrals', '_impropers',
+                 '_bonds', '_bondOrders', '_bondIndex', '_angles',
+                 '_dihedrals', '_impropers',
                  '_donors', '_acceptors', '_nbexclusions', '_crossterms',
                  '_cslabels', '_acsi', '_n_csets', '_data',
                  '_fragments', '_flags', '_flagsts', '_subsets',
-                 '_msa', '_sequenceMap']
+                 '_msa', '_sequenceMap', '_anisous']
 
     def __init__(self, title='Unnamed'):
 
@@ -143,6 +145,8 @@ class AtomGroup(Atomic):
         self._kdtrees = None
         self._bmap = None
         self._bonds = None
+        self._bondOrders = None
+        self._bondIndex = None
         self._angmap = None
         self._angles = None
         self._dmap = None
@@ -170,6 +174,7 @@ class AtomGroup(Atomic):
         self._subsets = None
         self._msa = None
         self._sequenceMap = None
+        self._anisous = None
 
     def __repr__(self):
 
@@ -227,23 +232,49 @@ class AtomGroup(Atomic):
 
         return self._n_atoms
 
-    def __add__(self, other):
+    def __add__(self, other, newAG=True):
+        """This method adds two atom groups. By default this creates a new atom group.
 
+        e.g.:
+           newAG = ag1 + ag2
+           len(newAG) == (len(ag1) + len(ag2))
+        
+        if newAG is set to false, ag1 is extended with the atoms of ag2
+           oldLength = len(ag1)
+           oldID = id(ag1)
+           ag1.__add__(ag2, newAG=False)
+           len(ag1) == (oldLength + len(ag2))
+           id(ag1) === oldID
+        """
         if not isinstance(other, AtomGroup):
             raise TypeError('unsupported operand type(s) for +: {0} and '
                             '{1}'.format(repr(type(self).__name__),
                                          repr(type(other).__name__)))
 
-        new = AtomGroup(self._title + ' + ' + other._title)
+        oldSize = len(self)
+        if newAG:
+            new = AtomGroup(self._title + ' + ' + other._title)
+        else:
+            new = self
+        self._n_atoms += other._n_atoms
+
         if self._n_csets:
             if self._n_csets == other._n_csets:
-                new.setCoords(np.concatenate((self._coords, other._coords), 1))
+                new.setCoords(np.concatenate((self._coords, other._coords), 1), overwrite=True)
+                this = self._anisous
+                that = other._anisous
+                if this is not None and that is not None:
+                    if (isinstance(this, np.ndarray) and isinstance(that, np.ndarray)
+                        and len(this) > 0 and len(that) > 0):
+                        new.setAnisous(np.concatenate((self._anisous, other._anisous), 1))
                 if self._n_csets > 1:
                     LOGGER.info('All {0} coordinate sets are copied to '
                                 '{1}.'.format(self._n_csets, new.getTitle()))
             else:
                 new.setCoords(np.concatenate((self._getCoords(),
                                               other._getCoords())))
+                new.setAnisous(np.concatenate((self.getAnisous(),
+                                               other.getAnisous())))
                 LOGGER.info('Active coordinate sets are copied to {0}.'
                             .format(new.getTitle()))
         elif other._n_csets:
@@ -258,7 +289,7 @@ class AtomGroup(Atomic):
             if this is not None or that is not None:
                 if this is None:
                     shape = list(that.shape)
-                    shape[0] = len(self)
+                    shape[0] = oldSize
                     this = np.zeros(shape, that.dtype)
                 if that is None:
                     shape = list(this.shape)
@@ -275,7 +306,17 @@ class AtomGroup(Atomic):
             for flag in other._flags:
                 if flag not in keys: keys.append(flag)
 
-        for key in keys:
+        # remove aliases
+        skip = []
+        uniqueKeys = []
+        for k in keys:
+            aliases = FLAG_ALIASES.get(k, [k])
+            if aliases[0] not in uniqueKeys and aliases[0] not in skip:
+                uniqueKeys.append(aliases[0])
+                if len(aliases) > 1:
+                    skip.extend(list(aliases[1:]))
+                
+        for key in uniqueKeys:
             this = None
             that = None
             if self._flags:
@@ -285,23 +326,34 @@ class AtomGroup(Atomic):
             if this is not None or that is not None:
                 if this is None:
                     shape = list(that.shape)
-                    shape[0] = len(self)
+                    shape[0] = oldSize
                     this = np.zeros(shape, that.dtype)
                 if that is None:
                     shape = list(this.shape)
                     shape[0] = len(other)
                     that = np.zeros(shape, this.dtype)
                 new._setFlags(key, np.concatenate((this, that)))
-
-        new._n_atoms = self._n_atoms + other._n_atoms
+                
+        if self._bondOrders is not None:
+            if other._bondOrders is not None:
+                bo = np.concatenate([self._bondsOrders, other._bondOrders])
+            else:
+                bo = np.concatenate([self._bondsOrders, np.ones(len(other), np.int8)])
+        else:
+            if other._bondOrders is not None:
+                bo = np.concatenate([np.ones(len(self), np.int8), self._bondsOrders])
+            else:
+                bo = None
 
         if self._bonds is not None and other._bonds is not None:
             new.setBonds(np.concatenate([self._bonds,
-                                         other._bonds + self._n_atoms]))
+                                         other._bonds + oldSize]), bo)
         elif self._bonds is not None:
-            new.setBonds(self._bonds.copy())
+            new.setBonds(self._bonds.copy(), bo)
+
         elif other._bonds is not None:
-            new.setBonds(other._bonds + self._n_atoms)
+            bonds = other._bonds + self._n_atoms
+            new.setBonds(bonds, bo)
 
         if self._angles is not None and other._angles is not None:
             new.setAngles(np.concatenate([self._angles,
@@ -384,6 +436,10 @@ class AtomGroup(Atomic):
                  np.all(self._coords == other._coords)) and
                 all(np.all(self._data[key] == other._data[key])
                     for key in self._data))
+
+    def __hash__(self):
+        return object.__hash__(self)
+
 
     def __iter__(self):
         """Yield atom instances."""
@@ -483,7 +539,7 @@ class AtomGroup(Atomic):
         if self._coords is not None:
             return self._coords[self._acsi]
 
-    def setCoords(self, coords, label=''):
+    def setCoords(self, coords, label='', overwrite=False):
         """Set coordinates of atoms.  *coords* may be any array like object
         or an object instance with :meth:`getCoords` method.  If the shape of
         coordinate array is ``(n_csets > 1, n_atoms, 3)``, it will replace all
@@ -492,7 +548,9 @@ class AtomGroup(Atomic):
         If shape of *coords* is ``(n_atoms, 3)`` or ``(1, n_atoms, 3)``, it
         will replace the active coordinate set.  *label* argument may be used
         to label coordinate set(s).  *label* may be a string or a list of
-        strings length equal to the number of coordinate sets."""
+        strings length equal to the number of coordinate sets. The optional
+        argument *overwrite* can be set to True to force resizing the
+        coordinates array when the number of atoms in the AtomGroup changed."""
 
         atoms = coords
         try:
@@ -514,7 +572,7 @@ class AtomGroup(Atomic):
             raise TypeError('coords must be a numpy array or an '
                             'object with `getCoords` method')
 
-        self._setCoords(coords, label=label)
+        self._setCoords(coords, label=label, overwrite=overwrite)
 
     def _setCoords(self, coords, label='', overwrite=False):
         """Set coordinates without data type checking.  *coords* must
@@ -522,7 +580,9 @@ class AtomGroup(Atomic):
         :class:`~numpy.float64`, e.g. :class:`~numpy.float32`.  *label*
         argument may be used to label coordinate sets.  *label* may be
         a string or a list of strings length equal to the number of
-        coordinate sets."""
+        coordinate sets. The optional argument *overwrite* can be set
+        to True to force resizing the coordinates array when the number
+        of atoms in the AtomGroup changed."""
 
         n_atoms = self._n_atoms
         if n_atoms:
@@ -565,7 +625,101 @@ class AtomGroup(Atomic):
             self._setTimeStamp(acsi)
             self._cslabels[acsi] = str(label)
 
-    def addCoordset(self, coords, label=None):
+    def getAnisous(self):
+        """Returns a copy of anisotropic temperature factors from active coordinate set."""
+
+        if self._anisous is not None:
+            return self._anisous[self._acsi].copy()
+
+    def _getAnisous(self):
+        """Returns a view of anisotropic temperature factors from active coordinate set."""
+
+        if self._anisous is not None:
+            return self._anisous[self._acsi]
+
+    def setAnisous(self, anisous, label=''):
+        """Set anisotropic temperature factors of atoms. *anisous* may be any array like object
+        or an object instance with :meth:`getAnisous` method.  If the shape of
+        anisou array is ``(n_csets > 1, n_atoms, 3)``, it will replace all
+        coordinate sets and the active coordinate set index  will reset to
+        zero.  This situation can be avoided using :meth:`addCoordset`.
+        If shape of *coords* is ``(n_atoms, 3)`` or ``(1, n_atoms, 3)``, it
+        will replace the active coordinate set.  *label* argument may be used
+        to label coordinate set(s).  *label* may be a string or a list of
+        strings length equal to the number of coordinate sets."""
+
+        atoms = anisous
+        try:
+            if self._anisous is None and hasattr(atoms, '_getAnisous'):
+                anisous = atoms._getAnisous()
+            else:
+                anisous = atoms.getAnisous()
+        except AttributeError:
+            if self._anisous is None:
+                anisous = np.array(anisous)
+        else:
+            if anisous is None:
+                raise ValueError('anisous of {0} are not set'
+                                 .format(str(atoms)))
+
+        try:
+            checkAnisous(anisous, csets=True, dtype=(float, np.float32))
+        except TypeError:
+            raise TypeError('anisous must be a numpy array or an '
+                            'object with `getAnisous` method')
+
+        self._setAnisous(anisous, label=label)
+
+    def _setAnisous(self, anisous, label='', overwrite=False):
+        """Set anisotropic temperature factors without data type checking.
+        *anisous* must be a :class:`~numpy.ndarray`, but may have data type
+        other than :class:`~numpy.float64`, e.g. :class:`~numpy.float32`.
+        *label* argument may be used to label coordinate sets.  *label* may be
+        a string or a list of strings length equal to the number of
+        coordinate sets."""
+
+        n_atoms = self._n_atoms
+        if n_atoms:
+            if anisous.shape[-2] != n_atoms:
+                raise ValueError('anisous array has incorrect number of atoms')
+        else:
+            self._n_atoms = n_atoms = anisous.shape[-2]
+
+        ndim = anisous.ndim
+        shape = anisous.shape
+        if self._anisous is None or overwrite or (ndim == 6 and shape[0] > 1):
+            if ndim == 2:
+                self._anisous = anisous.reshape((1, n_atoms, 6))
+                self._cslabels = [str(label)]
+                self._n_csets = n_csets = 1
+
+            else:
+                self._anisous = anisous
+                self._n_csets = n_csets = shape[0]
+
+                if isinstance(label, list):
+                    if len(label) == n_csets:
+                        self._cslabels = list(label)
+
+                    else:
+                        self._cslabels = [''] * n_csets
+                        LOGGER.warn('Number of labels does not match number '
+                                    'of coordinate sets.')
+                else:
+                    self._cslabels = [str(label)] * n_csets
+            self._acsi = 0
+            self._setTimeStamp()
+
+        else:
+            acsi = self._acsi
+            if ndim == 2:
+                self._anisous[acsi] = anisous
+            else:
+                self._anisous[acsi] = anisous[0]
+            self._setTimeStamp(acsi)
+            self._cslabels[acsi] = str(label)
+
+    def addCoordset(self, coords, label=None, anisous=None):
         """Add a coordinate set.  *coords* argument may be an object with
         :meth:`getCoordsets` method."""
 
@@ -594,8 +748,13 @@ class AtomGroup(Atomic):
         if coords.ndim == 2:
             coords = coords.reshape((1, n_atoms, 3))
 
+        if anisous is not None and anisous.ndim == 2:
+            anisous = anisous.reshape((1, n_atoms, 6))
+
         diff = coords.shape[0]
         self._coords = np.concatenate((self._coords, coords), axis=0)
+        if anisous is not None and self._anisous is not None:
+            self._anisous = np.concatenate((self._anisous, anisous/10000), axis=0)
         self._n_csets = self._coords.shape[0]
         timestamps = self._timestamps
         self._timestamps = np.zeros(self._n_csets)
@@ -814,7 +973,11 @@ class AtomGroup(Atomic):
             if np.isscalar(data):
                 data = [data] * self._n_atoms
 
-            data = np.asarray(data)
+            if label in self._data.keys():
+                data = np.asarray(data, dtype=self._data[label].dtype)
+            else:
+                data = np.asarray(data)
+
             ndim, dtype, shape = data.ndim, data.dtype, data.shape
 
             if ndim == 1 and dtype == bool:
@@ -922,6 +1085,9 @@ class AtomGroup(Atomic):
         """Set atom *flags* for *label*."""
 
         label = checkLabel(label)
+        if np.isscalar(flags):
+            flags = np.array([flags] * self._n_atoms)
+
         try:
             ndim, dtype = flags.ndim, flags.dtype
         except AttributeError:
@@ -1088,15 +1254,37 @@ class AtomGroup(Atomic):
         else:
             raise TypeError('labels must be a list')
 
-    def setBonds(self, bonds):
+    def setBondOrders(self, bondOrders):
+        """Set covalent bond order. *bondOrders* must be a list or an array
+        of integers and provide a value for each bond. Possible values are
+        1:single, 2:double, 3:triple, 4:aromatic, 5:amide. The bond order of
+        all bonds must be set at once. This method must be called after
+        the setBonds() has been called. The bond order is stored in the
+        *_bondOrders* array."""
+
+        if bondOrders is None:
+          self._bondOrders = bondOrders
+          return
+      
+        if len(bondOrders)!=len(self._bonds):
+            raise ValueError('invalid bond order list, bond and bond order length mismatch')
+        if min(bondOrders)<1 or max(bondOrders)>5:
+            raise ValueError('invalid bond order value, values must range from 1 to 5')
+
+        self._bondOrders = np.array(bondOrders, np.int8)
+
+    def setBonds(self, bonds, bondOrders=None):
         """Set covalent bonds between atoms.  *bonds* must be a list or an
-        array of pairs of indices.  All bonds must be set at once.  Bonding
-        information can be used to make atom selections, e.g. ``"bonded to
-        index 1"``.  See :mod:`.select` module documentation for details.
-        Also, a data array with number of bonds will be generated and stored
-        with label *numbonds*.  This can be used in atom selections, e.g.
-        ``'numbonds 0'`` can be used to select ions in a system. If *bonds* 
-        is empty or **None**, then all bonds will be removed for this 
+        array of pairs of indices. Optionally *bondOrders* can be specified
+        (see :meth:`setBondOrder` method).  All bonds must be
+        set at once.  Bonding information can be used to make atom selections,
+        e.g. ``"bonded to index 1"``.  See :mod:`.select` module documentation
+        for details. Also, a data array with number of bonds will be generated
+        and stored with label *numbonds*.  This can be used in atom selections,
+        e.g. ``'numbonds 0'`` can be used to select ions in a system. The keys
+        in the *_bondIndex* dictionary is a string representation of the bond's
+        atom indices i.e. '%d %d'%(i, j) with i<j. If  *bonds*  is empty or
+        **None**, then all bonds will be removed for this
         :class:`.AtomGroup`. """
 
         if bonds is None or len(bonds) == 0:
@@ -1113,18 +1301,28 @@ class AtomGroup(Atomic):
             raise ValueError('bonds.shape must be (n_bonds, 2)')
         if bonds.min() < 0:
             raise ValueError('negative atom indices are not valid')
+
         n_atoms = self._n_atoms
         if bonds.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
+
         bonds.sort(1)
         bonds = bonds[bonds[:, 1].argsort(), ]
         bonds = bonds[bonds[:, 0].argsort(), ]
         bonds = np.unique(bonds, axis=0)
 
+        d = {}
+        for n, b in enumerate(bonds):
+            key = '%d %d'%(b[0], b[1])
+            d[key] = n
+        self._bondIndex = d
+
         self._bmap, self._data['numbonds'] = evalBonds(bonds, n_atoms)
         self._bonds = bonds
         self._fragments = None
 
+        self.setBondOrders(bondOrders)
+            
     def numBonds(self):
         """Returns number of bonds.  Use :meth:`setBonds` or 
         :meth:`inferBonds` for setting bonds."""
@@ -1623,6 +1821,8 @@ class AtomGroup(Atomic):
         """Returns number of connected atom subsets."""
 
         self._fragment()
+        if self._fragments is None:
+            return 0
         return self._data['fragindex'].max() + 1
 
     def iterFragments(self):
@@ -1633,6 +1833,9 @@ class AtomGroup(Atomic):
             acsi = self._acsi
             if self._fragments is None:
                 self._fragment()
+                if self._fragments is None:
+                    return
+
             for i, frag in enumerate(self._fragments):
                 try:
                     frag.getAtomGroup()
@@ -1648,8 +1851,11 @@ class AtomGroup(Atomic):
         information."""
 
         if self._bmap is None:
-            raise ValueError('bonds must be set for fragment determination, '
-                             'use `setBonds` or `inferBonds` to set them')
+            LOGGER.warn('bonds must be set for fragment determination, '
+                        'use `setBonds` or `inferBonds` to set them')
+            self._data['fragindex'] = None
+            self._fragments = None
+            return
 
         fids = np.zeros(self._n_atoms, int)
         fdict = {}
@@ -1708,10 +1914,10 @@ for fname, field in ATOMIC_FIELDS.items():
         if not field.private:
             def getData(self, var=fname, call=field.call):
                 try:
-                    return self._data[var].copy()
+                    return copy(self._data[var])
                 except KeyError:
                     [getattr(self, meth)() for meth in call]
-                    return self._data[var].copy()
+                    return copy(self._data[var])
 
         # Define private method for retrieving actual data array
         def _getData(self, var=fname, call=field.call):
@@ -1719,12 +1925,12 @@ for fname, field in ATOMIC_FIELDS.items():
                 return self._data[var]
             except KeyError:
                 [getattr(self, meth)() for meth in call]
-                return self._data[var].copy()
+                return copy(self._data[var])
     else:
         if not field.private:
             def getData(self, var=fname):
                 try:
-                    return self._data[var].copy()
+                    return copy(self._data[var])
                 except KeyError:
                     pass
 

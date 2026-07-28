@@ -2,11 +2,9 @@
 """This module defines some functions for handling atomic classes and data."""
 
 from textwrap import wrap
-from numbers import Integral
 
 from numpy import load, savez, ones, zeros, array, argmin, where
 from numpy import ndarray, asarray, isscalar, concatenate, arange, ix_
-from numpy import append, unique
 
 from prody.utilities import openFile, rangeString, getDistance, fastin
 from prody import LOGGER
@@ -23,7 +21,7 @@ from .selection import Selection
 from .hierview import HierView
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
-           'isReserved', 'listReservedWords', 'sortAtoms', 'assignBlocks', 
+           'isReserved', 'listReservedWords', 'sortAtoms', 
            'sliceAtoms', 'extendAtoms', 'sliceAtomicData', 'extendAtomicData']
 
 
@@ -57,7 +55,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
 
     if filename is None:
         filename = ag.getTitle().replace(' ', '_')
-    if '.ag.npz' not in filename:
+    if not filename.lower().endswith('.npz'):
         filename += '.ag.npz'
 
     attr_dict = {'title': title}
@@ -291,10 +289,10 @@ def sliceAtoms(atoms, select):
     """Slice *atoms* using the selection defined by *select*.
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
-    :arg select: a :class:`Selection` instance or selection string
-    :type select: :class:`Selection`, str
+    :arg select: a :class:`.Selection` instance or selection string
+    :type select: :class:`.Selection`, str
 
     """
 
@@ -348,7 +346,10 @@ def extendAtoms(nodes, atoms, is3d=False):
         if res is None:
             raise ValueError('atoms must contain a residue for all atoms')
         if isinstance(res, list):
-            raise ValueError('not enough data to get a single residue for all atoms')
+            if len(res) == 1:
+                res = res[0]
+            else:
+                raise ValueError('not enough data to get a single residue for all atoms')
 
         res_atom_indices = res._getIndices()
         if not fastin(res, residues):
@@ -426,8 +427,14 @@ def extendAtoms(nodes, atoms, is3d=False):
         ag = atoms.getAtomGroup()
     except AttributeError:
         ag = atoms
+
+    if hasattr(atoms, "getTitle"):
+        title = atoms.getTitle()
+    else:
+        title = str(atoms)
+
     atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
-                      title=str(atoms), intarrays=True)
+                      title=title, intarrays=True)
     
     #LOGGER.report('Full atoms was extended in %2.fs.', label='_prody_extendAtoms')
 
@@ -440,10 +447,10 @@ def sliceAtomicData(data, atoms, select, axis=None):
     :type data: :class:`~numpy.ndarray`
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
-    :arg select: a :class:`Selection` instance or selection string
-    :type select: :class:`Selection`, str
+    :arg select: a :class:`.Selection` instance or selection string
+    :type select: :class:`.Selection`, str
 
     :arg axis: the axis along which the data is sliced. See :mod:`~numpy` 
                for details of this parameter. 
@@ -505,10 +512,10 @@ def extendAtomicData(data, nodes, atoms, axis=None):
 
     :arg nodes: a set of atoms that has been used
         as nodes in data generation
-    :type nodes: :class:`Atomic`
+    :type nodes: :class:`.Atomic`
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
     :arg axis: the axis/direction you want to use to slice data from the matrix.
         The options are **0** or **1** or **None** like in :mod:`~numpy`. 
@@ -547,122 +554,3 @@ def extendAtomicData(data, nodes, atoms, axis=None):
 
 extendData = extendAtomicData
 
-
-def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
-    """Assigns blocks to protein from *atoms*
-    using a block size of *res_per_block* or 
-    secondary structure information if *secstr* is **True**.
-
-    Returns an array of block IDs and an 
-    AtomMap corresponding to protein atoms.
-
-    :arg atoms: atoms to be assigned blocks
-    :type atoms: :class:`Atomic`
-
-    :arg res_per_block: number of residues per block
-        The last block may be smaller or larger than this.
-        Default is **None**, allowing *secstr* to be used easily instead.
-    :type res_per_block: int
-
-    :arg secstr: use secondary structure information to assign blocks.
-        Default is **False**, allowing *res_per_block* to be used easily instead.
-        Any set of strings that can be retrieved by :meth:`.getSecstr` is acceptable
-        including from PDB header, DSSP or STRIDE.
-    :type secstr: bool
-
-    :arg shortest_block: smallest number of residues to be included 
-        in a block before merging with the previous block
-        Default is **2**
-    :type shortest_block: int
-
-    :arg longest_block: largest number of residues to be included 
-        in a block before splitting it in half.
-        Default is the length of the protein so it isn't triggered.
-    :type longest_block: int
-    """
-
-    if not isinstance(atoms, Atomic):
-        raise TypeError("atoms should be an Atomic object")
-
-    if not atoms.ca:
-        raise ValueError("atoms should have Calpha atoms")
-
-    if not isinstance(res_per_block, Integral) and not secstr:
-        raise TypeError("res_per_block should be an integer or "
-                        "secstr should be set to true")
-
-    if secstr and res_per_block:
-        raise ValueError("Either secstr or res_per_block "
-                         "should be set, not both")
-
-    if not isinstance(secstr, bool):
-        raise TypeError('secstr should be a Boolean')
-
-    shortest_block = kwargs.get('shortest_block', 2)
-    shortest_block = kwargs.get('min_size', shortest_block)
-    if not isinstance(shortest_block, Integral):
-        raise TypeError("shortest_block should be an integer")
-
-    sel_ca = atoms.ca
-    n_res = sel_ca.numAtoms()
-
-    longest_block = kwargs.get('max_size', n_res)
-    longest_block = kwargs.get('longest_block', longest_block)
-    if not isinstance(longest_block, Integral):
-        raise TypeError("longest_block should be an integer")
-
-    blocks = []
-
-    if res_per_block:
-        n_blocks = int(n_res/res_per_block)
-
-        blocks_stack = [[b] * res_per_block for b in range(n_blocks)] + [[n_blocks] * (n_res % res_per_block)]
-        for i, block in enumerate(blocks_stack):
-            if len(block) < shortest_block:
-                # join onto previous block
-                block = [blocks_stack[i-1][0] for b in block]
-
-            blocks.extend(block)    
-    else:
-        secstrs = sel_ca.getSecstrs()
-        if secstrs is None:
-            raise OSError("Please parse secstr information "
-                          "from PDB header or make sure DSSP or STRIDE "
-                          "to use secstr for assigning blocks")
-        
-        blocks.append(0)
-        secstr_prev = secstrs[0]
-        i = 0
-        for secstr in secstrs[1:-1]:
-            if secstr != secstr_prev:
-                secstr_prev = secstr
-                if len(where(array(blocks) == i)[0]) >= shortest_block:
-                    # long enough so next sec str is a new block
-                    i += 1
-            blocks.append(i)
-        
-        # include last residue in previous block
-        blocks.append(i)
-
-    blocks = array(blocks)
-
-    unique_blocks, lengths = unique(blocks, return_counts=True)
-    max_length = max(lengths)
-
-    while max_length > longest_block:
-        for i in unique_blocks:
-            len_block = len(where(blocks == i)[0])
-
-            if len_block > longest_block:
-                new_block = max(unique_blocks)+1
-                blocks[where(blocks == i)[0][len_block // 2 :]] = new_block
-
-                unique_blocks, lengths = unique(blocks, return_counts=True)
-                max_length = max(lengths)
-
-    blocks, amap = extendAtomicData(blocks, sel_ca, atoms)
-
-    if amap.getHierView().numResidues() < atoms.getHierView().numResidues():
-        amap.setTitle("protein from " + amap.getTitle())
-
-    return blocks, amap
