@@ -17,6 +17,7 @@ sdist
 develop-eggs
 .installed.cfg
 __pycache__
+.DS_Store
 
 # ProDy
 *.nmd

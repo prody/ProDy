@@ -114,6 +114,11 @@ from .dynamics import *
 __all__.extend(dynamics.__all__)
 __all__.append('dynamics')
 
+from . import drugui
+from .drugui import *
+__all__.extend(drugui.__all__)
+__all__.append('drugui')
+
 from . import ensemble
 from .ensemble import *
 __all__.extend(ensemble.__all__)
@@ -133,6 +138,11 @@ from . import domain_decomposition
 from .domain_decomposition import *
 __all__.extend(domain_decomposition.__all__)
 __all__.append('domain_decomposition')
+
+from . import drugui
+from .drugui import *
+__all__.extend(drugui.__all__)
+__all__.append('drugui')
 
 #from . import comd
 #from .comd import *
