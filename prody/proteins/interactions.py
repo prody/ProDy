@@ -5355,7 +5355,7 @@ class InteractionsTrajectory(object):
             interactions_all = interactions_traj
             interactions_nb = interactions_nb_traj
             for j0, frame0 in enumerate(traj, start=start_frame):
-                _analyseFrame_Trajectory(j0, frame0, interactions_all, interactions_nb, 
+                _analyseFrameTrajectory(j0, frame0, interactions_all, interactions_nb, 
                                         atoms_copy, protein, start_frame, **kwargs)
             interactions_nb =  [[item[0] for item in row] for row in interactions_nb]
         else:
@@ -5373,7 +5373,7 @@ class InteractionsTrajectory(object):
                     for _ in range(max_proc):
                         frame0 = traj[j0-start_frame]
                         
-                        p = mp.Process(target=_analyseFrame_Trajectory, 
+                        p = mp.Process(target=_analyseFrameTrajectory, 
                                       args=(j0, frame0, interactions_all, interactions_nb,
                                             atoms_copy, protein, start_frame), 
                                       kwargs=kwargs)
