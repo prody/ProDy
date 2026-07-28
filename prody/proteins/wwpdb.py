@@ -14,8 +14,9 @@ __all__ = ['wwPDBServer', 'fetchPDBviaFTP', 'fetchPDBviaHTTP', 'WWPDB_FTP_SERVER
 
 
 _WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/')
-_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/rcsb/')
+_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/pdb/')
 _WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', '/pub/')
+_WWPDB_WW = ('wwPDB (worldwide)', 'ftp://ftp.wwpdb.org', '/pub/')
 
 WWPDB_FTP_SERVERS = {
     'rcsb'   : _WWPDB_RCSB,
@@ -28,6 +29,9 @@ WWPDB_FTP_SERVERS = {
     'pdbj'   : _WWPDB_PDBj,
     'japan'  : _WWPDB_PDBj,
     'jp'     : _WWPDB_PDBj,
+    'ww'     : _WWPDB_WW,
+    'wwpdb'  : _WWPDB_WW,
+    'worldwide': _WWPDB_WW
 }
 
 # _URL_US = lambda pdb: ('https://files.rcsb.org/pub/pdb/data/structures/all/pdb/pdb%s.ent.gz' %
@@ -37,6 +41,8 @@ _URL_US = lambda pdb: ('https://files.rcsb.org/download/%s.pdb.gz' %
 _URL_EU = lambda pdb: ('http://www.ebi.ac.uk/pdbe-srv/view/files/%s.ent.gz' %
                        pdb.lower())
 _URL_JP = lambda pdb: ('http://www.pdbj.org/pdb_all/pdb%s.ent.gz' %
+                       pdb.lower())
+_URL_WW = lambda pdb: ('http://files.wwpdb.org/pub/pdb/data/structures/divided/pdb/ak/%s.pdb.gz' %
                        pdb.lower())
 WWPDB_HTTP_URL = {
     'rcsb'   : _URL_US,
@@ -49,7 +55,18 @@ WWPDB_HTTP_URL = {
     'pdbj'   : _URL_JP,
     'japan'  : _URL_JP,
     'jp'     : _URL_JP,
+    'wwpdb'  : _URL_WW,
+    'ww'     : _URL_WW,
+    'worldwide': _URL_WW
 }
+
+
+def _isExtendedPDBID(pdb):
+    return isinstance(pdb, str) and len(pdb) == 12 and pdb.startswith('pdb_') and pdb[3] == '_'
+
+
+def _getPDBSubfolder(pdb):
+    return pdb[-3:-1]
 
 def wwPDBServer(*key):
     """Set/get `wwPDB`_ FTP/HTTP server location used for downloading PDB
@@ -63,6 +80,8 @@ def wwPDBServer(*key):
     | PDBe (Europe)             | PDBe, Europe, Euro, EU      |
     +---------------------------+-----------------------------+
     | PDBj (Japan)              | PDBj, Japan, Jp             |
+    +---------------------------+-----------------------------+
+    | wwPDB (worldwide)         | wwPDB, worldwide, ww        |
     +---------------------------+-----------------------------+
 
     .. _wwPDB: http://www.wwpdb.org/"""
@@ -145,7 +164,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     if format == 'pdb' and local_folder:
         local_folder, is_divided = local_folder
         if is_divided:
-            getPath = lambda pdb: join(makePath(join(local_folder, pdb[1:3])),
+            getPath = lambda pdb: join(makePath(join(local_folder, _getPDBSubfolder(pdb))),
                                        'pdb' + pdb + '.pdb.gz')
         else:
             getPath = lambda pdb: join(local_folder, pdb + '.pdb.gz')
@@ -173,6 +192,9 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     ftp_name, ftp_host, ftp_path = WWPDB_FTP_SERVERS[wwPDBServer() or 'us']
     LOGGER.debug('Connecting wwPDB FTP server {0}.'.format(ftp_name))
 
+    if format == 'emd' or format == 'map':
+        ftp_path = ftp_path.replace("/pdb", "")
+
     from ftplib import FTP
     try:
         ftp = FTP(ftp_host)
@@ -196,7 +218,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                 if format == 'emd':
                     ftp.cwd('EMD-{0}/map'.format(pdb))
                 else:
-                    ftp.cwd(pdb[1:3])
+                    ftp.cwd(_getPDBSubfolder(pdb))
                 ftp.retrbinary('RETR ' + ftp_fn, data.append)
             except Exception as error:
                 if ftp_fn in ftp.nlst():
@@ -255,7 +277,11 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
     compressed = bool(kwargs.pop('compressed', True))
 
     format = kwargs.get('format', 'pdb')
+    if format == 'pdb' and any(_isExtendedPDBID(identifier) for identifier in identifiers):
+        format = 'cif'
+
     noatom = bool(kwargs.pop('noatom', False))
+    long_format = None
     if format == 'pdb':
         extension = '.pdb'
     elif format == 'xml':
@@ -265,16 +291,20 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
             extension = '.xml'
     elif format == 'cif':
         extension = '.cif'
+        long_format = 'mmCIF'
     elif format == 'emd' or format == 'map':
         extension = '.map'
     else:
         raise ValueError(repr(format) + ' is not valid format')
 
+    if long_format is None:
+        long_format = extension[1:]
+
     local_folder = pathPDBFolder()
-    if local_folder:
+    if format == 'pdb' and local_folder:
         local_folder, is_divided = local_folder
         if is_divided:
-            getPath = lambda pdb: join(makePath(join(local_folder, pdb[1:3])),
+            getPath = lambda pdb: join(makePath(join(local_folder, _getPDBSubfolder(pdb))),
                                        'pdb' + pdb + '.pdb.gz')
         else:
             getPath = lambda pdb: join(local_folder, pdb + '.pdb.gz')
@@ -310,11 +340,15 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
             continue
         try:
             url = getURL(pdb)
-            if kwargs.get('format', 'pdb') != 'pdb':
+            if format != 'pdb':
                 url = url.replace('.pdb', extension)
+
+                if url.find('divided/pdb') != -1:
+                    url = url.replace('divided/pdb', 'divided/' + long_format)
             handle = openURL(url)
         except Exception as err:
-            LOGGER.warn('{0} download failed ({1}).'.format(pdb, str(err)))
+            if not _isExtendedPDBID(pdb):
+                LOGGER.warn('{0} download failed ({1}).'.format(pdb, str(err)))
             failure += 1
             filenames.append(None)
         else:

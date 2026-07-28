@@ -1,0 +1,45 @@
+ProDy 2.6 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+
+2.6.1 (Aug 14, 2025)
+------------------------------------------------------------------------------
+
+**Bug Fixes**:
+
+* Critical fixes for CLUSTENM(D)
+* Fixes for Scipion
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.6.0...v2.6.1
+
+
+2.6.0 (Jul 18, 2025)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+* Support for extended PDB IDs
+* Trajectory wrapping 
+* py3Dmol visualization
+* Expanded CIF file support
+* Write long resnames
+* RTB app
+
+**Bug Fixes and Improvements**:
+
+* Python 3.12 support
+* NumPy 2 support
+* KDTree extension fix
+* Fixes for WatFinder, InSty, Scipion, ClustENM(D)
+* pfam fixes
+* Test fixes 
+
+**New Contributors**:
+
+* @vbadwaj - conda release and bug fixes
+* @AnthonyBogetti - general maintenance and bug fixes
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.5.0...v2.6.0

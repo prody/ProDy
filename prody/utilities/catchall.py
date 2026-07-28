@@ -315,7 +315,7 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
     
     method = method.lower().strip()
 
-    if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median']:
+    if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median', 'complete']:
         from scipy.cluster.hierarchy import linkage as hlinkage
         from scipy.spatial.distance import squareform
         

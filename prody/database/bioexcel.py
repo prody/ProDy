@@ -11,7 +11,6 @@ from prody import LOGGER, PY3K
 from prody.utilities import makePath
 
 from prody.atomic.atomgroup import AtomGroup
-from prody.atomic.functions import extendAtomicData
 from prody.proteins.pdbfile import parsePDB
 from prody.trajectory.psffile import parsePSF, writePSF
 from prody.trajectory.dcdfile import parseDCD
@@ -20,7 +19,9 @@ __all__ = ['fetchBioexcelPDB', 'parseBioexcelPDB', 'convertXtcToDcd',
            'fetchBioexcelTrajectory', 'parseBioexcelTrajectory',
            'fetchBioexcelTopology', 'parseBioexcelTopology']
 
-prefix = 'https://bioexcel-cv19.bsc.es/api/rest/v1/projects/'
+cv19_prefix = 'https://bioexcel-cv19.bsc.es/api/rest/v1/projects/'
+mddb_prefix = 'https://irb.mddbr.eu/api/rest/v1/projects/'
+mddb_dev_prefix = 'https://irb-dev.mddbr.eu/api/rest/v1/projects/'
 dot_json_str = '.json'
 
 def fetchBioexcelPDB(acc, **kwargs):
@@ -48,17 +49,29 @@ def fetchBioexcelPDB(acc, **kwargs):
         or ``'backbone and _C'`` for both
     type selection: str
 
+    :arg db: database to use, options are ``'mddb'``, ``'mddb-dev'`` and ``'cv19'``
+        default is ``'mddb-dev'``
+    :type db: str
+
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
     acc, _, selection, filepath, timeout, _ = checkInputs(acc, **kwargs)
     if not filepath.endswith('.pdb'):
         filepath += '.pdb'
 
+    db = kwargs.get('db', 'mddb-dev')
+    if db == 'cv19':
+        prefix = cv19_prefix
+    elif db == 'mddb-dev':
+        prefix = mddb_dev_prefix
+    else:
+        prefix = mddb_prefix
+
     url = prefix + acc + "/structure"
     if selection is not None:
         url += '?selection=' + selection.replace(" ","%20")
     
-    filepath = requestFromUrl(url, timeout, filepath, source='pdb')
+    filepath = requestFromUrl(url, timeout, filepath, source='pdb', **kwargs)
 
     return filepath
 
@@ -93,6 +106,10 @@ def fetchBioexcelTrajectory(acc, **kwargs):
         or ``'backbone and _C'`` for both
     type selection: str
 
+    :arg db: database to use, options are ``'mddb'``, ``'mddb-dev'`` and ``'cv19'``
+        default is ``'mddb-dev'``
+    :type db: str
+
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
 
     :arg convert: convert to dcd if mdtraj is installed
@@ -103,6 +120,14 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     if not filepath.endswith('.xtc'):
         filepath += '.xtc'
 
+    db = kwargs.get('db', 'mddb-dev')
+    if db == 'cv19':
+        prefix = cv19_prefix
+    elif db == 'mddb-dev':
+        prefix = mddb_dev_prefix
+    else:
+        prefix = mddb_prefix
+
     url = prefix + acc + "/trajectory?format=xtc"
 
     if frames is not None:
@@ -111,7 +136,7 @@ def fetchBioexcelTrajectory(acc, **kwargs):
     if selection is not None:
         url += '&selection=' + selection.replace(" ","%20")
 
-    filepath = requestFromUrl(url, timeout, filepath, source='xtc')
+    filepath = requestFromUrl(url, timeout, filepath, source='xtc', **kwargs)
 
     if convert:
         filepath = convertXtcToDcd(filepath, **kwargs)
@@ -137,21 +162,33 @@ def fetchBioexcelTopology(acc, **kwargs):
     :arg outname: out filename, default is input ``'acc.pdb'``
     :type outname: str
 
+    :arg db: database to use, options are ``'mddb'``, ``'mddb-dev'`` and ``'cv19'``
+        default is ``'mddb-dev'``
+    :type db: str
+
     See https://bioexcel-cv19.bsc.es/api/rest/docs for more info
     """
     if isfile(acc):
         filepath = acc
     else:
         acc, convert, _, filepath, timeout, _ = checkInputs(acc, **kwargs)
-        if not filepath.endswith('.json') and not filepath.endswith('.psf'):
-            filepath += '.json'
+        if not filepath.endswith(dot_json_str) and not filepath.endswith('.psf'):
+            filepath += dot_json_str
 
     if filepath.endswith('.psf'):
         convert = False
 
+    db = kwargs.get('db', 'mddb-dev')
+    if db == 'cv19':
+        prefix = cv19_prefix
+    elif db == 'mddb-dev':
+        prefix = mddb_dev_prefix
+    else:
+        prefix = mddb_prefix
+
     if not isfile(filepath):
         url = prefix + acc + "/topology"
-        filepath = requestFromUrl(url, timeout, filepath, source='json')
+        filepath = requestFromUrl(url, timeout, filepath, source='json', **kwargs)
 
     if convert:
         ag = parseBioexcelTopology(filepath, **kwargs)
@@ -278,24 +315,35 @@ def convertXtcToDcd(filepath, **kwargs):
     else:
         acc = basename(splitext(filepath)[0])
 
+    if not isfile(acc):
+        acc = fetchBioexcelTopology(acc, **kwargs)
+
     try:
         import mdtraj
     except ImportError:
         raise ImportError('Please install mdtraj to convert to dcd.')
     else:
-        top = mdtraj.load_psf(fetchBioexcelTopology(acc, **kwargs))
+        top = mdtraj.load_topology(acc)
         traj = mdtraj.load_xtc(filepath, top=top)
         filepath = filepath.replace('xtc', 'dcd')
         traj.save_dcd(filepath)
 
     return filepath
 
-def requestFromUrl(url, timeout, filepath, source=None):
+def requestFromUrl(url, timeout, filepath, source=None, **kwargs):
     """Helper function to make a request from a url and return the response"""
     import requests
     import json
     import mdtraj
     import tempfile
+
+    db = kwargs.get('db', 'mddb-dev')
+    if db == 'cv19':
+        prefix = cv19_prefix
+    elif db == 'mddb-dev':
+        prefix = mddb_dev_prefix
+    else:
+        prefix = mddb_prefix
 
     acc = url.split(prefix)[1].split('/')[0]
 

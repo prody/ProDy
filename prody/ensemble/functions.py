@@ -66,11 +66,17 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
+
+        if isinstance(atoms, AtomGroup):
+            ag = atoms
+        else:
+            ag = atoms._ag
+
         if not hasattr(atoms, '_bondOrders'):
-            atoms._bondOrders = None
+            ag._bondOrders = None
 
         if not hasattr(atoms, '_bondIndex'):
-            atoms._bondIndex = None
+            ag._bondIndex = None
 
         attr_dict['_atoms'] = np.array([atoms, None], 
                                         dtype=object)
@@ -347,23 +353,38 @@ def calcOccupancies(pdb_ensemble, normed=False):
 
 def showOccupancies(pdbensemble, *args, **kwargs):
     """Show occupancies for the PDB ensemble using :func:`~matplotlib.pyplot.
-    plot`.  Occupancies are calculated using :meth:`calcOccupancies`."""
+    plot`.  Occupancies are calculated using :meth:`calcOccupancies`.
+    When atoms are available, :func:`~prody.dynamics.plotting.showAtomicLines`
+    is used to label the x-axis.
+
+    :arg atoms: atoms for showing residue numbers along the x-axis.
+        Default option is to use ``pdbensemble.getAtoms()``.
+    :type atoms: :class:`.Atomic`
+    """
 
     import matplotlib.pyplot as plt
+    from prody.dynamics.plotting import showAtomicLines
 
     normed = kwargs.pop('normed', False)
+    atoms = kwargs.pop('atoms', None)
 
     if not isinstance(pdbensemble, PDBEnsemble):
         raise TypeError('pdbensemble must be a PDBEnsemble instance')
+    if atoms is None:
+        atoms = pdbensemble.getAtoms()
     weights = calcOccupancies(pdbensemble, normed)
     if weights is None:
         return None
-    show = plt.plot(weights, *args, **kwargs)
+    if atoms is not None:
+        show = showAtomicLines(weights, *args, atoms=atoms, **kwargs)[0]
+        plt.xlabel('Residue number')
+    else:
+        show = plt.plot(weights, *args, **kwargs)
+        plt.xlabel('Atom index')
     axis = list(plt.axis())
     axis[2] = 0
     axis[3] += 1
     plt.axis(axis)
-    plt.xlabel('Atom index')
     plt.ylabel('Sum of weights')
     if SETTINGS['auto_show']:
         showFigure()
@@ -414,6 +435,12 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=N
         superpose the structures, otherwise conformations will be superposed with respect 
         to the reference specified by *ref* unless set to ``False``. Default is ``'iter'``
     :type superpose: str, bool
+
+    Chain mapping is delegated to :func:`.alignChains`, so any of its keyword
+    arguments may also be passed here. In particular, the pairwise sequence
+    alignment can be tuned via *seq_alignment_method*, *match_score*,
+    *mismatch_score*, *gap_penalty* and *gap_ext_penalty* (see
+    :func:`.mapChainOntoChain`).
     """
 
     occupancy = kwargs.pop('occupancy', None)

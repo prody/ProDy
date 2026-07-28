@@ -239,6 +239,9 @@ def showProjection(ensemble=None, modes=None, projection=None, *args, **kwargs):
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
     to use projection itself.
+    
+    By default, the projection is not normalized. If you would like it to be,
+    pass ``norm=True``.
 
     Matplotlib function used for plotting depends on the number of modes:
 
@@ -1660,7 +1663,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     interactive = kwargs.pop('interactive', True)
     
     import matplotlib
-    if float(matplotlib.__version__[:-2]) >= 3.6:
+    mpl_version = tuple(int(x) for x in matplotlib.__version__.split('.')[:2])
+    if mpl_version >= (3, 6):
         LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
         interactive = False
 

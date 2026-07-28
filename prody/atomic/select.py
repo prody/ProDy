@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines a class for selecting subsets of atoms.  You can read
+r"""This module defines a class for selecting subsets of atoms.  You can read
 this page in interactive sessions using ``help(select)``.
 
 ProDy offers a fast and powerful atom selection class, :class:`.Select`.
@@ -673,7 +673,7 @@ FUNCTIONS = {
     'atan'  : np.arctan,
     'sinh'  : np.sinh,
     'cosh'  : np.cosh,
-    'tahn'  : np.tanh,
+    'tanh'  : np.tanh,
     'exp'   : np.exp,
     'log'   : np.log,
     'log10' : np.log10,
@@ -755,7 +755,7 @@ def regularExpParseAction(sel, loc, token):
 PP_REGEXP.setParseAction(regularExpParseAction)
 
 _ = r'[-+]?\d+(\.\d*)?([eE]\d+)?'
-RE_NRANGE = re_compile(_ + '\ *(to|:)\ *' + _)
+RE_NRANGE = re_compile(_ + r'\ *(to|:)\ *' + _)
 
 PP_NRANGE = pp.Group(pp.Regex(RE_NRANGE.pattern) +
                      pp.Optional(pp.Regex(r'(\ *:\ *' + _ + ')')))
