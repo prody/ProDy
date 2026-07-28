@@ -31,7 +31,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getSurfaceCavityResidueNamesMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
            'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
-           'getChannelResidueNamesMultipleFrames']
+           'getChannelResidueNamesMultipleFrames', 'scanChannelParameters']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -2923,6 +2923,167 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
             min_enclosure=0.0, cavities_only=True)
     
     return cavities, surface
+
+def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
+    sparsity_values=(1.0, 3.0, 5.0), min_depth_values=(3.0, 5.0, 10.0),
+    output_path='channel_parameter_grid', resolution=0.5, max_proc=2,
+    start_point=None, **kwargs):
+    """Calculate channels over a combination grid of parameters.
+
+    This function evaluates every combination of ``r2``, ``sparsity``, and
+    ``min_depth`` for one molecular structure. All channels obtained for one
+    parameter combination are saved together in one PQR file, so every grid
+    point contributes one equally weighted result to the final spatial
+    occupancy map. The occupancy value written by
+    :func:`calcChannelSurfaceOverlaps` is the fraction of grid combinations 
+    in which a voxel belongs to at least one predicted channel.
+
+    :arg atoms: Atomic structure analyzed with :func:`calcChannels`.
+    :type atoms: :class:`.Atomic`
+
+    :arg r2_values: Probe radii defining the internal void space. Default is
+        ``(1.2, 1.4, 1.6)``.
+    :type r2_values: float or sequence of float
+
+    :arg sparsity_values: Mouth-separation values tested in the grid. Default is
+        ``(1.0, 3.0, 5.0)``.
+    :type sparsity_values: float or sequence of float
+
+    :arg min_depth_values: Minimum cavity depths tested in the grid. Default is
+        ``(3.0, 5.0, 10.0)``.
+    :type min_depth_values: float or sequence of float
+
+    :arg output_path: Directory in which individual PQR files, summaries, and
+        the final occupancy map are saved. Default is
+        ``'channel_parameter_grid'``.
+    :type output_path: str or pathlib.Path
+
+    :arg resolution: Voxel resolution used by
+        :func:`calcChannelSurfaceOverlaps`. Default is 0.5 Angstrom.
+    :type resolution: float
+
+    :arg max_proc: Maximum number of processes used for overlap calculation.
+        Default is 2; ``None`` uses all available CPU cores.
+    :type max_proc: int or None
+
+    :arg start_point: Optional starting point or atomic selection passed to
+        :func:`calcChannels` for every grid combination.
+    :type start_point: array-like, :class:`.Atomic`, or None
+
+    :arg kwargs: Additional parameters passed unchanged to :func:`calcChannels`.
+        Grid-controlled parameters ``r2``, ``sparsity``, and ``min_depth`` must
+        not be supplied here.
+    :type kwargs: dict
+
+    :returns: Lists of channels and parameter dictionaries in matching order,
+        followed by the path to the occupancy PDB file.
+    :rtype: tuple
+
+    Example usage:
+    channels_all, parameter_sets, occupancy_file = scanChannelParameters(
+        protein, r2_values=[1.2, 1.4, 1.6], sparsity_values=[1, 3, 5],
+        min_depth_values=[3, 5, 10], output_path='channel_parameter_grid') """
+
+    from itertools import product
+    
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError("atoms must be a ProDy Atomic object")
+
+    def prepareValues(values, name, allow_zero=False):
+        # Checking the input data format
+        if np.isscalar(values):
+            values = [values]
+        try:
+            values = [float(value) for value in values]
+        except (TypeError, ValueError):
+            raise TypeError("{0} must be a number or a sequence of numbers".format(name))
+        
+        if len(values) == 0:
+            raise ValueError("{0} must contain at least one value".format(name))
+        if not np.all(np.isfinite(values)):
+            raise ValueError("{0} must contain finite values".format(name))
+        if any(value < 0 if allow_zero else value <= 0 for value in values):
+            relation = "non-negative" if allow_zero else "greater than zero"
+            raise ValueError("{0} values must be {1}".format(name, relation))
+        
+        return list(dict.fromkeys(values))
+
+    forbidden_params = sorted(set(kwargs).intersection(
+        {'r2', 'sparsity', 'min_depth', 'output_path', 
+         'separate', 'cavities_only', 'return_details'}))
+    if forbidden_params:
+        raise ValueError("Grid-controlled arguments must not be passed in kwargs: {0}".format(
+            ', '.join(forbidden)))
+
+    # Parameters for checkup
+    r2_values = prepareValues(r2_values, 'r2_values')
+    sparsity_values = prepareValues(sparsity_values, 'sparsity_values', allow_zero=True)
+    min_depth_values = prepareValues(min_depth_values, 'min_depth_values', allow_zero=True)
+    
+    resolution = float(resolution)
+    if resolution <= 0:
+        raise ValueError("resolution must be greater than zero")
+
+    output_dir = Path(output_path)
+    if output_dir.exists() and not output_dir.is_dir():
+        raise ValueError("output_path must be a directory")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    parameter_grid = list(product(r2_values, sparsity_values, min_depth_values))
+    channels_all = []
+    parameter_sets = []
+    pqr_files = []
+    summary_file = output_dir / 'channel_parameter_grid_summary.txt'
+    details_file = output_dir / 'channel_parameter_grid_channels.txt'
+    occupancy_file = output_dir / 'channel_parameter_occupancy.pdb'
+
+    LOGGER.timeit('_prody_scanChannelParameters')
+    LOGGER.info("Calculating channels for {0} parameter combinations.".format(len(parameter_grid)))
+
+    with open(str(summary_file), 'w') as summary, open(str(details_file), 'w') as details:
+        summary.write("# Run r2 [Å] sparsity [Å] min_depth [Å] Number_of_channels PQR_file\n")
+        details.write("# Run Channel_id r2 [Å] sparsity [Å] min_depth [Å] Length [Å] Bottleneck [Å] Volume [Å^3] Curvature Cost\n")
+
+        for run_index, (r2, sparsity, min_depth) in enumerate(parameter_grid):
+            tag = "run{0:03d}_r2_{1}_sparsity_{2}_depth_{3}".format(
+                run_index, *("{0:g}".format(value).replace('-', 'm').replace('.', 'p')
+                             for value in (r2, sparsity, min_depth)))
+            pqr_file = output_dir / ('channels_' + tag + '.pqr')
+
+            LOGGER.info("Grid run {0}/{1}: r2={2:g}, sparsity={3:g}, min_depth={4:g}".format(
+                run_index + 1, len(parameter_grid), r2, sparsity, min_depth))
+
+            channels, _ = calcChannels(atoms, output_path=str(pqr_file), separate=False,
+                start_point=start_point, r2=r2, sparsity=sparsity,
+                min_depth=min_depth, **kwargs)
+
+            params = {'run': run_index, 'r2': r2, 'sparsity': sparsity,
+                      'min_depth': min_depth, 'pqr_file': str(pqr_file)}
+
+            channels_all.append(channels)
+            parameter_sets.append(params)
+            pqr_files.append(str(pqr_file))
+
+            summary.write("{0} {1:.3f} {2:.3f} {3:.3f} {4} {5}\n".format(
+                run_index, r2, sparsity, min_depth, len(channels), pqr_file.name))
+
+            for channel_index, channel in enumerate(channels):
+                curvature = channel.curvature if np.isfinite(channel.curvature) else float('nan')
+                cost = channel.cost if channel.cost is not None else float('nan')
+                details.write("{0} {1} {2:.3f} {3:.3f} {4:.3f} {5:.3f} {6:.3f} {7:.3f} {8:.3f} {9:.6g}\n".format(
+                    run_index, channel_index, r2, sparsity, min_depth,
+                    channel.length, channel.bottleneck, channel.volume,
+                    curvature, cost))
+
+    calcChannelSurfaceOverlaps(pqr_files=pqr_files, output_file_name=str(occupancy_file))
+    LOGGER.report('Channel parameters scan completed in %.2fs.', '_prody_scanChannelParameters')
+
+    return channels_all, parameter_sets, str(occupancy_file)
 
 
 class Channel:
