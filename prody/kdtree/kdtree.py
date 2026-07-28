@@ -2,6 +2,7 @@
 """This module defines :class:`KDTree` class for dealing with atomic coordinate
 sets and handling periodic boundary conditions."""
 
+from numbers import Number
 from numpy import array, ndarray, concatenate, empty
 
 from prody import LOGGER
@@ -190,7 +191,7 @@ class KDTree(object):
         :arg center: a point in Cartesian coordinate system
         :type center: :class:`numpy.ndarray`"""
 
-        if not isinstance(radius, (float, int)):
+        if not isinstance(radius, Number):
             raise TypeError('radius must be a number')
         if radius <= 0:
             raise TypeError('radius must be a positive number')
@@ -299,7 +300,7 @@ def get_KDTree_indices(kdtree):
     except:
         n = kdtree.get_count()
         if n:
-            indices = empty(n, int)
+            indices = empty(n, 'l')
             kdtree.get_indices(indices)
     return indices
 

@@ -7,7 +7,8 @@ import os.path
 
 from prody import LOGGER
 from prody.atomic import flags, AAMAP
-from prody.utilities import openFile, alignBioPairwise, GAP_PENALTY, GAP_EXT_PENALTY
+from prody.atomic.atomic import invAAMAP
+from prody.utilities import openFile
 
 from .localpdb import fetchPDB
 from .header import (Chemical, Polymer, DBRef, _PDB_DBREF,
@@ -57,7 +58,7 @@ def _natomsFromFormulaPart(part):
         return 1
     return int("".join(digits))
 
-def parseCIFHeader(pdb, *keys):
+def parseCIFHeader(pdb, *keys, **kwargs):
     """Returns header data dictionary for *pdb*.  This function is equivalent to
     ``parsePDB(pdb, header=True, model=0, meta=False)``, likewise *pdb* may be
     an identifier or a filename.
@@ -119,14 +120,18 @@ def parseCIFHeader(pdb, *keys):
             raise IOError('{0} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
     pdb = openFile(pdb, 'rt')
-    header = getCIFHeaderDict(pdb, *keys)
+    header = getCIFHeaderDict(pdb, *keys, **kwargs)
     pdb.close()
     return header
 
 
-def getCIFHeaderDict(stream, *keys):
+def getCIFHeaderDict(stream, *keys, **kwargs):
     """Returns header data in a dictionary.  *stream* may be a list of PDB lines
-    or a stream."""
+    or a stream.
+    
+    Polymers have sequences that usually use one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* to **True**.
+    """
 
     try:
         lines = stream.readlines()
@@ -139,11 +144,17 @@ def getCIFHeaderDict(stream, *keys):
         keys = list(keys)
         for k, key in enumerate(keys):
             if key in _PDB_HEADER_MAP:
-                value = _PDB_HEADER_MAP[key](lines)
+                if key == 'polymers':
+                    value = _PDB_HEADER_MAP[key](lines, **kwargs)
+                else:
+                    value = _PDB_HEADER_MAP[key](lines)
                 keys[k] = value
             else:
                 try:
-                    value = _PDB_HEADER_MAP['others'](lines, key)
+                    if key == 'polymers':
+                        value = _PDB_HEADER_MAP[key](lines, **kwargs)
+                    else:
+                        value = _PDB_HEADER_MAP[key](lines)
                     keys[k] = value
                 except:
                     raise KeyError('{0} is not a valid header data identifier'
@@ -171,41 +182,135 @@ def getCIFHeaderDict(stream, *keys):
 
 
 def _getBiomoltrans(lines):
+    from itertools import product
 
-    
+    data1 = parseSTARSection(lines, '_pdbx_struct_assembly_gen', report=False)
+    data2_list = parseSTARSection(lines, '_pdbx_struct_oper_list', report=False)
+
+    # op id -> (R, t)
+    op_table = {}
+    for row in data2_list:
+        op_id = row['_pdbx_struct_oper_list.id']
+        R = np.array([
+            [float(row["_pdbx_struct_oper_list.matrix[1][1]"]),
+             float(row["_pdbx_struct_oper_list.matrix[1][2]"]),
+             float(row["_pdbx_struct_oper_list.matrix[1][3]"])],
+            [float(row["_pdbx_struct_oper_list.matrix[2][1]"]),
+             float(row["_pdbx_struct_oper_list.matrix[2][2]"]),
+             float(row["_pdbx_struct_oper_list.matrix[2][3]"])],
+            [float(row["_pdbx_struct_oper_list.matrix[3][1]"]),
+             float(row["_pdbx_struct_oper_list.matrix[3][2]"]),
+             float(row["_pdbx_struct_oper_list.matrix[3][3]"])]
+        ], dtype=float)
+        t = np.array([
+            float(row["_pdbx_struct_oper_list.vector[1]"]),
+            float(row["_pdbx_struct_oper_list.vector[2]"]),
+            float(row["_pdbx_struct_oper_list.vector[3]"])
+        ], dtype=float)
+        op_table[op_id] = (R, t)
+
+    def _expand_token(tok):
+        s = tok.strip()
+        if not s:
+            return []
+        if '-' in s:
+            a, b = [x.strip() for x in s.split('-', 1)]
+            if a.isdigit() and b.isdigit():
+                return [str(i) for i in range(int(a), int(b) + 1)]
+        return [s]
+
+    def _parse_group_tokens(group_str):
+        """Expand a single group body into explicit op IDs, handling ranges inside lists."""
+        s = group_str.strip()
+        if ',' in s:
+            out = []
+            for tok in s.split(','):
+                out.extend(_expand_token(tok))
+            return out
+        # no commas -> maybe a single range or single id
+        return _expand_token(s)
+
+    def _split_top_level_groups(expr):
+        groups, depth, buf = [], 0, []
+        for ch in expr:
+            if ch == '(':
+                if depth == 0:
+                    buf = []
+                else:
+                    buf.append(ch)
+                depth += 1
+            elif ch == ')':
+                depth -= 1
+                if depth < 0:
+                    return []
+                if depth == 0:
+                    groups.append(''.join(buf))
+                else:
+                    buf.append(ch)
+            else:
+                if depth > 0:
+                    buf.append(ch)
+        return groups
+
+    def _expand_oper_expression(expr):
+        e = expr.replace(' ', '').strip()
+        if not e:
+            return []
+        # No parentheses? Handle lists and ranges here too.
+        if '(' not in e and ')' not in e:
+            if ',' in e:
+                flat = []
+                for tok in e.split(','):
+                    flat.extend(_expand_token(tok))
+                return [[op] for op in flat]
+            # single token or single range
+            return [[op] for op in _expand_token(e)]
+
+        groups = _split_top_level_groups(e)
+        if not groups:  # fallback
+            return [[op] for op in _parse_group_tokens(e.strip('()'))]
+
+        expanded_groups = [_parse_group_tokens(g) for g in groups]
+        if len(expanded_groups) == 1:
+            return [[op] for op in expanded_groups[0]]
+        return [list(seq) for seq in product(*expanded_groups)]
+
+    def _compose_sequence(seq):
+        R_tot = np.eye(3)
+        t_tot = np.zeros(3)
+        for op_id in seq:          # apply left-to-right
+            if op_id not in op_table:
+                return None
+            R_i, t_i = op_table[op_id]
+            R_tot = R_i @ R_tot
+            t_tot = R_i @ t_tot + t_i
+        return R_tot, t_tot
+
     biomolecule = defaultdict(list)
 
-    # 2 blocks are needed for this:
-    # _pdbx_struct_assembly_gen: what to apply to which chains
-    # _pdbx_struct_oper_list: everything else
-    data1 = parseSTARSection(lines, '_pdbx_struct_assembly_gen', report=False)
-    data2 = parseSTARSection(lines, '_pdbx_struct_oper_list', report=False)
+    for item1 in data1:
+        assembly_id = item1["_pdbx_struct_assembly_gen.assembly_id"]
+        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].replace(';', '').strip().split(',')
+        expr = item1["_pdbx_struct_assembly_gen.oper_expression"]
 
-    # extracting the data
-    for n, item1 in enumerate(data1):
-        currentBiomolecule = item1["_pdbx_struct_assembly_gen.assembly_id"]
-        applyToChains = []
+        sequences = _expand_oper_expression(expr)
+        if not sequences:
+            LOGGER.warn(f"Could not parse oper_expression: {expr}")
+            continue
 
-        chains = item1["_pdbx_struct_assembly_gen.asym_id_list"].replace(';','').strip().split(',')
-        applyToChains.extend(chains)
-
-        biomt = biomolecule[currentBiomolecule]
-
-        operators = item1["_pdbx_struct_assembly_gen.oper_expression"].split(',')
-        for oper in operators:
-            biomt.append(applyToChains)
-
-            item2 = data2[int(oper)-1]
-
-            for i in range(1,4):
-                biomt.append(" ".join([
-                    item2["_pdbx_struct_oper_list.matrix[{0}][1]".format(i)],
-                    item2["_pdbx_struct_oper_list.matrix[{0}][2]".format(i)],
-                    item2["_pdbx_struct_oper_list.matrix[{0}][3]".format(i)],
-                    item2["_pdbx_struct_oper_list.vector[{0}]".format(i)],
-                ]))
+        for seq in sequences:
+            composed = _compose_sequence(seq)
+            if composed is None:
+                LOGGER.warn(f"Unknown operator id in oper_expression {expr}: {'+'.join(seq)}")
+                continue
+            R, t = composed
+            biomt = biomolecule[assembly_id]
+            biomt.append(chains)
+            for i in range(3):
+                biomt.append(f"{R[i,0]:.6f} {R[i,1]:.6f} {R[i,2]:.6f} {t[i]:.6f}")
 
     return dict(biomolecule)
+
 
 
 def _getResolution(lines):
@@ -253,7 +358,7 @@ def _getSpaceGroup(lines):
 
 def _getHelix(lines):
 
-    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     helix = {} 
     
     i = 0
@@ -371,7 +476,7 @@ def _getHelixRange(lines):
 
 def _getSheet(lines):
 
-    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     sheet = {}
 
     # mmCIF files have this data divided between 4 blocks
@@ -761,8 +866,12 @@ def _getReference(lines):
     return ref
 
 
-def _getPolymers(lines):
-    """Returns list of polymers (macromolecules)."""
+def _getPolymers(lines, **kwargs):
+    """Returns list of polymers (macromolecules).
+    
+    Sequence is usually one-letter abbreviations, but can be long 
+    abbreviations (usually three letters) if *longSeq* or *threeLetter* is
+    **True**"""
 
     pdbid = _PDB_HEADER_MAP['identifier'](lines)
     polymers = dict()
@@ -771,17 +880,36 @@ def _getPolymers(lines):
 
     # SEQRES block
     items1 = parseSTARSection(lines, '_entity_poly', report=False)
-
+    longSeq = kwargs.get('longSeq', kwargs.get('threeLetter', False))
     for item in items1:
-        chains = item['_entity_poly.pdbx_strand_id'].replace(';','').replace(' ', '')
-        entity = item['_entity_poly.entity_id']
-        
+        chains = item.get('_entity_poly.pdbx_strand_id', '').replace(';','').replace(' ', '')
+        entity = item.get('_entity_poly.entity_id', '')
+
         for ch in chains.split(","):
             entities[entity].append(ch)
             poly = polymers.get(ch, Polymer(ch))
             polymers[ch] = poly
-            poly.sequence += ''.join(item[
-                '_entity_poly.pdbx_seq_one_letter_code_can'].replace(';', '').split())
+
+            if longSeq:
+                poly.sequence += ''.join(item[
+                    '_entity_poly.pdbx_seq_one_letter_code'].replace(';', '').split())
+            else:
+                poly.sequence += ''.join(item[
+                    '_entity_poly.pdbx_seq_one_letter_code_can'].replace(';', '').split())
+
+    if longSeq:
+        for poly in polymers.values():
+            seq = poly.sequence
+            resnames = []
+            for item in seq.split('('):
+                if item.find(')') != -1:
+                    resnames.append(item[:item.find(')')])
+                    letters = list(item[item.find(')')+1:])
+                else:
+                    letters = list(item)
+                resnames.extend([invAAMAP[letter] for letter in letters])
+
+            poly.sequence = ' '.join(resnames)
 
     # DBREF block 1
     items2 = parseSTARSection(lines, '_struct_ref', report=False)
@@ -943,6 +1071,8 @@ def _getPolymers(lines):
 
         match = False
         for dbref in poly.dbrefs:
+            if dbref.first is None or dbref.last is None:
+                continue
             if not dbref.first[0] <= resnum <= dbref.last[0]:
                 continue
             match = True
@@ -1041,7 +1171,6 @@ def _getChemicals(lines):
     chem_names = defaultdict(str)
     chem_synonyms = defaultdict(str)
     chem_formulas = defaultdict(str)
-    chem_n_atoms = defaultdict(int)
 
     # Data is split across blocks again
 
@@ -1090,7 +1219,7 @@ def _getChemicals(lines):
         if resname in flags.AMINOACIDS or resname == "HOH":
             continue
 
-        chem_names[resname] += data["_chem_comp.name"].upper()
+        chem_names[resname] += data.get("_chem_comp.name", "").upper()
 
         if "_chem_comp.pdbx_synonyms" in data.keys():
             synonym = data["_chem_comp.pdbx_synonyms"]
@@ -1104,8 +1233,8 @@ def _getChemicals(lines):
             synonym = synonym[1:-1]
         chem_synonyms[resname] += synonym
         
-        chem_formulas[resname] += data["_chem_comp.formula"]
-
+        if "_chem_comp.formula" in data.keys():
+            chem_formulas[resname] += data["_chem_comp.formula"]
 
     for key, name in chem_names.items():  # PY3K: OK
         name = cleanString(name)
@@ -1240,13 +1369,20 @@ def _getOther(lines, key=None):
     return data
 
 
-def _getUnobservedSeq(lines):
+def _getUnobservedSeq(lines, **kwargs):
+    """Get sequence of unobserved residues.
+    
+    This sequence is usually using one-letter residue name abbreviations by default. 
+    To obtain long (usually three letter) abbrevations, set *longSeq* or
+    *threeLetter* to **True**."""
 
     key_unobs = '_pdbx_unobs_or_zero_occ_residues'
 
+    unobs = []
+    polymers = []
     try:
         unobs = parseSTARSection(lines, key_unobs, report=False)
-        polymers = _getPolymers(lines)
+        polymers = _getPolymers(lines, **kwargs)
     except:
         pass
 
@@ -1258,7 +1394,7 @@ def _getUnobservedSeq(lines):
         chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
         if not chid in unobs_seqs.keys():
             unobs_seqs[chid] = ''
-        unobs_seqs[chid] += AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
+        unobs_seqs[chid] += AAMAP.get(item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id'], 'X')
 
     if len(unobs_seqs) == 0:
         return None
@@ -1277,40 +1413,23 @@ def _getUnobservedSeq(lines):
     alns = OrderedDict()
     for _, (key, seq) in enumerate(full_seqs.items()):
         if key in unobs_seqs.keys():
-            unobs_seq = unobs_seqs[key]
-            # initialise alignment (quite possibly incorrect)
-            aln = list(alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
-                                        MISMATCH_SCORE=-1000,
-                                        ALIGNMENT_METHOD='global',
-                                        GAP_PENALTY=-2,
-                                        GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2])
-            
+            # initialise alignment with all gaps for unobs
+            row1 = '-'*len(seq)
+            row1_list = list(row1)
+            aln = [row1, seq]
+
             # fix it
-            prev_chid = unobs[0]['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
-            i = 0
-            for item in unobs:
+            for j, item in enumerate(unobs):
                 chid = item['_pdbx_unobs_or_zero_occ_residues.auth_asym_id']
-                if chid != prev_chid:
-                    prev_chid = chid
-                    i = 0
-
                 if chid == key:
-                    one_letter = AAMAP[item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']]
+                    if len(item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']) == 1:
+                        one_letter = item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id']
+                    else:
+                        one_letter = AAMAP.get(item['_pdbx_unobs_or_zero_occ_residues.auth_comp_id'], 'X').upper()
                     good_pos = int(item['_pdbx_unobs_or_zero_occ_residues.label_seq_id']) - 1
-
                     row1_list = list(aln[0])
-
-                    arr_unobs_seq = np.array(list(unobs_seq))
-                    unobs_rep = np.where(arr_unobs_seq[:i+1] == one_letter)[0].shape[0] - 1
-                    actual_pos = np.where(np.array(row1_list) == one_letter)[0][unobs_rep]
-
-                    if actual_pos != good_pos:
-                        row1_list[good_pos] = one_letter
-                        row1_list[actual_pos] = '-'
-
+                    row1_list[good_pos] = one_letter
                     aln[0] = ''.join(row1_list)
-
-                i += 1
 
             alns[key] = aln
 

@@ -6,7 +6,7 @@ Installation
 Required Software
 -----------------
 
-* `Python`_ 2.7, 3.6 or later. We recommend using `Anaconda`_, which provides the conda package and environment manager as well as many useful packages. 
+* `Python`_ 3.10 or later. We recommend using `Anaconda`_, which provides the conda package and environment manager as well as many useful packages. 
 
 .. _Anaconda: https://www.anaconda.com/products/individual
 
@@ -32,24 +32,14 @@ this package.
 Quick Install
 -------------
 
-If you have pip_ installed, type the following::
 
-  pip install -U ProDy
+We officially recommend installing through conda::
 
-If you don't have pip_, please download an installation file and
-follow the instructions.
-
-If you have conda installed, you can also type the following instead::
-
-  conda install ProDy
+  conda install -c conda-forge prody
 
 
-Download & Install
-------------------
-
-After installing the required packages, you will need to download a suitable
-ProDy source or installation file from http://python.org/pypi/ProDy.
-For changes and list of new features see :ref:`changes`.
+Installing From Source (not recommended)
+----------------------------------------
 
 **Linux**
 
@@ -72,23 +62,9 @@ schemes in `Installing Python Modules`_.
 
 For installing ProDy, please follow the Linux installation instructions.
 
-**Windows**
-
-Remove previously installed ProDy release from :program:`Uninstall a program`
-in :guilabel:`Control Panel`.
-
-Download :file:`ProDy-1.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
-
-To be able use :ref:`prody-apps` and :ref:`evol-apps` in command prompt
-(:program:`cmd.exe`), append Python and scripts folders (e.g.
-:file:`C:\\Python27` and :file:`C:\\Python27\\Scripts`) to :envvar:`PATH`
-environment variable.
-
 Recommended Software
 --------------------
 
-* `Scipy`_, when installed, replaces linear algebra module of Numpy.
-  Scipy linear algebra module is more flexible and can be faster.
 * `IPython`_ is a must have for interactive ProDy sessions.
 * `PyReadline`_ for colorful IPython sessions on Windows.
 * `MDAnalysis`_ or `MDTraj`_ for reading molecular dynamics trajectories.
@@ -108,6 +84,9 @@ Following software is included in the ProDy installation packages:
 
 * `argparse`_ is used to implement applications and provided for
   compatibility with Python 2.6.
+
+* `Scipy`_, when installed, replaces linear algebra module of Numpy.
+  Scipy linear algebra module is more flexible and can be faster.
 
 .. _argparse: http://code.google.com/p/argparse/
 

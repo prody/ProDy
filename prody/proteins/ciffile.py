@@ -12,6 +12,7 @@ from prody.atomic import AtomGroup
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile
+from prody.utilities.misctools import packmolRenumChains
 from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
@@ -24,6 +25,78 @@ __all__ = ['parseMMCIFStream', 'parseMMCIF', 'parseCIF', 'writeMMCIF']
 
 class MMCIFParseError(Exception):
     pass
+
+
+def _parseResnum(value):
+    if value in (None, '.', '?'):
+        return None
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _getResnumSchemeLookup(lines):
+    scheme_lookup = {}
+
+    scheme_defs = (
+        ('_pdbx_nonpoly_scheme',
+         ('asym_id',),
+         ('pdb_strand_id',),
+         ('mon_id', 'pdb_mon_id', 'auth_mon_id'),
+         ('auth_seq_num', 'pdb_seq_num'),
+         'pdb_ins_code'),
+        ('_pdbx_branch_scheme',
+         ('asym_id',),
+         ('auth_asym_id', 'pdb_asym_id'),
+         ('mon_id', 'pdb_mon_id', 'auth_mon_id'),
+         ('auth_seq_num', 'pdb_seq_num'),
+         None),
+    )
+
+    for prefix, label_asym_fields, auth_asym_fields, resname_fields, resnum_fields, icode_field in scheme_defs:
+        for data in parseSTARSection(lines, prefix, report=False):
+            resnum = None
+            for field in resnum_fields:
+                resnum = _parseResnum(data.get('{0}.{1}'.format(prefix, field)))
+                if resnum is not None:
+                    break
+            if resnum is None:
+                continue
+
+            label_asym_ids = [data.get('{0}.{1}'.format(prefix, field))
+                              for field in label_asym_fields]
+            label_asym_ids = [value for value in label_asym_ids
+                              if value not in (None, '.', '?')]
+
+            auth_asym_ids = [data.get('{0}.{1}'.format(prefix, field))
+                             for field in auth_asym_fields]
+            auth_asym_ids = [value for value in auth_asym_ids
+                             if value not in (None, '.', '?')]
+            if not auth_asym_ids:
+                auth_asym_ids = [None]
+
+            resnames = [data.get('{0}.{1}'.format(prefix, field))
+                        for field in resname_fields]
+            resnames = [value for value in resnames
+                        if value not in (None, '.', '?')]
+
+            icode = ''
+            if icode_field is not None:
+                icode = data.get('{0}.{1}'.format(prefix, icode_field), '')
+                if icode in ('.', '?'):
+                    icode = ''
+
+            for label_asym_id in label_asym_ids:
+                for auth_asym_id in auth_asym_ids:
+                    for resname in resnames:
+                        scheme_lookup[(label_asym_id, auth_asym_id, resname, icode)] = resnum
+                        scheme_lookup[(label_asym_id, auth_asym_id, resname, '')] = resnum
+                        scheme_lookup[(label_asym_id, None, resname, icode)] = resnum
+                        scheme_lookup[(label_asym_id, None, resname, '')] = resnum
+
+    return scheme_lookup
 
 
 _parseMMCIFdoc = """
@@ -62,6 +135,14 @@ _parseMMCIFdoc = """
         chain id (label_asym_id). Using biomol=True, inside parseMMCIF is fine.
         Default is *False*
     :type unite_chains: bool
+
+    :arg packmol: whether to renumber chains like packmol, default is False
+    :type packmol: bool
+
+    :arg use_auth_seq_id: whether to prefer ``_atom_site.auth_seq_id`` over
+        ``_atom_site.label_seq_id`` when assigning residue numbers, default is
+        *True*
+    :type use_auth_seq_id: bool
     """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
@@ -88,17 +169,14 @@ def parseMMCIF(pdb, **kwargs):
     if get_bonds:
         LOGGER.warn('Parsing struct_conn information from mmCIF is currently unsupported and no bond information is added to the results')
     if not os.path.isfile(pdb):
-        if len(pdb) == 5 and pdb.isalnum():
+        if (len(pdb) == 5 and pdb.isalnum()) or eval(long_id_check_str % 13):
             if chain is None:
-                chain = pdb[-1]
-                pdb = pdb[:4]
+                pdb, chain = _getPDBid(pdb)
             else:
                 raise ValueError('Please provide chain as a keyword argument '
                                  'or part of the PDB ID, not both')
-        else:
-            chain = chain
 
-        if len(pdb) == 4 and pdb.isalnum():
+        if (len(pdb) == 4 and pdb.isalnum()) or eval(long_id_check_str % 12):
             if title is None:
                 title = pdb
                 kwargs['title'] = title
@@ -172,6 +250,8 @@ def parseMMCIFStream(stream, **kwargs):
     header = kwargs.get('header', False)
     report = kwargs.get('report', False)
     assert isinstance(header, bool), 'header must be a boolean'
+    packmol = kwargs.get('packmol', False)
+    use_auth_seq_id = kwargs.get('use_auth_seq_id', True)
 
     if model is not None:
         if isinstance(model, int):
@@ -235,8 +315,8 @@ def parseMMCIFStream(stream, **kwargs):
         if header or biomol or secondary:
             hd = getCIFHeaderDict(lines)
 
-        _parseMMCIFLines(ag, lines, model, chain, subset, altloc, 
-                         segment, unite_chains, report)
+        _parseMMCIFLines(ag, lines, model, chain, subset, altloc,
+                         segment, unite_chains, report, use_auth_seq_id)
 
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -268,6 +348,9 @@ def parseMMCIFStream(stream, **kwargs):
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')    
 
+    if packmol:
+        ag = packmolRenumChains(ag)
+
     if model != 0:
         if header:
             return ag, hd
@@ -278,11 +361,12 @@ def parseMMCIFStream(stream, **kwargs):
 
 
 parseMMCIFStream.__doc__ += _parseMMCIFdoc
+parseMMCIF.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                      altloc_torf, segment, unite_chains,
-                     report):
+                     report, use_auth_seq_id=True):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
@@ -328,15 +412,15 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 nModels += 1
             asize += 1
 
-        else:
+        elif line.strip() == "#":
             if foundAtomBlock:
                 doneAtomBlock = True
                 stop = i
                 
-        if i == len(lines) - 1:
+        if i == len(lines) - 1 and line.strip() != "#":
             if foundAtomBlock:
                 doneAtomBlock = True
-                stop = i
+                stop = i + 1
             else:
                 raise MMCIFParseError('mmCIF file contained no atoms.')
 
@@ -395,15 +479,30 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     if n_atoms > 0:
         asize = n_atoms
 
+    scheme_resnums = _getResnumSchemeLookup(lines)
+    fallback_resnums = {}
+    next_resnum_by_chain = {}
+    has_auth_seq_id = 'auth_seq_id' in fields
+    has_label_seq_id = 'label_seq_id' in fields
+    seq_id_fields = ('auth_seq_id', 'label_seq_id') if use_auth_seq_id else ('label_seq_id', 'auth_seq_id')
+
     acount = 0
-    for line in lines[start:stop]:
-        startswith = line.split()[fields['group_PDB']]
+    lineidx = start
+    while lineidx < stop: # not a for loop since need to be able to skip lines
+        line = lines[lineidx]
+        lineidx += 1
+        linefields = line.split()
+        while len(linefields) <= fieldCounter: #line is wrapped
+            lineidx += 1
+            linefields += lines[lineidx].split()
+        
+        startswith = linefields[fields['group_PDB']]
 
         try:
-            atomname = line.split()[fields['auth_atom_id']]
+            atomname = linefields[fields['auth_atom_id']]
         except KeyError:
             try:
-                atomname = line.split()[fields['label_atom_id']]
+                atomname = linefields[fields['label_atom_id']]
             except KeyError:
                 raise MMCIFParseError('mmCIF file is missing required atom IDs.')
  
@@ -412,10 +511,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             atomname = atomname[1:-1]
         
         try:
-            resname = line.split()[fields['auth_comp_id']]
+            resname = linefields[fields['auth_comp_id']]
         except KeyError:
             try:
-                resname = line.split()[fields['label_comp_id']]
+                resname = linefields[fields['label_comp_id']]
             except KeyError:
                 raise MMCIFParseError('mmCIF file is missing required component IDs.')
                 
@@ -424,8 +523,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if not (atomname in subset and resname in protein_resnames):
                 continue
 
-        chID = line.split()[fields['label_asym_id']]
-        segID = line.split()[fields['auth_asym_id']]
+        chID = linefields[fields['label_asym_id']]
+        segID = linefields[fields['auth_asym_id']]
 
         if chain is not None:
             if isinstance(chain, str):
@@ -442,27 +541,54 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if not segID in segment:
                 continue
 
-        alt = line.split()[fields['label_alt_id']]
+        alt = linefields[fields['label_alt_id']]
 
         if alt == '.':
             alt = ' '
 
-        coordinates[acount] = [line.split()[fields['Cartn_x']],
-                               line.split()[fields['Cartn_y']],
-                               line.split()[fields['Cartn_z']]]
+        coordinates[acount] = [linefields[fields['Cartn_x']],
+                               linefields[fields['Cartn_y']],
+                               linefields[fields['Cartn_z']]]
         atomnames[acount] = atomname
         resnames[acount] = resname
         chainids[acount] = chID
         segnames[acount] = segID
         hetero[acount] = startswith == 'HETATM' # True or False
 
-        try:
-            resnums[acount] = line.split()[fields['auth_seq_id']]
-        except KeyError:
+        resnum = None
+        for seq_id_field in seq_id_fields:
             try:
-                resnums[acount] = line.split()[fields['label_seq_id']]
+                resnum = _parseResnum(linefields[fields[seq_id_field]])
             except KeyError:
+                pass
+            if resnum is not None:
+                break
+
+        try:
+            icode = linefields[fields['pdbx_PDB_ins_code']]
+        except KeyError:
+            icode = ''
+        if icode == '?' or icode == '.':
+            icode = ''
+
+        if resnum is None:
+            resnum = scheme_resnums.get((chID, segID, resname, icode))
+            if resnum is None:
+                resnum = scheme_resnums.get((chID, None, resname, icode))
+
+        chain_key = (chID, segID)
+        if resnum is None:
+            if not (has_auth_seq_id or has_label_seq_id):
                 raise MMCIFParseError('mmCIF file is missing required sequence IDs.')
+            residue_key = (chID, segID, resname, icode)
+            resnum = fallback_resnums.get(residue_key)
+            if resnum is None:
+                resnum = next_resnum_by_chain.get(chain_key, 1)
+                fallback_resnums[residue_key] = resnum
+
+        next_resnum_by_chain[chain_key] = max(next_resnum_by_chain.get(chain_key, 1),
+                                              resnum + 1)
+        resnums[acount] = resnum
 
 
         if chainids[acount] != chainids[acount-1]: 
@@ -470,20 +596,14 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
         altlocs[acount] = alt
         
-        try:
-            icodes[acount] = line.split()[fields['pdbx_PDB_ins_code']]
-        except KeyError:
-            icodes[acount] = ''
+        icodes[acount] = icode
 
-        if icodes[acount] == '?' or icodes[acount] == '.':
-            icodes[acount] = ''
-
-        serials[acount] = line.split()[fields['id']]
-        elements[acount] = line.split()[fields['type_symbol']]
+        serials[acount] = linefields[fields['id']]
+        elements[acount] = linefields[fields['type_symbol']]
         if 'B_iso_or_equiv' in fields.keys():
-            bfactors[acount] = line.split()[fields['B_iso_or_equiv']]
+            bfactors[acount] = linefields[fields['B_iso_or_equiv']]
         if 'occupancy' in fields.keys():
-            occupancies[acount] = line.split()[fields['occupancy']]
+            occupancies[acount] = linefields[fields['occupancy']]
 
         acount += 1
 
@@ -528,11 +648,11 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     siguij = None
     data = parseSTARSection(lines, "_atom_site_anisotrop", report=report)
     if len(data) > 0:
-        anisou = np.zeros((acount, 6),
+        anisou = np.zeros((asize, 6),
                            dtype=float)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
-            siguij = np.zeros((acount, 6),
+            siguij = np.zeros((asize, 6),
                               dtype=ATOMIC_FIELDS['siguij'].dtype)
 
         for entry in data:

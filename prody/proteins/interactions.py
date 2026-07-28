@@ -25,7 +25,7 @@ from prody.atomic import flags, sliceAtomicData
 from prody.utilities import importLA, checkCoords, showFigure, getCoords
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
-from prody.proteins import writePDB, parsePDB
+from prody.proteins import writePDB, parsePDB, showProtein
 from collections import Counter
 
 from prody.trajectory import TrajBase, Trajectory, Frame
@@ -46,6 +46,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcProteinInteractions', 'calcStatisticsInteractions', 'calcDistribution',
            'calcSASA', 'calcVolume','compareInteractions', 'showInteractionsGraph',
            'showInteractionsHist', 'calcLigandInteractions', 'listLigandInteractions', 
+           'showProteinInteractions', 'showLigandInteraction',
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
@@ -1496,42 +1497,41 @@ def calcHydrophobic(atoms, **kwargs):
         if sele2 != None:
             sele2_nr = list(set(zip(sele2.getResnums(), sele2.getChids())))
 
-            if sele1_name[0] in aromatic:
-                # avoid double counting pi stacking and don't include same residue interactions
-                sele2_filter = sele2.select('all and not (resname TYR PHE TRP or resid '+str(i[0])+' and chain '+i[1]+')')
+            for (resnum, chid) in sele2_nr:
+                sele2_filter = sele2.select('resnum {0} and chid {1}'.format(resnum, chid))
+
+                if sele1_name[0] in aromatic:
+                    # avoid double counting pi stacking and don't include same residue interactions
+                    sele2_filter = sele2_filter.select('all and not (resname TYR PHE TRP or resid '+str(i[0])+' and chain '+i[1]+')')
+                elif sele1_name[0] not in aromatic and i in sele2_nr:
+                    # don't include same residue interactions but don't worry about double counting pi stacking
+                    sele2_filter = sele2_filter.select(sele2.select('all and not (resid '+str(i[0])+' and chain '+i[1]+')'))
+
                 if sele2_filter != None:
                     listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
-                
-            elif sele1_name[0] not in aromatic and i in sele2_nr:
-                # don't include same residue interactions but don't worry about double counting pi stacking
-                sele2_filter = sele2.select(sele2.select('all and not (resid '+str(i[0])+' and chain '+i[1]+')'))
-                if sele2_filter != None:
-                    listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
-            else:
-                listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2))
-                                                           
-            if listOfAtomToCompare != []:
-                listOfAtomToCompare = sorted(listOfAtomToCompare, key=lambda x : x[-1])
-                minDistancePair = listOfAtomToCompare[0]
-                if minDistancePair[-1] < distA:
-                    sele1_new = atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
-                    sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
-                    residue1 = sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]) 
-                    residue2 = sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0])
-                    try:
-                        Hydrophobic_calculations.append([residue1, 
-                                                    minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
-                                                    residue2, 
-                                                    minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                    round(minDistancePair[-1],4),
-                                                    round(get_permutation_from_dic(hpb_overlaping_results,(residue1+sele1_new.getChids()[0],
-                                                    residue2+sele2_new.getChids()[0])),4)])
-                    except:
-                        Hydrophobic_calculations.append([residue1, 
-                                                    minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
-                                                    residue2, 
-                                                    minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                    round(minDistancePair[-1],4)])                         
+
+                if listOfAtomToCompare != []:
+                    listOfAtomToCompare = sorted(listOfAtomToCompare, key=lambda x : x[-1])
+                    minDistancePair = listOfAtomToCompare[0]
+                    if minDistancePair[-1] < distA:
+                        sele1_new = atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
+                        sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
+                        residue1 = sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0])
+                        residue2 = sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0])
+                        try:
+                            Hydrophobic_calculations.append([residue1,
+                                                            minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
+                                                            residue2,
+                                                            minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
+                                                            round(minDistancePair[-1],4),
+                                                            round(get_permutation_from_dic(hpb_overlaping_results,(residue1+sele1_new.getChids()[0],
+                                                            residue2+sele2_new.getChids()[0])),4)])
+                        except:
+                            Hydrophobic_calculations.append([residue1,
+                                                            minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
+                                                            residue2,
+                                                            minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
+                                                            round(minDistancePair[-1],4)])
     
     selection = kwargs.get('selection', None)
     selection2 = kwargs.get('selection2', None) 
@@ -1606,12 +1606,15 @@ def calcDisulfideBonds(atoms, **kwargs):
     
     from prody.measure import calcDihedral
     
-    try:
-        atoms_SG = atoms.select('protein and resname CYS and name SG')
+    atoms_SG = atoms.select('protein and resname CYS and name SG')
+    DisulfideBonds_list = []
+
+    if atoms_SG is None:
+        LOGGER.info('Lack of cysteines in the structure.')
+    else:
         atoms_SG_res = list(set(zip(atoms_SG.getResnums(), atoms_SG.getChids())))
     
         LOGGER.info('Calculating disulfide bonds.')
-        DisulfideBonds_list = []
         for i in atoms_SG_res:
             CYS_pairs = atoms.select('(same residue as protein within '+str(distA)+' of ('+'resid '+str(i[0])+' and chain '+i[1]+' and name SG)) and (resname CYS and name SG)')
             if CYS_pairs.numAtoms() > 1:
@@ -1631,15 +1634,12 @@ def calcDisulfideBonds(atoms, **kwargs):
                             ' and chain '+str(sele2_new.getChids()[0]))
                         diheAng = calcDihedral(sele1_CB, sele1_new, sele2_new, sele2_CB)
                         DisulfideBonds_list.append([sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]),
-                                                                minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
-                                                                sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]),
-                                                                minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                                round(minDistancePair[-1],4), round(float(diheAng),4)])
-    except:
-        atoms_SG = atoms.select('protein and resname CYS')
-        if atoms_SG is None:
-            LOGGER.info('Lack of cysteines in the structure.')
-            DisulfideBonds_list = []
+                                                    minDistancePair[2]+'_'+str(minDistancePair[0]),
+                                                    sele1_new.getChids()[0],
+                                                    sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]),
+                                                    minDistancePair[3]+'_'+str(minDistancePair[1]),
+                                                    sele2_new.getChids()[0],
+                                                    round(minDistancePair[-1],4), round(float(diheAng),4)])
 
     DisulfideBonds_list_final = removeDuplicates(DisulfideBonds_list)
 
@@ -1870,7 +1870,7 @@ def calcProteinInteractions(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
 
-    LOGGER.info('Calculating interations.') 
+    LOGGER.info('Calculating interactions.')
     HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in counting
     SBs_calculations = calcSaltBridges(atoms.protein, **kwargs)                 #2
     SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3
@@ -2842,6 +2842,86 @@ def calcLigandInteractions(atoms, **kwargs):
         LOGGER.info("Ligand not found.")
 
 
+def showProteinInteractions(atoms, interactions, color='red',**kwargs):
+    """Display protein interactions in an inline py3Dmol viewer.
+    
+    Different types of interactions can be saved separately (color can be selected) 
+    or all at once for all types of interactions (hydrogen bonds - blue, salt bridges - yellow,
+    pi stacking - green, cation-pi - orangem, hydrophobic - silver, and disulfide bonds - black).
+
+    kwargs are passed on to showProtein
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    
+    :arg interactions: List of interactions for protein interactions.
+    :type interactions: List of lists
+    
+    :arg color: color to draw interactions ,
+                 used only for single interaction type.
+                default **"red"**
+    :type color: str
+    """    
+
+    import sys        
+    if 'py3Dmol' not in sys.modules: 
+            LOGGER.warn('py3Dmol not loaded. No visualization will be displayed.')
+            return None
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    if not isinstance(interactions, list):
+        raise TypeError('interactions must be a list of interactions.')
+    
+    view = showProtein(atoms, **kwargs);
+    view.addStyle({'stick':{'radius':0.1}})
+
+    def singleInteraction(view, interaction, color='blue'):
+        """Creates cylinders for the interactions.
+        """
+        
+        for nr_i,i in enumerate(interaction):
+            try:
+                at1 = atoms.select('index '+' '.join([k for k in i[1].split('_') if k.isdigit() ] ))
+                at1xyz = calcCenter(at1.getCoords())
+                at2 = atoms.select('index '+' '.join([kk for kk in i[4].split('_') if kk.isdigit() ] ))
+                at2xyz = calcCenter(at2.getCoords())
+                            
+                view.addCylinder({'start':{'x':at1xyz[0],'y':at1xyz[1],'z':at1xyz[2]},
+                              'end':{'x':at2xyz[0],'y':at2xyz[1],'z':at2xyz[2]},
+                              'dashed': True,
+                              'color':color});
+
+            except: LOGGER.info("There was a problem.")
+     
+    if len(interactions) == 7 and isinstance(interactions[0][0], list):
+        # For all seven types of interactions at once
+        # HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations, Disulfide Bonds
+        colors = ['blue', 'yellow', 'red', 'green', 'orange', 'silver', 'black']
+        
+        for nr_inter,inter in enumerate(interactions):
+            singleInteraction(view, inter, color=colors[nr_inter])
+
+    elif interactions == []:
+        LOGGER.info("Lack of results")
+
+    elif len(interactions[0]) == 0:
+        LOGGER.info("Lack of results")
+        
+    else:
+        singleInteraction(view,interactions,color)
+
+    return view
+
+
 def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
     """Save information about protein interactions to a TCL file (filename)
     which can be further use in VMD to display all intercations in a graphical interface
@@ -2944,6 +3024,62 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
     tcl_file.write('draw materials off')
     tcl_file.close()   
     LOGGER.info("TCL file saved")
+
+def showLigandInteraction(atoms, interactions, **kwargs):
+    """Display information from PLIP for ligand-protein interactions in a py3dmol viewer.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    
+    :arg interactions: List of interactions lists for protein-ligand interactions.
+    :type interactions: list       
+
+    To obtain protein-ligand interactions:
+    >>> calculations = calcLigandInteractions(atoms)
+    >>> interactions = listLigandInteractions(calculations) """
+
+    import sys        
+    if 'py3Dmol' not in sys.modules: 
+            LOGGER.warn('py3Dmol not loaded. No visualization will be displayed.')
+            return None
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    if not isinstance(interactions, list):
+        raise TypeError('interactions must be a list of interactions.')
+
+    view = showProtein(atoms,**kwargs)
+    view.addStyle({'stick':{'radius':0.1}})
+
+    if len(interactions[0]) >= 10: 
+        dic_color = {'HBs':'blue','PiStack':'green','SBs':'yellow','PiCat':'orange',
+                     'HPh':'silver','watBridge':'cyan'}
+        
+        for i in interactions:
+            color = dic_color[i[0]]
+
+            if i[0] == 'waterbridge':
+                hoh_id = atoms.select('x `'+str(i[11][0])+'` and y `'+str(i[11][1])+'` and z `'+str(i[11][2])+'`').getResnums()[0]
+
+                view.addCylinder({'start':{'x':i[9][0],'y':i[9][1],'z':i[9][2]},
+                              'end':{'x':i[11][0],'y':i[11][1],'z':i[11][2]},
+                              'color':color, 'dashed':True})
+                view.addCylinder({'start':{'x':i[10][0],'y':i[10][1],'z':i[10][2]},
+                              'end':{'x':i[11][0],'y':i[11][1],'z':i[11][2]},
+                              'color':color, 'dashed': True})                
+            else:
+                view.addCylinder({'start':{'x':i[9][0],'y':i[9][1],'z':i[9][2]},
+                              'end':{'x':i[10][0],'y':i[10][1],'z':i[10][2]},
+                              'color':color, 'dashed': True})
+    return view
 
 
 def showLigandInteraction_VMD(atoms, interactions, **kwargs):
@@ -4154,7 +4290,7 @@ class Interactions(object):
                 raise TypeError('coords must be an object '
                                 'with `getCoords` method')
 
-        LOGGER.info('Calculating interations.') 
+        LOGGER.info('Calculating interactions.')
         HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in scoring
         SBs_calculations = calcSaltBridges(atoms.protein, **kwargs)                 #2
         SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3

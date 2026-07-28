@@ -70,18 +70,34 @@ def alignBioPairwise(a_sequence, b_sequence,
     :arg max_alignments: maximum number of alignments to extract
     :type max_alignments: int
     """
-    import numpy as np
-
     try:
         from Bio.Align import PairwiseAligner
         
-        aligner = PairwiseAligner()
-        aligner.mode = ALIGNMENT_METHOD
-        aligner.match_score = MATCH_SCORE
-        aligner.mismatch_score = MISMATCH_SCORE
-        aligner.internal_open_gap_score = GAP_PENALTY
-        aligner.internal_extend_gap_score = GAP_EXT_PENALTY
-        alns = aligner.align(a_sequence, b_sequence)
+        try:
+            aligner = PairwiseAligner()
+            aligner.mode = ALIGNMENT_METHOD
+            aligner.match_score = MATCH_SCORE
+            aligner.mismatch_score = MISMATCH_SCORE
+            aligner.open_internal_gap_score = GAP_PENALTY
+            aligner.extend_internal_gap_score = GAP_EXT_PENALTY
+            alns = aligner.align(a_sequence, b_sequence)
+        except AttributeError:
+            try:
+                aligner = PairwiseAligner()
+                aligner.mode = ALIGNMENT_METHOD
+                aligner.match_score = MATCH_SCORE
+                aligner.mismatch_score = MISMATCH_SCORE
+                aligner.open_gap_score = GAP_PENALTY
+                aligner.extend_gap_score = GAP_EXT_PENALTY
+                alns = aligner.align(a_sequence, b_sequence)
+            except AttributeError:
+                aligner = PairwiseAligner()
+                aligner.mode = ALIGNMENT_METHOD
+                aligner.match_score = MATCH_SCORE
+                aligner.mismatch_score = MISMATCH_SCORE
+                aligner.open_internal_insertion_score = GAP_PENALTY
+                aligner.extend_internal_insertion_score = GAP_EXT_PENALTY
+                alns = aligner.align(a_sequence, b_sequence)
 
         results = []
 
@@ -118,6 +134,27 @@ def alignBioPairwise(a_sequence, b_sequence,
                     row_1 += "-"*(len(row_2)-len(row_1))
                 elif len(row_2) < len(row_1):
                     row_2 += "-"*(len(row_1)-len(row_2))
+
+            row_1 = row_1.replace(" ", "")
+            row_2 = row_2.replace(" ", "")
+
+            a_seq_pre = a_sequence[:a_sequence.find(row_1.replace('-',''))]
+            a_seq_post = a_sequence[a_sequence.find(row_1.replace('-','')[-3:])+3:]
+            row_1 = a_seq_pre + row_1 + a_seq_post
+            
+            b_seq_pre = b_sequence[:b_sequence.find(row_2.replace('-',''))]
+            b_seq_post = b_sequence[b_sequence.find(row_2.replace('-','')[-3:])+3:]
+            row_2 = b_seq_pre + row_2 + b_seq_post
+
+            if len(b_seq_pre) > len(a_seq_pre):
+                row_1 = "-"*(len(b_seq_pre)-len(a_seq_pre)) + row_1
+            else:
+                row_2 = "-"*(len(a_seq_pre)-len(b_seq_pre)) + row_2
+
+            if len(b_seq_post) > len(a_seq_post):
+                row_1 = row_1 + "-"*(len(b_seq_post)-len(a_seq_post))
+            else:
+                row_2 = row_2 + "-"*(len(a_seq_post)-len(b_seq_post))
 
             results.append((row_1, row_2, aln.score, begin, end))
 

@@ -66,6 +66,18 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
+
+        if isinstance(atoms, AtomGroup):
+            ag = atoms
+        else:
+            ag = atoms._ag
+
+        if not hasattr(atoms, '_bondOrders'):
+            ag._bondOrders = None
+
+        if not hasattr(atoms, '_bondIndex'):
+            ag._bondIndex = None
+
         attr_dict['_atoms'] = np.array([atoms, None], 
                                         dtype=object)
 
@@ -183,10 +195,18 @@ def loadEnsemble(filename, **kwargs):
         atoms = attr_dict['_atoms'][0]
 
         if isinstance(atoms, AtomGroup):
-            data = atoms._data
+            ag = atoms
         else:
-            data = atoms._ag._data
-        
+            ag = atoms._ag
+
+        if not hasattr(ag, '_bondOrders'):
+            ag._bondOrders = None
+
+        if not hasattr(ag, '_bondIndex'):
+            ag._bondIndex = None
+
+        data = ag._data
+
         for key in data:
             arr = data[key]
             char = arr.dtype.char
@@ -333,23 +353,38 @@ def calcOccupancies(pdb_ensemble, normed=False):
 
 def showOccupancies(pdbensemble, *args, **kwargs):
     """Show occupancies for the PDB ensemble using :func:`~matplotlib.pyplot.
-    plot`.  Occupancies are calculated using :meth:`calcOccupancies`."""
+    plot`.  Occupancies are calculated using :meth:`calcOccupancies`.
+    When atoms are available, :func:`~prody.dynamics.plotting.showAtomicLines`
+    is used to label the x-axis.
+
+    :arg atoms: atoms for showing residue numbers along the x-axis.
+        Default option is to use ``pdbensemble.getAtoms()``.
+    :type atoms: :class:`.Atomic`
+    """
 
     import matplotlib.pyplot as plt
+    from prody.dynamics.plotting import showAtomicLines
 
     normed = kwargs.pop('normed', False)
+    atoms = kwargs.pop('atoms', None)
 
     if not isinstance(pdbensemble, PDBEnsemble):
         raise TypeError('pdbensemble must be a PDBEnsemble instance')
+    if atoms is None:
+        atoms = pdbensemble.getAtoms()
     weights = calcOccupancies(pdbensemble, normed)
     if weights is None:
         return None
-    show = plt.plot(weights, *args, **kwargs)
+    if atoms is not None:
+        show = showAtomicLines(weights, *args, atoms=atoms, **kwargs)[0]
+        plt.xlabel('Residue number')
+    else:
+        show = plt.plot(weights, *args, **kwargs)
+        plt.xlabel('Atom index')
     axis = list(plt.axis())
     axis[2] = 0
     axis[3] += 1
     plt.axis(axis)
-    plt.xlabel('Atom index')
     plt.ylabel('Sum of weights')
     if SETTINGS['auto_show']:
         showFigure()
