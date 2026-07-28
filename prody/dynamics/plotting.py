@@ -1663,7 +1663,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     interactive = kwargs.pop('interactive', True)
     
     import matplotlib
-    if float(matplotlib.__version__[:-2]) >= 3.6:
+    mpl_version = tuple(int(x) for x in matplotlib.__version__.split('.')[:2])
+    if mpl_version >= (3, 6):
         LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
         interactive = False
 

@@ -17,12 +17,16 @@ if prody.PY3K:
     from prody import LOGGER
     LOGGER.verbosity = 'none'
 
+    BIOEXCEL_TESTS = bool(os.environ.get('PRODY_BIOEXCEL_TESTS', False))
+    BIOEXCEL_SKIP_MSG = 'Set PRODY_BIOEXCEL_TESTS=1 to enable BioExcel tests'
+
     FULL_N_ATOMS = 12152
     SELE_N_ATOMS = 3908
     FULL_N_ATOMS_CV = 52350
     N_FRAMES_1 = 10
     N_FRAMES_2 = 6
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestFetchParseBioexcelPDB(unittest.TestCase):
         
         @classmethod
@@ -153,6 +157,7 @@ if prody.PY3K:
             shutil.rmtree(cls.workdir)
 
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestFetchConvertParseBioexcelTop(unittest.TestCase):
         
         @classmethod
@@ -378,6 +383,7 @@ if prody.PY3K:
             shutil.rmtree(cls.workdir)
 
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestCheckSelection(unittest.TestCase):
         """Test that checkSelection gives the right errors and outputs."""
         
@@ -402,6 +408,7 @@ if prody.PY3K:
             self.assertEqual(checkSelection(**{'selection': 'backbone and _C'}), 'backbone and _C')
 
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestCheckQuery(unittest.TestCase):
         """Test that checkQuery gives the right errors and outputs."""
 
@@ -417,6 +424,7 @@ if prody.PY3K:
             self.assertEqual(checkQuery(self.query), self.query)
 
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestCheckConvert(unittest.TestCase):
         """Test that checkConvert gives the right errors and outputs."""
 
@@ -434,6 +442,7 @@ if prody.PY3K:
             self.assertTrue(checkConvert(**{}))
 
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestCheckTimeout(unittest.TestCase):
         """Test that checkTimeout gives the right errors and outputs."""
 
@@ -447,6 +456,7 @@ if prody.PY3K:
         def testDefault(self):
             self.assertEqual(checkTimeout(**{}), 200)
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestCheckFrames(unittest.TestCase):
         """Test that checkFrames gives the right errors and outputs."""
 
@@ -482,6 +492,7 @@ if prody.PY3K:
                 checkFrames(**{'frames': '1,1-2-3'})
 
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestCheckFilePath(unittest.TestCase):
         """Test that checkFilePath gives the right errors and outputs."""
 
@@ -523,6 +534,7 @@ if prody.PY3K:
         def tearDownClass(cls):
             shutil.rmtree(cls.workdir)
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestFetchConvertParseBioexcelTraj(unittest.TestCase):
         
         @classmethod
@@ -785,6 +797,7 @@ if prody.PY3K:
             os.chdir('..')
             shutil.rmtree(cls.workdir)
 
+    @unittest.skipUnless(BIOEXCEL_TESTS, BIOEXCEL_SKIP_MSG)
     class TestOnlyConvertParseBioexcel(unittest.TestCase):
         
         @classmethod

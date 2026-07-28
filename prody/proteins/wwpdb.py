@@ -60,6 +60,14 @@ WWPDB_HTTP_URL = {
     'worldwide': _URL_WW
 }
 
+
+def _isExtendedPDBID(pdb):
+    return isinstance(pdb, str) and len(pdb) == 12 and pdb.startswith('pdb_') and pdb[3] == '_'
+
+
+def _getPDBSubfolder(pdb):
+    return pdb[-3:-1]
+
 def wwPDBServer(*key):
     """Set/get `wwPDB`_ FTP/HTTP server location used for downloading PDB
     structures.  Use one of the following keywords for setting a server:
@@ -156,7 +164,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     if format == 'pdb' and local_folder:
         local_folder, is_divided = local_folder
         if is_divided:
-            getPath = lambda pdb: join(makePath(join(local_folder, pdb[1:3])),
+            getPath = lambda pdb: join(makePath(join(local_folder, _getPDBSubfolder(pdb))),
                                        'pdb' + pdb + '.pdb.gz')
         else:
             getPath = lambda pdb: join(local_folder, pdb + '.pdb.gz')
@@ -184,6 +192,9 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     ftp_name, ftp_host, ftp_path = WWPDB_FTP_SERVERS[wwPDBServer() or 'us']
     LOGGER.debug('Connecting wwPDB FTP server {0}.'.format(ftp_name))
 
+    if format == 'emd' or format == 'map':
+        ftp_path = ftp_path.replace("/pdb", "")
+
     from ftplib import FTP
     try:
         ftp = FTP(ftp_host)
@@ -207,7 +218,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                 if format == 'emd':
                     ftp.cwd('EMD-{0}/map'.format(pdb))
                 else:
-                    ftp.cwd(pdb[1:3])
+                    ftp.cwd(_getPDBSubfolder(pdb))
                 ftp.retrbinary('RETR ' + ftp_fn, data.append)
             except Exception as error:
                 if ftp_fn in ftp.nlst():
@@ -266,7 +277,7 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
     compressed = bool(kwargs.pop('compressed', True))
 
     format = kwargs.get('format', 'pdb')
-    if (eval(long_id_check_str % 12) or eval(long_id_check_str % 13)):
+    if format == 'pdb' and any(_isExtendedPDBID(identifier) for identifier in identifiers):
         format = 'cif'
 
     noatom = bool(kwargs.pop('noatom', False))
@@ -290,10 +301,10 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
         long_format = extension[1:]
 
     local_folder = pathPDBFolder()
-    if local_folder:
+    if format == 'pdb' and local_folder:
         local_folder, is_divided = local_folder
         if is_divided:
-            getPath = lambda pdb: join(makePath(join(local_folder, pdb[1:3])),
+            getPath = lambda pdb: join(makePath(join(local_folder, _getPDBSubfolder(pdb))),
                                        'pdb' + pdb + '.pdb.gz')
         else:
             getPath = lambda pdb: join(local_folder, pdb + '.pdb.gz')
@@ -329,14 +340,14 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
             continue
         try:
             url = getURL(pdb)
-            if kwargs.get('format', 'pdb') != 'pdb':
+            if format != 'pdb':
                 url = url.replace('.pdb', extension)
 
                 if url.find('divided/pdb') != -1:
                     url = url.replace('divided/pdb', 'divided/' + long_format)
             handle = openURL(url)
         except Exception as err:
-            if not (eval(long_id_check_str % 12) or eval(long_id_check_str % 13)):
+            if not _isExtendedPDBID(pdb):
                 LOGGER.warn('{0} download failed ({1}).'.format(pdb, str(err)))
             failure += 1
             filenames.append(None)
