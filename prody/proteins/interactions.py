@@ -1708,7 +1708,7 @@ def _analyseFrameTrajectory(j0, frame0, interactions_all, atoms_copy, interactio
     atoms_copy.setCoords(frame0.getCoords())
     protein = atoms_copy.select('protein')
     interactions = interactions_dic[interaction_type](protein, **kwargs)
-    interactions_all.append(interactions)
+    interactions_all[j0] = interactions
 
 
 def _analyseFrameCoordsets(i, interactions_all, atoms, interaction_type, interactions_dic, start_frame, kwargs):
@@ -1717,7 +1717,7 @@ def _analyseFrameCoordsets(i, interactions_all, atoms, interaction_type, interac
     atoms.setACSIndex(i+start_frame)
     protein = atoms.select('protein')
     interactions = interactions_dic[interaction_type](protein, **kwargs)
-    interactions_all.append(interactions)
+    interactions_all[i] = interactions
 
 
 def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs):
@@ -1770,13 +1770,13 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
         atoms_copy = atoms.copy()
 
         if max_proc == 1:
-            interactions_all = []
+            interactions_all = list([None] * traj.numConfs())  # pre-allocate
             for j0, frame0 in enumerate(traj, start=start_frame):
                 _analyseFrameTrajectory(j0, frame0, interactions_all, atoms_copy, 
                                         interaction_type, interactions_dic, kwargs)
         else:
             with mp.Manager() as manager:
-                interactions_all = manager.list()
+                interactions_all = manager.list([None] * traj.numConfs())  # pre-allocate
 
                 j0 = start_frame
                 while j0 < traj.numConfs()+start_frame:
@@ -1809,13 +1809,13 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
                 stop_frame = atoms.numCoordsets()
 
             if max_proc == 1:
-                interactions_all = []
+                interactions_all = list([None] * len(atoms.getCoordsets()[start_frame:stop_frame+1]))  # pre-allocate
                 for i in range(len(atoms.getCoordsets()[start_frame:stop_frame+1])):
                     _analyseFrameCoordsets(i, interactions_all, atoms, interaction_type, 
                                            interactions_dic, start_frame, kwargs)
             else:
                 with mp.Manager() as manager:
-                    interactions_all = manager.list()
+                    interactions_all = manager.list([None] * len(atoms.getCoordsets()[start_frame:stop_frame+1]))  # pre-allocate
 
                     i = start_frame
                     while i < len(atoms.getCoordsets()[start_frame:stop_frame+1]):
@@ -5345,50 +5345,28 @@ class InteractionsTrajectory(object):
         HPh_nb = [[] for _ in traj]
         DiBs_nb = [[] for _ in traj]
 
+        interactions_dic = {
+        "HBs": calcHydrogenBonds,
+        "SBs": calcSaltBridges,
+        "RIB": calcRepulsiveIonicBonding,
+        "PiStack": calcPiStacking,
+        "PiCat": calcPiCation,
+        "HPh": calcHydrophobic,
+        "DiB": calcDisulfideBonds
+        }
+
         interactions_traj = [HBs_all, SBs_all, RIB_all, PiStack_all, PiCat_all, HPh_all, DiBs_all]
         interactions_nb_traj = [HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb, DiBs_nb]
 
         atoms_copy = atoms.copy()
-        protein = atoms_copy.protein
-
-        if max_proc == 1:
-            interactions_all = interactions_traj
-            interactions_nb = interactions_nb_traj
-            for j0, frame0 in enumerate(traj, start=start_frame):
-                _analyseFrameTrajectory(j0, frame0, interactions_all, interactions_nb, 
-                                        atoms_copy, protein, start_frame, **kwargs)
-            interactions_nb =  [[item[0] for item in row] for row in interactions_nb]
-        else:
-            with mp.Manager() as manager:
-                interactions_all = manager.list()
-                interactions_nb = manager.list()
-                for row in interactions_traj:
-                    interactions_all.append([manager.list() for _ in row])
-                    interactions_nb.append([manager.list() for _ in row])
-
-                j0 = start_frame
-                while j0 < traj.numConfs()+start_frame:
-
-                    processes = []
-                    for _ in range(max_proc):
-                        frame0 = traj[j0-start_frame]
-                        
-                        p = mp.Process(target=_analyseFrameTrajectory, 
-                                      args=(j0, frame0, interactions_all, interactions_nb,
-                                            atoms_copy, protein, start_frame), 
-                                      kwargs=kwargs)
-                        p.start()
-                        processes.append(p)
-
-                        j0 += 1
-                        if j0 >= traj.numConfs()+start_frame:
-                            break
-
-                    for p in processes:
-                        p.join()
-
-                interactions_all = [[item[:] for item in row] for row in interactions_all]
-                interactions_nb =  [[item[0] for item in row] for row in interactions_nb]
+        interaction_types = ['HBs', 'SBs', 'RIB', 'PiStack', 'PiCat', 'HPh', 'DiB']
+        interactions_all = [calcInteractionsMultipleFrames(atoms, t, trajectory,
+                                                        start_frame=start_frame,
+                                                        stop_frame=stop_frame,
+                                                        max_proc=max_proc,
+                                                        **kwargs)
+                            for t in interaction_types]
+        interactions_nb = [[len(frame) for frame in itype] for itype in interactions_all]
         
         self._atoms = atoms
         self._traj = trajectory
