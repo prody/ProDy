@@ -435,6 +435,12 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=N
         superpose the structures, otherwise conformations will be superposed with respect 
         to the reference specified by *ref* unless set to ``False``. Default is ``'iter'``
     :type superpose: str, bool
+
+    Chain mapping is delegated to :func:`.alignChains`, so any of its keyword
+    arguments may also be passed here. In particular, the pairwise sequence
+    alignment can be tuned via *seq_alignment_method*, *match_score*,
+    *mismatch_score*, *gap_penalty* and *gap_ext_penalty* (see
+    :func:`.mapChainOntoChain`).
     """
 
     occupancy = kwargs.pop('occupancy', None)
