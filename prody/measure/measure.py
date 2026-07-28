@@ -5,7 +5,7 @@ from numbers import Integral, Number
 
 from numpy import ndarray, power, sqrt, array, zeros, arccos, dot
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
-from numpy import unique, where
+from numpy import unique, where, divide, power
 
 from prody.atomic import Atomic, Residue, Atom, extendAtomicData
 from prody.kdtree import KDTree
@@ -16,11 +16,11 @@ from prody import LOGGER, PY2K
 if PY2K:
     range = xrange
 
-__all__ = ['buildDistMatrix', 'calcDistance',
-           'calcCenter', 'calcGyradius', 'calcAngle',
-           'calcDihedral', 'calcOmega', 'calcPhi', 'calcPsi',
-           'calcMSF', 'calcRMSF',
-           'calcDeformVector',
+__all__ = ['buildDistMatrix', 'calcDistance', 'calcGyradius',
+           'calcCenter', 'calcAngle', 'calcDihedral',
+           'getCenter', 'getAngle', 'getDihedral',
+           'calcOmega', 'calcPhi', 'calcPsi',
+           'calcMSF', 'calcRMSF', 'calcDeformVector',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
            'pickCentral', 'pickCentralAtom', 'pickCentralConf', 'getWeights',
            'calcInertiaTensor', 'calcPrincAxes', 'calcDistanceMatrix',
@@ -207,13 +207,17 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
     a3 = coords4 - coords3
 
     v1 = cross(a1, a2)
-    v1 = v1 / (v1 * v1).sum(-1)**0.5
+    v1 = divide(v1, power((v1 * v1).sum(-1), 0.5).reshape(-1,1))
     v2 = cross(a2, a3)
-    v2 = v2 / (v2 * v2).sum(-1)**0.5
+    v2 = divide(v2, power((v2 * v2).sum(-1), 0.5).reshape(-1,1))
     porm = sign((v1 * a3).sum(-1))
     rad = arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
-    if not porm == 0:
+    if not all(porm == 0):
         rad = rad * porm
+
+    if rad.shape[0] == 1:
+        rad = rad[0]
+        
     if radian:
         return rad
     else:
@@ -729,7 +733,7 @@ def calcADPAxes(atoms, **kwargs):
         # Make sure the direction that correlates with the previous atom
         # is selected
         vals = vals * sign((vecs * axes[(i-1)*3:(i)*3, :]).sum(0))
-        axes[i*3:i*3, :] = vals * vecs
+        axes[i*3:i*3+3, :] = vals * vecs
     # Resort the columns before returning array
     axes = axes[:, [2, 1, 0]]
     torf = None
@@ -824,10 +828,13 @@ def calcInertiaTensor(coords):
     return dot(coords.transpose(), coords)
 
 
-def calcPrincAxes(coords, turbo=True):
+def calcPrincAxes(coords, turbo=True, return_vals=False):
     """Calculate principal axes from coords"""
     M = calcInertiaTensor(coords)
-    _, vectors, _ = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
+    eigvals, vectors, _ = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
+
+    if return_vals:
+        return eigvals, vectors.transpose()
     return vectors.transpose()
 
 
@@ -946,7 +953,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
 
     try:
         min_dist_cutoff = float(kwargs.get('min_dist_cutoff', 20))
-    except:
+    except ValueError:
         raise TypeError("min_dist_cutoff should be a number")
 
     blocks = []

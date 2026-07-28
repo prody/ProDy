@@ -131,7 +131,7 @@ def parseHeatmap(heatmap, **kwargs):
             numbers.append(items[:nnums])
         else:
             items = [arr]
-            
+
         try:
             heatmap.append(fromstring(items[-1], float, sep=';'))
         except:

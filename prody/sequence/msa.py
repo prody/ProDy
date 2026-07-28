@@ -3,11 +3,10 @@
 
 from numbers import Integral
 
-from numpy import all, zeros, dtype, array, char, cumsum, ceil, reshape
-from numpy import where, sort, concatenate, vstack, isscalar, chararray
+from numpy import all, zeros, dtype, array, char, cumsum, reshape
+from numpy import vstack, isscalar
 
 from prody import LOGGER, PY3K
-from prody.atomic import Atomic
 from prody.utilities import toChararray, pystr, splitSeqLabel
 from .sequence import Sequence
 

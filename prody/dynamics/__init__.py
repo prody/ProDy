@@ -119,12 +119,21 @@ The following class and its functions can be used to generate conformers using a
 
   * :class:`.AdaptiveANM` - generate transitions between two conformers using best overlapping modes 
 
+ENM-MD hybrid methods
+===================
+
+The following classes and functions can be used to generate conformers using ENM-MD hybrid methods:
+
+  * :class:`.ClustENM` - generate conformers by exploring combinations of modes and clustering, using minimisation and optionally MD
+  * :function:`.ANMD` - generate conformers by traversing a number of individual modes, applying minimisation to each conformer
+
 Essential Site Scanning Analysis (ESSA)
 ========================================
 
 The following class and its functions can be used to perform Essential Site Scanning Analysis:
 
   * :class:`.ESSA`
+  * :class:`.ESSA2`
 
 Editing models
 ==============
@@ -288,6 +297,10 @@ from . import anm
 from .anm import *
 __all__.extend(anm.__all__)
 
+from . import generalized_anm
+from .generalized_anm import *
+__all__.extend(generalized_anm.__all__)
+
 from . import rtb
 from .rtb import *
 __all__.extend(rtb.__all__)
@@ -348,6 +361,10 @@ from . import adaptive
 from .adaptive import *
 __all__.extend(adaptive.__all__)
 
+from . import adaptive2
+from .adaptive2 import *
+__all__.extend(adaptive2.__all__)
+
 from . import clustenm
 from .clustenm import *
 __all__.extend(clustenm.__all__)
@@ -355,6 +372,10 @@ __all__.extend(clustenm.__all__)
 from . import essa
 from .essa import *
 __all__.extend(essa.__all__)
+
+from . import essa2
+from .essa2 import *
+__all__.extend(essa2.__all__)
 
 # workaround for circular dependency to accommodate original design style 
 from prody.ensemble import functions
@@ -367,3 +388,7 @@ __all__.extend(lda.__all__)
 from . import logistic
 from .logistic import *
 __all__.extend(logistic.__all__)
+
+from . import anmd
+from .anmd import *
+__all__.extend(anmd.__all__)

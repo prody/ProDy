@@ -132,6 +132,20 @@ between protein and ligand structure in single PDB file or in trajectory:
   * :class:`.Interactions` - store inteactions for a single PDB structure
   * :class:`.InteractionsDCD` - store interactions for a trajectory
 
+Detect channels, tunnels and pores with CaviFinder
+====================
+
+Use the following to analyze cavities within protein structures
+in single PDB file or in trajectory:
+
+  * :func:`.getVmdModel` - generates a 3D model of proten, using VMD, which is then use for visualization
+  * :func:`.calcChannels` - computes and identifies channels
+  * :func:`.calcChannelsMultipleFrames` - compute channels for each frame in a given trajectory or PDB ensemble
+  * :func:`.getChannelParameters` - extracts and returns the lengths, bottlenecks, and volumes of each channel
+  * :func:`.getChannelAtoms` - generates an AtomGroup object representing the atoms along the paths of the given channels
+  * :func:`.showChannels` - visualizes the channels using Open3D
+  * :func:`.showCavities` - visualizes the cavities using Open3D
+
 Compare/align chains
 ====================
 
@@ -246,6 +260,10 @@ from . import ciffile
 from .ciffile import *
 __all__.extend(ciffile.__all__)
 
+_getPDBid  = ciffile._getPDBid = pdbfile._getPDBid
+long_id_check_str = ciffile.long_id_check_str = pdbfile.long_id_check_str
+wwpdb.long_id_check_str = long_id_check_str
+
 from . import starfile
 from .starfile import *
 __all__.extend(starfile.__all__)
@@ -263,6 +281,10 @@ except SyntaxError:
     logger.warn("Cannot import waterbridges")
 else:
     __all__.extend(waterbridges.__all__)
+
+from . import channels
+from .channels import *
+__all__.extend(channels.__all__)
 
 from . import fixer
 from .fixer import *

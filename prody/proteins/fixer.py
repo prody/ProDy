@@ -63,6 +63,7 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     Open Babel: An open chemical toolbox *Journal of cheminformatics* **2011** 3:1-14. """
     
     model_residues = kwargs.get("model_residues", False)
+    add_hydrogens = kwargs.get("add_hydrogens", True)
     remove_heterogens = kwargs.get("remove_heterogens", False)
     keep_water = kwargs.get("keep_water", True)
     overwrite = kwargs.get("overwrite", False)
@@ -122,7 +123,10 @@ Set overwrite=True to overwrite it'.format(outfile))
         obconversion.SetInFormat("pdb")
         mol = openbabel.OBMol()
         obconversion.ReadFile(mol, infile)
-        mol.AddHydrogens()
+
+        if add_hydrogens:
+            mol.AddHydrogens()
+
         obconversion.WriteFile(mol, outfile)
         LOGGER.info("Hydrogens were added to the structure. Structure {0} is saved in the local directry.".format(outfile))
 
@@ -147,7 +151,10 @@ Set overwrite=True to overwrite it'.format(outfile))
 
             fixer.findMissingAtoms()
             fixer.addMissingAtoms()
-            fixer.addMissingHydrogens(pH)
+
+            if add_hydrogens:
+                fixer.addMissingHydrogens(pH)
+
             PDBFile.writeFile(fixer.topology, fixer.positions, open(outfile, 'w'), keepIds=keep_ids)
             LOGGER.info("Hydrogens were added to the structure. New structure is saved as {0}.".format(outfile))
 

@@ -1,6 +1,6 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '2.5.0'
+__version__ = '2.6.1'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
@@ -8,11 +8,10 @@ import warnings
 
 if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
-    sys.exit()
 
 if sys.version_info[0] == 3:
-    if sys.version_info[1] < 6:
-        sys.stderr.write('Python 3.5 and older is not supported\n')
+    if sys.version_info[1] < 10:
+        sys.stderr.write('Python 3.9 and older is not supported\n')
         sys.exit()
 
 try:
@@ -115,6 +114,11 @@ from .dynamics import *
 __all__.extend(dynamics.__all__)
 __all__.append('dynamics')
 
+from . import drugui
+from .drugui import *
+__all__.extend(drugui.__all__)
+__all__.append('drugui')
+
 from . import ensemble
 from .ensemble import *
 __all__.extend(ensemble.__all__)
@@ -134,6 +138,11 @@ from . import domain_decomposition
 from .domain_decomposition import *
 __all__.extend(domain_decomposition.__all__)
 __all__.append('domain_decomposition')
+
+from . import drugui
+from .drugui import *
+__all__.extend(drugui.__all__)
+__all__.append('drugui')
 
 #from . import comd
 #from .comd import *
