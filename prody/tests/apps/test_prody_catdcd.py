@@ -18,19 +18,34 @@ from prody.tests import MATPLOTLIB, NOPRODYCMD, WINDOWS
 
 class TestCatdcdCommand(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        # Optimization: Perform the heavy PDB parsing only ONCE.
+        cls.dcdpath = pathDatafile('dcd')
+        cls.pdbpath = pathDatafile('multi_model_truncated')
+        cls.ag = parsePDB(cls.pdbpath, model=1)
+
     def setUp(self):
-
-        self.output = join(TEMPDIR, 'test_prody_catdcd.dcd')
-
-        self.dcdpath = pathDatafile('dcd')
-        self.pdbpath = pathDatafile('multi_model_truncated')
-
+        # Safety: Open a fresh DCD handle for every test. 
         self.dcd = DCDFile(self.dcdpath)
-        self.ag = parsePDB(self.pdbpath, model=1)
-
+        
+        self.output = join(TEMPDIR, 'test_prody_catdcd.dcd')
         self.command = 'catdcd -o ' + self.output
 
-        self.tearDown()
+        if isfile(self.output):
+            remove(self.output)
+
+    def tearDown(self):
+        # CRITICAL FIX: Close the main DCD handle before teardown
+        if hasattr(self, 'dcd') and self.dcd is not None:
+            self.dcd.close()
+
+        # Remove output only after ensuring input is closed
+        if isfile(self.output): 
+            try:
+                remove(self.output)
+            except OSError:
+                pass
 
     @dec.slow
     @skipIf(NOPRODYCMD, 'prody command not found')
@@ -43,7 +58,11 @@ class TestCatdcdCommand(TestCase):
         namespace.func(namespace)
 
         coords = self.dcd[:]._getCoordsets()
+        
+        # parseDCD returns an Ensemble, which auto-closes the file.
+        # We do not need to call .close() on 'concat'.
         concat = parseDCD(self.output)._getCoordsets()
+        
         assert_equal(coords, concat[:3])
         assert_equal(coords, concat[3:6])
         assert_equal(coords, concat[6:])
@@ -89,8 +108,8 @@ class TestCatdcdCommand(TestCase):
         select = self.ag.ca
 
         coords = self.dcd[:]
+        
         concat = parseDCD(self.output)
-
         assert_equal(concat.numAtoms(), coords.numAtoms())
 
         coords.setCoords(self.ag.getCoords())
@@ -141,8 +160,3 @@ class TestCatdcdCommand(TestCase):
         command = self.command + ' -s None {0:s} {0:s}'.format(self.dcdpath)
         namespace = prody_parser.parse_args(shlex.split(command))
         self.assertRaises(ValueError, namespace.func, namespace)
-
-
-    def tearDown(self):
-
-        if isfile(self.output): remove(self.output)

@@ -248,6 +248,18 @@ DATA_FILES = {
         'models': 1,
         'unobs_B_start': 'G-------------------------------NQNTTEK-'
     },
+    'pymol_cif': {
+        'pdb': '3o21',
+        'file': 'mmcif_3o21_pymol.cif',
+        'atoms': 12793,
+        'last_coords': array([50.327, -11.971, -19.976])
+    },
+    'scipion_cif': {
+        'pdb': '4ake',
+        'file': 'mmcif_4ake_scipion.cif',
+        'atoms': 3459,
+        'last_coords': array([ 1.413, -6.322, -9.968])
+    },
     'big_biomols_cif': {
         'pdb': '7cth',
         'file': 'mmcif_7cth.cif',
@@ -255,6 +267,11 @@ DATA_FILES = {
         'bm0_atoms': 16647 * 60,
         'num_chains': 14,
         'bm0_chains': 840,
+    },
+    'boltz_wrapped_line_cif':{
+        'file': 'NRAS_BRAF_GDP_model_0.cif',
+        'atoms': 7333,
+        'num_chains': 3
     },
     'long_chid_cif': {
         'pdb': '6zu5',
@@ -436,6 +453,12 @@ DATA_FILES = {
         'n_atoms': 4,
         'long_resname': 'ACET',
         'short_resname': 'ACE'
+    },
+    'modres_ncaa': {
+        'file': 'pdb_modres_ncaa.pdb'
+    },
+    'sep_modres': {
+        'file': 'pdb5fc2_sep_modres.pdb'
     }
 }
 
