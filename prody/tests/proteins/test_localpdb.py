@@ -1,6 +1,8 @@
 """This module contains unit tests for :mod:`~prody.proteins`."""
 
 import os
+import tempfile
+from unittest import mock
 
 import numpy as np
 from numpy.testing import *
@@ -76,3 +78,21 @@ class TestFetchPDB(unittest.TestCase):
                 os.remove(fn)
             except:
                 pass
+
+
+class TestExtendedPDBIDMirrorLookup(unittest.TestCase):
+
+    def testFetchFromMirrorUsesExtendedSubfolder(self):
+        with tempfile.TemporaryDirectory() as mirror:
+            pid = 'pdb_00006uv8'
+            subfolder = pid[-3:-1]
+            filepath = os.path.join(mirror, 'data', 'structures', 'divided',
+                                    'pdb', subfolder, 'pdb' + pid + '.ent.gz')
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, 'wb') as out:
+                out.write(b'data')
+
+            with mock.patch('prody.proteins.localpdb.pathPDBMirror', return_value=mirror):
+                fn = fetchPDBfromMirror(pid)
+
+        self.assertEqual(os.path.normpath(filepath), fn)

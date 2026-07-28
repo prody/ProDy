@@ -1267,12 +1267,17 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         Default is **True**
     :type full_ter: bool
 
+    :arg increment_ter: whether to increment serials with TER lines
+        Default is **True**
+    :type increment_ter: bool
+
     :arg write_remarks: whether to write REMARK lines
         Default is **True**
     :type write_remarks: bool
     """    
     renumber = kwargs.get('renumber', True)
     full_ter = kwargs.get('full_ter', True)
+    increment_ter = kwargs.get('increment_ter', True)
     write_remarks = kwargs.get('write_remarks', True)
     long_resname = kwargs.get('long_resname', False)
 
@@ -1616,10 +1621,12 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
             if isinstance(atoms, AtomGroup):
                 if resnames[i] in AAMAP and atoms._getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
-                    if hybrid36:
-                        serial = decToHybrid36(hybrid36ToDec(serial) + 1)
-                    else:
-                        serial += 1
+                    if increment_ter:
+                        num_ter_lines += 1
+                        if hybrid36:
+                            serial = decToHybrid36(hybrid36ToDec(serial) + 1)
+                        else:
+                            serial += 1
 
                     if full_ter:
                         false_pdbline = pdbline % ("TER   ", serial,
@@ -1632,13 +1639,14 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     else:
                         false_pdbline = "TER" + " "*23
                     write(false_pdbline[:26] + " "*54 + '\n')
-                    num_ter_lines += 1
             else:
                 if resnames[i] in AAMAP and atoms._getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
-                    if hybrid36:
-                        serial = decToHybrid36(hybrid36ToDec(serial) + 1)
-                    else:
-                        serial += 1
+                    if increment_ter:
+                        num_ter_lines += 1
+                        if hybrid36:
+                            serial = decToHybrid36(hybrid36ToDec(serial) + 1)
+                        else:
+                            serial += 1
 
                     if full_ter:
                         false_pdbline = pdbline % ("TER   ", serial,
@@ -1651,7 +1659,6 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     else:
                         false_pdbline = "TER" + " "*23
                     write(false_pdbline[:26] + " "*54 + '\n')
-                    num_ter_lines += 1
 
         if multi:
             write('ENDMDL' + " "*74 + '\n')
@@ -1677,6 +1684,14 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
         Default is **False**, which means using hexadecimal instead.
         NB: ChimeraX seems to prefer hybrid36 and may have problems with hexadecimal.
     :type hybrid36: bool
+
+    :arg full_ter: whether to write full TER lines with atoms info
+        Default is **True**
+    :type full_ter: bool
+
+    :arg increment_ter: whether to increment serials with TER lines
+        Default is **True**
+    :type increment_ter: bool
 
     Please note that resnames longer than 3 characters will be trimmed by default.
     This behaviour can be changed with the following argument:

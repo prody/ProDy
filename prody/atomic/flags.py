@@ -493,7 +493,7 @@ for resi in DEFAULTS['nucleotide']:
 for resi in DEFAULTS['nucleoside']:
     __doc__ += PDBLIGSUM.format(resi)
 
-__doc__ += """
+__doc__ += r"""
 
 Heteros
 -------------------------------------------------------------------------------

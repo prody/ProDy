@@ -252,12 +252,13 @@ class Atomic(object):
         return ag._title
     
     def getSequence(self, **kwargs):
-        """Returns one-letter sequence string for amino acids, unless *longSeq* is **True**.
+        """Returns one-letter sequence string for amino acids, unless *longSeq*
+        or *threeLetter* is **True**.
         When *allres* keyword argument is **True**, sequence will include all
         residues (e.g. water molecules) in the chain and **X** will be used for
         non-standard residue names."""
 
-        longSeq = kwargs.get('longSeq', False)
+        longSeq = kwargs.get('longSeq', kwargs.get('threeLetter', False))
 
         get = AAMAP.get
         if hasattr(self, 'getResnames'):
