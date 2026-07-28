@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """This module is called CaviTracer and defines functions for calculating 
-channels, tunnels, and surface cavities within protein structure.
+channels, tunnels, pores, and surface cavities within protein structure.
 """
 
 __author__ = 'Karolina Mikulska-Ruminska', 'Jan Brezovsky', 'Eryk Trzcinski'
@@ -161,6 +161,15 @@ def _surfaceFromPqrWorker(args):
         surface.update(map(tuple, voxels))
 
     return surface
+
+
+def _calcPoresFromChannelsWorker(args):
+    """Reconstruct pores from channels. Supporting function for multiprocessing
+    in :func:`calcPoresFromChannelsMultipleFrames`."""
+    frame_nr, channels, details, output_path, separate, kwargs = args
+    LOGGER.info("Frame/model: {0}".format(frame_nr))
+    return calcPoresFromChannels(channels, details, output_path=output_path,
+                                 separate=separate, **kwargs)
 
 
 def _reportAtomsInputComposition(atoms):
@@ -2000,7 +2009,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
 
 
 def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=None, 
-    separate=False, **kwargs):
+    separate=False, max_proc=2, **kwargs):
     """Construct pores for multiple trajectory frames or multi-model PDBs from 
     channels previously calculated with :func:`calcChannelsMultipleFrames`.
 
@@ -2017,6 +2026,11 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
         ``simplices``, ``neighbors``, ``vertices``, ``coords``, and ``vdw_radii`` 
         for the corresponding frame/model.
     :type details_all: list of dict
+
+    :arg max_proc: Maximum number of parallel processes used for calculation. 
+        If 1, files are processed serially. If None, all available CPU
+        cores are used. Default is 2.
+    :type max_proc: int or None
 
     :arg kwargs: Pore-filtering parameters passed to
         :func:`calcPoresFromChannels`, including ``min_end_to_end``,
@@ -2041,29 +2055,37 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
     else:
         from pathlib2 import Path
     
+    import multiprocessing
+    
     if len(channels_all) != len(details_all):
         raise ValueError("channels_all and details_all must contain the same number of frames")
-
-    pores_all = []
 
     if output_path is not None:
         output_path = Path(output_path)
         if output_path.suffix not in ('.pqr', '.pdb'):
             output_path = output_path.with_suffix('.pqr')
 
+    tasks = []
     for frame_nr, (channels, details) in enumerate(zip(channels_all, details_all)):
-        LOGGER.info("Frame/model: {0}".format(frame_nr))
-        
         if output_path is not None:
             frame_output_path = output_path.with_name(
                     "{0}_frame{1}{2}".format(output_path.stem, frame_nr, output_path.suffix))
         else:
             frame_output_path = None
         
-        pores = calcPoresFromChannels(channels, details, output_path=frame_output_path, 
-                                                        separate=separate, **kwargs)
-        pores_all.append(pores)
+        tasks.append((frame_nr, channels, details, frame_output_path, separate, kwargs))
 
+    if max_proc is None:
+        max_proc = multiprocessing.cpu_count()
+
+    max_proc = max(1, min(int(max_proc), len(tasks)))
+
+    if max_proc == 1:
+        pores_all = [_calcPoresFromChannelsWorker(task) for task in tasks]
+    else:
+        with multiprocessing.Pool(processes=max_proc) as pool:
+            pores_all = pool.map(_calcPoresFromChannelsWorker, tasks)
+    
     return pores_all    
     
     
