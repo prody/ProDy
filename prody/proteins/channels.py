@@ -847,7 +847,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     surf_radius=3, inner_radius=0.9, min_depth=5,
     min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0,
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
-    diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
+    diagram="homogenized", max_deviation=0.1,
     similarity=0.8, route_tolerance=1.0, min_enclosure=0.70, max_peel_depth=None,
     weighted_cache=True, weighted_mouth_depth=2.5, edge_cost=None,
     return_details=False):
@@ -963,19 +963,14 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :type max_volume: float
 
     :arg sparsity: Size of a channel surface opening (mouth), in Angstrom: how far
-        apart two exits must lie to count as separate openings. It is one quantity,
-        reached by whichever branch of the search is running, and the two branches
-        are mutually exclusive. With ``truncate_at_surface`` True (the default) it
-        is a floor on the radius of a reported opening, so two channels leaving
-        closer than ``sparsity`` are treated as sharing that opening and are merged
-        if they also share a corridor (see ``similarity``); being applied *after*
-        the search, it can only merge channels there, never hide one, and is a
-        reporting preference rather than part of the geometry. With
-        ``truncate_at_surface`` False it is instead the spacing at which exit
-        tetrahedra are sampled as channel termini, and it does then decide which
-        channels are found at all. Either way a higher value reports fewer channels.
-        It has no effect on the cavities, which are found from the exit tetrahedra
-        before any thinning. Default is 1.
+        apart two exits must lie to count as separate openings. It is a floor on
+        the radius of a reported opening, so two channels leaving closer than
+        ``sparsity`` are treated as sharing that opening and are merged if they
+        also share a corridor (see ``similarity``); being applied *after* the
+        search, it can only merge channels there, never hide one, and is a
+        reporting preference rather than part of the geometry. A higher value
+        reports fewer channels. It has no effect on the cavities, which are found
+        from the exit tetrahedra before any thinning. Default is 1.
     :type sparsity: float
 
     :arg diagram: 
@@ -1015,25 +1010,10 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         Only used when ``diagram = homogenized``.
     :type max_deviation: float
 
-    :arg truncate_at_surface: If True (default), surface (exit) tetrahedra are
-        made *absorbing*: a channel may end at one, but no channel may pass
-        through one. A mouth is a surface tetrahedron a probe of the traversal
-        radius ``inner_radius`` can leave through. This forbids the cheapest path from
-        surfacing at one mouth, running along the outside and re-entering at
-        another - a surface hop, not a tunnel - which the width-rewarding cost
-        would otherwise prefer, since surface grooves are the widest space
-        available. Enforcing it during the search (rather than cutting the
-        winning path afterwards) is what keeps genuine narrow interior corridors
-        in the output: cut afterwards, such a corridor loses the cheapest-path
-        race to the groove leading to the same mouth and is never enumerated at
-        all. If False, paths run freely to their end tetrahedra, surface hops
-        included.
-    :type truncate_at_surface: bool
-
-    :arg similarity: Only used when ``truncate_at_surface`` is True. Fraction
-        (0-1) of the **longer** of two channels, measured in Angstrom along its
-        centerline, that must run within ``route_tolerance`` of the other one for
-        the two to count as the same corridor. Two channels are merged (cheapest
+    :arg similarity: Fraction (0-1) of the **longer** of two channels, measured
+        in Angstrom along its centerline, that must run within
+        ``route_tolerance`` of the other one for the two to count as the same
+        corridor. Two channels are merged (cheapest
         kept) only when they take the same corridor **and** leave through the
         same opening (see ``sparsity``); a corridor that forks near the surface
         and exits twice is one tunnel, but two different corridors to one opening,
@@ -1047,9 +1027,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         channel that shares an opening. Default is 0.8.
     :type similarity: float
 
-    :arg route_tolerance: Only used when ``truncate_at_surface`` is True. How far
-        apart, in Angstrom, two centerlines may drift and still count as the same
-        corridor when computing ``similarity``. Larger values merge more
+    :arg route_tolerance: How far apart, in Angstrom, two centerlines may drift
+        and still count as the same corridor when computing ``similarity``. Larger values merge more
         aggressively (nearby parallel routes read as one tunnel); smaller values
         report finer route variants separately. Default is 1.0.
     :type route_tolerance: float
@@ -1466,9 +1445,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     graph = calculator.buildSparseGraph(simplices, neighbors, vertices, coords,
                                          vdw_radii)
     for cavity in c_filtered_cavities:
-        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices, 
-                            coords, vdw_radii,
-                            truncate_at_surface, similarity)
+        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices,
+                            coords, vdw_radii, similarity)
     LOGGER.report('Channel pathfinding (graph Dijkstra) over {0} cavities completed in %.2fs.'.format(
         len(c_filtered_cavities)), '_prody_channels_pathfinding')
 
@@ -4806,7 +4784,7 @@ class ChannelCalculator:
         return csr_matrix((weight, (rows, cols)), shape=(N, N))
 
     def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points,
-                 vdw_radii, truncate_at_surface=True, similarity=0.8):
+                 vdw_radii, similarity=0.8):
         # a single multi-target Dijkstra from the seed over the cavity subgraph,
         # then every exit path reconstructed from the predecessor tree - 
         # instead of one heap search per (seed, exit) pair.
@@ -4850,50 +4828,49 @@ class ChannelCalculator:
         terminals_local = [global_to_local[int(t)]
                            for t in np.asarray(cavity.end_tetrahedra)
                            if int(t) in global_to_local]
-        if truncate_at_surface:
-            exit_tetra = np.asarray(getattr(cavity, 'exit_tetrahedra',
-                                            np.empty(0, dtype=np.intp)))
-            if len(exit_tetra):
-                verts = vertices[exit_tetra]
-                atom_pos = points[simplices[exit_tetra]]
-                atom_rad = vdw_radii[simplices[exit_tetra]]
-                clearance = (np.linalg.norm(atom_pos - verts[:, None, :],
-                                            axis=2) - atom_rad).min(axis=1)
-                seeds = set(int(s) for s in cavity.starting_tetrahedron)
+        exit_tetra = np.asarray(getattr(cavity, 'exit_tetrahedra',
+                                        np.empty(0, dtype=np.intp)))
+        if len(exit_tetra):
+            verts = vertices[exit_tetra]
+            atom_pos = points[simplices[exit_tetra]]
+            atom_rad = vdw_radii[simplices[exit_tetra]]
+            clearance = (np.linalg.norm(atom_pos - verts[:, None, :],
+                                        axis=2) - atom_rad).min(axis=1)
+            seeds = set(int(s) for s in cavity.starting_tetrahedron)
 
-                # Only the mouths themselves absorb. A tetrahedron that merely lies
-                # inside a mouth's inscribed ball must NOT be absorbed: the ball's
-                # radius is the clearance (up to ~2 A) and it reaches inward as
-                # well as outward, so absorbing on it eats the corridors that
-                # approach the surface and truncates real tunnels before they
-                # arrive - measured to delete both known side tunnels at
-                # max_deviation=0.1 while keeping them at 0.02, i.e. exactly the
-                # silent, mesh-dependent tunnel loss this design exists to prevent.
-                # A path can consequently still slip *past* a mouth through a twin
-                # tetrahedron - a neighbour sharing almost the same circumcenter,
-                # not itself in the second layer and so still conducting - and
-                # surface again somewhere else. That leak is real but narrow (the
-                # twins sit 0.1-0.7 A from a mouth, in the surface shell at depth
-                # 1-4), and such a path always passes through the exit sphere of a
-                # channel that is already reported. It is therefore handled in
-                # _addDedupedChannels, which cuts a path at the first reported exit
-                # sphere it enters - the point where it truly leaves the protein -
-                # rather than walling the graph off against every mouth.
-                absorbing = [global_to_local[int(t)]
-                             for t, c in zip(exit_tetra, clearance)
-                             if c >= self.inner_radius and int(t) in global_to_local
-                             and int(t) not in seeds]
-                if absorbing:
-                    # Zero the mouths' rows: edges *into* a mouth survive (a
-                    # channel may end there), edges *out of* it are gone.
-                    cavity_graph = cavity_graph.tolil()
-                    for i in absorbing:
-                        cavity_graph.rows[i] = []
-                        cavity_graph.data[i] = []
-                    cavity_graph = cavity_graph.tocsr()
-                # Every mouth is a terminus; the dedup decides which of them are
-                # one opening. See the comment at the target loop below.
-                terminals_local = absorbing
+            # Only the mouths themselves absorb. A tetrahedron that merely lies
+            # inside a mouth's inscribed ball must NOT be absorbed: the ball's
+            # radius is the clearance (up to ~2 A) and it reaches inward as
+            # well as outward, so absorbing on it eats the corridors that
+            # approach the surface and truncates real tunnels before they
+            # arrive - measured to delete both known side tunnels at
+            # max_deviation=0.1 while keeping them at 0.02, i.e. exactly the
+            # silent, mesh-dependent tunnel loss this design exists to prevent.
+            # A path can consequently still slip *past* a mouth through a twin
+            # tetrahedron - a neighbour sharing almost the same circumcenter,
+            # not itself in the second layer and so still conducting - and
+            # surface again somewhere else. That leak is real but narrow (the
+            # twins sit 0.1-0.7 A from a mouth, in the surface shell at depth
+            # 1-4), and such a path always passes through the exit sphere of a
+            # channel that is already reported. It is therefore handled in
+            # _addDedupedChannels, which cuts a path at the first reported exit
+            # sphere it enters - the point where it truly leaves the protein -
+            # rather than walling the graph off against every mouth.
+            absorbing = [global_to_local[int(t)]
+                         for t, c in zip(exit_tetra, clearance)
+                         if c >= self.inner_radius and int(t) in global_to_local
+                         and int(t) not in seeds]
+            if absorbing:
+                # Zero the mouths' rows: edges *into* a mouth survive (a
+                # channel may end there), edges *out of* it are gone.
+                cavity_graph = cavity_graph.tolil()
+                for i in absorbing:
+                    cavity_graph.rows[i] = []
+                    cavity_graph.data[i] = []
+                cavity_graph = cavity_graph.tocsr()
+            # Every mouth is a terminus; the dedup decides which of them are
+            # one opening. See the comment at the target loop below.
+            terminals_local = absorbing
 
         candidates = []
 
@@ -4953,12 +4930,8 @@ class ChannelCalculator:
                 node_costs = np.asarray(distances)[np.asarray(path_local)]
                 candidates.append((channel, node_costs))
 
-        if truncate_at_surface:
-            self._addDedupedChannels(cavity, candidates, similarity, vertices,
-                                     points, vdw_radii, simplices)
-        else:
-            for channel, _costs in candidates:
-                cavity.addChannel(channel)
+        self._addDedupedChannels(cavity, candidates, similarity, vertices,
+                                 points, vdw_radii, simplices)
 
     def _addDedupedChannels(self, cavity, candidates, similarity, vertices,
                             points, vdw_radii, simplices):
