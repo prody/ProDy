@@ -844,7 +844,7 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     restrict_channels_to_start_point=True, start_point_search=3.0,
-    r1=3, r2=0.9, min_depth=5,
+    surf_radius=3, inner_radius=0.9, min_depth=5,
     min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0,
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
     diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
@@ -921,11 +921,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         seed the nearest tetrahedron as-is.
     :type start_point_search: float
 
-    :arg r1: The first radius threshold used during the deletion of simplices, 
+    :arg surf_radius: The first radius threshold used during the deletion of simplices, 
         which is used to define the outer surface of the channels. Default is 3
-    :type r1: float
+    :type surf_radius: float
 
-    :arg r2: The second radius threshold used to define the inner surface of
+    :arg inner_radius: The second radius threshold used to define the inner surface of
         the channels. Default is 0.9.
 
         Below about 1.2 Angstrom the probe is smaller than a water molecule, and
@@ -936,7 +936,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         can rise several-fold. At 1.2 Angstrom and above, protonated and 
         unprotonated structures give the same channels, and an X-ray file may 
         be used as it comes. A warning is issued for the unsafe combination.
-    :type r2: float
+    :type inner_radius: float
 
     :arg min_depth: The minimum depth, in Angstrom, a cavity must reach to be
         considered as a channel. Depth is the geodesic distance from the cavity's
@@ -1018,7 +1018,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :arg truncate_at_surface: If True (default), surface (exit) tetrahedra are
         made *absorbing*: a channel may end at one, but no channel may pass
         through one. A mouth is a surface tetrahedron a probe of the traversal
-        radius ``r2`` can leave through. This forbids the cheapest path from
+        radius ``inner_radius`` can leave through. This forbids the cheapest path from
         surfacing at one mouth, running along the outside and re-entering at
         another - a surface hop, not a tunnel - which the width-rewarding cost
         would otherwise prefer, since surface grooves are the widest space
@@ -1057,8 +1057,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :arg min_enclosure: Fraction of directions that must be blocked by protein for
         a tetrahedron to count as interior, in ``[0, 1]``. Default is 0.70.
 
-        Once the r1 surface is built it is eroded inward with the r2 probe, to
-        strip the shell of true exterior that an r1 probe bridges over rather than
+        Once the surf_radius surface is built it is eroded inward with the inner_radius probe, to
+        strip the shell of true exterior that an surf_radius probe bridges over rather than
         enters (the "moat"); that shell would otherwise join the cavity and offer
         wide, low-cost routes along the outside of the protein. Erosion continues
         while the tetrahedra at the front are *open*, meaning that fewer than
@@ -1068,12 +1068,12 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         Bounding the erosion by size instead does not work. A count of tetrahedron
         layers is not mesh-invariant, as a layer is one tetrahedron thick and
         tetrahedra shrink as ``max_deviation`` is lowered. A depth in Angstrom is
-        not ``r1``-invariant, as the moat is as deep as ``r1 - r2`` in a concavity
+        not ``surf_radius``-invariant, as the moat is as deep as ``surf_radius - inner_radius`` in a concavity
         but vanishes on a flat face, so a depth that clears it where it is thick
         also marches down the channel mouths and erodes the channels themselves.
-        Testing burial locally instead leaves ``r1`` to decide only where the
+        Testing burial locally instead leaves ``surf_radius`` to decide only where the
         erosion starts, not where it stops, so results are independent of it, and
-        ``r1`` is left doing the one job it should: capping the mouths.
+        ``surf_radius`` is left doing the one job it should: capping the mouths.
 
         It is bounded from both sides, and the window is narrow.
 
@@ -1085,22 +1085,22 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :type min_enclosure: float
 
     :arg max_peel_depth: Optional hard cap, **in Angstrom**, on how far the peel
-        above may advance from the r1 surface. ``None`` (default) is uncapped, and
+        above may advance from the surf_radius surface. ``None`` (default) is uncapped, and
         the enclosure test alone decides where erosion stops. Set it only as a
         backstop on a structure where the peel misbehaves; it is deliberately not
-        tied to ``r1``, since a cap that scales with ``r1`` reintroduces exactly
-        the ``r1`` dependence that ``min_enclosure`` exists to remove.
+        tied to ``surf_radius``, since a cap that scales with ``surf_radius`` reintroduces exactly
+        the ``surf_radius`` dependence that ``min_enclosure`` exists to remove.
     :type max_peel_depth: float or None
 
     :arg weighted_cache: Cache the raw additively-weighted Voronoi diagram to disk so
         that re-running ``diagram="weighted"`` on the same structure skips the
         expensive vorpy tessellation (which dominates the ~10 min run time). The
-        diagram only depends on the atoms and ``r1``, so re-runs that change only
-        ``r2``, ``bottleneck``, ``sparsity``, ``start_point`` etc. reuse it. ``True``
+        diagram only depends on the atoms and ``surf_radius``, so re-runs that change only
+        ``inner_radius``, ``bottleneck``, ``sparsity``, ``start_point`` etc. reuse it. ``True``
         (default) caches next to ``output_path`` (or, absent one, under the structure
         title in the current directory); pass a path to place it explicitly, or
         ``False`` to disable. The cache is keyed by content, so editing the structure
-        or ``r1`` transparently forces a recompute. Only used for ``diagram="weighted"``.
+        or ``surf_radius`` transparently forces a recompute. Only used for ``diagram="weighted"``.
     :type weighted_cache: bool or str
 
     :arg weighted_mouth_depth: Only used for ``diagram="weighted"``. The additively-
@@ -1171,7 +1171,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     
     To save the results as PDB file:
     channels, surface = calcChannels(atoms, output_path="channels.pdb",
-                                     separate=False, r1=3, r2=0.9, min_depth=5,
+                                     separate=False, surf_radius=3, inner_radius=0.9, min_depth=5,
                                      bottleneck=1, sparsity=3) """
     
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
@@ -1237,7 +1237,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     
     _reportAtomsInputComposition(atoms)
     atoms = atoms.select('not water') # water is excluded from the selection
-    calculator = ChannelCalculator(atoms, r2=r2, sparsity=sparsity,
+    calculator = ChannelCalculator(atoms, inner_radius=inner_radius, sparsity=sparsity,
                                    route_tolerance=route_tolerance,
                                    edge_cost=edge_cost)
 
@@ -1255,13 +1255,13 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # sponge rather than merely widening. Those routes are fictitious, not the real
     # ones made wider. So a sub-water probe needs real hydrogens; above it, take the
     # file as it comes.
-    if not has_hydrogens and r2 < 1.2:
-        _warn("structure has no hydrogens and r2={0:.2f} is below 1.2 A: the space "
+    if not has_hydrogens and inner_radius < 1.2:
+        _warn("structure has no hydrogens and inner_radius={0:.2f} is below 1.2 A: the space "
               "left by the missing H is then wide enough for the probe to pass, and "
               "channels will be found through interstices that do not exist in the "
               "real protein (their number can rise several-fold). Either add "
-              "hydrogens, or raise r2 to 1.2 A or more, where protonated and "
-              "unprotonated structures give the same channels.".format(r2))
+              "hydrogens, or raise inner_radius to 1.2 A or more, where protonated and "
+              "unprotonated structures give the same channels.".format(inner_radius))
 
     if diagram == "simple":
         # 'simple' builds an *unweighted* Delaunay of the atom centres, i.e. it
@@ -1322,7 +1322,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             title = None
         cache_path = resolveCachePath(weighted_cache, output_path, title)
         simplices, neighbors, verts, _ = buildAwTessellation(
-            coords, vdw_radii, max_vert=max(2.0 * r1, 8), accelerate=accelerate,
+            coords, vdw_radii, max_vert=max(2.0 * surf_radius, 8), accelerate=accelerate,
             cache=cache_path)
         LOGGER.report('Additively-weighted (Apollonius) tessellation of {0} atoms '
             'constructed in %.2fs.'.format(len(coords)),
@@ -1335,7 +1335,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         if weighted_mouth_depth is not None:
             LOGGER.timeit('_prody_channels_mouth_oracle')
             mouth_oracle = calculator.buildSurfaceDepthOracle(
-                coords, vdw_radii, r1, max_deviation, weighted_mouth_depth)
+                coords, vdw_radii, surf_radius, max_deviation, weighted_mouth_depth)
             LOGGER.report('Homogenized surface oracle (weighted mouth relabeling) '
                 'built in %.2fs.', '_prody_channels_mouth_oracle')
     else:
@@ -1374,9 +1374,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         s_prv.setState(*s_tmp.getState())
         
         if PY3K:
-            s_tmp.setState(*calculator.deleteSimplices3d(coords, *(s_tmp.getState() + tuple([vdw_radii, r1, True]))))
+            s_tmp.setState(*calculator.deleteSimplices3d(coords, *(s_tmp.getState() + tuple([vdw_radii, surf_radius, True]))))
         else:
-            tmp_state = calculator.deleteSimplices3d(coords, *(s_tmp.getState() + [vdw_radii, r1, True]))
+            tmp_state = calculator.deleteSimplices3d(coords, *(s_tmp.getState() + [vdw_radii, surf_radius, True]))
             s_tmp.setState(*tmp_state)
 
         if s_tmp == s_prv:
@@ -1384,16 +1384,16 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         
     s_srf = State(*s_tmp.getState())
 
-    # Moat removal: erode the r1 surface inward with the r2 probe, stripping the shell
-    # of true exterior that a large r1 probe bridges over instead of entering (it would
+    # Moat removal: erode the surf_radius surface inward with the inner_radius probe, stripping the shell
+    # of true exterior that a large surf_radius probe bridges over instead of entering (it would
     # otherwise join the cavity and offer wide, low-cost routes along the outside).
     # Erosion stops where the tetrahedra stop being open to the solvent, which is a
-    # local criterion, so neither the mesh nor r1 sets how deep the peel goes.
+    # local criterion, so neither the mesh nor surf_radius sets how deep the peel goes.
     s_srf = State(*calculator.peelSurfaceByEnclosure(
-        coords, *(s_srf.getState() + tuple([vdw_radii, r2, atom_coords,
+        coords, *(s_srf.getState() + tuple([vdw_radii, inner_radius, atom_coords,
                                             min_enclosure, max_peel_depth]))))
 
-    s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + tuple([vdw_radii, r2, False]))))
+    s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + tuple([vdw_radii, inner_radius, False]))))
 
     l_first_layer_simp, l_second_layer_simp = calculator.surfaceLayer(s_srf.simp, s_inr.simp, s_srf.neigh)
     s_clr = State(*calculator.deleteSection(l_first_layer_simp, *s_inr.getState()))
@@ -1776,7 +1776,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
     :type mp_context: str or None
 
     :arg kwargs: Additional parameters required for channel calculation. This can 
-        include parameters such as radius values (r1, r2), minimum depth (min_depth), 
+        include parameters such as radius values (surf_radius, inner_radius), minimum depth (min_depth), 
         bottleneck values, etc. 
         See the available parameters in calcChannels().
     :type kwargs: dict
@@ -1787,8 +1787,8 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
 
     Example usage:
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, 
-                                    output_path="channels.pdb", separate=False, r1=3, 
-                                    r2=0.9, min_depth=5, bottleneck=1, sparsity=3)
+                                    output_path="channels.pdb", separate=False, surf_radius=3, 
+                                    inner_radius=0.9, min_depth=5, bottleneck=1, sparsity=3)
                                   
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, 
                                     output_path="channels.pdb", separate=False, 
@@ -1944,7 +1944,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
     :type separate: bool
 
     :arg kwargs: Additional parameters passed to :func:`calcSurfaceCavities`.
-        These can include `r1`, `r2`, `min_depth`, `max_depth`,
+        These can include `surf_radius`, `inner_radius`, `min_depth`, `max_depth`,
         `min_tetrahedra`, `max_tetrahedra`, `min_volume`, `max_volume`,
         `start_frame`, and `stop_frame`.
     :type kwargs: dict
@@ -1960,10 +1960,10 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
     protein = parsePDB('1tqn').select('protein')
     cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, 
                                 trajectory=traj, output_path="surface_cavities",
-                                r1=4.5, r2=2.0, min_depth=1.5, max_depth=2.5, min_volume=50)
+                                surf_radius=4.5, inner_radius=2.0, min_depth=1.5, max_depth=2.5, min_volume=50)
 
     cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, start_frame=0, 
-                                stop_frame=10, r1=4.5, r2=2.0) """
+                                stop_frame=10, surf_radius=4.5, inner_radius=2.0) """
 
     if PY3K:
         if not checkAndImport('pathlib'):
@@ -3488,7 +3488,7 @@ def calcSurfaceCavityOverlaps(**kwargs):
     return calcChannelSurfaceOverlaps(**kwargs)
 
 
-def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
+def calcSurfaceCavities(atoms, output_path=None, surf_radius=4.5, inner_radius=2.0, min_depth=1.5,
                         max_depth=2.5, min_tetrahedra=None, max_tetrahedra=None,
                         min_volume=50, max_volume=None, sparsity=None,
                         separate=False):
@@ -3509,13 +3509,13 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
         False.
     :type separate: bool
 
-    :arg r1: The first radius threshold used during the deletion of simplices, 
+    :arg surf_radius: The first radius threshold used during the deletion of simplices, 
         which is used to define the outer surface of the cavities. Default is 4.5.
-    :type r1: float
+    :type surf_radius: float
 
-    :arg r2: The second radius threshold used to define the inner surface of 
+    :arg inner_radius: The second radius threshold used to define the inner surface of 
         the cavities. Default is 2.
-    :type r2: float
+    :type inner_radius: float
 
     :arg min_depth: The minimum depth, in Angstrom, a cavity must reach to be
         considered. Depth is the geodesic distance from the surface opening along 
@@ -3565,7 +3565,7 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
         calculates van der Waals radii, and performs 3D Delaunay triangulation 
         and Voronoi tessellation on the coordinates.
     2. **Surface and Interior Filtering:** Iteratively removes simplices based 
-        on the user-defined radii (`r1` and `r2`) to distinguish the molecular 
+        on the user-defined radii (`surf_radius` and `inner_radius`) to distinguish the molecular 
         surface from the internal void space.
     3. **Surface Cavity Identification:** Detects connected void regions and 
         identifies those that remain connected to the protein surface, 
@@ -3590,7 +3590,7 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
               "ones, so it never changed them.")
 
     # No peel (min_enclosure=0). The enclosure peel strips the shell of true
-    # exterior that a large r1 probe bridges over instead of entering, because it
+    # exterior that a large surf_radius probe bridges over instead of entering, because it
     # offers a channel wide, low-cost routes along the outside of the protein. A
     # surface cavity *is* that shell: a pocket is shallow and open by definition,
     # so the peel deletes these cavities 
@@ -3598,7 +3598,7 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
             atoms,
             output_path=output_path,
             separate=separate,
-            r1=r1, r2=r2,
+            surf_radius=surf_radius, inner_radius=inner_radius,
             min_depth=min_depth, max_depth=max_depth,
             min_volume=min_volume, max_volume=max_volume,
             min_tetrahedra=min_tetrahedra, max_tetrahedra=max_tetrahedra,
@@ -3606,13 +3606,13 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
     
     return cavities, surface
 
-def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
+def scanChannelParameters(atoms, inner_radius_values=(1.2, 1.4, 1.6),
     sparsity_values=(1.0, 3.0, 5.0), min_depth_values=(3.0, 5.0, 10.0),
     output_path='channel_parameter_grid', resolution=0.5, max_proc=2,
     start_point=None, **kwargs):
     """Calculate channels over a combination grid of parameters.
 
-    This function evaluates every combination of ``r2``, ``sparsity``, and
+    This function evaluates every combination of ``inner_radius``, ``sparsity``, and
     ``min_depth`` for one molecular structure. All channels obtained for one
     parameter combination are saved together in one PQR file, so every grid
     point contributes one equally weighted result to the final spatial
@@ -3623,9 +3623,9 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
     :arg atoms: Atomic structure analyzed with :func:`calcChannels`.
     :type atoms: :class:`.Atomic`
 
-    :arg r2_values: Probe radii defining the internal void space. Default is
+    :arg inner_radius_values: Probe radii defining the internal void space. Default is
         ``(1.2, 1.4, 1.6)``.
-    :type r2_values: float or sequence of float
+    :type inner_radius_values: float or sequence of float
 
     :arg sparsity_values: Mouth-separation values tested in the grid. Default is
         ``(1.0, 3.0, 5.0)``.
@@ -3653,7 +3653,7 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
     :type start_point: array-like, :class:`.Atomic`, or None
 
     :arg kwargs: Additional parameters passed unchanged to :func:`calcChannels`.
-        Grid-controlled parameters ``r2``, ``sparsity``, and ``min_depth`` must
+        Grid-controlled parameters ``inner_radius``, ``sparsity``, and ``min_depth`` must
         not be supplied here.
     :type kwargs: dict
 
@@ -3663,7 +3663,7 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
 
     Example usage:
     channels_all, parameter_sets, occupancy_file = scanChannelParameters(
-        protein, r2_values=[1.2, 1.4, 1.6], sparsity_values=[1, 3, 5],
+        protein, inner_radius_values=[1.2, 1.4, 1.6], sparsity_values=[1, 3, 5],
         min_depth_values=[3, 5, 10], output_path='channel_parameter_grid') """
 
     from itertools import product
@@ -3696,14 +3696,14 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
         return list(dict.fromkeys(values))
 
     forbidden_params = sorted(set(kwargs).intersection(
-        {'r2', 'sparsity', 'min_depth', 'output_path', 
+        {'inner_radius', 'sparsity', 'min_depth', 'output_path', 
          'separate', 'cavities_only', 'return_details'}))
     if forbidden_params:
         raise ValueError("Grid-controlled arguments must not be passed in kwargs: {0}".format(
             ', '.join(forbidden)))
 
     # Parameters for checkup
-    r2_values = prepareValues(r2_values, 'r2_values')
+    inner_radius_values = prepareValues(inner_radius_values, 'inner_radius_values')
     sparsity_values = prepareValues(sparsity_values, 'sparsity_values', allow_zero=True)
     min_depth_values = prepareValues(min_depth_values, 'min_depth_values', allow_zero=True)
     
@@ -3716,7 +3716,7 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
         raise ValueError("output_path must be a directory")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    parameter_grid = list(product(r2_values, sparsity_values, min_depth_values))
+    parameter_grid = list(product(inner_radius_values, sparsity_values, min_depth_values))
     channels_all = []
     parameter_sets = []
     pqr_files = []
@@ -3728,23 +3728,23 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
     LOGGER.info("Calculating channels for {0} parameter combinations.".format(len(parameter_grid)))
 
     with open(str(summary_file), 'w') as summary, open(str(details_file), 'w') as details:
-        summary.write("# Run r2 [Å] sparsity [Å] min_depth [Å] Number_of_channels PQR_file\n")
-        details.write("# Run Channel_id r2 [Å] sparsity [Å] min_depth [Å] Length [Å] Bottleneck [Å] Volume [Å^3] Curvature Cost\n")
+        summary.write("# Run inner_radius [Å] sparsity [Å] min_depth [Å] Number_of_channels PQR_file\n")
+        details.write("# Run Channel_id inner_radius [Å] sparsity [Å] min_depth [Å] Length [Å] Bottleneck [Å] Volume [Å^3] Curvature Cost\n")
 
-        for run_index, (r2, sparsity, min_depth) in enumerate(parameter_grid):
-            tag = "run{0:03d}_r2_{1}_sparsity_{2}_depth_{3}".format(
+        for run_index, (inner_radius, sparsity, min_depth) in enumerate(parameter_grid):
+            tag = "run{0:03d}_inner_radius_{1}_sparsity_{2}_depth_{3}".format(
                 run_index, *("{0:g}".format(value).replace('-', 'm').replace('.', 'p')
-                             for value in (r2, sparsity, min_depth)))
+                             for value in (inner_radius, sparsity, min_depth)))
             pqr_file = output_dir / ('channels_' + tag + '.pqr')
 
-            LOGGER.info("Grid run {0}/{1}: r2={2:g}, sparsity={3:g}, min_depth={4:g}".format(
-                run_index + 1, len(parameter_grid), r2, sparsity, min_depth))
+            LOGGER.info("Grid run {0}/{1}: inner_radius={2:g}, sparsity={3:g}, min_depth={4:g}".format(
+                run_index + 1, len(parameter_grid), inner_radius, sparsity, min_depth))
 
             channels, _ = calcChannels(atoms, output_path=str(pqr_file), separate=False,
-                start_point=start_point, r2=r2, sparsity=sparsity,
+                start_point=start_point, inner_radius=inner_radius, sparsity=sparsity,
                 min_depth=min_depth, **kwargs)
 
-            params = {'run': run_index, 'r2': r2, 'sparsity': sparsity,
+            params = {'run': run_index, 'inner_radius': inner_radius, 'sparsity': sparsity,
                       'min_depth': min_depth, 'pqr_file': str(pqr_file)}
 
             channels_all.append(channels)
@@ -3752,13 +3752,13 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
             pqr_files.append(str(pqr_file))
 
             summary.write("{0} {1:.3f} {2:.3f} {3:.3f} {4} {5}\n".format(
-                run_index, r2, sparsity, min_depth, len(channels), pqr_file.name))
+                run_index, inner_radius, sparsity, min_depth, len(channels), pqr_file.name))
 
             for channel_index, channel in enumerate(channels):
                 curvature = channel.curvature if np.isfinite(channel.curvature) else float('nan')
                 cost = channel.cost if channel.cost is not None else float('nan')
                 details.write("{0} {1} {2:.3f} {3:.3f} {4:.3f} {5:.3f} {6:.3f} {7:.3f} {8:.3f} {9:.6g}\n".format(
-                    run_index, channel_index, r2, sparsity, min_depth,
+                    run_index, channel_index, inner_radius, sparsity, min_depth,
                     channel.length, channel.bottleneck, channel.volume,
                     curvature, cost))
 
@@ -3867,15 +3867,15 @@ def _rowsIsin(a, b):
 
 
 class ChannelCalculator:
-    def __init__(self, atoms, r2=0.9, sparsity=1, route_tolerance=1.0,
+    def __init__(self, atoms, inner_radius=0.9, sparsity=1, route_tolerance=1.0,
                  edge_cost='integral'):
-        # Only the parameters the class actually consults are held here. r1,
+        # Only the parameters the class actually consults are held here. surf_radius,
         # min_depth and bottleneck are stages of the pipeline, applied to the
         # tessellation and to the finished channels by calcChannels; keeping copies
         # of them on the calculator suggested it filtered by them, which it does
         # not.
         self.atoms = atoms
-        self.r2 = r2
+        self.inner_radius = inner_radius
         self.sparsity = sparsity
         self.route_tolerance = route_tolerance
         # 'integral' (clearance-profile integral) or 'bottleneck' (l/(d^2+b));
@@ -4093,25 +4093,25 @@ class ChannelCalculator:
         the tetrahedra stop being open to the solvent.
 
         This removes the "moat": the shell of true exterior that lies inside the
-        ``r1`` surface, because an ``r1`` probe cannot enter the concavities it
+        ``surf_radius`` surface, because an ``surf_radius`` probe cannot enter the concavities it
         bridges over. Left in place the moat joins the cavity and offers wide,
         cheap routes along the outside of the protein.
 
         Neither obvious way of bounding the erosion works. A count of tetrahedron
         layers is not mesh-invariant, since a layer is one tetrahedron thick and
         tetrahedra shrink as the tessellation is refined. A depth in Angstrom is
-        not ``r1``-invariant, since the moat has no constant thickness: it is as
-        deep as ``r1 - r`` inside a concavity and vanishes on a flat face, so a
+        not ``surf_radius``-invariant, since the moat has no constant thickness: it is as
+        deep as ``surf_radius - r`` inside a concavity and vanishes on a flat face, so a
         depth large enough to clear it where it is thick also marches down the
-        channel mouths and erodes the channels themselves. At ``r1 = 10``, a
+        channel mouths and erodes the channels themselves. At ``surf_radius = 10``, a
         reasonable setting for a porin or a ribosome, that leaves almost nothing.
 
         The rule used here is local instead. A boundary tetrahedron is stripped
         only while it is *open*, that is while its enclosure is below
         ``min_enclosure`` (see :meth:`calcEnclosure`). The moat is open by
         construction and goes; erosion halts by itself at the first buried layer.
-        ``r1`` then decides only where the erosion starts, not where it stops, so
-        the result no longer depends on it, and ``r1`` is left doing the one job
+        ``surf_radius`` then decides only where the erosion starts, not where it stops, so
+        the result no longer depends on it, and ``surf_radius`` is left doing the one job
         it should: capping the mouths.
 
         Since enclosure is a static field, the peel is really "delete the
@@ -4349,14 +4349,14 @@ class ChannelCalculator:
 
         return new_points, new_radii
 
-    def buildSurfaceDepthOracle(self, coords, vdw_radii, r1, max_deviation, max_depth):
+    def buildSurfaceDepthOracle(self, coords, vdw_radii, surf_radius, max_deviation, max_depth):
         """Interior/exterior depth oracle for relabeling the additively-weighted
         diagram's surface mouths (``diagram="weighted"``).
 
         The AW tessellation is not a clean simplicial complex: many interior 3-ball
         faces are left unpaired and masquerade as surface boundaries, so channels
         truncate to stubs. This builds a *homogenized* Voronoi diagram of the same
-        atoms (a clean simplicial complex), erodes it with an ``r1`` probe to separate
+        atoms (a clean simplicial complex), erodes it with an ``surf_radius`` probe to separate
         solvent (exterior) from protein (interior), and labels every tetrahedron by its
         geodesic distance (A) below the molecular surface (0 = exterior/solvent).
         :meth:`getSurfaceCavities` then keeps only AW exit tetrahedra whose Voronoi
@@ -4377,7 +4377,7 @@ class ChannelCalculator:
         neighbors = delaunay.neighbors
         n = len(delaunay.simplices)
 
-        # r1 surface erosion: peel boundary tetrahedra wide enough for the probe, from
+        # surf_radius surface erosion: peel boundary tetrahedra wide enough for the probe, from
         # the hull inward, until nothing more can be removed. Survivors == interior.
         alive = np.ones(n, dtype=bool)
         while True:
@@ -4385,7 +4385,7 @@ class ChannelCalculator:
             for k in range(4):
                 col = neighbors[:, k]
                 dead |= (col == -1) | ((col >= 0) & ~alive[col])
-            peel = alive & dead & (clearance >= r1)
+            peel = alive & dead & (clearance >= surf_radius)
             if not peel.any():
                 break
             alive[peel] = False
@@ -4510,7 +4510,7 @@ class ChannelCalculator:
         # large fat cells that span a wide pore under a big probe included - while flat
         # slivers diverge to R/L -> infinity. Using the dimensionless R/L, never an
         # absolute length, keeps this correct for porins, ribosome tunnels and
-        # large-probe (e.g. r1=20) runs alike. Edges touching a flagged tetrahedron are
+        # large-probe (e.g. surf_radius=20) runs alike. Edges touching a flagged tetrahedron are
         # dropped from the graph in _geodesicDepth.
         apex = points[simplices]                                  # (n, 4, 3)
         R = np.linalg.norm(apex[:, 0] - vertices, axis=1)         # circumradius
@@ -4686,8 +4686,8 @@ class ChannelCalculator:
         # scales with physical length (what makes it mesh-invariant). A short edge
         # (L <= delta) collapses to {0, t*, 1}, the three clearances already in
         # hand. r(t) is floored at r_floor so the integrand cannot diverge on a
-        # sub-r2 edge that dips through an atom (the integral's analog of the
-        # l/(d^2+b) regularizer); traversable edges have r(t) >= r2 >> r_floor and
+        # sub-inner_radius edge that dips through an atom (the integral's analog of the
+        # l/(d^2+b) regularizer); traversable edges have r(t) >= inner_radius >> r_floor and
         # are untouched. Exact for straight edges; a chord approximation for the
         # weighted (Apollonius) diagram, whose edges are arcs.
         chunk = 20000
@@ -4785,7 +4785,7 @@ class ChannelCalculator:
             #
             # No R/L flatness guard is needed here (unlike buildSurfaceDepthOracle,
             # which runs on the full diagram): this graph is the *cleared interior*
-            # state, and a runaway circumcenter means a huge clearance, so the r1
+            # state, and a runaway circumcenter means a huge clearance, so the surf_radius
             # erosion has already stripped every flat boundary tetra - measured 0
             # degenerate tetra and max edge ~4 A in the cleared graph. That matters
             # because l/(d^2+b) *over*-prices a runaway edge (huge l) so the search
@@ -4837,11 +4837,11 @@ class ChannelCalculator:
         # cheaper, so interior tunnels drop out one by one as max_deviation
         # shrinks; forbidding transit removes that dependence entirely.
         # A mouth is a surface (exit) tetrahedron a probe of the traversal
-        # radius r2 can leave through. Note the gate is r2, not bottleneck:
+        # radius inner_radius can leave through. Note the gate is inner_radius, not bottleneck:
         # bottleneck is a reporting filter, and letting it decide which mouths
         # absorb would let it silently re-open narrow mouths as transit nodes,
         # i.e. change the routes rather than filter them. For the homogenized
-        # and weighted diagrams every surviving tetrahedron already clears r2 by
+        # and weighted diagrams every surviving tetrahedron already clears inner_radius by
         # construction (equal radii + equidistant circumcenter collapse the
         # sum-based test in deleteSimplices3d to the per-atom clearance), so the
         # test is a no-op there; it earns its keep for diagram="simple", where
@@ -4881,7 +4881,7 @@ class ChannelCalculator:
                 # rather than walling the graph off against every mouth.
                 absorbing = [global_to_local[int(t)]
                              for t, c in zip(exit_tetra, clearance)
-                             if c >= self.r2 and int(t) in global_to_local
+                             if c >= self.inner_radius and int(t) in global_to_local
                              and int(t) not in seeds]
                 if absorbing:
                     # Zero the mouths' rows: edges *into* a mouth survive (a
