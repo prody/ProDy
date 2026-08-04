@@ -9,12 +9,13 @@ __credits__ = ['Karolina Mikulska-Ruminska', 'Jan Brezovsky', 'Eryk Trzcinski']
 __email__ = ['karolamik@fizyka.umk.pl']
 
 import logging
+from collections import namedtuple
 from contextlib import contextmanager
 
 import numpy as np
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
-from prody.utilities import checkCoords, getCoords, isListLike
+from prody.utilities import getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
 from prody.ensemble import Ensemble
 from prody.measure import calcCenter, calcTransformation, calcDistance, calcRMSD, superpose
@@ -50,6 +51,22 @@ ENCLOSURE_STEP = 0.75
 # by a little and be absorbed by min_enclosure; a single radius means a single
 # tree and a plain nearest-neighbour test.
 ENCLOSURE_RADIUS = 1.7
+
+# Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
+# tessellation is built on, and the ones the lining report measures a Voronoi
+# vertex against, so both read them from here.
+VDW_RADII = {
+    'H': 1.20, 'HE': 1.40, 'LI': 1.82, 'BE': 1.53, 'B': 1.92, 'C': 1.70,
+    'N': 1.55, 'O': 1.52, 'F': 1.47, 'NE': 1.54, 'NA': 2.27, 'MG': 1.73,
+    'AL': 1.84, 'SI': 2.10, 'P': 1.80, 'S': 1.80, 'CL': 1.75, 'AR': 1.88,
+    'K': 2.75, 'CA': 2.31, 'SC': 2.11, 'NI': 1.63, 'CU': 1.40, 'ZN': 1.39,
+    'GA': 1.87, 'GE': 2.11, 'AS': 1.85, 'SE': 1.90, 'BR': 1.85, 'KR': 2.02,
+    'RB': 3.03, 'SR': 2.49, 'PD': 1.63, 'AG': 1.72, 'CD': 1.58, 'IN': 1.93,
+    'SN': 2.17, 'SB': 2.06, 'TE': 2.06, 'I': 1.98, 'XE': 2.16, 'CS': 3.43,
+    'BA': 2.68, 'PT': 1.75, 'AU': 1.66, 'HG': 1.55, 'TL': 1.96, 'PB': 2.02,
+    'BI': 2.07, 'PO': 1.97, 'AT': 2.02, 'RN': 2.20, 'FR': 3.48, 'RA': 2.83,
+    'U': 1.86, 'FE': 2.44
+}
 
 _OVERLAP_OFFSET_CACHE = {}
 
@@ -117,6 +134,34 @@ def checkAndImport(package_name):
             return False
     
     return True
+
+
+def _requireCoords(atoms):
+    """Raise :exc:`TypeError` unless *atoms* can supply coordinates.
+
+    :func:`~prody.utilities.getCoords` is the whole check: it reads the
+    coordinates through ``_getCoords``/``getCoords``, accepts a plain array, and
+    raises :exc:`TypeError` for anything else. Each entry point used to wrap that
+    call in a ``try``/``except AttributeError`` handler that re-implemented its
+    body -- and could not run, since ``getCoords`` converts the
+    :exc:`AttributeError` into the :exc:`TypeError` it is meant to raise."""
+
+    getCoords(atoms)
+
+
+def _kdTree(coords):
+    """A :class:`~scipy.spatial.cKDTree` over *coords*.
+
+    Accepts either an :class:`.Atomic` object or an ``(n, 3)`` array, so the one
+    helper serves the lining queries, the enclosure test and the route
+    comparison. scipy stays a function-level import, as everywhere else in this
+    module, so that importing ProDy does not require it."""
+
+    from scipy.spatial import cKDTree
+
+    if hasattr(coords, 'getCoords'):
+        coords = coords.getCoords()
+    return cKDTree(np.asarray(coords, dtype=float))
 
 
 def _getOverlapSphereOffsets(radius, resolution):
@@ -1837,13 +1882,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
         
         from pathlib2 import Path
         
-    try:
-        coords = getCoords(atoms)
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object with `getCoords` method')    
+    _requireCoords(atoms)
 
     channels_all = []
     surfaces_all = []
@@ -2004,13 +2043,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
             raise ImportError('To run calcSurfaceCavitiesMultipleFrames, please install pathlib2 for Python 2.7.')
         from pathlib2 import Path
 
-    try:
-        coords = getCoords(atoms)
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object with `getCoords` method')
+    _requireCoords(atoms)
 
     cavities_all = []
     surfaces_all = []
@@ -2508,6 +2541,25 @@ def getSurfaceCavityParametersMultipleFrames(cavities_all, **kwargs):
     return parameters_all
 
 
+def _sampleObjectSpheres(object, num_samples=5):
+    """``(centres, radii)`` of the probe spheres along a channel or a pore.
+
+    ``num_samples`` points per tetrahedron of the route, evenly spaced in the
+    spline parameter. This is the one definition of "the spheres of an object":
+    :func:`getChannelAtoms` and
+    :meth:`~ChannelCalculator.saveChannelsToPdb` write these very spheres out as
+    FIL atoms, and the lining queries take them straight from here, since the
+    radius they need survives no better in a PDB radius column than in memory."""
+
+    centerline_spline, radius_spline = object.getSplines()
+    samples = len(object.tetrahedra) * num_samples
+    if samples < 1:
+        return np.empty((0, 3)), np.empty(0)
+
+    t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
+    return centerline_spline(t), radius_spline(t)
+
+
 def getChannelAtoms(channels, protein=None, num_samples=5):
     """Generates an AtomGroup object representing the atoms along the paths of 
     the given channels and optionally combines them with an existing protein 
@@ -2563,11 +2615,7 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
         channels = [channels]
     
     for channel in channels:
-        centerline_spline, radius_spline = channel.getSplines()
-        samples = len(channel.tetrahedra) * num_samples
-        t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
-        centers = centerline_spline(t)
-        radii = radius_spline(t)
+        centers, radii = _sampleObjectSpheres(channel, num_samples)
 
         for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], 
                                                   centers[:, 2], radii), 
@@ -2592,6 +2640,74 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
 
     channels_atomic = convert_lines_to_atomic(pdb_lines)
     return channels_atomic
+
+
+def _vertexRadiiSource(atoms):
+    """``(tree, vdw_radii)`` over the atoms a tessellation would have used.
+
+    Water is excluded, because :func:`calcChannels` drops it before tessellating:
+    a cavity holding a water is still a cavity, and measuring the vertex against
+    that water would report no room where the diagram found plenty. On 3A2M this is
+    the difference between a vertex of radius 2.08 and one of radius -1.27, sitting
+    0.25 A from the oxygen of HOH 610."""
+
+    dry = atoms.select('not water')
+    if dry is None:
+        dry = atoms
+
+    vdw = ChannelCalculator.getVdwRadii(
+        np.char.upper(np.asarray(dry.getElements(), dtype=str)))
+    return _kdTree(dry), vdw
+
+
+def _vertexRadii(points, source, k=24):
+    """Inscribed-sphere radius at each Voronoi vertex, ``min(|v - x| - vdw)``.
+
+    Surface cavities keep no radius of their own -- ``saveCavitiesToPdb`` writes a
+    placeholder 1.00 into the radius column -- so the radius the diagram implies is
+    recomputed here. Only the nearest *k* atoms are consulted, which is ample: van
+    der Waals radii span barely half an Angstrom, so no atom outside the nearest
+    handful can hold the minimum."""
+
+    tree, vdw = source
+    k = min(k, len(vdw))
+    distances, indices = tree.query(np.asarray(points, dtype=float), k=k)
+    if k == 1:
+        distances, indices = distances[:, None], indices[:, None]
+    return (distances - vdw[indices]).min(axis=1)
+
+
+def _liningResidues(atoms, tree, points, radii, distA):
+    """Whole residues of *atoms* reaching within *distA* of the probe surface.
+
+    The probe spheres are given by *points* and *radii*, and a residue lines the
+    object when one of its atoms falls within ``radii + distA`` of a probe centre.
+    The radius belongs in the criterion because the probe is a sphere and not a
+    point: measured from the centre alone a fixed *distA* reaches only ``distA - r``
+    past the surface, so it gathers a second shell where the object is narrow and
+    misses the wall where it is wide. Two thirds of the vertices of the default
+    surface cavities of 3A2M have their nearest wall atom beyond 4 A, and the
+    residues lining that volume were absent from the report altogether.
+
+    Residues are completed but never widened past what the caller supplied, which
+    is what the ``same residue as`` selection this replaces also did."""
+
+    if len(points) == 0:
+        return None
+
+    hits = tree.query_ball_point(np.asarray(points, dtype=float),
+                                 np.asarray(radii, dtype=float) + distA)
+    hits = [h for h in hits if len(h)]
+    if not hits:
+        return None
+
+    resindices = atoms.getResindices()
+    lining = np.unique(resindices[np.unique(np.concatenate(hits))])
+    selected = np.flatnonzero(np.isin(resindices, lining))
+
+    if hasattr(atoms, 'getAtomGroup'):   # a selection: index back into its group
+        return atoms.getAtomGroup()[atoms.getIndices()[selected].tolist()]
+    return atoms[selected.tolist()]
 
 
 def _oneLetterResname(residue):
@@ -2631,9 +2747,30 @@ def _oneLetterResname(residue):
     return resname
 
 
-def _formatLiningResidues(residues, one_letter_aa=False, include_water=False,
-                          include_chain=True):
+_LiningOptions = namedtuple('_LiningOptions',
+                            'distA residues_file_name one_letter_aa '
+                            'include_water include_chain')
+
+
+def _popLiningOptions(kwargs):
+    """The reporting options shared by every lining function, popped from *kwargs*.
+
+    :func:`getObjectResidueNames` and :func:`getSurfaceCavityResidueNames` both
+    receive them as keywords forwarded by their wrappers, so a default is written
+    once here instead of in two lists that have to be kept in step."""
+
+    return _LiningOptions(
+        distA=kwargs.pop('distA', 2.5),
+        residues_file_name=kwargs.pop('residues_file_name', None),
+        one_letter_aa=kwargs.pop('one_letter_aa', False),
+        include_water=kwargs.pop('include_water', False),
+        include_chain=kwargs.pop('include_chain', True))
+
+
+def _formatLiningResidues(residues, options):
     """Label every residue in *residues* as ``<resname><resnum>:<chain>``, one each.
+
+    *options* are the :func:`_popLiningOptions` settings of the calling report.
 
     The residue is read from the hierarchical view rather than from a representative
     atom. Standing for a residue by its ``CA`` silently dropped everything that has
@@ -2660,16 +2797,16 @@ def _formatLiningResidues(residues, one_letter_aa=False, include_water=False,
     if residues is None:
         return []
 
-    residues = residues.select('not resname FIL' if include_water
+    residues = residues.select('not resname FIL' if options.include_water
                                else 'not water and not resname FIL')
     if residues is None:
         return []
 
     labels = []
     for residue in residues.getHierView().iterResidues():
-        resname = (_oneLetterResname(residue) if one_letter_aa
+        resname = (_oneLetterResname(residue) if options.one_letter_aa
                    else residue.getResname())
-        chid = residue.getChid().strip() if include_chain else ''
+        chid = residue.getChid().strip() if options.include_chain else ''
         labels.append('{0}{1}{2}{3}'.format(resname, residue.getResnum(),
                                             residue.getIcode().strip(),
                                             ':' + chid if chid else ''))
@@ -2694,9 +2831,12 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
         Default is "channel".
     :type object_type: str
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -2723,35 +2863,23 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
         ``ASP108`` labels written by earlier versions.
     :type include_chain: bool  '''
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+    _requireCoords(atoms)
 
     if object_type not in ('channel', 'pore'):
         raise ValueError("object_type must be 'channel' or 'pore'")
 
-    distA = kwargs.pop('distA', 4)
-    residues_file_name = kwargs.pop('residues_file_name', None)
+    options = _popLiningOptions(kwargs)
 
-    one_letter_aa = kwargs.pop('one_letter_aa', False)
-    include_water = kwargs.pop('include_water', False)
-    include_chain = kwargs.pop('include_chain', True)
+    tree = _kdTree(atoms)
 
     if isinstance(objects, list):
         # Multiple objects
         selected_residues_ch = []
 
         for i, object in enumerate(objects):
-            atoms_protein = getChannelAtoms(object, atoms)
-            residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-            residues_info = _formatLiningResidues(residues, one_letter_aa, include_water,
-                                                  include_chain)
+            points, radii = _sampleObjectSpheres(object)
+            residues = _liningResidues(atoms, tree, points, radii, options.distA)
+            residues_info = _formatLiningResidues(residues, options)
 
             # An object with no lining left is reported as "None" rather than
             # skipped, so that the returned list keeps one entry per object.
@@ -2764,21 +2892,20 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
 
     else:
         # Single object analysis in case someone provide objects[0]
-        atoms_protein = getChannelAtoms(objects, atoms)
-        residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-        residues_info = _formatLiningResidues(residues, one_letter_aa, include_water,
-                                                  include_chain)
+        points, radii = _sampleObjectSpheres(objects)
+        residues = _liningResidues(atoms, tree, points, radii, options.distA)
+        residues_info = _formatLiningResidues(residues, options)
         selected_residues_ch = [", ".join(residues_info) if residues_info else "None"]
 
-    if residues_file_name is not None:
+    if options.residues_file_name is not None:
         if object_type == "channel":
-            output_file = residues_file_name + '_Residues_All_channels.txt'
+            output_file = options.residues_file_name + '_Residues_All_channels.txt'
         elif object_type == "pore":
-            output_file = residues_file_name + '_Residues_All_pores.txt'
+            output_file = options.residues_file_name + '_Residues_All_pores.txt'
             
         with open(output_file, "a") as f_res:
             for k in selected_residues_ch:
-                f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
+                f_res.write(("{0}_{1}\n".format(options.residues_file_name, k)))
         
         if object_type == "channel":
             LOGGER.info("Channel residues were saved to: {0}".format(output_file))
@@ -2812,9 +2939,12 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
         Default is "channel".
     :type object_type: str
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -2930,9 +3060,12 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         the channel.
     :type channels: list
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -2976,9 +3109,12 @@ def getPoreResidueNames(atoms, pores, **kwargs):
         the pore.
     :type pores: list
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -3022,9 +3158,12 @@ def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwa
         the channel.
     :type channels: list
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -3069,9 +3208,12 @@ def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None, **kwargs):
         the pore.
     :type pores: list
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -3121,8 +3263,11 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
         to surface cavities.
     :type surface: list
 
-    :arg distA: Residues will be provided based on this value.
-        Default is 4 [Ang].
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
     :type distA: int, float
 
     :arg residues_file_name: The file with residues will be saved in a text file
@@ -3152,22 +3297,9 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     :rtype: list
     '''
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                  atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+    _requireCoords(atoms)
 
-    distA = kwargs.pop('distA', 4)
-    residues_file_name = kwargs.pop('residues_file_name', None)
-
-    one_letter_aa = kwargs.pop('one_letter_aa', False)
-    include_water = kwargs.pop('include_water', False)
-    include_chain = kwargs.pop('include_chain', True)
+    options = _popLiningOptions(kwargs)
 
     if surface is None or len(surface) < 5:
         raise ValueError('surface must contain Voronoi vertices in surface[4]')
@@ -3177,6 +3309,9 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
         cavities = [cavities]
 
     selected_residues_cav = []
+    tree = _kdTree(atoms)
+    radii_source = _vertexRadiiSource(atoms)
+    intruding = 0
 
     for i, cavity in enumerate(cavities):
         if cavity.tetrahedra is None or len(cavity.tetrahedra) == 0:
@@ -3184,19 +3319,28 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
             continue
 
         points = vertices[cavity.tetrahedra]
-        residues = atoms.select('same residue as exwithin ' + str(distA) + ' of center', center=points)
+        radii = _vertexRadii(points, radii_source)
+        intruding += int((radii < 0).sum())
+        residues = _liningResidues(atoms, tree, points, radii, options.distA)
 
-        residues_info = _formatLiningResidues(residues, one_letter_aa, include_water,
-                                                  include_chain)
+        residues_info = _formatLiningResidues(residues, options)
         residues_list = ", ".join(residues_info) if residues_info else "None"
         selected_residues_cav.append('cavity' + str(i) + ': ' + residues_list)
 
-    if residues_file_name is not None:
-        output_file = residues_file_name + '_Residues_All_surface_cavities.txt'
+    # A vertex of the diagram cannot lie inside an atom the diagram was built from,
+    # so a negative radius means these atoms are not the ones the cavities came from.
+    if intruding:
+        _warn("{0} cavity vertices lie inside an atom of the supplied structure. "
+              "The cavities were calculated on a different set of atoms than the "
+              "one given here, so their lining is reported against the wrong "
+              "structure.".format(intruding))
+
+    if options.residues_file_name is not None:
+        output_file = options.residues_file_name + '_Residues_All_surface_cavities.txt'
         with open(output_file, "w") as f_res:
-            f_res.write("# cavity_id residues_within_" + str(distA) + "_A\n")
+            f_res.write("# cavity_id residues_within_" + str(options.distA) + "_A\n")
             for k in selected_residues_cav:
-                f_res.write("{0}_{1}\n".format(residues_file_name, k))
+                f_res.write("{0}_{1}\n".format(options.residues_file_name, k))
                 
         LOGGER.info("Surface cavity residues were saved to: {0}".format(output_file))
 
@@ -3248,8 +3392,11 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
         ``_frameX`` added to the file name.
     :type residues_file_name: str
 
-    :arg distA: maximal distance between surface cavity points and protein
-        residues. Default is 4 Å.
+    :arg distA: Residues reaching within this distance of the cavity's surface
+        are reported. The inscribed radius at each cavity vertex is added to it,
+        so the reach past the surface is the same in a wide cavity as in a
+        narrow one. The distance runs to the atom centre, so a touching atom
+        sits at about one van der Waals radius. Default is 2.5 Å.
     :type distA: int, float
 
     :arg one_letter_aa: whether to apply one-letter code to residue names.
@@ -3350,15 +3497,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         getChannelParameters(). Default is False.
     :type param_file: bool  """
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+    _requireCoords(atoms)
     
     import os, shutil
     
@@ -4243,13 +4382,11 @@ class ChannelCalculator:
         :arg tree: optional prebuilt :class:`~scipy.spatial.cKDTree` over
             ``centers``, to avoid rebuilding it on every call.
         :returns: ``n`` fractions in ``[0, 1]``."""
-        from scipy.spatial import cKDTree
-
         query = np.asarray(query, dtype=float)
         if len(query) == 0:
             return np.empty(0)
         if tree is None:
-            tree = cKDTree(np.asarray(centers, dtype=float))
+            tree = _kdTree(centers)
 
         i = np.arange(ENCLOSURE_RAYS) + 0.5
         phi = np.arccos(1 - 2 * i / ENCLOSURE_RAYS)
@@ -4327,8 +4464,6 @@ class ChannelCalculator:
         :arg max_depth: optional cap, in Angstrom, on how far the front may
             advance from the initial surface. ``None`` (default) is uncapped.
         :returns: ``(simplices, neighbors, vertices)``, compacted."""
-        from scipy.spatial import cKDTree
-
         simplices = np.asarray(simplices)
         neighbors = np.asarray(neighbors)
         vertices = np.asarray(vertices)
@@ -4342,8 +4477,8 @@ class ChannelCalculator:
 
         # Fixed for the whole peel, so the cap bounds the total advance of the
         # front rather than its advance per pass.
-        surface = cKDTree(vertices[boundary]) if max_depth is not None else None
-        atoms = cKDTree(atom_coords)
+        surface = _kdTree(vertices[boundary]) if max_depth is not None else None
+        atoms = _kdTree(atom_coords)
         # Enclosure is a property of a point, not of the shrinking mesh, so a
         # tetrahedron re-examined on a later pass is never re-traced. Tetrahedra
         # are renumbered by the compaction below, but the four balls they are
@@ -4423,21 +4558,14 @@ class ChannelCalculator:
 
         return simp, neigh, verti
 
-    def getVdwRadii(self, atoms):
-        vdw_radii_dict = {
-            'H': 1.20, 'HE': 1.40, 'LI': 1.82, 'BE': 1.53, 'B': 1.92, 'C': 1.70,
-            'N': 1.55, 'O': 1.52, 'F': 1.47, 'NE': 1.54, 'NA': 2.27, 'MG': 1.73,
-            'AL': 1.84, 'SI': 2.10, 'P': 1.80, 'S': 1.80, 'CL': 1.75, 'AR': 1.88,
-            'K': 2.75, 'CA': 2.31, 'SC': 2.11, 'NI': 1.63, 'CU': 1.40, 'ZN': 1.39,
-            'GA': 1.87, 'GE': 2.11, 'AS': 1.85, 'SE': 1.90, 'BR': 1.85, 'KR': 2.02,
-            'RB': 3.03, 'SR': 2.49, 'PD': 1.63, 'AG': 1.72, 'CD': 1.58, 'IN': 1.93,
-            'SN': 2.17, 'SB': 2.06, 'TE': 2.06, 'I': 1.98, 'XE': 2.16, 'CS': 3.43,
-            'BA': 2.68, 'PT': 1.75, 'AU': 1.66, 'HG': 1.55, 'TL': 1.96, 'PB': 2.02,
-            'BI': 2.07, 'PO': 1.97, 'AT': 2.02, 'RN': 2.20, 'FR': 3.48, 'RA': 2.83,
-            'U': 1.86, 'FE': 2.44
-        }
-        
-        return np.array([vdw_radii_dict[atom] for atom in atoms])
+    @staticmethod
+    def getVdwRadii(atoms):
+        """Van der Waals radius of each element in *atoms*, from :data:`VDW_RADII`.
+
+        A static method, so the radii a diagram would have been built on can be
+        had without a calculator to build one (see :func:`_vertexRadiiSource`)."""
+
+        return np.array([VDW_RADII[atom] for atom in atoms])
 
     def _fibonacciSphere(self, n):
         """Return ``n`` roughly evenly distributed unit vectors on a sphere using
@@ -5276,8 +5404,6 @@ class ChannelCalculator:
         sharply the uncovered part turns away - only how much of the shorter route
         is shared. Where two corridors genuinely part company, they do so for a
         large fraction of the route, and the score falls."""
-        from scipy.spatial import cKDTree
-
         if tol is None:
             tol = self.route_tolerance
         if center is not None and radius > 0:
@@ -5305,7 +5431,7 @@ class ChannelCalculator:
         weight[:-1] += steps / 2.0
         weight[1:] += steps / 2.0
 
-        near = cKDTree(long_p).query(short_p)[0] <= tol
+        near = _kdTree(long_p).query(short_p)[0] <= tol
         return float(weight[near].sum() / total)
 
     def calculateMaxRadius(self, vertice, points, vdw_radii, simp):
@@ -5505,6 +5631,33 @@ class ChannelCalculator:
             filtered_cavities.append(cavity)
         return filtered_cavities
 
+    @staticmethod
+    def _channelRecords(channel_index, channel, atom_index, num_samples):
+        """The FIL records of one channel: its REMARK, one ATOM per sampled
+        sphere and the CONECT bonds between them.
+
+        Written the same way into the combined file and into the per-channel
+        one, so the two differ only in which channels they hold and where the
+        serial numbers start."""
+        centers, radii = _sampleObjectSpheres(channel, num_samples)
+
+        # Each channel gets its own residue number so the channels stay
+        # separable at the record level, matching saveCavitiesToPdb.
+        lines = [ChannelCalculator._channelRemark(channel_index, channel)]
+        for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1],
+                                                  centers[:, 2], radii),
+                                              start=atom_index):
+            lines.append("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+                         % (i, channel_index + 1, x, y, z, 1.00, radius))
+
+        # Bond consecutive samples of THIS channel only, using the global
+        # atom serial numbers (start=atom_index). No CONECT spans two
+        # channels, so each one is a separate strand in the viewer.
+        for i in range(atom_index, atom_index + len(centers) - 1):
+            lines.append("CONECT%5d%5d\n" % (i, i + 1))
+
+        return lines, len(centers)
+
     def saveChannelsToPdb(self, channels, filename, separate=False, num_samples=5):
         # ``channels`` is a flat list, already ordered by cost - that order is
         # the order they are written and numbered here. Each channel is preceded
@@ -5515,26 +5668,9 @@ class ChannelCalculator:
         with open(filename, 'w') as pqr_file:
             atom_index = 1
             for channel_index, channel in enumerate(channels):
-                centerline_spline, radius_spline = channel.getSplines()
-                samples = len(channel.tetrahedra) * num_samples
-                t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
-                centers = centerline_spline(t)
-                radii = radius_spline(t)
-
-                pqr_file.write(self._channelRemark(channel_index, channel))
-                pdb_lines = []
-                # Each channel gets its own residue number so the channels stay
-                # separable at the record level, matching saveCavitiesToPdb.
-                for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                    pdb_lines.append("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, channel_index + 1, x, y, z, 1.00, radius))
-
-                # Bond consecutive samples of THIS channel only, using the global
-                # atom serial numbers (start=atom_index). No CONECT spans two
-                # channels, so each one is a separate strand in the viewer.
-                for i in range(atom_index, atom_index + samples - 1):
-                    pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
-
-                pqr_file.writelines(pdb_lines)
+                lines, samples = self._channelRecords(channel_index, channel,
+                                                      atom_index, num_samples)
+                pqr_file.writelines(lines)
                 pqr_file.write("\n")
                 atom_index += samples
 
@@ -5547,22 +5683,9 @@ class ChannelCalculator:
                 channel_filename = channel_filename.replace('.pdb', '_chl{0}.pdb'.format(channel_index))
 
                 with open(channel_filename, 'w') as pqr_file:
-                    atom_index = 1
-                    centerline_spline, radius_spline = channel.getSplines()
-                    samples = len(channel.tetrahedra) * num_samples
-                    t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
-                    centers = centerline_spline(t)
-                    radii = radius_spline(t)
-
-                    pqr_file.write(self._channelRemark(channel_index, channel))
-                    pdb_lines = []
-                    for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                        pdb_lines.append("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, channel_index + 1, x, y, z, 1.00, radius))
-
-                    for i in range(atom_index, atom_index + samples - 1):
-                        pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
-
-                    pqr_file.writelines(pdb_lines)
+                    lines, _ = self._channelRecords(channel_index, channel,
+                                                    1, num_samples)
+                    pqr_file.writelines(lines)
 
     @staticmethod
     def _channelRemark(channel_index, channel):
