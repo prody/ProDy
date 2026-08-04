@@ -1284,9 +1284,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # for thermal motion: a probe of water size cannot enter those interstices anyway,
     # and protonated and unprotonated runs agree from about 1.2 A upwards. Below that
     # the probe is small enough to thread them and the interior percolates into a
-    # sponge rather than merely widening. Those routes are fictitious, not the real
-    # ones made wider. So a sub-water probe needs real hydrogens; above it, take the
-    # file as it comes.
+    # sponge rather than merely widening. Those routes might be fictitious, not the real
+    # ones made wider. So a sub-water probe needs real hydrogens.
     if not has_hydrogens and inner_radius < 1.2:
         _warn("structure has no hydrogens and inner_radius={0:.2f} is below 1.2 A: the space "
               "left by the missing H is then wide enough for the probe to pass, and "
@@ -2595,6 +2594,88 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
     return channels_atomic
 
 
+def _oneLetterResname(residue):
+    """One-letter code for an amino acid or a nucleotide, residue name for the rest.
+
+    Only residue names that ProDy knows as amino acids or nucleic acids are
+    translated. AAMAP holds both directions -- LYS to K, and also K to LYS -- so
+    looking a ligand up in it renames it into an amino acid: the ion K becomes LYS
+    and F becomes PHE, while the cofactors SAM and SAH become M and C, each
+    indistinguishable in the report from the residue it now names. Ligands, ions,
+    cofactors and sugars therefore keep their PDB chemical component ID, which
+    identifies them and cannot be misread as a residue.
+
+    The test is the name alone, against ``flags.AMINOACIDS`` and the nucleic
+    definition, not the ``protein`` and ``nucleic`` flags: ProDy plants the
+    ``protein`` flag through ``calpha``, so a histidine deposited as HETATM, or any
+    residue whose CA is missing, is not flagged protein and would lose its one-letter
+    code for want of an atom that has nothing to do with what the residue is."""
+
+    from prody.atomic import flags
+    from prody.atomic.atomic import AAMAP
+
+    resname = residue.getResname()
+
+    if resname in flags.DEFINITIONS['nucleic']:
+        # NAMAP is ProDy's own nucleotide map and covers the modified bases. AAMAP
+        # is no use here: it reads GUA as glutamate and CYT as tyrosine.
+        return flags.NAMAP.get(resname, resname)
+
+    if resname in flags.AMINOACIDS:
+        # The CHARMM/AMBER histidine names are either absent from AAMAP or, for HSE,
+        # mapped to serine, so they are resolved before the lookup.
+        if resname in ('HSD', 'HSE', 'HSP', 'HID', 'HIE', 'HIP'):
+            return AAMAP['HIS']
+        return AAMAP.get(resname, resname)
+
+    return resname
+
+
+def _formatLiningResidues(residues, one_letter_aa=False, include_water=False,
+                          include_chain=True):
+    """Label every residue in *residues* as ``<resname><resnum>:<chain>``, one each.
+
+    The residue is read from the hierarchical view rather than from a representative
+    atom. Standing for a residue by its ``CA`` silently dropped everything that has
+    none -- nucleic acids, cofactors, ligands, ions -- although those atoms line the
+    channel and enter the calculation exactly as protein atoms do, and it raised
+    :exc:`AttributeError` where a channel was lined by no protein at all.
+
+    The chain is written unless *include_chain* is false, because without it a
+    residue number is not an identifier: an oligomer lines a channel with residues of
+    the same number from several chains, and the report then names one residue twice
+    instead of naming two. The chain needs a separator of its own, since an
+    insertion code already sits directly behind the number and ``ASP100A`` is taken.
+    A colon separates it, and the entry prefix written by the callers remains
+    unambiguous, as it is a colon *and a space*. A structure with no chain
+    identifiers gets no separator either.
+
+    Waters are left out unless *include_water*: :func:`calcChannels` drops them
+    before tessellating, so they shape no channel, and being reported one entry per
+    molecule they would bury the lining of a solvated structure under hundreds of
+    HOH. FIL pseudoatoms are always dropped, in case a structure has a chain and
+    residue number colliding with the ones :func:`getChannelAtoms` writes for
+    them."""
+
+    if residues is None:
+        return []
+
+    residues = residues.select('not resname FIL' if include_water
+                               else 'not water and not resname FIL')
+    if residues is None:
+        return []
+
+    labels = []
+    for residue in residues.getHierView().iterResidues():
+        resname = (_oneLetterResname(residue) if one_letter_aa
+                   else residue.getResname())
+        chid = residue.getChid().strip() if include_chain else ''
+        labels.append('{0}{1}{2}{3}'.format(resname, residue.getResnum(),
+                                            residue.getIcode().strip(),
+                                            ':' + chid if chid else ''))
+    return labels
+
+
 def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
     '''Provides the resnames and resid of residues that are forming the object(s). 
     Residues are extracted based on distA which is the distance between FIL atoms 
@@ -2625,8 +2706,22 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -2642,57 +2737,38 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
         raise ValueError("object_type must be 'channel' or 'pore'")
 
     distA = kwargs.pop('distA', 4)
-    residues_file_name = kwargs.pop('residues_file_name', None) 
-    
+    residues_file_name = kwargs.pop('residues_file_name', None)
+
     one_letter_aa = kwargs.pop('one_letter_aa', False)
-    if one_letter_aa == True:
-        from prody.atomic.atomic import AAMAP    
-    
+    include_water = kwargs.pop('include_water', False)
+    include_chain = kwargs.pop('include_chain', True)
+
     if isinstance(objects, list):
         # Multiple objects
         selected_residues_ch = []
-    
+
         for i, object in enumerate(objects):
             atoms_protein = getChannelAtoms(object, atoms)
             residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-    
-            if residues is not None:
-                resnames = residues.select('name CA').getResnames()
-                if one_letter_aa == True:
-                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
-                                                    else AAMAP[aa] for aa in resnames]
-                    resnames = resnames_1letter
-                                    
-                resnums = residues.select('name CA').getResnums()
-                residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
-                residues_list = ", ".join(residues_info)
-                if object_type == "channel":
-                    residues_list = 'channel'+str(i)+': '+residues_list
-                elif object_type == "pore":
-                    residues_list = "pore"+str(i)+': '+residues_list
-                selected_residues_ch.append(residues_list)
-            else:
-                residues_list = "None"
-            
+            residues_info = _formatLiningResidues(residues, one_letter_aa, include_water,
+                                                  include_chain)
+
+            # An object with no lining left is reported as "None" rather than
+            # skipped, so that the returned list keeps one entry per object.
+            residues_list = ", ".join(residues_info) if residues_info else "None"
+            if object_type == "channel":
+                residues_list = 'channel'+str(i)+': '+residues_list
+            elif object_type == "pore":
+                residues_list = "pore"+str(i)+': '+residues_list
+            selected_residues_ch.append(residues_list)
+
     else:
         # Single object analysis in case someone provide objects[0]
         atoms_protein = getChannelAtoms(objects, atoms)
         residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-        selected_residues_ch = []
-        
-        if residues is not None:
-            resnames = residues.select('name CA').getResnames()
-            if one_letter_aa == True:
-                resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
-                                                else AAMAP[aa] for aa in resnames]
-                resnames = resnames_1letter
-
-            resnums = residues.select('name CA').getResnums()
-            residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
-            residues_list = ", ".join(residues_info)
-            selected_residues_ch.append(residues_list)
-        else:
-            selected_residues_ch.append("None")
+        residues_info = _formatLiningResidues(residues, one_letter_aa, include_water,
+                                                  include_chain)
+        selected_residues_ch = [", ".join(residues_info) if residues_info else "None"]
 
     if residues_file_name is not None:
         if object_type == "channel":
@@ -2748,8 +2824,22 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
@@ -2852,8 +2942,22 @@ def getChannelResidueNames(atoms, channels, **kwargs):
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     return getObjectResidueNames(atoms, channels, object_type='channel', **kwargs)
 
@@ -2884,8 +2988,22 @@ def getPoreResidueNames(atoms, pores, **kwargs):
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     return getObjectResidueNames(atoms, pores, object_type='pore', **kwargs)
 
@@ -2916,8 +3034,22 @@ def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwa
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     return getObjectResidueNamesMultipleFrames(atoms, channels, trajectory=trajectory, 
                                                 object_type='channel', **kwargs)
@@ -2949,8 +3081,22 @@ def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None, **kwargs):
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     return getObjectResidueNamesMultipleFrames(atoms, pores, trajectory=trajectory, 
                                                     object_type='pore', **kwargs)
@@ -2985,8 +3131,22 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     :type residues_file_name: str
 
     :arg one_letter_aa: Whether to apply one-letter code to residue names.
-        Default is False.
+        Default is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
     :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool
 
     :returns: A list of residue names and residue numbers for each surface cavity.
     :rtype: list
@@ -3006,8 +3166,8 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     residues_file_name = kwargs.pop('residues_file_name', None)
 
     one_letter_aa = kwargs.pop('one_letter_aa', False)
-    if one_letter_aa == True:
-        from prody.atomic.atomic import AAMAP
+    include_water = kwargs.pop('include_water', False)
+    include_chain = kwargs.pop('include_chain', True)
 
     if surface is None or len(surface) < 5:
         raise ValueError('surface must contain Voronoi vertices in surface[4]')
@@ -3026,28 +3186,10 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
         points = vertices[cavity.tetrahedra]
         residues = atoms.select('same residue as exwithin ' + str(distA) + ' of center', center=points)
 
-        if residues is not None:
-            ca_residues = residues.select('name CA')
-
-            if ca_residues is not None:
-                resnames = ca_residues.getResnames()
-
-                if one_letter_aa == True:
-                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSE", "HSP", "HID", "HIE", "HIP")
-                        else AAMAP.get(aa, aa) for aa in resnames]
-                    resnames = resnames_1letter
-
-                resnums = ca_residues.getResnums()
-                residues_info = ["{}{}".format(resname, resnum)
-                    for resname, resnum in zip(resnames, resnums)]
-
-                residues_list = 'cavity' + str(i) + ': ' + ", ".join(residues_info)
-                selected_residues_cav.append(residues_list)
-
-            else:
-                selected_residues_cav.append('cavity' + str(i) + ': None')
-        else:
-            selected_residues_cav.append('cavity' + str(i) + ': None')
+        residues_info = _formatLiningResidues(residues, one_letter_aa, include_water,
+                                                  include_chain)
+        residues_list = ", ".join(residues_info) if residues_info else "None"
+        selected_residues_cav.append('cavity' + str(i) + ': ' + residues_list)
 
     if residues_file_name is not None:
         output_file = residues_file_name + '_Residues_All_surface_cavities.txt'
@@ -3111,8 +3253,22 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
     :type distA: int, float
 
     :arg one_letter_aa: whether to apply one-letter code to residue names.
-        Default is False.
-    :type one_letter_aa: bool  """
+        Default is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  """
 
     start_frame = kwargs.pop('start_frame', 0)
     residues_file_name = kwargs.pop('residues_file_name', None)
