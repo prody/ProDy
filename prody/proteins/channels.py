@@ -149,6 +149,27 @@ def _requireCoords(atoms):
     getCoords(atoms)
 
 
+def _numberedPath(filename, tag, index):
+    """``channels.pqr`` with ``('chl', 0)`` becomes ``channels_chl0.pqr``.
+
+    Only the file's own name is numbered. The per-object files used to be named
+    by ``filename.replace('.pqr', ...)``, which rewrites every occurrence of the
+    extension anywhere in the path: an output directory called ``run.pqr/`` was
+    renamed along with the file and the write then failed, a name carrying no
+    extension was not numbered at all -- so each object overwrote the previous
+    one and the combined file with it -- and a name holding both extensions was
+    numbered twice."""
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    path = Path(filename)
+    return path.with_name("{0}_{1}{2}{3}".format(path.stem, tag, index,
+                                                 path.suffix))
+
+
 def _kdTree(coords):
     """A :class:`~scipy.spatial.cKDTree` over *coords*.
 
@@ -3560,7 +3581,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         selected_param = []
         for file in copied_files_list:
             try:
-                PDB_id = file[:-4].split('_channel')[0] 
+                PDB_id = file[:-4].split('_chl')[0] 
                 channel_name = file[:-4].split('_')[-1]
                 f = open(PDB_id+'_Parameters_All_channels.txt', 'r').readlines()
                 for line in f:
@@ -5678,11 +5699,9 @@ class ChannelCalculator:
         # created, one per channel, numbered by the same cost order.
         if separate:
             for channel_index, channel in enumerate(channels):
-                # TODO channel suffix is rather long, making it hard to read in pymol, shorten or user defined?
-                channel_filename = filename.replace('.pqr', '_chl{0}.pqr'.format(channel_index))
-                channel_filename = channel_filename.replace('.pdb', '_chl{0}.pdb'.format(channel_index))
+                channel_filename = _numberedPath(filename, 'chl', channel_index)
 
-                with open(channel_filename, 'w') as pqr_file:
+                with open(str(channel_filename), 'w') as pqr_file:
                     lines, _ = self._channelRecords(channel_index, channel,
                                                     1, num_samples)
                     pqr_file.writelines(lines)
@@ -5693,7 +5712,7 @@ class ChannelCalculator:
         length, bottleneck radius, curvature and Dijkstra cost."""
         curv = 'n/a' if np.isnan(channel.curvature) else "%.3f" % channel.curvature
         cost = 'n/a' if channel.cost is None else "%.4g" % channel.cost
-        return ("REMARK   Channel %d  length=%.3f A  bottleneck=%.3f A  "
+        return ("REMARK   channel %d  length=%.3f A  bottleneck=%.3f A  "
                 "curvature=%s  cost=%s\n" % (
                     channel_index, channel.length, channel.bottleneck, curv, cost))
 
@@ -5728,10 +5747,9 @@ class ChannelCalculator:
                     continue
 
                 points = vertices[tetrahedra]
-                cavity_filename = filename.replace('.pqr', '_cavity{0}.pqr'.format(cavity_index))
-                cavity_filename = cavity_filename.replace('.pdb', '_cavity{0}.pdb'.format(cavity_index))
+                cavity_filename = _numberedPath(filename, 'cavity', cavity_index)
 
-                with open(cavity_filename, 'w') as pqr_file:
+                with open(str(cavity_filename), 'w') as pqr_file:
                     atom_index = 1
 
                     for x, y, z in points:
