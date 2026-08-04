@@ -3678,7 +3678,7 @@ def scanChannelParameters(atoms, inner_radius_values=(1.2, 1.4, 1.6),
          'separate', 'cavities_only', 'return_details'}))
     if forbidden_params:
         raise ValueError("Grid-controlled arguments must not be passed in kwargs: {0}".format(
-            ', '.join(forbidden)))
+            ', '.join(forbidden_params)))
 
     # Parameters for checkup
     inner_radius_values = prepareValues(inner_radius_values, 'inner_radius_values')
