@@ -843,14 +843,11 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
     o3d.visualization.draw_geometries(meshes_to_visualize)
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
-    restrict_channels_to_start_point=True, start_point_search=3.0,
-    surf_radius=3, inner_radius=0.9, min_depth=5,
+    start_point_search=3.0, surf_radius=3, inner_radius=0.9, min_depth=5,
     min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0,
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
-    diagram="homogenized", max_deviation=0.1,
-    similarity=0.8, route_tolerance=1.0, min_enclosure=0.70, max_peel_depth=None,
-    weighted_cache=True, weighted_mouth_depth=2.5, edge_cost=None,
-    return_details=False):
+    diagram="homogenized", max_deviation=0.1, similarity=0.8, route_tolerance=1.0,
+    return_details=False, **kwargs):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
 
@@ -899,15 +896,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
          starting point.
     :type start_point: list, tuple, or ndarray (length 3), :class:`.Atomic`, or None
 
-    :arg restrict_channels_to_start_point: Only used when ``start_point`` is
-        provided. If True (default), the channel search is restricted to the
-        single cavity whose closest tetrahedron is globally nearest to
-        ``start_point``, so  channels are computed only for the region around
-        that point instead of one channel bundle per detected cavity. If False,
-        ``start_point`` merely overrides the seed (starting) tetrahedron of
-        every cavity and channels are still computed for all cavities.
-    :type restrict_channels_to_start_point: bool
-
     :arg start_point_search: Only used when ``start_point`` is provided. Radius,
         in Angstrom, of the neighbourhood of ``start_point`` searched for the seed
         tetrahedron. The tetrahedron nearest ``start_point`` is often a tight one,
@@ -934,8 +922,12 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         left empty, and a sub-water probe is small enough to thread those
         interstices: the interior percolates into a sponge and the channel count
         can rise several-fold. At 1.2 Angstrom and above, protonated and 
-        unprotonated structures give the same channels, and an X-ray file may 
+        unprotonated structures give the same channels, and an X-ray file may
         be used as it comes. A warning is issued for the unsafe combination.
+
+        Note that this sets where channels are traced, not how wide the reported
+        ones end up being: a channel can be narrower than ``inner_radius`` at its
+        tightest point. Use ``bottleneck`` to put a floor on that.
     :type inner_radius: float
 
     :arg min_depth: The minimum depth, in Angstrom, a cavity must reach to be
@@ -948,10 +940,24 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         than this value are trimmed away. Default is None (no trimming).
     :type max_depth: float
 
-    :arg bottleneck: Acts as secondary filter following channel identification.
-        The minimum allowed bottleneck size (narrowest point) for the channels.
-        It it critical when diagram=simple, as it partially corrects for wrong 
-        diagram topology. Default is 0.0, no filtering applied. 
+    :arg bottleneck: Minimum bottleneck radius, in Angstrom, a channel must have
+        to be reported. Default is 0.0, no filtering applied.
+
+        Set it whenever the question is "what can actually pass through", because
+        ``inner_radius`` alone does not guarantee it: channels regularly come out
+        somewhat narrower than the probe that found them (although with 
+        ``diagram="homogenized"`` and small max_deviationthe difference will 
+        be minor), and with ``diagram="simple"`` they can be several times 
+        narrower, so there this is the only real width control. A good starting
+        value is either 0, or  ``inner_radius`` itself, raised to the radius 
+        of the ligand or ion of interest if that is what you are screening for.
+
+        Unlike ``inner_radius``, it does not change the search: it drops entries
+        from the finished list (before they are numbered and written to file),
+        never reroutes them. Filtering is therefore cheap, but it cannot recover
+        a wide route that the search did not take - if raising it leaves you with
+        too few channels, raise ``inner_radius`` instead and let the channels be
+        traced afresh.
     :type bottleneck: float
 
     :arg min_volume: Minimum volume required for a channel/cavity to be 
@@ -1033,6 +1039,39 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         report finer route variants separately. Default is 1.0.
     :type route_tolerance: float
 
+    :arg return_details: If True return an additional dictionary containing
+        internal calculation data, including the channel calculator, simplices,
+        neighboring tetrahedra, Voronoi vertices, atomic coordinates, and van der
+        Waals radii. Default is False.
+    :type return_details: bool
+
+    The remaining options below are not part of the signature and are accepted
+    **as keyword arguments only**; a normal run never touches them. Any other
+    keyword raises :exc:`TypeError` rather than being ignored, so a misspelled
+    option is reported instead of silently falling back to its default.
+
+    :arg weighted_cache: Cache the raw additively-weighted Voronoi diagram to disk so
+        that re-running ``diagram="weighted"`` on the same structure skips the
+        expensive vorpy tessellation (which dominates the ~10 min run time). The
+        diagram only depends on the atoms and ``surf_radius``, so re-runs that change only
+        ``inner_radius``, ``bottleneck``, ``sparsity``, ``start_point`` etc. reuse it. ``True``
+        (default) caches next to ``output_path`` (or, absent one, under the structure
+        title in the current directory); pass a path to place it explicitly, or
+        ``False`` to disable. The cache is keyed by content, so editing the structure
+        or ``surf_radius`` transparently forces a recompute. Only used for ``diagram="weighted"``.
+    :type weighted_cache: bool or str
+
+    :arg weighted_mouth_depth: Only used for ``diagram="weighted"``. The additively-
+        weighted (Apollonius) tessellation is not a clean simplicial complex, so it
+        leaves false interior boundary faces that the pipeline would misread as
+        surface openings, truncating channels to stubs. To repair this a *homogenized*
+        diagram of the same atoms is built as an interior/exterior oracle, and only
+        exit tetrahedra whose Voronoi vertex lies within ``weighted_mouth_depth``
+        Angstrom (geodesic distance below the molecular surface) are treated as mouths.
+        Default 2.5 (the value at which the recovered channels match the
+        ``"homogenized"`` result); ``None`` disables the relabeling.
+    :type weighted_mouth_depth: float or None
+
     :arg min_enclosure: Fraction of directions that must be blocked by protein for
         a tetrahedron to count as interior, in ``[0, 1]``. Default is 0.70.
 
@@ -1070,28 +1109,15 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         tied to ``surf_radius``, since a cap that scales with ``surf_radius`` reintroduces exactly
         the ``surf_radius`` dependence that ``min_enclosure`` exists to remove.
     :type max_peel_depth: float or None
-
-    :arg weighted_cache: Cache the raw additively-weighted Voronoi diagram to disk so
-        that re-running ``diagram="weighted"`` on the same structure skips the
-        expensive vorpy tessellation (which dominates the ~10 min run time). The
-        diagram only depends on the atoms and ``surf_radius``, so re-runs that change only
-        ``inner_radius``, ``bottleneck``, ``sparsity``, ``start_point`` etc. reuse it. ``True``
-        (default) caches next to ``output_path`` (or, absent one, under the structure
-        title in the current directory); pass a path to place it explicitly, or
-        ``False`` to disable. The cache is keyed by content, so editing the structure
-        or ``surf_radius`` transparently forces a recompute. Only used for ``diagram="weighted"``.
-    :type weighted_cache: bool or str
-
-    :arg weighted_mouth_depth: Only used for ``diagram="weighted"``. The additively-
-        weighted (Apollonius) tessellation is not a clean simplicial complex, so it
-        leaves false interior boundary faces that the pipeline would misread as
-        surface openings, truncating channels to stubs. To repair this a *homogenized*
-        diagram of the same atoms is built as an interior/exterior oracle, and only
-        exit tetrahedra whose Voronoi vertex lies within ``weighted_mouth_depth``
-        Angstrom (geodesic distance below the molecular surface) are treated as mouths.
-        Default 2.5 (the value at which the recovered channels match the
-        ``"homogenized"`` result); ``None`` disables the relabeling.
-    :type weighted_mouth_depth: float or None
+        
+    :arg restrict_channels_to_start_point: Only used when ``start_point`` is
+        provided. If True (default), the channel search is restricted to the
+        single cavity whose closest tetrahedron is globally nearest to
+        ``start_point``, so  channels are computed only for the region around
+        that point instead of one channel bundle per detected cavity. If False,
+        ``start_point`` merely overrides the seed (starting) tetrahedron of
+        every cavity and channels are still computed for all cavities.
+    :type restrict_channels_to_start_point: bool
 
     :arg edge_cost: How each Voronoi edge is priced in the Dijkstra tunnel search.
         ``"integral"`` prices each edge by the integral of its clearance profile
@@ -1105,12 +1131,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         straight-chord integral cannot price). The reported bottleneck radius is
         unaffected by this choice.
     :type edge_cost: str or None
-
-    :arg return_details: If True return an additional dictionary containing 
-        internal calculation data, including the channel calculator, simplices,
-        neighboring tetrahedra, Voronoi vertices, atomic coordinates, and van der
-        Waals radii. Default is False.
-    :type return_details: bool
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an 
@@ -1152,7 +1172,40 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     channels, surface = calcChannels(atoms, output_path="channels.pdb",
                                      separate=False, surf_radius=3, inner_radius=0.9, min_depth=5,
                                      bottleneck=1, sparsity=3) """
-    
+
+    # Advanced options, accepted as keyword arguments only and kept out of the
+    # signature above, which is long enough already. These are settings a normal
+    # run never touches.
+    CHANNELS_ADVANCED_OPTIONS = {
+        'restrict_channels_to_start_point': True,
+        'min_enclosure': 0.70,
+        'max_peel_depth': None,
+        'edge_cost': None,
+        'weighted_cache': True,
+        'weighted_mouth_depth': 2.5,
+    }
+
+    # Unknown keywords are an error rather than silently ignored: a misspelled
+    # option would otherwise be dropped without a trace and the run would quietly
+    # proceed on the default, which is the failure mode an explicit signature
+    # prevents. Checked first, so a typo fails before any of the work.
+    unexpected = sorted(set(kwargs) - set(CHANNELS_ADVANCED_OPTIONS))
+    if unexpected:
+        raise TypeError('calcChannels() got an unexpected keyword argument {0}. '
+                        'Keyword-only options are: {1}.'.format(
+                            ', '.join(repr(key) for key in unexpected),
+                            ', '.join(sorted(CHANNELS_ADVANCED_OPTIONS))))
+
+    options = dict(CHANNELS_ADVANCED_OPTIONS, **kwargs)
+    restrict_channels_to_start_point = options['restrict_channels_to_start_point']
+    min_enclosure = options['min_enclosure']
+    max_peel_depth = options['max_peel_depth']
+    edge_cost = options['edge_cost']
+    # = options['']
+    # = options['']
+    weighted_cache = options['weighted_cache']
+    weighted_mouth_depth = options['weighted_mouth_depth']
+
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
     missing = []
     errorMsg = None
