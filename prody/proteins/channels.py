@@ -1267,8 +1267,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     min_enclosure = options['min_enclosure']
     max_peel_depth = options['max_peel_depth']
     edge_cost = options['edge_cost']
-    # = options['']
-    # = options['']
     weighted_cache = options['weighted_cache']
     weighted_mouth_depth = options['weighted_mouth_depth']
 
