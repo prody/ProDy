@@ -59,7 +59,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcClusterPopulations', 'getCluster', 'getClusterMedoid',
            'calcClusterStatistics', 'calcAllClusterStatistics', 'showClusterStatisticsTable',
            'showClusterRMSDComparison', 'clusterHierarchical', 'showDendrogram',
-           'clusterKMedoids', 'writeClusters']
+           'clusterKMedoids', 'clusterDBSCAN', 'showReachabilityPlot', 'writeClusters']
 
 
 def cleanNumbers(listContacts):
@@ -4397,7 +4397,7 @@ def showRMSDfromReference(rmsd_array, title = "Frame-to-Reference RMSD",
     :type ax: :class:`matplotlib.axes.Axes`
     
     :returns: the Matplotlib axes containing the plot.
-    :rtype: :class:`matplotlib.axes.Axes`, None
+    :rtype: :class:`matplotlib.axes.Axes`
     
     Example usage:
     >>> import matplotlib.pyplot as plt
@@ -4904,6 +4904,10 @@ def calcAllClusterStatistics(distance_matrix, cluster_ids):
     all_stats = []
     
     for c in clusters:
+        # Ignore noise
+        if c <= 0:
+            continue
+                    
         cluster_stats = calcClusterStatistics(distance_matrix, cluster_ids = cluster_ids, cluster_number = int(c))
         all_stats.append(cluster_stats) 
         
@@ -5589,6 +5593,395 @@ def _clusterKMedoidsSklearn(distance_matrix, k, method_sklearn, seed, max_iter, 
             best_medoids = medoids.copy()
 
     return best_labels, best_medoids, best_cost
+
+
+def clusterDBSCAN(distance_matrix, eps = None, minPts = None, method='custom'):
+    """
+    Performs DBSCAN clustering using various algorithms.
+
+    This function acts as a facade, routing the clustering task to the specified backend 
+    ('custom' or 'sklearn'). 'custom' uses a built-in implementation without additional 
+    dependencies beyond NumPy. 'sklearn' needs the sklearn.cluster module to be installed.
+    
+    Note that the resulting cluster IDs are 1-based (starting at 1, not 0).
+    Noise points are labeled -1.
+
+
+    :arg distance_matrix: square, symmetric matrix of pairwise distances between all objects
+    :type distance_matrix: :class:`numpy.ndarray`
+    
+    :arg eps: the "radius" of the neighborhood within which we count neighbors
+              Default is ``None`` and automatically the median of the distances 
+              in the distance matrix is used. 
+              Ideally use :func:`showReachabilityPlot` to determine
+              manually the most suitable eps.
+    :type eps: float
+    
+    :arg minPts: the minimum number of neighbors required for a point to be considered 
+                 a core point
+                 Default is ``None`` and automatically the 5% of the total objects,
+                 or for less than 20 2 is used.
+                 Ideally choose manually the most suitable minPts
+    :type minPts: int
+    
+    :arg method: the clustering algorithm to use
+                 Options are 'custom' and 'sklearn'
+                 Default is 'custom' because it needs no module installation
+    :type method: str
+    
+    :returns: a tuple of:
+        * a one-dimensional array containing the cluster ID for each object.
+          IDs are 1-indexed and noise corresponds to -1.
+        * a one-dimensional array of the frame indices corresponding to noise
+    :rtype: tuple(:class:`numpy.ndarray`, :class:`numpy.ndarray`)
+    
+    Example usage:
+    >>> distance_matrix = prody.calcPairwiseRMSD(aligned_coords)
+    >>> cluster_ids, _ = prody.clusterDBSCAN(distance_matrix, eps = 1.8, minPts = 30)
+    """
+
+    distance_matrix = _validateDistanceMatrix(distance_matrix)
+
+    if eps is None:
+        eps = _calcAutoEps(distance_matrix)
+    _validateEps(eps, distance_matrix)
+
+    if minPts is None:
+        minPts = _calcAutoMinPts(distance_matrix)
+    _validateMinPts(minPts, distance_matrix)
+
+    if method == 'custom':
+        return _clusterDBSCANCustom(distance_matrix, eps, minPts)
+    elif method == 'sklearn':
+        return _clusterDBSCANSklearn(distance_matrix, eps, minPts)
+    else:
+        raise ValueError(f"method can be either 'custom' or 'sklearn', but got {method}.")
+
+
+def _clusterDBSCANCustom(distance_matrix, eps, minPts):
+    """DBSCAN clustering with custom algorithm"""
+    total_points = distance_matrix.shape[0]
+
+    labels = np.zeros(total_points, dtype = int)
+    cluster_id = 0
+
+    for p in range(total_points):
+
+        if labels[p] != 0:
+            continue
+
+        neighbors, = np.where(distance_matrix[p] <= eps)
+
+        if len(neighbors) < minPts:
+            labels[p] = -1
+        else:
+            cluster_id += 1
+            labels[p] = cluster_id
+
+            candidate_set = [n for n in neighbors if n != p]
+            while candidate_set:
+                q = candidate_set.pop()
+
+                if labels[q] == -1:
+                    labels[q] = cluster_id
+
+                if labels[q] != 0:
+                    continue
+
+                labels[q] = cluster_id
+
+                q_neighbors, = np.where(distance_matrix[q] <= eps)
+                if len(q_neighbors) >= minPts:
+                    for n in q_neighbors:
+                        if labels[n] == 0:
+                            candidate_set.append(n)
+                        elif labels[n] == -1:
+                            labels[n] = cluster_id
+
+    noise_frames, = np.where(labels == -1)
+
+    return labels, noise_frames
+
+
+def _clusterDBSCANSklearn(distance_matrix, eps, minPts):
+    """DBSCAN clustering with sklearn"""
+
+    try:
+        from sklearn.cluster import DBSCAN
+    except ImportError:
+        raise ImportError("The 'sklearn' package is required for this DBSCAN approach. "
+                          "Please install it using 'pip install scikit-learn'.")
+
+    dbscan = DBSCAN(eps=eps, min_samples = minPts, metric = "precomputed")
+    labels = dbscan.fit_predict(distance_matrix)
+
+    cluster_ids = np.copy(labels)
+    cluster_ids[cluster_ids >= 0] += 1
+
+    noise_frames, = np.where(labels == -1)
+
+    return cluster_ids, noise_frames
+
+
+def showReachabilityPlot(distance_matrix, minPts = None, method = 'custom', eps = None,
+                         title = "OPTICS Reachability Plot", xlabel = "Frames (Sorted by OPTICS)",
+                         ylabel = "Reachability Distance [Å]", label = None,
+                         color = "#36454F", lw = 1.5, fill = True, ax = None):
+    """
+    Plots the reachability plot using a simplified OPTICS algorithm.
+    The reachability plot should be used to determine the most suitable eps 
+    parameter for DBSCAN.
+    
+    This function acts as a facade, routing the ordering task to the specified backend 
+    ('custom' or 'sklearn'). 'custom' uses a built-in implementation without additional 
+    dependencies beyond NumPy. 'sklearn' needs the sklearn.cluster module to be installed.
+    
+    
+    :arg distance_matrix: a two-dimensional square, symmetric pairwise distance matrix.
+    :type distance_matrix: :class:`numpy.ndarray`
+    
+    :arg minPts: the minimum number of neighbors required for a point to be considered 
+                 a core point
+                 Default is ``None`` and automatically the 5% of the total objects,
+                 or for less than 20 2 is used.
+                 Ideally choose manually the most suitable minPts
+    :type minPts: int
+    
+    :arg method: the OPTICS algorithm to use
+                 Options are 'custom' and 'sklearn'.
+                 Default is 'custom' because it needs no module installation
+    :type method: str
+    
+    :arg eps: the "radius" of the neighborhood within which we count neighbors.
+              It is drawn as a horizontal line to help visualize the DBSCAN
+              ``eps`` threshold.
+              If `'auto'` the median of the pairwise distances is used.
+              Default is ``None``.
+    :type eps: float, str
+    
+    :arg title: title of the generated plot.
+                Default is ``"OPTICS Reachability Plot"``
+    :type title: str
+    
+    :arg xlabel: Frame count label for the x-axis
+                 Default is ``"Frames (Sorted by OPTICS)"``
+    :type xlabel: str
+  
+    :arg ylabel: Reachability distance label for the y-axis
+                 Default is ``"Reachability Distance [Å]"``
+    :type ylabel: str
+    
+    :arg label: the label for the plot.
+                Default is ``None``
+    :type label: str
+    
+    :arg color: the color of the plot.
+                Default is ``"#36454F"``
+    :type color: str
+    
+    :arg lw: the width of the line.
+             Default is ``1.5``
+    :type lw: float
+    
+    :arg fill: whether to fill the area beneath the curve and if applicable
+               the valleys below the eps threshold.
+    :type fill: bool
+
+    :arg ax: axes on which to draw the plot.
+             Default is ``None`` and the current axes are used.
+    :type ax: :class:`matplotlib.axes.Axes`
+    
+    :returns: the Matplotlib axes containing the plot.
+    :rtype: :class:`matplotlib.axes.Axes`
+    
+    Example usage:
+    >>> import matplotlib.pyplot as plt
+    >>> plt.figure(figsize = (8, 6))
+    >>> showReachabilityPlot(distance_matrix, minPts = 20, eps = 1.8)
+    >>> plt.show()    
+    """
+
+    import matplotlib.pyplot as plt
+
+
+    distance_matrix = _validateDistanceMatrix(distance_matrix)
+
+    if minPts is None:
+        minPts = _calcAutoMinPts(distance_matrix)
+    _validateMinPts(minPts, distance_matrix)
+
+    if not isinstance(fill, bool):
+        raise TypeError(f"fill must be a bool, but got {type(fill).__name__}")
+
+    if method == 'custom':
+        reachability, ordering = _orderOPTICSCustom(distance_matrix, minPts)
+    elif method == 'sklearn':
+        reachability, ordering = _orderOPTICSSklearn(distance_matrix, minPts)
+    else:
+        raise ValueError(f"method must be either 'custom' or 'sklearn', but got {method}")
+
+    if ax is None:
+        ax = plt.gca()
+
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    y = reachability[ordering]
+    x = np.arange(len(y))
+
+    ax.plot(x, y, color = color, lw = lw, label = label)
+
+    if fill:
+        ax.fill_between(x, 0, y, color = 'black', alpha = 0.4)
+
+    if eps == 'auto':
+        eps = _calcAutoEps(distance_matrix)
+
+    if eps is not None:
+        _validateEps(eps, distance_matrix)
+        ax.axhline(y = eps, color = 'black', linestyle = '--', linewidth = lw)
+
+        if fill:
+            below_eps_mask = (y <= eps)
+            segments = []
+            start = None
+
+            for i, below in enumerate(below_eps_mask):
+                if below and start is None:
+                    start = i
+                elif not below and start is not None:
+                    segments.append((start, i))
+                    start = None
+
+            if start is not None:
+                segments.append((start, len(below_eps_mask)))
+
+            colors = plt.cm.tab10(np.linspace(0, 1, len(segments)))
+
+            for (start, end), valley_color in zip(segments, colors):
+                ax.fill_between(x[start:end], y[start:end], eps, color=valley_color)
+
+    if label is not None:
+        ax.legend()
+
+    ax.grid(axis = 'y', linestyle = '--', linewidth = 0.8, alpha = 0.3)
+
+    return ax
+
+
+def _orderOPTICSCustom(distance_matrix, minPts):
+    """OPTICS algorithm with built-in modules and NumPy"""
+
+    import heapq
+
+    total_points = distance_matrix.shape[0]
+
+    sorted_distances = np.sort(distance_matrix, axis = 1)
+    core_distances = sorted_distances[:, minPts - 1]
+
+    reachability = np.full(total_points, np.inf)
+    processed = np.zeros(total_points, dtype = bool)
+    ordering = []
+
+    def _updateSeeds(idx):
+        new_reaches = np.maximum(core_distances[idx], distance_matrix[idx, :])
+        update_mask = (~processed) & (new_reaches < reachability)
+        points_to_update, = np.where(update_mask)
+        reachability[update_mask] = new_reaches[update_mask]
+
+        for j in points_to_update:
+            heapq.heappush(seeds, (reachability[j], j))
+
+    for i in range(total_points):
+        if processed[i]:
+            continue
+
+        processed[i] = True
+        ordering.append(i)
+        seeds = []
+
+        _updateSeeds(i)
+
+        while seeds:
+            current_reach, q = heapq.heappop(seeds)
+
+            if processed[q]:
+                continue
+
+            processed[q] = True
+            ordering.append(q)
+
+            _updateSeeds(q)
+
+    return reachability, np.array(ordering)
+
+
+def _orderOPTICSSklearn(distance_matrix, minPts):
+    """OPTICS algorithm with sklearn"""
+
+    try:
+        from sklearn.cluster import OPTICS
+    except ImportError:
+        raise ImportError("The 'sklearn' package is required for this OPTICS approach. "
+                          "Please install it using 'pip install scikit-learn'.")
+
+    optics = OPTICS(min_samples = minPts, metric = 'precomputed')
+    optics.fit(distance_matrix)
+    reachability = optics.reachability_
+    ordering = optics.ordering_
+
+    return reachability, ordering
+
+
+def _calcAutoEps(distance_matrix):
+    """Automatically determine the DBSCAN eps parameter"""
+
+    import warnings
+
+    pairwise_distances = distance_matrix[np.triu_indices_from(distance_matrix, k = 1)]
+    eps = float(np.median(pairwise_distances))
+    warnings.warn(f"No eps provided. Automatically chosen at {eps:.3f}. Ideally provide your own value.")
+    return eps
+
+
+def _validateEps(eps, distance_matrix):
+    """Validate the DBSCAN eps parameter"""
+
+    import warnings
+
+    maxDistance = np.max(distance_matrix)
+
+    if not isinstance(eps, (float, int, np.floating, np.integer)):
+        raise TypeError(f"eps must be a numeric value, but got {type(eps).__name__}")
+
+    if eps <= 0:
+        raise ValueError("eps must be positive")
+    elif eps > maxDistance:
+        warnings.warn(f"eps ({eps}) is greater than the maximum pairwise distance ({maxDistance:.3f}).\n"
+                      "All frames will be clustered together with no noise.")
+
+
+def _calcAutoMinPts(distance_matrix):
+    """Automatically determine the minPts parameter"""
+
+    import warnings
+
+    total_points = distance_matrix.shape[0]
+    minPts = max(2, int(total_points // 20))
+    warnings.warn(f"No minPts provided. Automatically chosen at {minPts}. Ideally provide your own value.")
+    return minPts
+
+
+def _validateMinPts(minPts, distance_matrix):
+    """Validate minPts parameter"""
+    total_points = distance_matrix.shape[0]
+
+    if not isinstance(minPts, (int, np.integer)):
+        raise TypeError(f"minPts must be a positive integer, but got {type(minPts).__name__}")
+
+    if minPts <= 0 or minPts > total_points:
+        raise ValueError(f"minPts must be between 1 and {total_points}.")
 
 
 def writeClusters(atoms, trajectory, distance_matrix, cluster_ids, write_dcd = True,
