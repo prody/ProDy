@@ -9,12 +9,13 @@ __credits__ = ['Karolina Mikulska-Ruminska', 'Jan Brezovsky', 'Eryk Trzcinski']
 __email__ = ['karolamik@fizyka.umk.pl']
 
 import logging
+from collections import namedtuple
 from contextlib import contextmanager
 
 import numpy as np
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
-from prody.utilities import checkCoords, getCoords, isListLike
+from prody.utilities import getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
 from prody.ensemble import Ensemble
 from prody.measure import calcCenter, calcTransformation, calcDistance, calcRMSD, superpose
@@ -50,6 +51,22 @@ ENCLOSURE_STEP = 0.75
 # by a little and be absorbed by min_enclosure; a single radius means a single
 # tree and a plain nearest-neighbour test.
 ENCLOSURE_RADIUS = 1.7
+
+# Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
+# tessellation is built on, and the ones the lining report measures a Voronoi
+# vertex against, so both read them from here.
+VDW_RADII = {
+    'H': 1.20, 'HE': 1.40, 'LI': 1.82, 'BE': 1.53, 'B': 1.92, 'C': 1.70,
+    'N': 1.55, 'O': 1.52, 'F': 1.47, 'NE': 1.54, 'NA': 2.27, 'MG': 1.73,
+    'AL': 1.84, 'SI': 2.10, 'P': 1.80, 'S': 1.80, 'CL': 1.75, 'AR': 1.88,
+    'K': 2.75, 'CA': 2.31, 'SC': 2.11, 'NI': 1.63, 'CU': 1.40, 'ZN': 1.39,
+    'GA': 1.87, 'GE': 2.11, 'AS': 1.85, 'SE': 1.90, 'BR': 1.85, 'KR': 2.02,
+    'RB': 3.03, 'SR': 2.49, 'PD': 1.63, 'AG': 1.72, 'CD': 1.58, 'IN': 1.93,
+    'SN': 2.17, 'SB': 2.06, 'TE': 2.06, 'I': 1.98, 'XE': 2.16, 'CS': 3.43,
+    'BA': 2.68, 'PT': 1.75, 'AU': 1.66, 'HG': 1.55, 'TL': 1.96, 'PB': 2.02,
+    'BI': 2.07, 'PO': 1.97, 'AT': 2.02, 'RN': 2.20, 'FR': 3.48, 'RA': 2.83,
+    'U': 1.86, 'FE': 2.44
+}
 
 _OVERLAP_OFFSET_CACHE = {}
 
@@ -117,6 +134,55 @@ def checkAndImport(package_name):
             return False
     
     return True
+
+
+def _requireCoords(atoms):
+    """Raise :exc:`TypeError` unless *atoms* can supply coordinates.
+
+    :func:`~prody.utilities.getCoords` is the whole check: it reads the
+    coordinates through ``_getCoords``/``getCoords``, accepts a plain array, and
+    raises :exc:`TypeError` for anything else. Each entry point used to wrap that
+    call in a ``try``/``except AttributeError`` handler that re-implemented its
+    body -- and could not run, since ``getCoords`` converts the
+    :exc:`AttributeError` into the :exc:`TypeError` it is meant to raise."""
+
+    getCoords(atoms)
+
+
+def _numberedPath(filename, tag, index):
+    """``channels.pqr`` with ``('chl', 0)`` becomes ``channels_chl0.pqr``.
+
+    Only the file's own name is numbered. The per-object files used to be named
+    by ``filename.replace('.pqr', ...)``, which rewrites every occurrence of the
+    extension anywhere in the path: an output directory called ``run.pqr/`` was
+    renamed along with the file and the write then failed, a name carrying no
+    extension was not numbered at all -- so each object overwrote the previous
+    one and the combined file with it -- and a name holding both extensions was
+    numbered twice."""
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    path = Path(filename)
+    return path.with_name("{0}_{1}{2}{3}".format(path.stem, tag, index,
+                                                 path.suffix))
+
+
+def _kdTree(coords):
+    """A :class:`~scipy.spatial.cKDTree` over *coords*.
+
+    Accepts either an :class:`.Atomic` object or an ``(n, 3)`` array, so the one
+    helper serves the lining queries, the enclosure test and the route
+    comparison. scipy stays a function-level import, as everywhere else in this
+    module, so that importing ProDy does not require it."""
+
+    from scipy.spatial import cKDTree
+
+    if hasattr(coords, 'getCoords'):
+        coords = coords.getCoords()
+    return cKDTree(np.asarray(coords, dtype=float))
 
 
 def _getOverlapSphereOffsets(radius, resolution):
@@ -843,14 +909,11 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
     o3d.visualization.draw_geometries(meshes_to_visualize)
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
-    restrict_channels_to_start_point=True, start_point_search=3.0,
-    r1=3, r2=0.9, min_depth=5,
+    start_point_search=3.0, surf_radius=3, inner_radius=0.9, min_depth=5,
     min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0,
     sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
-    diagram="homogenized", max_deviation=0.1, truncate_at_surface=True,
-    similarity=0.8, route_tolerance=1.0, min_enclosure=0.70, max_peel_depth=None,
-    weighted_cache=True, weighted_mouth_depth=2.5, edge_cost=None,
-    return_details=False):
+    diagram="homogenized", max_deviation=0.1, similarity=0.8, route_tolerance=1.0,
+    return_details=False, **kwargs):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
 
@@ -899,15 +962,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
          starting point.
     :type start_point: list, tuple, or ndarray (length 3), :class:`.Atomic`, or None
 
-    :arg restrict_channels_to_start_point: Only used when ``start_point`` is
-        provided. If True (default), the channel search is restricted to the
-        single cavity whose closest tetrahedron is globally nearest to
-        ``start_point``, so  channels are computed only for the region around
-        that point instead of one channel bundle per detected cavity. If False,
-        ``start_point`` merely overrides the seed (starting) tetrahedron of
-        every cavity and channels are still computed for all cavities.
-    :type restrict_channels_to_start_point: bool
-
     :arg start_point_search: Only used when ``start_point`` is provided. Radius,
         in Angstrom, of the neighbourhood of ``start_point`` searched for the seed
         tetrahedron. The tetrahedron nearest ``start_point`` is often a tight one,
@@ -921,11 +975,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         seed the nearest tetrahedron as-is.
     :type start_point_search: float
 
-    :arg r1: The first radius threshold used during the deletion of simplices, 
+    :arg surf_radius: The first radius threshold used during the deletion of simplices, 
         which is used to define the outer surface of the channels. Default is 3
-    :type r1: float
+    :type surf_radius: float
 
-    :arg r2: The second radius threshold used to define the inner surface of
+    :arg inner_radius: The second radius threshold used to define the inner surface of
         the channels. Default is 0.9.
 
         Below about 1.2 Angstrom the probe is smaller than a water molecule, and
@@ -934,9 +988,13 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         left empty, and a sub-water probe is small enough to thread those
         interstices: the interior percolates into a sponge and the channel count
         can rise several-fold. At 1.2 Angstrom and above, protonated and 
-        unprotonated structures give the same channels, and an X-ray file may 
+        unprotonated structures give the same channels, and an X-ray file may
         be used as it comes. A warning is issued for the unsafe combination.
-    :type r2: float
+
+        Note that this sets where channels are traced, not how wide the reported
+        ones end up being: a channel can be narrower than ``inner_radius`` at its
+        tightest point. Use ``bottleneck`` to put a floor on that.
+    :type inner_radius: float
 
     :arg min_depth: The minimum depth, in Angstrom, a cavity must reach to be
         considered as a channel. Depth is the geodesic distance from the cavity's
@@ -948,10 +1006,24 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         than this value are trimmed away. Default is None (no trimming).
     :type max_depth: float
 
-    :arg bottleneck: Acts as secondary filter following channel identification.
-        The minimum allowed bottleneck size (narrowest point) for the channels.
-        It it critical when diagram=simple, as it partially corrects for wrong 
-        diagram topology. Default is 0.0, no filtering applied. 
+    :arg bottleneck: Minimum bottleneck radius, in Angstrom, a channel must have
+        to be reported. Default is 0.0, no filtering applied.
+
+        Set it whenever the question is "what can actually pass through", because
+        ``inner_radius`` alone does not guarantee it: channels regularly come out
+        somewhat narrower than the probe that found them (although with 
+        ``diagram="homogenized"`` and small max_deviationthe difference will 
+        be minor), and with ``diagram="simple"`` they can be several times 
+        narrower, so there this is the only real width control. A good starting
+        value is either 0, or  ``inner_radius`` itself, raised to the radius 
+        of the ligand or ion of interest if that is what you are screening for.
+
+        Unlike ``inner_radius``, it does not change the search: it drops entries
+        from the finished list (before they are numbered and written to file),
+        never reroutes them. Filtering is therefore cheap, but it cannot recover
+        a wide route that the search did not take - if raising it leaves you with
+        too few channels, raise ``inner_radius`` instead and let the channels be
+        traced afresh.
     :type bottleneck: float
 
     :arg min_volume: Minimum volume required for a channel/cavity to be 
@@ -963,19 +1035,14 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     :type max_volume: float
 
     :arg sparsity: Size of a channel surface opening (mouth), in Angstrom: how far
-        apart two exits must lie to count as separate openings. It is one quantity,
-        reached by whichever branch of the search is running, and the two branches
-        are mutually exclusive. With ``truncate_at_surface`` True (the default) it
-        is a floor on the radius of a reported opening, so two channels leaving
-        closer than ``sparsity`` are treated as sharing that opening and are merged
-        if they also share a corridor (see ``similarity``); being applied *after*
-        the search, it can only merge channels there, never hide one, and is a
-        reporting preference rather than part of the geometry. With
-        ``truncate_at_surface`` False it is instead the spacing at which exit
-        tetrahedra are sampled as channel termini, and it does then decide which
-        channels are found at all. Either way a higher value reports fewer channels.
-        It has no effect on the cavities, which are found from the exit tetrahedra
-        before any thinning. Default is 1.
+        apart two exits must lie to count as separate openings. It is a floor on
+        the radius of a reported opening, so two channels leaving closer than
+        ``sparsity`` are treated as sharing that opening and are merged if they
+        also share a corridor (see ``similarity``); being applied *after* the
+        search, it can only merge channels there, never hide one, and is a
+        reporting preference rather than part of the geometry. A higher value
+        reports fewer channels. It has no effect on the cavities, which are found
+        from the exit tetrahedra before any thinning. Default is 1.
     :type sparsity: float
 
     :arg diagram: 
@@ -1015,25 +1082,10 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         Only used when ``diagram = homogenized``.
     :type max_deviation: float
 
-    :arg truncate_at_surface: If True (default), surface (exit) tetrahedra are
-        made *absorbing*: a channel may end at one, but no channel may pass
-        through one. A mouth is a surface tetrahedron a probe of the traversal
-        radius ``r2`` can leave through. This forbids the cheapest path from
-        surfacing at one mouth, running along the outside and re-entering at
-        another - a surface hop, not a tunnel - which the width-rewarding cost
-        would otherwise prefer, since surface grooves are the widest space
-        available. Enforcing it during the search (rather than cutting the
-        winning path afterwards) is what keeps genuine narrow interior corridors
-        in the output: cut afterwards, such a corridor loses the cheapest-path
-        race to the groove leading to the same mouth and is never enumerated at
-        all. If False, paths run freely to their end tetrahedra, surface hops
-        included.
-    :type truncate_at_surface: bool
-
-    :arg similarity: Only used when ``truncate_at_surface`` is True. Fraction
-        (0-1) of the **longer** of two channels, measured in Angstrom along its
-        centerline, that must run within ``route_tolerance`` of the other one for
-        the two to count as the same corridor. Two channels are merged (cheapest
+    :arg similarity: Fraction (0-1) of the **longer** of two channels, measured
+        in Angstrom along its centerline, that must run within
+        ``route_tolerance`` of the other one for the two to count as the same
+        corridor. Two channels are merged (cheapest
         kept) only when they take the same corridor **and** leave through the
         same opening (see ``sparsity``); a corridor that forks near the surface
         and exits twice is one tunnel, but two different corridors to one opening,
@@ -1047,60 +1099,32 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         channel that shares an opening. Default is 0.8.
     :type similarity: float
 
-    :arg route_tolerance: Only used when ``truncate_at_surface`` is True. How far
-        apart, in Angstrom, two centerlines may drift and still count as the same
-        corridor when computing ``similarity``. Larger values merge more
+    :arg route_tolerance: How far apart, in Angstrom, two centerlines may drift
+        and still count as the same corridor when computing ``similarity``. Larger values merge more
         aggressively (nearby parallel routes read as one tunnel); smaller values
         report finer route variants separately. Default is 1.0.
     :type route_tolerance: float
 
-    :arg min_enclosure: Fraction of directions that must be blocked by protein for
-        a tetrahedron to count as interior, in ``[0, 1]``. Default is 0.70.
+    :arg return_details: If True return an additional dictionary containing
+        internal calculation data, including the channel calculator, simplices,
+        neighboring tetrahedra, Voronoi vertices, atomic coordinates, and van der
+        Waals radii. Default is False.
+    :type return_details: bool
 
-        Once the r1 surface is built it is eroded inward with the r2 probe, to
-        strip the shell of true exterior that an r1 probe bridges over rather than
-        enters (the "moat"); that shell would otherwise join the cavity and offer
-        wide, low-cost routes along the outside of the protein. Erosion continues
-        while the tetrahedra at the front are *open*, meaning that fewer than
-        ``min_enclosure`` of the directions leaving them run into protein within
-        :data:`ENCLOSURE_RANGE` Angstrom, and halts at the first buried layer.
-
-        Bounding the erosion by size instead does not work. A count of tetrahedron
-        layers is not mesh-invariant, as a layer is one tetrahedron thick and
-        tetrahedra shrink as ``max_deviation`` is lowered. A depth in Angstrom is
-        not ``r1``-invariant, as the moat is as deep as ``r1 - r2`` in a concavity
-        but vanishes on a flat face, so a depth that clears it where it is thick
-        also marches down the channel mouths and erodes the channels themselves.
-        Testing burial locally instead leaves ``r1`` to decide only where the
-        erosion starts, not where it stops, so results are independent of it, and
-        ``r1`` is left doing the one job it should: capping the mouths.
-
-        It is bounded from both sides, and the window is narrow.
-
-        Too low and the moat is not fully stripped. Too high and the erosion 
-        never meets a layer buried enough to stop it, so it percolates down the
-          channels and eats the cavity. The default sits at the floor, which is
-        the safe end: over-peeling deletes real channels, whereas
-        under-peeling shows up as surface-riding routes that can be recognised.
-    :type min_enclosure: float
-
-    :arg max_peel_depth: Optional hard cap, **in Angstrom**, on how far the peel
-        above may advance from the r1 surface. ``None`` (default) is uncapped, and
-        the enclosure test alone decides where erosion stops. Set it only as a
-        backstop on a structure where the peel misbehaves; it is deliberately not
-        tied to ``r1``, since a cap that scales with ``r1`` reintroduces exactly
-        the ``r1`` dependence that ``min_enclosure`` exists to remove.
-    :type max_peel_depth: float or None
+    The remaining options below are not part of the signature and are accepted
+    **as keyword arguments only**; a normal run never touches them. Any other
+    keyword raises :exc:`TypeError` rather than being ignored, so a misspelled
+    option is reported instead of silently falling back to its default.
 
     :arg weighted_cache: Cache the raw additively-weighted Voronoi diagram to disk so
         that re-running ``diagram="weighted"`` on the same structure skips the
         expensive vorpy tessellation (which dominates the ~10 min run time). The
-        diagram only depends on the atoms and ``r1``, so re-runs that change only
-        ``r2``, ``bottleneck``, ``sparsity``, ``start_point`` etc. reuse it. ``True``
+        diagram only depends on the atoms and ``surf_radius``, so re-runs that change only
+        ``inner_radius``, ``bottleneck``, ``sparsity``, ``start_point`` etc. reuse it. ``True``
         (default) caches next to ``output_path`` (or, absent one, under the structure
         title in the current directory); pass a path to place it explicitly, or
         ``False`` to disable. The cache is keyed by content, so editing the structure
-        or ``r1`` transparently forces a recompute. Only used for ``diagram="weighted"``.
+        or ``surf_radius`` transparently forces a recompute. Only used for ``diagram="weighted"``.
     :type weighted_cache: bool or str
 
     :arg weighted_mouth_depth: Only used for ``diagram="weighted"``. The additively-
@@ -1114,6 +1138,53 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         ``"homogenized"`` result); ``None`` disables the relabeling.
     :type weighted_mouth_depth: float or None
 
+    :arg min_enclosure: Fraction of directions that must be blocked by protein for
+        a tetrahedron to count as interior, in ``[0, 1]``. Default is 0.70.
+
+        Once the surf_radius surface is built it is eroded inward with the inner_radius probe, to
+        strip the shell of true exterior that an surf_radius probe bridges over rather than
+        enters (the "moat"); that shell would otherwise join the cavity and offer
+        wide, low-cost routes along the outside of the protein. Erosion continues
+        while the tetrahedra at the front are *open*, meaning that fewer than
+        ``min_enclosure`` of the directions leaving them run into protein within
+        :data:`ENCLOSURE_RANGE` Angstrom, and halts at the first buried layer.
+
+        Bounding the erosion by size instead does not work. A count of tetrahedron
+        layers is not mesh-invariant, as a layer is one tetrahedron thick and
+        tetrahedra shrink as ``max_deviation`` is lowered. A depth in Angstrom is
+        not ``surf_radius``-invariant, as the moat is as deep as ``surf_radius - inner_radius`` in a concavity
+        but vanishes on a flat face, so a depth that clears it where it is thick
+        also marches down the channel mouths and erodes the channels themselves.
+        Testing burial locally instead leaves ``surf_radius`` to decide only where the
+        erosion starts, not where it stops, so results are independent of it, and
+        ``surf_radius`` is left doing the one job it should: capping the mouths.
+
+        It is bounded from both sides, and the window is narrow.
+
+        Too low and the moat is not fully stripped. Too high and the erosion 
+        never meets a layer buried enough to stop it, so it percolates down the
+          channels and eats the cavity. The default sits at the floor, which is
+        the safe end: over-peeling deletes real channels, whereas
+        under-peeling shows up as surface-riding routes that can be recognised.
+    :type min_enclosure: float
+
+    :arg max_peel_depth: Optional hard cap, **in Angstrom**, on how far the peel
+        above may advance from the surf_radius surface. ``None`` (default) is uncapped, and
+        the enclosure test alone decides where erosion stops. Set it only as a
+        backstop on a structure where the peel misbehaves; it is deliberately not
+        tied to ``surf_radius``, since a cap that scales with ``surf_radius`` reintroduces exactly
+        the ``surf_radius`` dependence that ``min_enclosure`` exists to remove.
+    :type max_peel_depth: float or None
+        
+    :arg restrict_channels_to_start_point: Only used when ``start_point`` is
+        provided. If True (default), the channel search is restricted to the
+        single cavity whose closest tetrahedron is globally nearest to
+        ``start_point``, so  channels are computed only for the region around
+        that point instead of one channel bundle per detected cavity. If False,
+        ``start_point`` merely overrides the seed (starting) tetrahedron of
+        every cavity and channels are still computed for all cavities.
+    :type restrict_channels_to_start_point: bool
+
     :arg edge_cost: How each Voronoi edge is priced in the Dijkstra tunnel search.
         ``"integral"`` prices each edge by the integral of its clearance profile
         along the edge, which is mesh-invariant. ``"bottleneck"`` uses the legacy
@@ -1126,12 +1197,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         straight-chord integral cannot price). The reported bottleneck radius is
         unaffected by this choice.
     :type edge_cost: str or None
-
-    :arg return_details: If True return an additional dictionary containing 
-        internal calculation data, including the channel calculator, simplices,
-        neighboring tetrahedra, Voronoi vertices, atomic coordinates, and van der
-        Waals radii. Default is False.
-    :type return_details: bool
 
     :returns: A tuple containing two elements:
         - `channels`: A list of detected channels, where each channel is an 
@@ -1171,9 +1236,40 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     
     To save the results as PDB file:
     channels, surface = calcChannels(atoms, output_path="channels.pdb",
-                                     separate=False, r1=3, r2=0.9, min_depth=5,
+                                     separate=False, surf_radius=3, inner_radius=0.9, min_depth=5,
                                      bottleneck=1, sparsity=3) """
-    
+
+    # Advanced options, accepted as keyword arguments only and kept out of the
+    # signature above, which is long enough already. These are settings a normal
+    # run never touches.
+    CHANNELS_ADVANCED_OPTIONS = {
+        'restrict_channels_to_start_point': True,
+        'min_enclosure': 0.70,
+        'max_peel_depth': None,
+        'edge_cost': None,
+        'weighted_cache': True,
+        'weighted_mouth_depth': 2.5,
+    }
+
+    # Unknown keywords are an error rather than silently ignored: a misspelled
+    # option would otherwise be dropped without a trace and the run would quietly
+    # proceed on the default, which is the failure mode an explicit signature
+    # prevents. Checked first, so a typo fails before any of the work.
+    unexpected = sorted(set(kwargs) - set(CHANNELS_ADVANCED_OPTIONS))
+    if unexpected:
+        raise TypeError('calcChannels() got an unexpected keyword argument {0}. '
+                        'Keyword-only options are: {1}.'.format(
+                            ', '.join(repr(key) for key in unexpected),
+                            ', '.join(sorted(CHANNELS_ADVANCED_OPTIONS))))
+
+    options = dict(CHANNELS_ADVANCED_OPTIONS, **kwargs)
+    restrict_channels_to_start_point = options['restrict_channels_to_start_point']
+    min_enclosure = options['min_enclosure']
+    max_peel_depth = options['max_peel_depth']
+    edge_cost = options['edge_cost']
+    weighted_cache = options['weighted_cache']
+    weighted_mouth_depth = options['weighted_mouth_depth']
+
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
     missing = []
     errorMsg = None
@@ -1237,7 +1333,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     
     _reportAtomsInputComposition(atoms)
     atoms = atoms.select('not water') # water is excluded from the selection
-    calculator = ChannelCalculator(atoms, r2=r2, sparsity=sparsity,
+    calculator = ChannelCalculator(atoms, inner_radius=inner_radius, sparsity=sparsity,
                                    route_tolerance=route_tolerance,
                                    edge_cost=edge_cost)
 
@@ -1252,16 +1348,15 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # for thermal motion: a probe of water size cannot enter those interstices anyway,
     # and protonated and unprotonated runs agree from about 1.2 A upwards. Below that
     # the probe is small enough to thread them and the interior percolates into a
-    # sponge rather than merely widening. Those routes are fictitious, not the real
-    # ones made wider. So a sub-water probe needs real hydrogens; above it, take the
-    # file as it comes.
-    if not has_hydrogens and r2 < 1.2:
-        _warn("structure has no hydrogens and r2={0:.2f} is below 1.2 A: the space "
+    # sponge rather than merely widening. Those routes might be fictitious, not the real
+    # ones made wider. So a sub-water probe needs real hydrogens.
+    if not has_hydrogens and inner_radius < 1.2:
+        _warn("structure has no hydrogens and inner_radius={0:.2f} is below 1.2 A: the space "
               "left by the missing H is then wide enough for the probe to pass, and "
               "channels will be found through interstices that do not exist in the "
               "real protein (their number can rise several-fold). Either add "
-              "hydrogens, or raise r2 to 1.2 A or more, where protonated and "
-              "unprotonated structures give the same channels.".format(r2))
+              "hydrogens, or raise inner_radius to 1.2 A or more, where protonated and "
+              "unprotonated structures give the same channels.".format(inner_radius))
 
     if diagram == "simple":
         # 'simple' builds an *unweighted* Delaunay of the atom centres, i.e. it
@@ -1322,7 +1417,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             title = None
         cache_path = resolveCachePath(weighted_cache, output_path, title)
         simplices, neighbors, verts, _ = buildAwTessellation(
-            coords, vdw_radii, max_vert=max(2.0 * r1, 8), accelerate=accelerate,
+            coords, vdw_radii, max_vert=max(2.0 * surf_radius, 8), accelerate=accelerate,
             cache=cache_path)
         LOGGER.report('Additively-weighted (Apollonius) tessellation of {0} atoms '
             'constructed in %.2fs.'.format(len(coords)),
@@ -1335,7 +1430,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         if weighted_mouth_depth is not None:
             LOGGER.timeit('_prody_channels_mouth_oracle')
             mouth_oracle = calculator.buildSurfaceDepthOracle(
-                coords, vdw_radii, r1, max_deviation, weighted_mouth_depth)
+                coords, vdw_radii, surf_radius, max_deviation, weighted_mouth_depth)
             LOGGER.report('Homogenized surface oracle (weighted mouth relabeling) '
                 'built in %.2fs.', '_prody_channels_mouth_oracle')
     else:
@@ -1374,9 +1469,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         s_prv.setState(*s_tmp.getState())
         
         if PY3K:
-            s_tmp.setState(*calculator.deleteSimplices3d(coords, *(s_tmp.getState() + tuple([vdw_radii, r1, True]))))
+            s_tmp.setState(*calculator.deleteSimplices3d(coords, *(s_tmp.getState() + tuple([vdw_radii, surf_radius, True]))))
         else:
-            tmp_state = calculator.deleteSimplices3d(coords, *(s_tmp.getState() + [vdw_radii, r1, True]))
+            tmp_state = calculator.deleteSimplices3d(coords, *(s_tmp.getState() + [vdw_radii, surf_radius, True]))
             s_tmp.setState(*tmp_state)
 
         if s_tmp == s_prv:
@@ -1384,16 +1479,16 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         
     s_srf = State(*s_tmp.getState())
 
-    # Moat removal: erode the r1 surface inward with the r2 probe, stripping the shell
-    # of true exterior that a large r1 probe bridges over instead of entering (it would
+    # Moat removal: erode the surf_radius surface inward with the inner_radius probe, stripping the shell
+    # of true exterior that a large surf_radius probe bridges over instead of entering (it would
     # otherwise join the cavity and offer wide, low-cost routes along the outside).
     # Erosion stops where the tetrahedra stop being open to the solvent, which is a
-    # local criterion, so neither the mesh nor r1 sets how deep the peel goes.
+    # local criterion, so neither the mesh nor surf_radius sets how deep the peel goes.
     s_srf = State(*calculator.peelSurfaceByEnclosure(
-        coords, *(s_srf.getState() + tuple([vdw_radii, r2, atom_coords,
+        coords, *(s_srf.getState() + tuple([vdw_radii, inner_radius, atom_coords,
                                             min_enclosure, max_peel_depth]))))
 
-    s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + tuple([vdw_radii, r2, False]))))
+    s_inr = State(*calculator.deleteSimplices3d(coords, *(s_srf.getState() + tuple([vdw_radii, inner_radius, False]))))
 
     l_first_layer_simp, l_second_layer_simp = calculator.surfaceLayer(s_srf.simp, s_inr.simp, s_srf.neigh)
     s_clr = State(*calculator.deleteSection(l_first_layer_simp, *s_inr.getState()))
@@ -1466,9 +1561,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     graph = calculator.buildSparseGraph(simplices, neighbors, vertices, coords,
                                          vdw_radii)
     for cavity in c_filtered_cavities:
-        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices, 
-                            coords, vdw_radii,
-                            truncate_at_surface, similarity)
+        calculator.dijkstra(cavity, graph, simplices, neighbors, vertices,
+                            coords, vdw_radii, similarity)
     LOGGER.report('Channel pathfinding (graph Dijkstra) over {0} cavities completed in %.2fs.'.format(
         len(c_filtered_cavities)), '_prody_channels_pathfinding')
 
@@ -1776,7 +1870,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
     :type mp_context: str or None
 
     :arg kwargs: Additional parameters required for channel calculation. This can 
-        include parameters such as radius values (r1, r2), minimum depth (min_depth), 
+        include parameters such as radius values (surf_radius, inner_radius), minimum depth (min_depth), 
         bottleneck values, etc. 
         See the available parameters in calcChannels().
     :type kwargs: dict
@@ -1787,8 +1881,8 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
 
     Example usage:
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, 
-                                    output_path="channels.pdb", separate=False, r1=3, 
-                                    r2=0.9, min_depth=5, bottleneck=1, sparsity=3)
+                                    output_path="channels.pdb", separate=False, surf_radius=3, 
+                                    inner_radius=0.9, min_depth=5, bottleneck=1, sparsity=3)
                                   
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms, trajectory=traj, 
                                     output_path="channels.pdb", separate=False, 
@@ -1807,13 +1901,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
         
         from pathlib2 import Path
         
-    try:
-        coords = getCoords(atoms)
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object with `getCoords` method')    
+    _requireCoords(atoms)
 
     channels_all = []
     surfaces_all = []
@@ -1944,7 +2032,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
     :type separate: bool
 
     :arg kwargs: Additional parameters passed to :func:`calcSurfaceCavities`.
-        These can include `r1`, `r2`, `min_depth`, `max_depth`,
+        These can include `surf_radius`, `inner_radius`, `min_depth`, `max_depth`,
         `min_tetrahedra`, `max_tetrahedra`, `min_volume`, `max_volume`,
         `start_frame`, and `stop_frame`.
     :type kwargs: dict
@@ -1960,10 +2048,10 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
     protein = parsePDB('1tqn').select('protein')
     cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, 
                                 trajectory=traj, output_path="surface_cavities",
-                                r1=4.5, r2=2.0, min_depth=1.5, max_depth=2.5, min_volume=50)
+                                surf_radius=4.5, inner_radius=2.0, min_depth=1.5, max_depth=2.5, min_volume=50)
 
     cavities_all, surfaces_all = calcSurfaceCavitiesMultipleFrames(protein, start_frame=0, 
-                                stop_frame=10, r1=4.5, r2=2.0) """
+                                stop_frame=10, surf_radius=4.5, inner_radius=2.0) """
 
     if PY3K:
         if not checkAndImport('pathlib'):
@@ -1974,13 +2062,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
             raise ImportError('To run calcSurfaceCavitiesMultipleFrames, please install pathlib2 for Python 2.7.')
         from pathlib2 import Path
 
-    try:
-        coords = getCoords(atoms)
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object with `getCoords` method')
+    _requireCoords(atoms)
 
     cavities_all = []
     surfaces_all = []
@@ -2478,6 +2560,25 @@ def getSurfaceCavityParametersMultipleFrames(cavities_all, **kwargs):
     return parameters_all
 
 
+def _sampleObjectSpheres(object, num_samples=5):
+    """``(centres, radii)`` of the probe spheres along a channel or a pore.
+
+    ``num_samples`` points per tetrahedron of the route, evenly spaced in the
+    spline parameter. This is the one definition of "the spheres of an object":
+    :func:`getChannelAtoms` and
+    :meth:`~ChannelCalculator.saveChannelsToPdb` write these very spheres out as
+    FIL atoms, and the lining queries take them straight from here, since the
+    radius they need survives no better in a PDB radius column than in memory."""
+
+    centerline_spline, radius_spline = object.getSplines()
+    samples = len(object.tetrahedra) * num_samples
+    if samples < 1:
+        return np.empty((0, 3)), np.empty(0)
+
+    t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
+    return centerline_spline(t), radius_spline(t)
+
+
 def getChannelAtoms(channels, protein=None, num_samples=5):
     """Generates an AtomGroup object representing the atoms along the paths of 
     the given channels and optionally combines them with an existing protein 
@@ -2533,11 +2634,7 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
         channels = [channels]
     
     for channel in channels:
-        centerline_spline, radius_spline = channel.getSplines()
-        samples = len(channel.tetrahedra) * num_samples
-        t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
-        centers = centerline_spline(t)
-        radii = radius_spline(t)
+        centers, radii = _sampleObjectSpheres(channel, num_samples)
 
         for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], 
                                                   centers[:, 2], radii), 
@@ -2564,6 +2661,177 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
     return channels_atomic
 
 
+def _vertexRadiiSource(atoms):
+    """``(tree, vdw_radii)`` over the atoms a tessellation would have used.
+
+    Water is excluded, because :func:`calcChannels` drops it before tessellating:
+    a cavity holding a water is still a cavity, and measuring the vertex against
+    that water would report no room where the diagram found plenty. On 3A2M this is
+    the difference between a vertex of radius 2.08 and one of radius -1.27, sitting
+    0.25 A from the oxygen of HOH 610."""
+
+    dry = atoms.select('not water')
+    if dry is None:
+        dry = atoms
+
+    vdw = ChannelCalculator.getVdwRadii(
+        np.char.upper(np.asarray(dry.getElements(), dtype=str)))
+    return _kdTree(dry), vdw
+
+
+def _vertexRadii(points, source, k=24):
+    """Inscribed-sphere radius at each Voronoi vertex, ``min(|v - x| - vdw)``.
+
+    Surface cavities keep no radius of their own -- ``saveCavitiesToPdb`` writes a
+    placeholder 1.00 into the radius column -- so the radius the diagram implies is
+    recomputed here. Only the nearest *k* atoms are consulted, which is ample: van
+    der Waals radii span barely half an Angstrom, so no atom outside the nearest
+    handful can hold the minimum."""
+
+    tree, vdw = source
+    k = min(k, len(vdw))
+    distances, indices = tree.query(np.asarray(points, dtype=float), k=k)
+    if k == 1:
+        distances, indices = distances[:, None], indices[:, None]
+    return (distances - vdw[indices]).min(axis=1)
+
+
+def _liningResidues(atoms, tree, points, radii, distA):
+    """Whole residues of *atoms* reaching within *distA* of the probe surface.
+
+    The probe spheres are given by *points* and *radii*, and a residue lines the
+    object when one of its atoms falls within ``radii + distA`` of a probe centre.
+    The radius belongs in the criterion because the probe is a sphere and not a
+    point: measured from the centre alone a fixed *distA* reaches only ``distA - r``
+    past the surface, so it gathers a second shell where the object is narrow and
+    misses the wall where it is wide. Two thirds of the vertices of the default
+    surface cavities of 3A2M have their nearest wall atom beyond 4 A, and the
+    residues lining that volume were absent from the report altogether.
+
+    Residues are completed but never widened past what the caller supplied, which
+    is what the ``same residue as`` selection this replaces also did."""
+
+    if len(points) == 0:
+        return None
+
+    hits = tree.query_ball_point(np.asarray(points, dtype=float),
+                                 np.asarray(radii, dtype=float) + distA)
+    hits = [h for h in hits if len(h)]
+    if not hits:
+        return None
+
+    resindices = atoms.getResindices()
+    lining = np.unique(resindices[np.unique(np.concatenate(hits))])
+    selected = np.flatnonzero(np.isin(resindices, lining))
+
+    if hasattr(atoms, 'getAtomGroup'):   # a selection: index back into its group
+        return atoms.getAtomGroup()[atoms.getIndices()[selected].tolist()]
+    return atoms[selected.tolist()]
+
+
+def _oneLetterResname(residue):
+    """One-letter code for an amino acid or a nucleotide, residue name for the rest.
+
+    Only residue names that ProDy knows as amino acids or nucleic acids are
+    translated. AAMAP holds both directions -- LYS to K, and also K to LYS -- so
+    looking a ligand up in it renames it into an amino acid: the ion K becomes LYS
+    and F becomes PHE, while the cofactors SAM and SAH become M and C, each
+    indistinguishable in the report from the residue it now names. Ligands, ions,
+    cofactors and sugars therefore keep their PDB chemical component ID, which
+    identifies them and cannot be misread as a residue.
+
+    The test is the name alone, against ``flags.AMINOACIDS`` and the nucleic
+    definition, not the ``protein`` and ``nucleic`` flags: ProDy plants the
+    ``protein`` flag through ``calpha``, so a histidine deposited as HETATM, or any
+    residue whose CA is missing, is not flagged protein and would lose its one-letter
+    code for want of an atom that has nothing to do with what the residue is."""
+
+    from prody.atomic import flags
+    from prody.atomic.atomic import AAMAP
+
+    resname = residue.getResname()
+
+    if resname in flags.DEFINITIONS['nucleic']:
+        # NAMAP is ProDy's own nucleotide map and covers the modified bases. AAMAP
+        # is no use here: it reads GUA as glutamate and CYT as tyrosine.
+        return flags.NAMAP.get(resname, resname)
+
+    if resname in flags.AMINOACIDS:
+        # The CHARMM/AMBER histidine names are either absent from AAMAP or, for HSE,
+        # mapped to serine, so they are resolved before the lookup.
+        if resname in ('HSD', 'HSE', 'HSP', 'HID', 'HIE', 'HIP'):
+            return AAMAP['HIS']
+        return AAMAP.get(resname, resname)
+
+    return resname
+
+
+_LiningOptions = namedtuple('_LiningOptions',
+                            'distA residues_file_name one_letter_aa '
+                            'include_water include_chain')
+
+
+def _popLiningOptions(kwargs):
+    """The reporting options shared by every lining function, popped from *kwargs*.
+
+    :func:`getObjectResidueNames` and :func:`getSurfaceCavityResidueNames` both
+    receive them as keywords forwarded by their wrappers, so a default is written
+    once here instead of in two lists that have to be kept in step."""
+
+    return _LiningOptions(
+        distA=kwargs.pop('distA', 2.5),
+        residues_file_name=kwargs.pop('residues_file_name', None),
+        one_letter_aa=kwargs.pop('one_letter_aa', False),
+        include_water=kwargs.pop('include_water', False),
+        include_chain=kwargs.pop('include_chain', True))
+
+
+def _formatLiningResidues(residues, options):
+    """Label every residue in *residues* as ``<resname><resnum>:<chain>``, one each.
+
+    *options* are the :func:`_popLiningOptions` settings of the calling report.
+
+    The residue is read from the hierarchical view rather than from a representative
+    atom. Standing for a residue by its ``CA`` silently dropped everything that has
+    none -- nucleic acids, cofactors, ligands, ions -- although those atoms line the
+    channel and enter the calculation exactly as protein atoms do, and it raised
+    :exc:`AttributeError` where a channel was lined by no protein at all.
+
+    The chain is written unless *include_chain* is false, because without it a
+    residue number is not an identifier: an oligomer lines a channel with residues of
+    the same number from several chains, and the report then names one residue twice
+    instead of naming two. The chain needs a separator of its own, since an
+    insertion code already sits directly behind the number and ``ASP100A`` is taken.
+    A colon separates it, and the entry prefix written by the callers remains
+    unambiguous, as it is a colon *and a space*. A structure with no chain
+    identifiers gets no separator either.
+
+    Waters are left out unless *include_water*: :func:`calcChannels` drops them
+    before tessellating, so they shape no channel, and being reported one entry per
+    molecule they would bury the lining of a solvated structure under hundreds of
+    HOH. FIL pseudoatoms are always dropped, in case a structure has a chain and
+    residue number colliding with the ones :func:`getChannelAtoms` writes for
+    them."""
+
+    if residues is None:
+        return []
+
+    residues = residues.select('not resname FIL' if options.include_water
+                               else 'not water and not resname FIL')
+    if residues is None:
+        return []
+
+    labels = []
+    for residue in residues.getHierView().iterResidues():
+        resname = (_oneLetterResname(residue) if options.one_letter_aa
+                   else residue.getResname())
+        chid = residue.getChid().strip() if options.include_chain else ''
+        labels.append('{0}{1}{2}{3}'.format(resname, residue.getResnum(),
+                                            residue.getIcode().strip(),
+                                            ':' + chid if chid else ''))
+    return labels
+
+
 def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
     '''Provides the resnames and resid of residues that are forming the object(s). 
     Residues are extracted based on distA which is the distance between FIL atoms 
@@ -2582,9 +2850,12 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
         Default is "channel".
     :type object_type: str
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -2594,84 +2865,66 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
+
+    _requireCoords(atoms)
 
     if object_type not in ('channel', 'pore'):
         raise ValueError("object_type must be 'channel' or 'pore'")
 
-    distA = kwargs.pop('distA', 4)
-    residues_file_name = kwargs.pop('residues_file_name', None) 
-    
-    one_letter_aa = kwargs.pop('one_letter_aa', False)
-    if one_letter_aa == True:
-        from prody.atomic.atomic import AAMAP    
-    
+    options = _popLiningOptions(kwargs)
+
+    tree = _kdTree(atoms)
+
     if isinstance(objects, list):
         # Multiple objects
         selected_residues_ch = []
-    
+
         for i, object in enumerate(objects):
-            atoms_protein = getChannelAtoms(object, atoms)
-            residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-    
-            if residues is not None:
-                resnames = residues.select('name CA').getResnames()
-                if one_letter_aa == True:
-                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
-                                                    else AAMAP[aa] for aa in resnames]
-                    resnames = resnames_1letter
-                                    
-                resnums = residues.select('name CA').getResnums()
-                residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
-                residues_list = ", ".join(residues_info)
-                if object_type == "channel":
-                    residues_list = 'channel'+str(i)+': '+residues_list
-                elif object_type == "pore":
-                    residues_list = "pore"+str(i)+': '+residues_list
-                selected_residues_ch.append(residues_list)
-            else:
-                residues_list = "None"
-            
+            points, radii = _sampleObjectSpheres(object)
+            residues = _liningResidues(atoms, tree, points, radii, options.distA)
+            residues_info = _formatLiningResidues(residues, options)
+
+            # An object with no lining left is reported as "None" rather than
+            # skipped, so that the returned list keeps one entry per object.
+            residues_list = ", ".join(residues_info) if residues_info else "None"
+            if object_type == "channel":
+                residues_list = 'channel'+str(i)+': '+residues_list
+            elif object_type == "pore":
+                residues_list = "pore"+str(i)+': '+residues_list
+            selected_residues_ch.append(residues_list)
+
     else:
         # Single object analysis in case someone provide objects[0]
-        atoms_protein = getChannelAtoms(objects, atoms)
-        residues = atoms_protein.select('same residue as exwithin '+str(distA)+' of resname FIL')
-        selected_residues_ch = []
-        
-        if residues is not None:
-            resnames = residues.select('name CA').getResnames()
-            if one_letter_aa == True:
-                resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSP", "HSE", "HID", "HIE", "HIP") 
-                                                else AAMAP[aa] for aa in resnames]
-                resnames = resnames_1letter
+        points, radii = _sampleObjectSpheres(objects)
+        residues = _liningResidues(atoms, tree, points, radii, options.distA)
+        residues_info = _formatLiningResidues(residues, options)
+        selected_residues_ch = [", ".join(residues_info) if residues_info else "None"]
 
-            resnums = residues.select('name CA').getResnums()
-            residues_info = ["{}{}".format(resname, resnum) for resname, resnum in zip(resnames, resnums)]
-            residues_list = ", ".join(residues_info)
-            selected_residues_ch.append(residues_list)
-        else:
-            selected_residues_ch.append("None")
-
-    if residues_file_name is not None:
+    if options.residues_file_name is not None:
         if object_type == "channel":
-            output_file = residues_file_name + '_Residues_All_channels.txt'
+            output_file = options.residues_file_name + '_Residues_All_channels.txt'
         elif object_type == "pore":
-            output_file = residues_file_name + '_Residues_All_pores.txt'
+            output_file = options.residues_file_name + '_Residues_All_pores.txt'
             
         with open(output_file, "a") as f_res:
             for k in selected_residues_ch:
-                f_res.write(("{0}_{1}\n".format(residues_file_name, k)))
+                f_res.write(("{0}_{1}\n".format(options.residues_file_name, k)))
         
         if object_type == "channel":
             LOGGER.info("Channel residues were saved to: {0}".format(output_file))
@@ -2705,9 +2958,12 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
         Default is "channel".
     :type object_type: str
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -2717,8 +2973,22 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
@@ -2809,9 +3079,12 @@ def getChannelResidueNames(atoms, channels, **kwargs):
         the channel.
     :type channels: list
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -2821,8 +3094,22 @@ def getChannelResidueNames(atoms, channels, **kwargs):
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     return getObjectResidueNames(atoms, channels, object_type='channel', **kwargs)
 
@@ -2841,9 +3128,12 @@ def getPoreResidueNames(atoms, pores, **kwargs):
         the pore.
     :type pores: list
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -2853,8 +3143,22 @@ def getPoreResidueNames(atoms, pores, **kwargs):
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     return getObjectResidueNames(atoms, pores, object_type='pore', **kwargs)
 
@@ -2873,9 +3177,12 @@ def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwa
         the channel.
     :type channels: list
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -2885,8 +3192,22 @@ def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwa
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     return getObjectResidueNamesMultipleFrames(atoms, channels, trajectory=trajectory, 
                                                 object_type='channel', **kwargs)
@@ -2906,9 +3227,12 @@ def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None, **kwargs):
         the pore.
     :type pores: list
 
-    :arg distA: Residues will be provided based on this value.
-        default is 4 [Ang]
-    :type distA: int, float 
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
         file with the provided name. Use one word which will be added to 
@@ -2918,8 +3242,22 @@ def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None, **kwargs):
     :type residues_file_name: str  
     
     :arg one_letter_aa: Whether to apply 1-latter code to residue name
-        by defult is False
-    :type one_letter_aa: bool  '''
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
 
     return getObjectResidueNamesMultipleFrames(atoms, pores, trajectory=trajectory, 
                                                     object_type='pore', **kwargs)
@@ -2944,8 +3282,11 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
         to surface cavities.
     :type surface: list
 
-    :arg distA: Residues will be provided based on this value.
-        Default is 4 [Ang].
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
     :type distA: int, float
 
     :arg residues_file_name: The file with residues will be saved in a text file
@@ -2954,29 +3295,30 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     :type residues_file_name: str
 
     :arg one_letter_aa: Whether to apply one-letter code to residue names.
-        Default is False.
+        Default is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
     :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool
 
     :returns: A list of residue names and residue numbers for each surface cavity.
     :rtype: list
     '''
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                  atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+    _requireCoords(atoms)
 
-    distA = kwargs.pop('distA', 4)
-    residues_file_name = kwargs.pop('residues_file_name', None)
-
-    one_letter_aa = kwargs.pop('one_letter_aa', False)
-    if one_letter_aa == True:
-        from prody.atomic.atomic import AAMAP
+    options = _popLiningOptions(kwargs)
 
     if surface is None or len(surface) < 5:
         raise ValueError('surface must contain Voronoi vertices in surface[4]')
@@ -2986,6 +3328,9 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
         cavities = [cavities]
 
     selected_residues_cav = []
+    tree = _kdTree(atoms)
+    radii_source = _vertexRadiiSource(atoms)
+    intruding = 0
 
     for i, cavity in enumerate(cavities):
         if cavity.tetrahedra is None or len(cavity.tetrahedra) == 0:
@@ -2993,37 +3338,28 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
             continue
 
         points = vertices[cavity.tetrahedra]
-        residues = atoms.select('same residue as exwithin ' + str(distA) + ' of center', center=points)
+        radii = _vertexRadii(points, radii_source)
+        intruding += int((radii < 0).sum())
+        residues = _liningResidues(atoms, tree, points, radii, options.distA)
 
-        if residues is not None:
-            ca_residues = residues.select('name CA')
+        residues_info = _formatLiningResidues(residues, options)
+        residues_list = ", ".join(residues_info) if residues_info else "None"
+        selected_residues_cav.append('cavity' + str(i) + ': ' + residues_list)
 
-            if ca_residues is not None:
-                resnames = ca_residues.getResnames()
+    # A vertex of the diagram cannot lie inside an atom the diagram was built from,
+    # so a negative radius means these atoms are not the ones the cavities came from.
+    if intruding:
+        _warn("{0} cavity vertices lie inside an atom of the supplied structure. "
+              "The cavities were calculated on a different set of atoms than the "
+              "one given here, so their lining is reported against the wrong "
+              "structure.".format(intruding))
 
-                if one_letter_aa == True:
-                    resnames_1letter = [AAMAP["HIS"] if aa in ("HSD", "HSE", "HSP", "HID", "HIE", "HIP")
-                        else AAMAP.get(aa, aa) for aa in resnames]
-                    resnames = resnames_1letter
-
-                resnums = ca_residues.getResnums()
-                residues_info = ["{}{}".format(resname, resnum)
-                    for resname, resnum in zip(resnames, resnums)]
-
-                residues_list = 'cavity' + str(i) + ': ' + ", ".join(residues_info)
-                selected_residues_cav.append(residues_list)
-
-            else:
-                selected_residues_cav.append('cavity' + str(i) + ': None')
-        else:
-            selected_residues_cav.append('cavity' + str(i) + ': None')
-
-    if residues_file_name is not None:
-        output_file = residues_file_name + '_Residues_All_surface_cavities.txt'
+    if options.residues_file_name is not None:
+        output_file = options.residues_file_name + '_Residues_All_surface_cavities.txt'
         with open(output_file, "w") as f_res:
-            f_res.write("# cavity_id residues_within_" + str(distA) + "_A\n")
+            f_res.write("# cavity_id residues_within_" + str(options.distA) + "_A\n")
             for k in selected_residues_cav:
-                f_res.write("{0}_{1}\n".format(residues_file_name, k))
+                f_res.write("{0}_{1}\n".format(options.residues_file_name, k))
                 
         LOGGER.info("Surface cavity residues were saved to: {0}".format(output_file))
 
@@ -3075,13 +3411,30 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
         ``_frameX`` added to the file name.
     :type residues_file_name: str
 
-    :arg distA: maximal distance between surface cavity points and protein
-        residues. Default is 4 Å.
+    :arg distA: Residues reaching within this distance of the cavity's surface
+        are reported. The inscribed radius at each cavity vertex is added to it,
+        so the reach past the surface is the same in a wide cavity as in a
+        narrow one. The distance runs to the atom centre, so a touching atom
+        sits at about one van der Waals radius. Default is 2.5 Å.
     :type distA: int, float
 
     :arg one_letter_aa: whether to apply one-letter code to residue names.
-        Default is False.
-    :type one_letter_aa: bool  """
+        Default is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  """
 
     start_frame = kwargs.pop('start_frame', 0)
     residues_file_name = kwargs.pop('residues_file_name', None)
@@ -3163,15 +3516,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         getChannelParameters(). Default is False.
     :type param_file: bool  """
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+    _requireCoords(atoms)
     
     import os, shutil
     
@@ -3234,7 +3579,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         selected_param = []
         for file in copied_files_list:
             try:
-                PDB_id = file[:-4].split('_channel')[0] 
+                PDB_id = file[:-4].split('_chl')[0] 
                 channel_name = file[:-4].split('_')[-1]
                 f = open(PDB_id+'_Parameters_All_channels.txt', 'r').readlines()
                 for line in f:
@@ -3488,7 +3833,7 @@ def calcSurfaceCavityOverlaps(**kwargs):
     return calcChannelSurfaceOverlaps(**kwargs)
 
 
-def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
+def calcSurfaceCavities(atoms, output_path=None, surf_radius=4.5, inner_radius=2.0, min_depth=1.5,
                         max_depth=2.5, min_tetrahedra=None, max_tetrahedra=None,
                         min_volume=50, max_volume=None, sparsity=None,
                         separate=False):
@@ -3509,13 +3854,13 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
         False.
     :type separate: bool
 
-    :arg r1: The first radius threshold used during the deletion of simplices, 
+    :arg surf_radius: The first radius threshold used during the deletion of simplices, 
         which is used to define the outer surface of the cavities. Default is 4.5.
-    :type r1: float
+    :type surf_radius: float
 
-    :arg r2: The second radius threshold used to define the inner surface of 
+    :arg inner_radius: The second radius threshold used to define the inner surface of 
         the cavities. Default is 2.
-    :type r2: float
+    :type inner_radius: float
 
     :arg min_depth: The minimum depth, in Angstrom, a cavity must reach to be
         considered. Depth is the geodesic distance from the surface opening along 
@@ -3565,7 +3910,7 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
         calculates van der Waals radii, and performs 3D Delaunay triangulation 
         and Voronoi tessellation on the coordinates.
     2. **Surface and Interior Filtering:** Iteratively removes simplices based 
-        on the user-defined radii (`r1` and `r2`) to distinguish the molecular 
+        on the user-defined radii (`surf_radius` and `inner_radius`) to distinguish the molecular 
         surface from the internal void space.
     3. **Surface Cavity Identification:** Detects connected void regions and 
         identifies those that remain connected to the protein surface, 
@@ -3590,7 +3935,7 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
               "ones, so it never changed them.")
 
     # No peel (min_enclosure=0). The enclosure peel strips the shell of true
-    # exterior that a large r1 probe bridges over instead of entering, because it
+    # exterior that a large surf_radius probe bridges over instead of entering, because it
     # offers a channel wide, low-cost routes along the outside of the protein. A
     # surface cavity *is* that shell: a pocket is shallow and open by definition,
     # so the peel deletes these cavities 
@@ -3598,7 +3943,7 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
             atoms,
             output_path=output_path,
             separate=separate,
-            r1=r1, r2=r2,
+            surf_radius=surf_radius, inner_radius=inner_radius,
             min_depth=min_depth, max_depth=max_depth,
             min_volume=min_volume, max_volume=max_volume,
             min_tetrahedra=min_tetrahedra, max_tetrahedra=max_tetrahedra,
@@ -3606,13 +3951,13 @@ def calcSurfaceCavities(atoms, output_path=None, r1=4.5, r2=2.0, min_depth=1.5,
     
     return cavities, surface
 
-def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
+def scanChannelParameters(atoms, inner_radius_values=(1.2, 1.4, 1.6),
     sparsity_values=(1.0, 3.0, 5.0), min_depth_values=(3.0, 5.0, 10.0),
     output_path='channel_parameter_grid', resolution=0.5, max_proc=2,
     start_point=None, **kwargs):
     """Calculate channels over a combination grid of parameters.
 
-    This function evaluates every combination of ``r2``, ``sparsity``, and
+    This function evaluates every combination of ``inner_radius``, ``sparsity``, and
     ``min_depth`` for one molecular structure. All channels obtained for one
     parameter combination are saved together in one PQR file, so every grid
     point contributes one equally weighted result to the final spatial
@@ -3623,9 +3968,9 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
     :arg atoms: Atomic structure analyzed with :func:`calcChannels`.
     :type atoms: :class:`.Atomic`
 
-    :arg r2_values: Probe radii defining the internal void space. Default is
+    :arg inner_radius_values: Probe radii defining the internal void space. Default is
         ``(1.2, 1.4, 1.6)``.
-    :type r2_values: float or sequence of float
+    :type inner_radius_values: float or sequence of float
 
     :arg sparsity_values: Mouth-separation values tested in the grid. Default is
         ``(1.0, 3.0, 5.0)``.
@@ -3653,7 +3998,7 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
     :type start_point: array-like, :class:`.Atomic`, or None
 
     :arg kwargs: Additional parameters passed unchanged to :func:`calcChannels`.
-        Grid-controlled parameters ``r2``, ``sparsity``, and ``min_depth`` must
+        Grid-controlled parameters ``inner_radius``, ``sparsity``, and ``min_depth`` must
         not be supplied here.
     :type kwargs: dict
 
@@ -3663,7 +4008,7 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
 
     Example usage:
     channels_all, parameter_sets, occupancy_file = scanChannelParameters(
-        protein, r2_values=[1.2, 1.4, 1.6], sparsity_values=[1, 3, 5],
+        protein, inner_radius_values=[1.2, 1.4, 1.6], sparsity_values=[1, 3, 5],
         min_depth_values=[3, 5, 10], output_path='channel_parameter_grid') """
 
     from itertools import product
@@ -3696,14 +4041,14 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
         return list(dict.fromkeys(values))
 
     forbidden_params = sorted(set(kwargs).intersection(
-        {'r2', 'sparsity', 'min_depth', 'output_path', 
+        {'inner_radius', 'sparsity', 'min_depth', 'output_path', 
          'separate', 'cavities_only', 'return_details'}))
     if forbidden_params:
         raise ValueError("Grid-controlled arguments must not be passed in kwargs: {0}".format(
-            ', '.join(forbidden)))
+            ', '.join(forbidden_params)))
 
     # Parameters for checkup
-    r2_values = prepareValues(r2_values, 'r2_values')
+    inner_radius_values = prepareValues(inner_radius_values, 'inner_radius_values')
     sparsity_values = prepareValues(sparsity_values, 'sparsity_values', allow_zero=True)
     min_depth_values = prepareValues(min_depth_values, 'min_depth_values', allow_zero=True)
     
@@ -3716,7 +4061,7 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
         raise ValueError("output_path must be a directory")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    parameter_grid = list(product(r2_values, sparsity_values, min_depth_values))
+    parameter_grid = list(product(inner_radius_values, sparsity_values, min_depth_values))
     channels_all = []
     parameter_sets = []
     pqr_files = []
@@ -3728,23 +4073,23 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
     LOGGER.info("Calculating channels for {0} parameter combinations.".format(len(parameter_grid)))
 
     with open(str(summary_file), 'w') as summary, open(str(details_file), 'w') as details:
-        summary.write("# Run r2 [Å] sparsity [Å] min_depth [Å] Number_of_channels PQR_file\n")
-        details.write("# Run Channel_id r2 [Å] sparsity [Å] min_depth [Å] Length [Å] Bottleneck [Å] Volume [Å^3] Curvature Cost\n")
+        summary.write("# Run inner_radius [Å] sparsity [Å] min_depth [Å] Number_of_channels PQR_file\n")
+        details.write("# Run Channel_id inner_radius [Å] sparsity [Å] min_depth [Å] Length [Å] Bottleneck [Å] Volume [Å^3] Curvature Cost\n")
 
-        for run_index, (r2, sparsity, min_depth) in enumerate(parameter_grid):
-            tag = "run{0:03d}_r2_{1}_sparsity_{2}_depth_{3}".format(
+        for run_index, (inner_radius, sparsity, min_depth) in enumerate(parameter_grid):
+            tag = "run{0:03d}_inner_radius_{1}_sparsity_{2}_depth_{3}".format(
                 run_index, *("{0:g}".format(value).replace('-', 'm').replace('.', 'p')
-                             for value in (r2, sparsity, min_depth)))
+                             for value in (inner_radius, sparsity, min_depth)))
             pqr_file = output_dir / ('channels_' + tag + '.pqr')
 
-            LOGGER.info("Grid run {0}/{1}: r2={2:g}, sparsity={3:g}, min_depth={4:g}".format(
-                run_index + 1, len(parameter_grid), r2, sparsity, min_depth))
+            LOGGER.info("Grid run {0}/{1}: inner_radius={2:g}, sparsity={3:g}, min_depth={4:g}".format(
+                run_index + 1, len(parameter_grid), inner_radius, sparsity, min_depth))
 
             channels, _ = calcChannels(atoms, output_path=str(pqr_file), separate=False,
-                start_point=start_point, r2=r2, sparsity=sparsity,
+                start_point=start_point, inner_radius=inner_radius, sparsity=sparsity,
                 min_depth=min_depth, **kwargs)
 
-            params = {'run': run_index, 'r2': r2, 'sparsity': sparsity,
+            params = {'run': run_index, 'inner_radius': inner_radius, 'sparsity': sparsity,
                       'min_depth': min_depth, 'pqr_file': str(pqr_file)}
 
             channels_all.append(channels)
@@ -3752,13 +4097,13 @@ def scanChannelParameters(atoms, r2_values=(1.2, 1.4, 1.6),
             pqr_files.append(str(pqr_file))
 
             summary.write("{0} {1:.3f} {2:.3f} {3:.3f} {4} {5}\n".format(
-                run_index, r2, sparsity, min_depth, len(channels), pqr_file.name))
+                run_index, inner_radius, sparsity, min_depth, len(channels), pqr_file.name))
 
             for channel_index, channel in enumerate(channels):
                 curvature = channel.curvature if np.isfinite(channel.curvature) else float('nan')
                 cost = channel.cost if channel.cost is not None else float('nan')
                 details.write("{0} {1} {2:.3f} {3:.3f} {4:.3f} {5:.3f} {6:.3f} {7:.3f} {8:.3f} {9:.6g}\n".format(
-                    run_index, channel_index, r2, sparsity, min_depth,
+                    run_index, channel_index, inner_radius, sparsity, min_depth,
                     channel.length, channel.bottleneck, channel.volume,
                     curvature, cost))
 
@@ -3867,15 +4212,15 @@ def _rowsIsin(a, b):
 
 
 class ChannelCalculator:
-    def __init__(self, atoms, r2=0.9, sparsity=1, route_tolerance=1.0,
+    def __init__(self, atoms, inner_radius=0.9, sparsity=1, route_tolerance=1.0,
                  edge_cost='integral'):
-        # Only the parameters the class actually consults are held here. r1,
+        # Only the parameters the class actually consults are held here. surf_radius,
         # min_depth and bottleneck are stages of the pipeline, applied to the
         # tessellation and to the finished channels by calcChannels; keeping copies
         # of them on the calculator suggested it filtered by them, which it does
         # not.
         self.atoms = atoms
-        self.r2 = r2
+        self.inner_radius = inner_radius
         self.sparsity = sparsity
         self.route_tolerance = route_tolerance
         # 'integral' (clearance-profile integral) or 'bottleneck' (l/(d^2+b));
@@ -4056,13 +4401,11 @@ class ChannelCalculator:
         :arg tree: optional prebuilt :class:`~scipy.spatial.cKDTree` over
             ``centers``, to avoid rebuilding it on every call.
         :returns: ``n`` fractions in ``[0, 1]``."""
-        from scipy.spatial import cKDTree
-
         query = np.asarray(query, dtype=float)
         if len(query) == 0:
             return np.empty(0)
         if tree is None:
-            tree = cKDTree(np.asarray(centers, dtype=float))
+            tree = _kdTree(centers)
 
         i = np.arange(ENCLOSURE_RAYS) + 0.5
         phi = np.arccos(1 - 2 * i / ENCLOSURE_RAYS)
@@ -4093,25 +4436,25 @@ class ChannelCalculator:
         the tetrahedra stop being open to the solvent.
 
         This removes the "moat": the shell of true exterior that lies inside the
-        ``r1`` surface, because an ``r1`` probe cannot enter the concavities it
+        ``surf_radius`` surface, because an ``surf_radius`` probe cannot enter the concavities it
         bridges over. Left in place the moat joins the cavity and offers wide,
         cheap routes along the outside of the protein.
 
         Neither obvious way of bounding the erosion works. A count of tetrahedron
         layers is not mesh-invariant, since a layer is one tetrahedron thick and
         tetrahedra shrink as the tessellation is refined. A depth in Angstrom is
-        not ``r1``-invariant, since the moat has no constant thickness: it is as
-        deep as ``r1 - r`` inside a concavity and vanishes on a flat face, so a
+        not ``surf_radius``-invariant, since the moat has no constant thickness: it is as
+        deep as ``surf_radius - r`` inside a concavity and vanishes on a flat face, so a
         depth large enough to clear it where it is thick also marches down the
-        channel mouths and erodes the channels themselves. At ``r1 = 10``, a
+        channel mouths and erodes the channels themselves. At ``surf_radius = 10``, a
         reasonable setting for a porin or a ribosome, that leaves almost nothing.
 
         The rule used here is local instead. A boundary tetrahedron is stripped
         only while it is *open*, that is while its enclosure is below
         ``min_enclosure`` (see :meth:`calcEnclosure`). The moat is open by
         construction and goes; erosion halts by itself at the first buried layer.
-        ``r1`` then decides only where the erosion starts, not where it stops, so
-        the result no longer depends on it, and ``r1`` is left doing the one job
+        ``surf_radius`` then decides only where the erosion starts, not where it stops, so
+        the result no longer depends on it, and ``surf_radius`` is left doing the one job
         it should: capping the mouths.
 
         Since enclosure is a static field, the peel is really "delete the
@@ -4140,8 +4483,6 @@ class ChannelCalculator:
         :arg max_depth: optional cap, in Angstrom, on how far the front may
             advance from the initial surface. ``None`` (default) is uncapped.
         :returns: ``(simplices, neighbors, vertices)``, compacted."""
-        from scipy.spatial import cKDTree
-
         simplices = np.asarray(simplices)
         neighbors = np.asarray(neighbors)
         vertices = np.asarray(vertices)
@@ -4155,8 +4496,8 @@ class ChannelCalculator:
 
         # Fixed for the whole peel, so the cap bounds the total advance of the
         # front rather than its advance per pass.
-        surface = cKDTree(vertices[boundary]) if max_depth is not None else None
-        atoms = cKDTree(atom_coords)
+        surface = _kdTree(vertices[boundary]) if max_depth is not None else None
+        atoms = _kdTree(atom_coords)
         # Enclosure is a property of a point, not of the shrinking mesh, so a
         # tetrahedron re-examined on a later pass is never re-traced. Tetrahedra
         # are renumbered by the compaction below, but the four balls they are
@@ -4236,21 +4577,14 @@ class ChannelCalculator:
 
         return simp, neigh, verti
 
-    def getVdwRadii(self, atoms):
-        vdw_radii_dict = {
-            'H': 1.20, 'HE': 1.40, 'LI': 1.82, 'BE': 1.53, 'B': 1.92, 'C': 1.70,
-            'N': 1.55, 'O': 1.52, 'F': 1.47, 'NE': 1.54, 'NA': 2.27, 'MG': 1.73,
-            'AL': 1.84, 'SI': 2.10, 'P': 1.80, 'S': 1.80, 'CL': 1.75, 'AR': 1.88,
-            'K': 2.75, 'CA': 2.31, 'SC': 2.11, 'NI': 1.63, 'CU': 1.40, 'ZN': 1.39,
-            'GA': 1.87, 'GE': 2.11, 'AS': 1.85, 'SE': 1.90, 'BR': 1.85, 'KR': 2.02,
-            'RB': 3.03, 'SR': 2.49, 'PD': 1.63, 'AG': 1.72, 'CD': 1.58, 'IN': 1.93,
-            'SN': 2.17, 'SB': 2.06, 'TE': 2.06, 'I': 1.98, 'XE': 2.16, 'CS': 3.43,
-            'BA': 2.68, 'PT': 1.75, 'AU': 1.66, 'HG': 1.55, 'TL': 1.96, 'PB': 2.02,
-            'BI': 2.07, 'PO': 1.97, 'AT': 2.02, 'RN': 2.20, 'FR': 3.48, 'RA': 2.83,
-            'U': 1.86, 'FE': 2.44
-        }
-        
-        return np.array([vdw_radii_dict[atom] for atom in atoms])
+    @staticmethod
+    def getVdwRadii(atoms):
+        """Van der Waals radius of each element in *atoms*, from :data:`VDW_RADII`.
+
+        A static method, so the radii a diagram would have been built on can be
+        had without a calculator to build one (see :func:`_vertexRadiiSource`)."""
+
+        return np.array([VDW_RADII[atom] for atom in atoms])
 
     def _fibonacciSphere(self, n):
         """Return ``n`` roughly evenly distributed unit vectors on a sphere using
@@ -4349,14 +4683,14 @@ class ChannelCalculator:
 
         return new_points, new_radii
 
-    def buildSurfaceDepthOracle(self, coords, vdw_radii, r1, max_deviation, max_depth):
+    def buildSurfaceDepthOracle(self, coords, vdw_radii, surf_radius, max_deviation, max_depth):
         """Interior/exterior depth oracle for relabeling the additively-weighted
         diagram's surface mouths (``diagram="weighted"``).
 
         The AW tessellation is not a clean simplicial complex: many interior 3-ball
         faces are left unpaired and masquerade as surface boundaries, so channels
         truncate to stubs. This builds a *homogenized* Voronoi diagram of the same
-        atoms (a clean simplicial complex), erodes it with an ``r1`` probe to separate
+        atoms (a clean simplicial complex), erodes it with an ``surf_radius`` probe to separate
         solvent (exterior) from protein (interior), and labels every tetrahedron by its
         geodesic distance (A) below the molecular surface (0 = exterior/solvent).
         :meth:`getSurfaceCavities` then keeps only AW exit tetrahedra whose Voronoi
@@ -4377,7 +4711,7 @@ class ChannelCalculator:
         neighbors = delaunay.neighbors
         n = len(delaunay.simplices)
 
-        # r1 surface erosion: peel boundary tetrahedra wide enough for the probe, from
+        # surf_radius surface erosion: peel boundary tetrahedra wide enough for the probe, from
         # the hull inward, until nothing more can be removed. Survivors == interior.
         alive = np.ones(n, dtype=bool)
         while True:
@@ -4385,7 +4719,7 @@ class ChannelCalculator:
             for k in range(4):
                 col = neighbors[:, k]
                 dead |= (col == -1) | ((col >= 0) & ~alive[col])
-            peel = alive & dead & (clearance >= r1)
+            peel = alive & dead & (clearance >= surf_radius)
             if not peel.any():
                 break
             alive[peel] = False
@@ -4510,7 +4844,7 @@ class ChannelCalculator:
         # large fat cells that span a wide pore under a big probe included - while flat
         # slivers diverge to R/L -> infinity. Using the dimensionless R/L, never an
         # absolute length, keeps this correct for porins, ribosome tunnels and
-        # large-probe (e.g. r1=20) runs alike. Edges touching a flagged tetrahedron are
+        # large-probe (e.g. surf_radius=20) runs alike. Edges touching a flagged tetrahedron are
         # dropped from the graph in _geodesicDepth.
         apex = points[simplices]                                  # (n, 4, 3)
         R = np.linalg.norm(apex[:, 0] - vertices, axis=1)         # circumradius
@@ -4686,8 +5020,8 @@ class ChannelCalculator:
         # scales with physical length (what makes it mesh-invariant). A short edge
         # (L <= delta) collapses to {0, t*, 1}, the three clearances already in
         # hand. r(t) is floored at r_floor so the integrand cannot diverge on a
-        # sub-r2 edge that dips through an atom (the integral's analog of the
-        # l/(d^2+b) regularizer); traversable edges have r(t) >= r2 >> r_floor and
+        # sub-inner_radius edge that dips through an atom (the integral's analog of the
+        # l/(d^2+b) regularizer); traversable edges have r(t) >= inner_radius >> r_floor and
         # are untouched. Exact for straight edges; a chord approximation for the
         # weighted (Apollonius) diagram, whose edges are arcs.
         chunk = 20000
@@ -4785,7 +5119,7 @@ class ChannelCalculator:
             #
             # No R/L flatness guard is needed here (unlike buildSurfaceDepthOracle,
             # which runs on the full diagram): this graph is the *cleared interior*
-            # state, and a runaway circumcenter means a huge clearance, so the r1
+            # state, and a runaway circumcenter means a huge clearance, so the surf_radius
             # erosion has already stripped every flat boundary tetra - measured 0
             # degenerate tetra and max edge ~4 A in the cleared graph. That matters
             # because l/(d^2+b) *over*-prices a runaway edge (huge l) so the search
@@ -4806,7 +5140,7 @@ class ChannelCalculator:
         return csr_matrix((weight, (rows, cols)), shape=(N, N))
 
     def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points,
-                 vdw_radii, truncate_at_surface=True, similarity=0.8):
+                 vdw_radii, similarity=0.8):
         # a single multi-target Dijkstra from the seed over the cavity subgraph,
         # then every exit path reconstructed from the predecessor tree - 
         # instead of one heap search per (seed, exit) pair.
@@ -4837,11 +5171,11 @@ class ChannelCalculator:
         # cheaper, so interior tunnels drop out one by one as max_deviation
         # shrinks; forbidding transit removes that dependence entirely.
         # A mouth is a surface (exit) tetrahedron a probe of the traversal
-        # radius r2 can leave through. Note the gate is r2, not bottleneck:
+        # radius inner_radius can leave through. Note the gate is inner_radius, not bottleneck:
         # bottleneck is a reporting filter, and letting it decide which mouths
         # absorb would let it silently re-open narrow mouths as transit nodes,
         # i.e. change the routes rather than filter them. For the homogenized
-        # and weighted diagrams every surviving tetrahedron already clears r2 by
+        # and weighted diagrams every surviving tetrahedron already clears inner_radius by
         # construction (equal radii + equidistant circumcenter collapse the
         # sum-based test in deleteSimplices3d to the per-atom clearance), so the
         # test is a no-op there; it earns its keep for diagram="simple", where
@@ -4850,50 +5184,49 @@ class ChannelCalculator:
         terminals_local = [global_to_local[int(t)]
                            for t in np.asarray(cavity.end_tetrahedra)
                            if int(t) in global_to_local]
-        if truncate_at_surface:
-            exit_tetra = np.asarray(getattr(cavity, 'exit_tetrahedra',
-                                            np.empty(0, dtype=np.intp)))
-            if len(exit_tetra):
-                verts = vertices[exit_tetra]
-                atom_pos = points[simplices[exit_tetra]]
-                atom_rad = vdw_radii[simplices[exit_tetra]]
-                clearance = (np.linalg.norm(atom_pos - verts[:, None, :],
-                                            axis=2) - atom_rad).min(axis=1)
-                seeds = set(int(s) for s in cavity.starting_tetrahedron)
+        exit_tetra = np.asarray(getattr(cavity, 'exit_tetrahedra',
+                                        np.empty(0, dtype=np.intp)))
+        if len(exit_tetra):
+            verts = vertices[exit_tetra]
+            atom_pos = points[simplices[exit_tetra]]
+            atom_rad = vdw_radii[simplices[exit_tetra]]
+            clearance = (np.linalg.norm(atom_pos - verts[:, None, :],
+                                        axis=2) - atom_rad).min(axis=1)
+            seeds = set(int(s) for s in cavity.starting_tetrahedron)
 
-                # Only the mouths themselves absorb. A tetrahedron that merely lies
-                # inside a mouth's inscribed ball must NOT be absorbed: the ball's
-                # radius is the clearance (up to ~2 A) and it reaches inward as
-                # well as outward, so absorbing on it eats the corridors that
-                # approach the surface and truncates real tunnels before they
-                # arrive - measured to delete both known side tunnels at
-                # max_deviation=0.1 while keeping them at 0.02, i.e. exactly the
-                # silent, mesh-dependent tunnel loss this design exists to prevent.
-                # A path can consequently still slip *past* a mouth through a twin
-                # tetrahedron - a neighbour sharing almost the same circumcenter,
-                # not itself in the second layer and so still conducting - and
-                # surface again somewhere else. That leak is real but narrow (the
-                # twins sit 0.1-0.7 A from a mouth, in the surface shell at depth
-                # 1-4), and such a path always passes through the exit sphere of a
-                # channel that is already reported. It is therefore handled in
-                # _addDedupedChannels, which cuts a path at the first reported exit
-                # sphere it enters - the point where it truly leaves the protein -
-                # rather than walling the graph off against every mouth.
-                absorbing = [global_to_local[int(t)]
-                             for t, c in zip(exit_tetra, clearance)
-                             if c >= self.r2 and int(t) in global_to_local
-                             and int(t) not in seeds]
-                if absorbing:
-                    # Zero the mouths' rows: edges *into* a mouth survive (a
-                    # channel may end there), edges *out of* it are gone.
-                    cavity_graph = cavity_graph.tolil()
-                    for i in absorbing:
-                        cavity_graph.rows[i] = []
-                        cavity_graph.data[i] = []
-                    cavity_graph = cavity_graph.tocsr()
-                # Every mouth is a terminus; the dedup decides which of them are
-                # one opening. See the comment at the target loop below.
-                terminals_local = absorbing
+            # Only the mouths themselves absorb. A tetrahedron that merely lies
+            # inside a mouth's inscribed ball must NOT be absorbed: the ball's
+            # radius is the clearance (up to ~2 A) and it reaches inward as
+            # well as outward, so absorbing on it eats the corridors that
+            # approach the surface and truncates real tunnels before they
+            # arrive - measured to delete both known side tunnels at
+            # max_deviation=0.1 while keeping them at 0.02, i.e. exactly the
+            # silent, mesh-dependent tunnel loss this design exists to prevent.
+            # A path can consequently still slip *past* a mouth through a twin
+            # tetrahedron - a neighbour sharing almost the same circumcenter,
+            # not itself in the second layer and so still conducting - and
+            # surface again somewhere else. That leak is real but narrow (the
+            # twins sit 0.1-0.7 A from a mouth, in the surface shell at depth
+            # 1-4), and such a path always passes through the exit sphere of a
+            # channel that is already reported. It is therefore handled in
+            # _addDedupedChannels, which cuts a path at the first reported exit
+            # sphere it enters - the point where it truly leaves the protein -
+            # rather than walling the graph off against every mouth.
+            absorbing = [global_to_local[int(t)]
+                         for t, c in zip(exit_tetra, clearance)
+                         if c >= self.inner_radius and int(t) in global_to_local
+                         and int(t) not in seeds]
+            if absorbing:
+                # Zero the mouths' rows: edges *into* a mouth survive (a
+                # channel may end there), edges *out of* it are gone.
+                cavity_graph = cavity_graph.tolil()
+                for i in absorbing:
+                    cavity_graph.rows[i] = []
+                    cavity_graph.data[i] = []
+                cavity_graph = cavity_graph.tocsr()
+            # Every mouth is a terminus; the dedup decides which of them are
+            # one opening. See the comment at the target loop below.
+            terminals_local = absorbing
 
         candidates = []
 
@@ -4953,12 +5286,8 @@ class ChannelCalculator:
                 node_costs = np.asarray(distances)[np.asarray(path_local)]
                 candidates.append((channel, node_costs))
 
-        if truncate_at_surface:
-            self._addDedupedChannels(cavity, candidates, similarity, vertices,
-                                     points, vdw_radii, simplices)
-        else:
-            for channel, _costs in candidates:
-                cavity.addChannel(channel)
+        self._addDedupedChannels(cavity, candidates, similarity, vertices,
+                                 points, vdw_radii, simplices)
 
     def _addDedupedChannels(self, cavity, candidates, similarity, vertices,
                             points, vdw_radii, simplices):
@@ -5094,8 +5423,6 @@ class ChannelCalculator:
         sharply the uncovered part turns away - only how much of the shorter route
         is shared. Where two corridors genuinely part company, they do so for a
         large fraction of the route, and the score falls."""
-        from scipy.spatial import cKDTree
-
         if tol is None:
             tol = self.route_tolerance
         if center is not None and radius > 0:
@@ -5123,7 +5450,7 @@ class ChannelCalculator:
         weight[:-1] += steps / 2.0
         weight[1:] += steps / 2.0
 
-        near = cKDTree(long_p).query(short_p)[0] <= tol
+        near = _kdTree(long_p).query(short_p)[0] <= tol
         return float(weight[near].sum() / total)
 
     def calculateMaxRadius(self, vertice, points, vdw_radii, simp):
@@ -5323,6 +5650,33 @@ class ChannelCalculator:
             filtered_cavities.append(cavity)
         return filtered_cavities
 
+    @staticmethod
+    def _channelRecords(channel_index, channel, atom_index, num_samples):
+        """The FIL records of one channel: its REMARK, one ATOM per sampled
+        sphere and the CONECT bonds between them.
+
+        Written the same way into the combined file and into the per-channel
+        one, so the two differ only in which channels they hold and where the
+        serial numbers start."""
+        centers, radii = _sampleObjectSpheres(channel, num_samples)
+
+        # Each channel gets its own residue number so the channels stay
+        # separable at the record level, matching saveCavitiesToPdb.
+        lines = [ChannelCalculator._channelRemark(channel_index, channel)]
+        for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1],
+                                                  centers[:, 2], radii),
+                                              start=atom_index):
+            lines.append("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+                         % (i, channel_index + 1, x, y, z, 1.00, radius))
+
+        # Bond consecutive samples of THIS channel only, using the global
+        # atom serial numbers (start=atom_index). No CONECT spans two
+        # channels, so each one is a separate strand in the viewer.
+        for i in range(atom_index, atom_index + len(centers) - 1):
+            lines.append("CONECT%5d%5d\n" % (i, i + 1))
+
+        return lines, len(centers)
+
     def saveChannelsToPdb(self, channels, filename, separate=False, num_samples=5):
         # ``channels`` is a flat list, already ordered by cost - that order is
         # the order they are written and numbered here. Each channel is preceded
@@ -5333,26 +5687,9 @@ class ChannelCalculator:
         with open(filename, 'w') as pqr_file:
             atom_index = 1
             for channel_index, channel in enumerate(channels):
-                centerline_spline, radius_spline = channel.getSplines()
-                samples = len(channel.tetrahedra) * num_samples
-                t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
-                centers = centerline_spline(t)
-                radii = radius_spline(t)
-
-                pqr_file.write(self._channelRemark(channel_index, channel))
-                pdb_lines = []
-                # Each channel gets its own residue number so the channels stay
-                # separable at the record level, matching saveCavitiesToPdb.
-                for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                    pdb_lines.append("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, channel_index + 1, x, y, z, 1.00, radius))
-
-                # Bond consecutive samples of THIS channel only, using the global
-                # atom serial numbers (start=atom_index). No CONECT spans two
-                # channels, so each one is a separate strand in the viewer.
-                for i in range(atom_index, atom_index + samples - 1):
-                    pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
-
-                pqr_file.writelines(pdb_lines)
+                lines, samples = self._channelRecords(channel_index, channel,
+                                                      atom_index, num_samples)
+                pqr_file.writelines(lines)
                 pqr_file.write("\n")
                 atom_index += samples
 
@@ -5360,27 +5697,12 @@ class ChannelCalculator:
         # created, one per channel, numbered by the same cost order.
         if separate:
             for channel_index, channel in enumerate(channels):
-                # TODO channel suffix is rather long, making it hard to read in pymol, shorten or user defined?
-                channel_filename = filename.replace('.pqr', '_chl{0}.pqr'.format(channel_index))
-                channel_filename = channel_filename.replace('.pdb', '_chl{0}.pdb'.format(channel_index))
+                channel_filename = _numberedPath(filename, 'chl', channel_index)
 
-                with open(channel_filename, 'w') as pqr_file:
-                    atom_index = 1
-                    centerline_spline, radius_spline = channel.getSplines()
-                    samples = len(channel.tetrahedra) * num_samples
-                    t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
-                    centers = centerline_spline(t)
-                    radii = radius_spline(t)
-
-                    pqr_file.write(self._channelRemark(channel_index, channel))
-                    pdb_lines = []
-                    for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1], centers[:, 2], radii), start=atom_index):
-                        pdb_lines.append("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n" % (i, channel_index + 1, x, y, z, 1.00, radius))
-
-                    for i in range(atom_index, atom_index + samples - 1):
-                        pdb_lines.append("CONECT%5d%5d\n" % (i, i + 1))
-
-                    pqr_file.writelines(pdb_lines)
+                with open(str(channel_filename), 'w') as pqr_file:
+                    lines, _ = self._channelRecords(channel_index, channel,
+                                                    1, num_samples)
+                    pqr_file.writelines(lines)
 
     @staticmethod
     def _channelRemark(channel_index, channel):
@@ -5388,7 +5710,7 @@ class ChannelCalculator:
         length, bottleneck radius, curvature and Dijkstra cost."""
         curv = 'n/a' if np.isnan(channel.curvature) else "%.3f" % channel.curvature
         cost = 'n/a' if channel.cost is None else "%.4g" % channel.cost
-        return ("REMARK   Channel %d  length=%.3f A  bottleneck=%.3f A  "
+        return ("REMARK   channel %d  length=%.3f A  bottleneck=%.3f A  "
                 "curvature=%s  cost=%s\n" % (
                     channel_index, channel.length, channel.bottleneck, curv, cost))
 
@@ -5423,10 +5745,9 @@ class ChannelCalculator:
                     continue
 
                 points = vertices[tetrahedra]
-                cavity_filename = filename.replace('.pqr', '_cavity{0}.pqr'.format(cavity_index))
-                cavity_filename = cavity_filename.replace('.pdb', '_cavity{0}.pdb'.format(cavity_index))
+                cavity_filename = _numberedPath(filename, 'cavity', cavity_index)
 
-                with open(cavity_filename, 'w') as pqr_file:
+                with open(str(cavity_filename), 'w') as pqr_file:
                     atom_index = 1
 
                     for x, y, z in points:
