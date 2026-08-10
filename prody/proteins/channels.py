@@ -241,6 +241,17 @@ def _calcChannelsMultipleFramesWorker(args):
                         start_point=start_point, return_details=return_details, **kwargs)
 
 
+def _calcSurfaceCavitiesMultipleFramesWorker(args):
+    """Compute surface cavities. Supporting function for multiprocessing in :func:`calcSurfaceCavitiesMultipleFrames`."""
+    frame_nr, atoms, frame_coords, frame_output_path, separate, kwargs = args
+
+    LOGGER.info("Frame/model: {0}".format(frame_nr))
+    atoms_copy = atoms.copy()
+    atoms_copy.setCoords(frame_coords)
+
+    return calcSurfaceCavities(atoms_copy, output_path=frame_output_path, separate=separate, **kwargs)
+    
+
 def _calcPoresFromChannelsWorker(args):
     """Reconstruct pores from channels. Supporting function for multiprocessing
     in :func:`calcPoresFromChannelsMultipleFrames`."""
@@ -1998,7 +2009,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
 
 
 def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, 
-    separate=False, **kwargs):
+    separate=False, max_proc=2, mp_context=None, **kwargs):
     """Compute surface cavities for each frame in a trajectory or multi-model PDB.
 
     This function calculates surface cavities for each frame of a trajectory or
@@ -2030,6 +2041,21 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
         PQR/PDB file for each frame/model. If `False`, all cavities detected 
         in a given frame/model are saved in a single file. Default is `False`.
     :type separate: bool
+
+    :arg max_proc: Maximum number of parallel processes used for calculation. 
+        If 1, files are processed serially. If None, all available CPU
+        cores are used. Default is 2.
+    :type max_proc: int or None
+
+    :arg mp_context: Multiprocessing start method used for parallel pore
+        calculations. If `None`, the default method for the operating system
+        is used. Windows and macOS use the ``'spawn'`` method by default,
+        whereas Linux typically uses ``'fork'``. Setting
+        ``mp_context='spawn'`` can be potentially used on Linux, but might 
+        be slower. Available values may include ``'spawn'``, ``'fork'``,
+        and ``'forkserver'``, depending on the operating system. 
+        Default is `None`.
+    :type mp_context: str or None
 
     :arg kwargs: Additional parameters passed to :func:`calcSurfaceCavities`.
         These can include `surf_radius`, `inner_radius`, `min_depth`, `max_depth`,
@@ -2066,6 +2092,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
 
     cavities_all = []
     surfaces_all = []
+    tasks = []
 
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
@@ -2081,6 +2108,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
 
         nfi = trajectory._nfi
         trajectory.reset()
+        
         if stop_frame == -1:
             traj = trajectory[start_frame:]
         else:
@@ -2088,20 +2116,13 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
 
         atoms_copy = atoms.copy()
         for j0, frame0 in enumerate(traj, start=start_frame):
-            LOGGER.info("Frame: {0}".format(j0))
-            atoms_copy.setCoords(frame0.getCoords())
-
             if output_path:
-                cavities, surface = calcSurfaceCavities(atoms_copy,
-                    output_path=str(output_path) + "{0}.pqr".format(j0), 
-                    separate=separate, **kwargs)
+                frame_output_path = str(output_path) + "{0}.pqr".format(j0)
             else:
-                cavities, surface = calcSurfaceCavities(atoms_copy, 
-                                                        separate=separate, 
-                                                        **kwargs)
+                frame_output_path = None
 
-            cavities_all.append(cavities)
-            surfaces_all.append(surface)
+            tasks.append((j0, atoms_copy, np.array(frame0.getCoords(), copy=True),
+                          frame_output_path, separate, kwargs))
 
         trajectory._nfi = nfi
 
@@ -2115,25 +2136,41 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
                 model_indices = range(start_frame, stop_frame + 1)
 
             for i in model_indices:
-                LOGGER.info("Model: {0}".format(i))
-                atoms.setACSIndex(i)
-
                 if output_path:
-                    cavities, surface = calcSurfaceCavities(
-                        atoms,
-                        output_path=str(output_path) + "{0}.pqr".format(i),
-                        separate=separate,
-                        **kwargs)
+                    frame_output_path = str(output_path) + "{0}.pqr".format(i)
                 else:
-                    cavities, surface = calcSurfaceCavities(
-                        atoms,
-                        separate=separate,
-                        **kwargs)
+                    frame_output_path = None
 
-                cavities_all.append(cavities)
-                surfaces_all.append(surface)
+                tasks.append((i, atoms, np.array(coordsets[i], copy=True),
+                              frame_output_path, separate, kwargs))
+
         else:
             LOGGER.info("Include trajectory or use multi-model PDB file.")
+    
+    import multiprocessing
+
+    if len(tasks) == 0:
+        return cavities_all, surfaces_all
+
+    if max_proc is None:
+        max_proc = multiprocessing.cpu_count()
+
+    max_proc = max(1, min(int(max_proc), len(tasks)))
+
+    if max_proc == 1:
+        results = [_calcSurfaceCavitiesMultipleFramesWorker(task) for task in tasks]
+    else:
+        if mp_context is None:
+            ctx = multiprocessing.get_context()
+        else:
+            ctx = multiprocessing.get_context(mp_context)
+
+        with ctx.Pool(processes=max_proc) as pool:
+            results = pool.map(_calcSurfaceCavitiesMultipleFramesWorker, tasks)
+
+    for cavities, surface in results:
+        cavities_all.append(cavities)
+        surfaces_all.append(surface)
 
     return cavities_all, surfaces_all
 
