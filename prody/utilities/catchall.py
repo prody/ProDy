@@ -10,7 +10,7 @@ from .logger import LOGGER
 
 __all__ = ['calcTree', 'writeTree', 'parseTree',
            'clusterMatrix',
-           'showLines', 'showMatrix', 'showBars', 
+           'showLines', 'showMatrix', 'showBars', 'showHistogram', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
            'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters', 
@@ -1283,3 +1283,109 @@ def calcKmedoidClusters(coordsets, nClusters):
     labels = c.labels_
     _, counts = np.unique(labels, return_counts=True)
     return c.medoid_indices_, labels, counts
+
+
+def showHistogram(data, *args, **kwargs):
+    """
+    Plots the distribution of values on the current axis. 
+    The input may be either a one-dimensional array or a symmetric square 2D matrix.
+    
+    
+    :arg data: 1D array or 2D square symmetric matrix. 
+               If 2D, the upper triangle (excluding diagonal) is automatically extracted.
+    :type data: :class:`numpy.ndarray`
+    
+    :arg *args: positional arguments passed directly to Seaborn's ``histplot`` function.
+    :type *args: tuple
+    
+    :arg title: title of the plot. 
+                Default is ``'Distribution'``.
+    :type title: str
+    
+    :arg xlabel: label for the x-axis. 
+                 Default is ``'Value'``.
+    :type xlabel: str
+    
+    :arg ylabel: label for the y-axis. 
+                 Default is ``'Frequency'``.
+    :type ylabel: str
+    
+    :arg grid: whether to display horizontal grid lines.
+               Default is ``True``.
+    :type grid: bool
+    
+    :arg ax: axes on which to draw the plot. 
+             Default is ``None`` and the current axes are used.
+    :type ax: :class:`matplotlib.axes.Axes`
+    
+    :arg **kwargs: keyword arguments passed directly to Seaborn's ``histplot`` function 
+    :type **kwargs: dict
+    
+    :returns: the Matplotlib axes containing the plot.
+    :rtype: :class:`matplotlib.axes.Axes`
+    
+    Example usage:
+    >>> import matplotlib.pyplot as plt
+    >>> distance_matrix = calcPairwiseRMSD(aligned_coords)
+    >>> plt.figure()
+    >>> showHistogram(distance_matrix, xlabel='RMSD [Å]')
+    >>> plt.show()
+    """
+
+    import matplotlib.pyplot as plt
+    try:
+        import seaborn as sns
+    except ImportError:
+        raise ImportError("The 'seaborn' package is required to display the histogram."
+                          "\nPlease install it using 'pip install seaborn'."
+                          "\nAlternatively, use standard matplotlib.pyplot.hist() for basic plots.")
+    
+    
+    data_array = np.asarray(data)
+    
+    if data_array.ndim == 2:
+        if data_array.shape[0] != data_array.shape[1]:
+            raise ValueError(f"2D data matrix must be square, but got shape {data_array.shape}")
+        values = data_array[np.triu_indices_from(data_array, k=1)]
+    elif data_array.ndim == 1:
+        values = data_array
+    else:
+        raise ValueError(f"Expected 1D or 2D array, but got shape {data_array.shape}")
+    
+    ax = kwargs.pop('ax', None)
+    if ax is None:
+        ax = plt.gca()
+        
+    title = kwargs.pop('title', 'Distribution')
+    xlabel = kwargs.pop('xlabel', 'Value')
+    ylabel = kwargs.pop('ylabel', 'Frequency')
+    grid = kwargs.pop('grid', True)
+    label = kwargs.get('label', None)
+
+    # Seaborn Defaults
+    kwargs.setdefault('bins', 50)
+    kwargs.setdefault('element', 'bars')
+    kwargs.setdefault('stat', 'count')
+    kwargs.setdefault('kde', False)
+    kwargs.setdefault('alpha', 0.5)
+    kwargs.setdefault('color', 'teal')
+    kwargs.setdefault('edgecolor', 'black')
+    
+    if 'lw' in kwargs:
+        kwargs['linewidth'] = kwargs.pop('lw')
+    else:
+        kwargs.setdefault('linewidth', 0.8)
+
+    sns.histplot(values, *args, ax=ax, **kwargs)
+    
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    
+    if label is not None:
+        ax.legend()
+    
+    if grid:
+        ax.grid(axis='y', alpha=0.3)
+
+    return ax

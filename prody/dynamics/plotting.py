@@ -13,6 +13,7 @@ import numpy as np
 from prody import LOGGER, SETTINGS, PY3K
 from prody.utilities import showFigure, addEnds, showMatrix
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
+from prody.measure import calcRMSD
 
 from .nma import NMA
 from .gnm import GNMBase, GNM
@@ -25,6 +26,8 @@ from .perturb import calcPerturbResponse
 from .compare import calcOverlap
 from .lda import LDA
 from .logistic import LRA
+from .rmsd_clustering import _validateDistanceMatrix, calcPairwiseRMSD
+
 
 __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showCumulOverlap', 'showFractVars',
@@ -37,7 +40,8 @@ __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showTree', 'showTree_networkx',
            'showAtomicMatrix', 'pimshow', 'showAtomicLines', 'pplot', 
-           'showDomainBar', 'showAtomicBars', 'showSelectionMatrix']
+           'showDomainBar', 'showAtomicBars', 'showSelectionMatrix',
+           'showRMSDEvolution', 'showPairwiseRMSDHeatmap', 'showClusterRMSDComparison']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -2703,3 +2707,303 @@ def showSelectionMatrix(matrix, atoms, selstr_x=None, selstr_y=None, **kwargs):
         _, atoms_y = sliceAtoms(atoms, selstr_y)
 
     return showAtomicMatrix(matrix, atoms=[atoms_x, atoms_y], **kwargs)
+
+
+def showRMSDEvolution(rmsd_array=None, ref_coords=None, aligned_coords=None, *args, **kwargs):
+    """
+    Plots RMSD of an aligned trajectory from a reference structure.
+    It accepts either a pre-calculated one-dimensional array of the RMSD over the frames, or 
+    the reference coordinates and the aligned coordinates of the trajectory and performs the
+    RMSD calculation itself.
+    
+
+    :arg rmsd_array: one-dimensional array containing the RMSD values [in Å]
+                     for each trajectory frame relative to the reference structure.
+    :type rmsd_array: :class:`numpy.ndarray` or atomic object
+
+    :arg ref_coords: coordinates of the reference structure
+                     either as an array with shape ``(n_atoms, 3)`` or ``(1, n_atoms, 3)``,
+                     or as an atomic object with a ``getCoords`` method.
+    :type ref_coords: :class:`numpy.ndarray`
+
+    :arg aligned_coords: coordinates of the aligned trajectory.
+    :type aligned_coords: :class:`numpy.ndarray`
+
+    :arg *args: positional arguments passed to Matplotlib's ``plot``.
+    :type *args: tuple
+
+    :arg title: title of the plot. 
+                Default is ``"Frame-to-Reference RMSD"``.
+    :type title: str
+
+    :arg xlabel: label for the x-axis. 
+                 Default is ``"# of Frame"``.
+    :type xlabel: str
+
+    :arg ylabel: label for the y-axis. 
+                 Default is ``"RMSD from Reference [Å]"``.
+    :type ylabel: str
+
+    :arg ax: axes on which to draw the plot. 
+             Default is ``None`` and the current axes are used.
+    :type ax: :class:`matplotlib.axes.Axes`
+
+    :arg **kwargs: keyword arguments passed to Matplotlib's ``plot`` function,
+                   excluding ``title`` and ``ax``.
+    :type **kwargs: dict
+
+    :return: axes containing the plot.
+    :rtype: :class:`matplotlib.axes.Axes`
+    
+    Example usage:
+    >>> import matplotlib.pyplot as plt
+    >>> ref_coords, aligned_coords = alignTrajectory(pdb, dcd, select='resname IOA')
+    >>> plt.figure()
+    >>> showRMSDEvolution(ref_coords=ref_coords, aligned_coords=aligned_coords)
+    >>> plt.show()
+    """
+    
+    import matplotlib.pyplot as plt
+
+
+    has_array = rmsd_array is not None
+    has_coords = ref_coords is not None or aligned_coords is not None
+
+    if has_array == has_coords:
+        raise ValueError("Provide either 'rmsd_array' or both 'ref_coords' and 'aligned_coords'.")
+
+    if not has_array:
+        if hasattr(ref_coords, 'getCoords'):
+            ref_coords = ref_coords.getCoords()
+        ref_coords = np.asarray(ref_coords)
+
+        if ref_coords.ndim == 3:
+            if ref_coords.shape[0] != 1:
+                raise ValueError("reference coordinates must have shape (n_atoms, 3) or (1, n_atoms, 3).")
+            ref_coords = ref_coords[0]
+
+        if ref_coords.ndim != 2 or ref_coords.shape[1] != 3:
+            raise ValueError("reference coordinates must have shape (n_atoms, 3) or (1, n_atoms, 3).")
+
+        aligned_coords = np.asarray(aligned_coords)
+
+        if aligned_coords.ndim != 3 or aligned_coords.shape[2] != 3:
+            raise ValueError(f"aligned_coords must have shape (n_frames, n_atoms, 3), but got {aligned_coords.shape}.")
+
+        if ref_coords.shape != aligned_coords.shape[1:]:
+            raise ValueError(f"Incompatible shapes: reference is {ref_coords.shape}, but aligned frames have {aligned_coords.shape[1:]}.")
+
+        rmsd_array = calcRMSD(ref_coords, target=aligned_coords)
+        
+    rmsd_array = np.asarray(rmsd_array)
+        
+    if rmsd_array.ndim != 1:
+        raise ValueError(f"rmsd_array must be one-dimensional, but got shape {rmsd_array.shape}")
+    if rmsd_array.size == 0:
+        raise ValueError("rmsd_array cannot be empty.")
+
+    ax = kwargs.pop('ax', None)
+    if ax is None:
+        ax = plt.gca()
+
+    xlabel = kwargs.pop('xlabel', "# Frame")
+    ylabel = kwargs.pop('ylabel', "RMSD from Reference [Å]")
+    title = kwargs.pop('title', "Frame-to-Reference RMSD")
+    label = kwargs.get('label', None)
+
+    if 'color' not in kwargs and 'c' not in kwargs and not args:
+        kwargs['color'] = "#36454F"
+
+    if 'lw' not in kwargs and 'linewidth' not in kwargs:
+        kwargs['lw'] = 0.75
+
+    ax.plot(rmsd_array, *args, **kwargs)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.grid(alpha=0.3)
+    
+    if label is not None:
+        ax.legend()
+
+    return ax
+    
+
+def showPairwiseRMSDHeatmap(distance_matrix=None, aligned_coords=None, *args, **kwargs):
+    """
+    Plots the heatmap of the frame-to-frame pairwise RMSDs using the distance matrix.
+    It accepts either a pre-computed pairwise distance matrix, or
+    the aligned coordinates of the frames and calculates the matrix itself.
+    
+    
+    :arg distance_matrix: two-dimensional array constituting the pairwise distance matrix.
+                          Typically generated using :func:`calcPairwiseRMSD`.
+    :type distance_matrix: :class:`numpy.ndarray`
+    
+    :arg aligned_coords: coordinates of the aligned trajectory.
+    :type aligned_coords: :class:`numpy.ndarray`
+    
+    :arg *args: positional arguments passed to ProDy's ``showMatrix`` function.
+    :type *args: tuple
+    
+    :arg ax: axes on which to draw the plot. 
+             Default is ``None`` and the current axes are used.
+    :type ax: :class:`matplotlib.axes.Axes`
+    
+    :arg **kwargs: keyword arguments passed directly to ProDy's ``showMatrix`` function 
+    :type **kwargs: dict
+    
+    :returns: the Matplotlib axes containing the heatmap.
+    :rtype: :class:`matplotlib.axes.Axes`
+    
+    Example usage:
+    >>> import matplotlib.pyplot as plt
+    >>> _, aligned_coords = alignTrajectory(pdb, dcd, select='resname IOA')
+    >>> distance_matrix = calcPairwiseRMSD(aligned_coords)
+    >>> plt.figure()
+    >>> showPairwiseRMSDHeatmap(distance_matrix)
+    >>> plt.show()
+    """
+    
+    import matplotlib.pyplot as plt
+    
+    
+    has_matrix = distance_matrix is not None
+    has_coords = aligned_coords is not None
+    
+    if has_matrix == has_coords:
+        raise ValueError("Provide exactly one of 'distance_matrix' or 'aligned_coords'.")
+    
+    if has_coords:
+        distance_matrix = calcPairwiseRMSD(aligned_coords)
+    
+    distance_matrix = _validateDistanceMatrix(distance_matrix)
+    
+    ax = kwargs.pop('ax', None)
+    if ax is not None:
+        plt.sca(ax)
+    else:
+        ax = plt.gca()
+    
+    kwargs.setdefault('cmap', 'viridis')
+    kwargs.setdefault('origin', 'upper')
+    showMatrix(distance_matrix, *args, **kwargs)
+    
+    title = kwargs.pop('title', 'Pairwise RMSD Distance Matrix')
+    ax.set_title(title)
+    
+    return ax
+    
+    
+def showClusterRMSDComparison(all_stats, *args, **kwargs):
+    """
+    Overlays the internal RMSD distributions of all clusters onto a single plot 
+    on the current axis.
+    
+    Expects the list of cluster statistics dictionaries generated by :func:`calcAllClusterStatistics`.
+    
+    
+    :arg all_stats: list of cluster statistics dictionaries. Each dictionary
+                    must contain the keys ``"cluster"`` and ``"distances"``.
+    :type all_stats: list of dict, or dict
+    
+    :arg *args: positional arguments passed directly to Seaborn's ``histplot`` function.
+    :type *args: tuple
+    
+    :arg title: the title of the generated plot.
+                Default is ``'Intra-Cluster RMSD Distributions'``
+    :type title: str
+    
+    :arg xlabel: the label for the x-axis.
+                 Default is ``'RMSD to Medoid [Å]'``
+    :type xlabel: str
+    
+    :arg ylabel: the label for the y-axis.
+                 Default is ``'Frequency'``
+    :type ylabel: str
+    
+    :arg grid: whether to display horizontal grid lines.
+               Default is ``True``.
+    :type grid: bool
+    
+    :arg label: optional label prefix applied to each cluster.
+                For example, ``label='Run 1'`` produces labels such as ``'Run 1 - Cluster 1'``.
+    :type label: str
+    
+    :arg ax: axes on which to draw the plot.
+             Default is ``None`` and the current axes are used.
+    :type ax: :class:`matplotlib.axes.Axes`
+    
+    :arg **kwargs: keyword arguments passed directly to Seaborn's ``histplot`` function 
+                   (e.g., ``bins``, ``kde``, ``element``, ``stat``, ``alpha``, ``lw``).
+    :type **kwargs: dict
+    
+    :returns: the Matplotlib axes containing the plot.
+    :rtype: :class:`matplotlib.axes.Axes`
+    
+    Example usage:
+    >>> import matplotlib.pyplot as plt
+    >>> all_stats = calcAllClusterStatistics(distance_matrix, cluster_ids)
+    >>> plt.figure()
+    >>> showClusterRMSDComparison(all_stats, label="Simulation A")
+    >>> plt.show()
+    """
+    
+    import matplotlib.pyplot as plt
+    try:
+        import seaborn as sns
+    except ImportError:
+        raise ImportError("The 'seaborn' package is required to display the histogram."
+                          "\nPlease install it using 'pip install seaborn'."
+                          "\nAlternatively, use standard matplotlib.pyplot.hist() for basic plots.")
+    
+    
+    if isinstance(all_stats, dict):
+        all_stats = [all_stats]
+        
+    if not all_stats:
+        raise ValueError("all_stats cannot be empty.")
+    
+    ax = kwargs.pop('ax', None)
+    if ax is None:
+        ax = plt.gca()
+        
+    title = kwargs.pop('title', 'Intra-Cluster RMSD Distributions')
+    xlabel = kwargs.pop('xlabel', 'RMSD to Medoid [Å]')
+    ylabel = kwargs.pop('ylabel', 'Frequency')
+    grid = kwargs.pop('grid', True)
+    
+    user_label = kwargs.pop('label', None)
+
+    # Seaborn Defaults
+    kwargs.setdefault('bins', 50)
+    kwargs.setdefault('element', 'step')
+    kwargs.setdefault('stat', 'count')
+    kwargs.setdefault('kde', True)
+    kwargs.setdefault('alpha', 0.5)
+    
+    if 'lw' in kwargs:
+        kwargs['linewidth'] = kwargs.pop('lw')
+    else:
+        kwargs.setdefault('linewidth', 1.5)
+
+    for cluster_stats in all_stats:
+        if "cluster" not in cluster_stats or "distances" not in cluster_stats:
+            raise ValueError("Each cluster statistics dictionary must contain 'cluster' and 'distances'.")
+        
+        cluster_label = f"Cluster {cluster_stats['cluster']}"
+        if user_label:
+            cluster_label = f"{user_label} - {cluster_label}"
+            
+        sns.histplot(cluster_stats["distances"], *args, label=cluster_label, ax=ax, **kwargs)
+        
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    
+    ax.legend()
+    
+    if grid:
+        ax.grid(axis='y', alpha=0.3)
+
+    return ax

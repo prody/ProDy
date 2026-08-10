@@ -392,3 +392,7 @@ __all__.extend(logistic.__all__)
 from . import anmd
 from .anmd import *
 __all__.extend(anmd.__all__)
+
+from . import rmsd_clustering
+from .rmsd_clustering import *
+__all__.extend(rmsd_clustering.__all__)
