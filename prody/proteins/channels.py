@@ -35,7 +35,8 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels',
            'showPores', 'getPoreParameters', 'getPoreResidueNames',
            'calcPoresFromChannelsMultipleFrames', 'getPoreParametersMultipleFrames',
-           'getPoreResidueNamesMultipleFrames', 'scanChannelParameters']
+           'getPoreResidueNamesMultipleFrames', 'scanChannelParameters',
+           'calcFrequentObjectResidues']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -316,6 +317,139 @@ def _reportAtomsInputComposition(atoms):
         "To analyze only the protein structure, provide an appropriate "
         "selection, for example atoms.select('protein').".format(
             "; ".join(components)))
+
+
+def calcFrequentObjectResidues(residues_all, count_residue_names=False, 
+                        count_once_per_frame=True, output_file_name=None):
+    """Count residues lining channels, pores, or surface cavities by chain.
+
+    This function analyzes the output returned by:
+    - getChannelResidueNamesMultipleFrames()
+    - getPoreResidueNamesMultipleFrames()
+    - getSurfaceCavityResidueNamesMultipleFrames()
+
+    Residue labels are expected to contain chain identifiers, e.g. ASP108:A.
+    If count_residue_names is False, individual residues are counted, e.g.
+    ASP108 in chain A. If count_residue_names is True, residue types are counted,
+    e.g. ASP in chain A.
+
+    If count_once_per_frame is True, the same residue is counted only once per
+    frame/model, even if it appears in more than one object in that frame. 
+    
+    :arg residues_all: Residue lists returned by one of the multiple-frame
+        residue-reporting functions. The expected input is a list of frame/model
+        entries, where each entry contains strings such as
+        ``'channel0: ASP108:A, LYS245:A'`` or ``'cavity1: GLY20:B, SER55:B'``.
+    :type residues_all: list
+
+    :arg count_residue_names: If **False**, individual residues are counted,
+        for example ``ASP108`` or ``LYS245``. If **True**, residue names are
+        counted instead, for example ``ASP`` or ``LYS``. Default is **False**.
+    :type count_residue_names: bool
+
+    :arg count_once_per_frame: If **True**, the same residue is counted only
+        once per frame/model, even if it appears in multiple objects in that
+        frame. If **False**, every occurrence is counted. Default is **True**.
+    :type count_once_per_frame: bool
+
+    :arg output_file_name: Optional base name for saving residue counts to a text
+        file. The suffix ``'_Residue_counts.txt'`` will be added. If
+        **None**, no file is written. Default is **None**.
+    :type output_file_name: str or None
+
+    Examples:
+    residues_all = getChannelResidueNamesMultipleFrames(protein, channels_all, trajectory=dcd)
+
+    counts = countObjectResiduesByChain(residues_all)
+
+    counts = countObjectResiduesByChain(residues_all, count_residue_names=True,
+        output_file_name='channel_res_counts') """
+
+    from collections import Counter, defaultdict
+
+    try:
+        string_types = (basestring,)
+    except NameError:
+        string_types = (str,)
+
+    def asFrameList(residues):
+        if isinstance(residues, string_types):
+            return [[residues]]
+        if len(residues) == 0:
+            return []
+        if all(isinstance(item, string_types) for item in residues):
+            return [residues]
+        return residues
+
+    def residueNameFromLabel(label):
+        name = []
+        for char in label:
+            if char.isdigit() or char in ('-', '+'):
+                break
+            name.append(char)
+        return ''.join(name) if name else label
+
+    counts_by_chain = defaultdict(Counter)
+    frames = asFrameList(residues_all)
+
+    for frame in frames:
+        frame_seen = set()
+
+        for object_line in frame:
+            if object_line is None:
+                continue
+
+            if ': ' in object_line:
+                residues_part = object_line.split(': ', 1)[1]
+            else:
+                residues_part = object_line
+
+            if residues_part == 'None':
+                continue
+
+            residues = [res.strip() for res in residues_part.split(',')]
+
+            for residue in residues:
+                if residue == '' or residue == 'None':
+                    continue
+
+                if ':' in residue:
+                    residue_id, chain = residue.rsplit(':', 1)
+                else:
+                    residue_id = residue
+                    chain = ''
+
+                if count_residue_names:
+                    key = residueNameFromLabel(residue_id)
+                else:
+                    key = residue_id
+
+                if count_once_per_frame:
+                    frame_seen.add((chain, key))
+                else:
+                    counts_by_chain[chain][key] += 1
+
+        if count_once_per_frame:
+            for chain, key in frame_seen:
+                counts_by_chain[chain][key] += 1
+
+    counts_by_chain = dict(counts_by_chain)
+
+    if output_file_name is not None:
+        output_file = output_file_name + '_ResCounts.txt'
+
+        with open(output_file, 'w') as out:
+            out.write('# Chain Residue Count\n')
+
+            for chain in sorted(counts_by_chain):
+                chain_label = chain if chain else 'no_chain'
+
+                for residue, count in counts_by_chain[chain].most_common():
+                    out.write('{0} {1} {2} \n'.format(chain_label, residue, count))
+
+        LOGGER.info("Residue counts by chain were saved to: {0}".format(output_file))
+
+    return counts_by_chain
 
 
 def getVmdModel(vmd_path, atoms, representation='NewCartoon'):
