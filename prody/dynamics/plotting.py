@@ -2879,7 +2879,9 @@ def showPairwiseRMSDHeatmap(distance_matrix=None, aligned_coords=None, *args, **
     
     distance_matrix = _validateDistanceMatrix(distance_matrix)
     
+    title = kwargs.pop('title', 'Pairwise RMSD Distance Matrix')
     ax = kwargs.pop('ax', None)
+    
     if ax is not None:
         plt.sca(ax)
     else:
@@ -2889,7 +2891,6 @@ def showPairwiseRMSDHeatmap(distance_matrix=None, aligned_coords=None, *args, **
     kwargs.setdefault('origin', 'upper')
     showMatrix(distance_matrix, *args, **kwargs)
     
-    title = kwargs.pop('title', 'Pairwise RMSD Distance Matrix')
     ax.set_title(title)
     
     return ax
