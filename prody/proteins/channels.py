@@ -4525,17 +4525,21 @@ def showFrequentObjectResidues(counts_by_chain, top=50):
     :type top: int or None
 
     Example usage:
+    import matplotlib.pyplot as plt
     counts = countObjectResiduesByChain(residues_all)
     showObjectResidueCountsByChain(counts, chain='A', top=None)
-
+    plt.show()
+    
+    or instead:
     showObjectResidueCountsByChain(counts, top=20) """
 
     if not isinstance(counts_by_chain, dict):
         raise TypeError("counts_by_chain must be a dictionary returned by "
-                    "countObjectResiduesByChain().")
+                    "calcFrequentObjectResidues().")
     
     import matplotlib.pyplot as plt
-
+    
+    axes = []
     for chain in sorted(counts_by_chain):
         items = counts_by_chain[chain].most_common()
 
@@ -4545,14 +4549,16 @@ def showFrequentObjectResidues(counts_by_chain, top=50):
         labels = [item[0] for item in items]
         values = [item[1] for item in items]
 
-        plt.figure(figsize=(14, 4))
-        plt.bar(labels, values)
-        plt.xlabel("Residue")
-        plt.ylabel("Count")
-        plt.title("Residue counts for chain {0}".format(chain if chain else 'no_chain'))
-        plt.xticks(rotation=90)
-        plt.tight_layout()
-        plt.show()
+        fig, ax = plt.subplots(figsize=(14, 4))
+        ax.bar(labels, values)
+        ax.set_xlabel("Residue")
+        ax.set_ylabel("Count")
+        ax.set_title("Residue counts for chain {0}".format(chain if chain else 'no_chain'))
+        ax.tick_params(axis='x', rotation=90)
+        fig.tight_layout()
+        axes.append(ax)
+        
+    return axes[0] if len(axes) == 1 else axes
 
 
 class Channel:
