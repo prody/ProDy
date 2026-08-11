@@ -4306,10 +4306,14 @@ def showFrequentObjectResidues(counts_by_chain, top=50):
     :type top: int or None
 
     Example usage:
-    counts = countObjectResiduesByChain(residues_all, object_type='channel')
+    counts = countObjectResiduesByChain(residues_all)
     showObjectResidueCountsByChain(counts, chain='A', top=None)
 
     showObjectResidueCountsByChain(counts, top=20) """
+
+    if not isinstance(counts_by_chain, dict):
+        raise TypeError("counts_by_chain must be a dictionary returned by "
+                    "countObjectResiduesByChain().")
     
     import matplotlib.pyplot as plt
 
