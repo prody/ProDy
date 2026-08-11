@@ -46,9 +46,18 @@ Plotting
   * :func:`.showShannonEntropy` - plot Shannon entropy
   * :func:`.showMSAOccupancy` - plot row (sequence) or column occupancy
   * :func:`.showMutinfoMatrix` - show mutual information matrix
+
+
+Searching
+========
+  * :func:`.getPdbCodesFromMotif` - get PDB code from MOTIF
 """
 
 __all__ = []
+
+from . import motif
+from .motif import *
+__all__.extend(motif.__all__)
 
 from . import msa
 from .msa import *

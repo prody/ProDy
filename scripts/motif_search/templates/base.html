@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock %} - Motif Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}"
+        integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.min.js') }}"
+        crossorigin="anonymous"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/popper.min.js') }}"
+        integrity="sha384-Xe+8cL9oJa6tN/veChSP7q+mnSPaj5Bcu9mPX5F5xIGE0DVittaqT5lorf0EI7Vk"
+        crossorigin="anonymous"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/bootstrap.min.js') }}"
+        integrity="sha384-kjU+l4N0Yf4ZOJErLsIcvOU2qSb74wXpOhqTvwVx3OElZRweTnQ6d31fXEoRD1Jy"
+        crossorigin="anonymous"></script>
+</head>
+
+<body>
+    {% block body %}
+    <div class="jumbotron text-center">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+            {{ message }}<br />
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+    </div>
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-sm-4">
+                <h3>Search</h3>
+                <form action="{{ url_for('searchMotif') }}" method="get">
+                    <div class="input-group input-group-sm mb-3">
+                        <span class="input-group-text" id="inputGroup-sizing-sm">motif</span>
+                        <input id="motif" name="motif" type="text" class="form-control"
+                            aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm"
+                            placeholder="PROSITE pattern">
+                    </div>
+                    <select class="form-select form-select-sm mb-3" name="database" aria-label="DB selection">
+                        <option selected>Select database to search motif</option>
+                        <option value="sp-online">Swiss-Prot (online, buildin)</option>
+                        <option value="pdb-online">Protein Data Bank (online, buildin)</option>
+                        {% for key, value in generic_dbs.items() %}
+                        <option value="{{ key }}">{{ value }}</option>
+                        {% endfor %}
+                        {% for db in local_dbs %}
+                        <option value="{{ db }}">{{ db }} (local, custom)</option>
+                        {% endfor %}
+                    </select>
+                    <div>
+                        <button class="btn btn-primary btn-xs" type="submit" id="searchProteins">Search</button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-sm-4">
+                <h3>Database</h3>
+                <a href="{{ url_for('download_database', database='sp') }}" class="btn btn-link btn-xs"
+                    role="button">download</a> Swiss-Prot database<br />
+                <a href="{{ url_for('download_database', database='rs') }}" class="btn btn-link btn-xs"
+                    role="button">download</a> RefSeq database<br />
+                <a href="{{ url_for('download_database', database='pdb') }}" class="btn btn-link btn-xs"
+                    role="button">download</a> Protein Data Bank database<br />
+                <form action="{{ url_for('index') }}" method="post" enctype="multipart/form-data">
+                    <label class="form-check-label" for="local">Upload protein FASTA database:</label>
+                    <input type="file" name="file"><br />
+                    <input class="btn btn-link btn-xs" type="submit" value="Upload">
+                </form>
+            </div>
+            <div class="col-sm-4">
+                {% block extras %}{% endblock %}
+            </div>
+        </div>
+    </div>
+    {% block content %}{% endblock %}
+    <script>
+        $(document).ready(function () {
+            $("#myInput").on("keyup", function () {
+                var value = $(this).val().toLowerCase();
+                $("#myDIV *").filter(function () {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+        });
+    </script>
+    {% endblock %}
+</body>
+
+</html>
