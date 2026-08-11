@@ -2152,10 +2152,11 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
     import multiprocessing
 
     if len(tasks) == 0:
+        _warn("No frames or models were found for surface cavity calculation.")
         return cavities_all, surfaces_all
 
     if max_proc is None:
-        max_proc = multiprocessing.cpu_count()
+        max_proc = max(1, multiprocessing.cpu_count() // 2)
 
     max_proc = max(1, min(int(max_proc), len(tasks)))
 
@@ -4277,7 +4278,9 @@ def scanSurfaceCavityParameters(atoms, surf_radius_values=(4.0, 4.5, 5.0),
          'sparsity'}))
 
     if forbidden_params:
-        raise ValueError("Grid-controlled arguments must not be passed in kwargs: {0}".format(', '.join(forbidden_params)))
+        raise ValueError(
+        "Grid-controlled arguments must not be passed in kwargs: {0}".format(
+        ', '.join(forbidden_params)))
 
     surf_radius_values = prepareValues(surf_radius_values, 'surf_radius_values')
     inner_radius_values = prepareValues(inner_radius_values, 'inner_radius_values')
@@ -4384,14 +4387,6 @@ def calcFrequentObjectResidues(residues_all, count_residue_names=False,
     - getPoreResidueNamesMultipleFrames()
     - getSurfaceCavityResidueNamesMultipleFrames()
 
-    Residue labels are expected to contain chain identifiers, e.g. ASP108:A.
-    If count_residue_names is False, individual residues are counted, e.g.
-    ASP108 in chain A. If count_residue_names is True, residue types are counted,
-    e.g. ASP in chain A.
-
-    If count_once_per_frame is True, the same residue is counted only once per
-    frame/model, even if it appears in more than one object in that frame. 
-    
     :arg residues_all: Residue lists returned by one of the multiple-frame
         residue-reporting functions. The expected input is a list of frame/model
         entries, where each entry contains strings such as
