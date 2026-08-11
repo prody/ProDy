@@ -36,6 +36,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'showPores', 'getPoreParameters', 'getPoreResidueNames',
            'calcPoresFromChannelsMultipleFrames', 'getPoreParametersMultipleFrames',
            'getPoreResidueNamesMultipleFrames', 'scanChannelParameters',
+           'scanSurfaceCavityParameters',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues']
 
 # Sampling of the enclosure test used to strip the moat (see
@@ -4149,6 +4150,229 @@ def scanChannelParameters(atoms, inner_radius_values=(1.2, 1.4, 1.6),
     LOGGER.report('Channel parameters scan completed in %.2fs.', '_prody_scanChannelParameters')
 
     return channels_all, parameter_sets, str(occupancy_file)
+
+
+def scanSurfaceCavityParameters(atoms, surf_radius_values=(4.0, 4.5, 5.0),
+    inner_radius_values=(1.5, 2.0), min_depth_values=(1.5, 2.0),
+    max_depth_values=(2.5, 3.0), min_volume_values=(None, 50),
+    output_path='surface_cavity_parameter_grid', resolution=0.5, max_proc=2, **kwargs):
+    """Calculate surface cavities over a combination grid of parameters.
+
+    This function evaluates every combination of ``surf_radius``,
+    ``inner_radius``, ``min_depth``, ``max_depth``, and ``min_volume`` for one
+    molecular structure. All surface cavities obtained for one parameter
+    combination are saved together in one PQR file, so every grid point
+    contributes one equally weighted result to the final spatial occupancy map 
+    (obtained using :func:`calcSurfaceCavityOverlaps`).
+    The occupancy value written by :func:`calcSurfaceCavityOverlaps` is the
+    fraction of grid combinations in which a voxel belongs to at least one
+    predicted surface cavity.
+
+    :arg atoms: Atomic structure analyzed with :func:`calcSurfaceCavities`.
+    :type atoms: :class:`.Atomic`
+
+    :arg surf_radius_values: Probe radii used to define the outer molecular
+        surface. Default is ``(4.0, 4.5, 5.0)``.
+    :type surf_radius_values: float or sequence of float
+
+    :arg inner_radius_values: Probe radii used to define the inner accessible
+        cavity space. Default is ``(1.5, 2.0)``.
+    :type inner_radius_values: float or sequence of float
+
+    :arg min_depth_values: Minimum cavity depths tested in the grid. Default is
+        ``(1.5, 2.0)``.
+    :type min_depth_values: float or sequence of float
+
+    :arg max_depth_values: Maximum cavity depths tested in the grid. Portions
+        deeper than this value are trimmed. Default is ``(2.5, 3.0)``.
+    :type max_depth_values: float or sequence of float
+
+    :arg min_volume_values: Minimum cavity volumes tested in the grid. ``None``
+        disables volume filtering for a given run. Default is ``(None, 50)``.
+    :type min_volume_values: float, None, or sequence
+
+    :arg output_path: Directory in which individual PQR files, summaries, and
+        the final occupancy map are saved. Default is
+        ``'surface_cavity_parameter_grid'``.
+    :type output_path: str or pathlib.Path
+
+    :arg resolution: Voxel resolution used by
+        :func:`calcSurfaceCavityOverlaps`. Default is 0.5 Angstrom.
+    :type resolution: float
+
+    :arg max_proc: Maximum number of processes used for overlap calculation.
+        Default is 2; ``None`` uses all available CPU cores.
+    :type max_proc: int or None
+
+    :arg kwargs: Additional parameters passed unchanged to
+        :func:`calcSurfaceCavities`. Grid-controlled parameters
+        ``surf_radius``, ``inner_radius``, ``min_depth``, ``max_depth``,
+        ``min_volume``, ``output_path`` and ``separate`` must not be supplied
+        here.
+    :type kwargs: dict
+
+    :returns: Lists of surface cavities and parameter dictionaries in matching
+        order, followed by the path to the occupancy PDB file.
+    :rtype: tuple
+
+    Example usage:
+    cavities_all, parameter_sets, occupancy_file = scanSurfaceCavityParameters(
+        protein, surf_radius_values=[4.0, 4.5, 5.0],
+        inner_radius_values=[1.5, 2.0], min_depth_values=[1.5, 2.0],
+        max_depth_values=[2.5, 3.0], min_volume_values=[None, 50],
+        output_path='surface_cavity_parameter_grid')  """
+
+    from itertools import product
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError("atoms must be a ProDy Atomic object")
+
+    def prepareValues(values, name, allow_zero=False, allow_none=False):
+        if values is None:
+            values = [None]
+        elif np.isscalar(values):
+            values = [values]
+
+        checked = []
+        for value in values:
+            if value is None:
+                if allow_none:
+                    checked.append(None)
+                    continue
+                else:
+                    raise ValueError("{0} values must not contain None".format(name))
+
+            try:
+                value = float(value)
+            except (TypeError, ValueError):
+                raise TypeError("{0} must be a number or a sequence of numbers".format(name))
+
+            if not np.isfinite(value):
+                raise ValueError("{0} must contain finite values".format(name))
+
+            if value < 0 if allow_zero else value <= 0:
+                relation = "non-negative" if allow_zero else "greater than zero"
+                raise ValueError("{0} values must be {1}".format(name, relation))
+
+            checked.append(value)
+
+        if len(checked) == 0:
+            raise ValueError("{0} must contain at least one value".format(name))
+
+        unique_values = []
+        for value in checked:
+            if value not in unique_values:
+                unique_values.append(value)
+
+        return unique_values
+
+    forbidden_params = sorted(set(kwargs).intersection(
+        {'surf_radius', 'inner_radius', 'min_depth', 'max_depth',
+         'min_volume', 'output_path', 'separate', 'cavities_only',
+         'sparsity'}))
+
+    if forbidden_params:
+        raise ValueError("Grid-controlled arguments must not be passed in kwargs: {0}".format(', '.join(forbidden_params)))
+
+    surf_radius_values = prepareValues(surf_radius_values, 'surf_radius_values')
+    inner_radius_values = prepareValues(inner_radius_values, 'inner_radius_values')
+    min_depth_values = prepareValues(min_depth_values, 'min_depth_values', allow_zero=True)
+    max_depth_values = prepareValues(max_depth_values, 'max_depth_values', allow_zero=True)
+    min_volume_values = prepareValues(min_volume_values, 'min_volume_values', allow_zero=True, allow_none=True)
+
+    resolution = float(resolution)
+    if resolution <= 0:
+        raise ValueError("resolution must be greater than zero")
+
+    output_dir = Path(output_path)
+    if output_dir.exists() and not output_dir.is_dir():
+        raise ValueError("output_path must be a directory")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    parameter_grid = list(product(surf_radius_values, inner_radius_values,
+                                  min_depth_values, max_depth_values,
+                                  min_volume_values))
+
+    cavities_all = []
+    parameter_sets = []
+    pqr_files = []
+    summary_file = output_dir / 'surface_cavity_param_grid_summary.txt'
+    details_file = output_dir / 'surface_cavity_param_grid_cavities.txt'
+    occupancy_file = output_dir / 'surface_cavity_param_occupancy.pdb'
+
+    LOGGER.timeit('_prody_scanSurfaceCavityParameters')
+    LOGGER.info("Calculating surface cavities for {0} parameter combinations.".format(
+        len(parameter_grid)))
+
+    with open(str(summary_file), 'w') as summary, open(str(details_file), 'w') as details:
+        summary.write("# Run surf_radius [A] inner_radius [A] min_depth [A] max_depth [A] min_volume [A^3] Number_of_cavities PQR_file\n")
+        details.write("# Run Cavity_id surf_radius [A] inner_radius [A] min_depth [A] max_depth [A] min_volume [A^3] Volume [A^3] Depth [A] Tetrahedra_count\n")
+
+        for run_index, (surf_radius, inner_radius, min_depth, max_depth,
+                        min_volume) in enumerate(parameter_grid):
+
+            values_for_tag = (surf_radius, inner_radius, min_depth, max_depth,
+                              'none' if min_volume is None else min_volume)
+
+            tag = "run{0:03d}_surf_radius_{1}_inner_radius_{2}_mindepth_{3}_maxdepth_{4}_minvol_{5}".format(
+                run_index, *("{0:g}".format(value).replace('-', 'm').replace('.', 'p')
+                             if isinstance(value, float) else str(value)
+                             for value in values_for_tag))
+
+            pqr_file = output_dir / ('surface_cavities_' + tag + '.pqr')
+
+            LOGGER.info(
+                "Grid run {0}/{1}: surf_radius={2:g}, inner_radius={3:g}, "
+                "min_depth={4:g}, max_depth={5:g}, min_volume={6}".format(
+                    run_index + 1, len(parameter_grid), surf_radius,
+                    inner_radius, min_depth, max_depth, min_volume))
+
+            cavities, _ = calcSurfaceCavities(atoms, output_path=str(pqr_file), separate=False,
+                surf_radius=surf_radius, inner_radius=inner_radius, min_depth=min_depth,
+                max_depth=max_depth, min_volume=min_volume, **kwargs)
+
+            params = {'run': run_index,
+                      'surf_radius': surf_radius,
+                      'inner_radius': inner_radius,
+                      'min_depth': min_depth,
+                      'max_depth': max_depth,
+                      'min_volume': min_volume,
+                      'pqr_file': str(pqr_file)}
+
+            cavities_all.append(cavities)
+            parameter_sets.append(params)
+            pqr_files.append(str(pqr_file))
+
+            min_volume_text = 'None' if min_volume is None else "{0:.3f}".format(min_volume)
+
+            summary.write("{0} {1:.3f} {2:.3f} {3:.3f} {4:.3f} {5} {6} {7}\n".format(
+                run_index, surf_radius, inner_radius, min_depth, max_depth,
+                min_volume_text, len(cavities), pqr_file.name))
+
+            for cavity_index, cavity in enumerate(cavities):
+                volume = cavity.volume
+                depth = cavity.depth
+                tetrahedra_count = len(cavity.tetrahedra)
+
+                details.write("{0} {1} {2:.3f} {3:.3f} {4:.3f} {5:.3f} {6} {7:.3f} {8:.3f} {9}\n".format(
+                    run_index, cavity_index, surf_radius, inner_radius,
+                    min_depth, max_depth, min_volume_text, volume, depth,
+                    tetrahedra_count))
+
+    calcSurfaceCavityOverlaps(pqr_files=pqr_files,
+                              output_file_name=str(occupancy_file),
+                              resolution=resolution,
+                              max_proc=max_proc)
+
+    LOGGER.report('Surface cavity parameters scan completed in %.2fs.',
+                  '_prody_scanSurfaceCavityParameters')
+
+    return cavities_all, parameter_sets, str(occupancy_file)
 
 
 def calcFrequentObjectResidues(residues_all, count_residue_names=False, 
