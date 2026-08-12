@@ -910,8 +910,8 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     start_point_search=3.0, surf_radius=3, inner_radius=0.9, min_depth=5,
-    min_volume=None, max_volume=None, max_depth=None, bottleneck=0.0,
-    sparsity=1, min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
+    min_volume=10, max_volume=None, max_depth=None, sparsity=1, 
+    min_tetrahedra=None, max_tetrahedra=None, cavities_only=False,
     diagram="homogenized", max_deviation=0.1, similarity=0.8, route_tolerance=1.0,
     return_details=False, **kwargs):
     """Computes and identifies channels within a molecular structure using 
@@ -1006,28 +1006,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         than this value are trimmed away. Default is None (no trimming).
     :type max_depth: float
 
-    :arg bottleneck: Minimum bottleneck radius, in Angstrom, a channel must have
-        to be reported. Default is 0.0, no filtering applied.
-
-        Set it whenever the question is "what can actually pass through", because
-        ``inner_radius`` alone does not guarantee it: channels regularly come out
-        somewhat narrower than the probe that found them (although with 
-        ``diagram="homogenized"`` and small max_deviationthe difference will 
-        be minor), and with ``diagram="simple"`` they can be several times 
-        narrower, so there this is the only real width control. A good starting
-        value is either 0, or  ``inner_radius`` itself, raised to the radius 
-        of the ligand or ion of interest if that is what you are screening for.
-
-        Unlike ``inner_radius``, it does not change the search: it drops entries
-        from the finished list (before they are numbered and written to file),
-        never reroutes them. Filtering is therefore cheap, but it cannot recover
-        a wide route that the search did not take - if raising it leaves you with
-        too few channels, raise ``inner_radius`` instead and let the channels be
-        traced afresh.
-    :type bottleneck: float
-
     :arg min_volume: Minimum volume required for a channel/cavity to be 
-        retained. Default is None.
+        retained. Default is 10 A, roughly vdw volume of a water molecule.
     :type min_volume: float
 
     :arg max_volume: Maximum volume allowed for a channel/cavity to be 
@@ -1116,6 +1096,28 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     keyword raises :exc:`TypeError` rather than being ignored, so a misspelled
     option is reported instead of silently falling back to its default.
 
+    :arg bottleneck: Minimum bottleneck radius, in Angstrom, a channel must have
+        to be reported. Default is ``inner_radius``, so a channel the traversal
+        probe itself would not fit through is not reported; pass ``bottleneck=0``
+        to switch the filter off and see every channel the search traced.
+
+        Set it whenever the question is "what can actually pass through", because
+        ``inner_radius`` alone does not guarantee it: channels regularly come out
+        somewhat narrower than the probe that found them (although with 
+        ``diagram="homogenized"`` and small max_deviationthe difference will 
+        be minor), and with ``diagram="simple"`` they can be several times 
+        narrower, so there this is the only real width control. A good starting
+        value is either 0, or  ``inner_radius`` itself, raised to the radius 
+        of the ligand or ion of interest if that is what you are screening for.
+
+        Unlike ``inner_radius``, it does not change the search: it drops entries
+        from the finished list (before they are numbered and written to file),
+        never reroutes them. Filtering is therefore cheap, but it cannot recover
+        a wide route that the search did not take - if raising it leaves you with
+        too few channels, raise ``inner_radius`` instead and let the channels be
+        traced afresh.
+    :type bottleneck: float
+    
     :arg weighted_cache: Cache the raw additively-weighted Voronoi diagram to disk so
         that re-running ``diagram="weighted"`` on the same structure skips the
         expensive vorpy tessellation (which dominates the ~10 min run time). The
@@ -1243,6 +1245,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # signature above, which is long enough already. These are settings a normal
     # run never touches.
     CHANNELS_ADVANCED_OPTIONS = {
+        'bottleneck': inner_radius,
         'restrict_channels_to_start_point': True,
         'min_enclosure': 0.70,
         'max_peel_depth': None,
@@ -1263,12 +1266,14 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                             ', '.join(sorted(CHANNELS_ADVANCED_OPTIONS))))
 
     options = dict(CHANNELS_ADVANCED_OPTIONS, **kwargs)
+    bottleneck = options['bottleneck']
     restrict_channels_to_start_point = options['restrict_channels_to_start_point']
     min_enclosure = options['min_enclosure']
     max_peel_depth = options['max_peel_depth']
     edge_cost = options['edge_cost']
     weighted_cache = options['weighted_cache']
     weighted_mouth_depth = options['weighted_mouth_depth']
+    
 
     required = ['heapq', 'collections', 'scipy', 'pathlib', 'warnings']
     missing = []
