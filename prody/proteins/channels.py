@@ -35,7 +35,9 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels',
            'showPores', 'getPoreParameters', 'getPoreResidueNames',
            'calcPoresFromChannelsMultipleFrames', 'getPoreParametersMultipleFrames',
-           'getPoreResidueNamesMultipleFrames', 'scanChannelParameters']
+           'getPoreResidueNamesMultipleFrames', 'scanChannelParameters',
+           'scanSurfaceCavityParameters',
+           'calcFrequentObjectResidues', 'showFrequentObjectResidues']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -240,6 +242,17 @@ def _calcChannelsMultipleFramesWorker(args):
     return calcChannels(atoms_copy, output_path=frame_output_path, separate=separate,
                         start_point=start_point, return_details=return_details, **kwargs)
 
+
+def _calcSurfaceCavitiesMultipleFramesWorker(args):
+    """Compute surface cavities. Supporting function for multiprocessing in :func:`calcSurfaceCavitiesMultipleFrames`."""
+    frame_nr, atoms, frame_coords, frame_output_path, separate, kwargs = args
+
+    LOGGER.info("Frame/model: {0}".format(frame_nr))
+    atoms_copy = atoms.copy()
+    atoms_copy.setCoords(frame_coords)
+
+    return calcSurfaceCavities(atoms_copy, output_path=frame_output_path, separate=separate, **kwargs)
+    
 
 def _calcPoresFromChannelsWorker(args):
     """Reconstruct pores from channels. Supporting function for multiprocessing
@@ -2003,7 +2016,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
 
 
 def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None, 
-    separate=False, **kwargs):
+    separate=False, max_proc=2, mp_context=None, **kwargs):
     """Compute surface cavities for each frame in a trajectory or multi-model PDB.
 
     This function calculates surface cavities for each frame of a trajectory or
@@ -2035,6 +2048,21 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
         PQR/PDB file for each frame/model. If `False`, all cavities detected 
         in a given frame/model are saved in a single file. Default is `False`.
     :type separate: bool
+
+    :arg max_proc: Maximum number of parallel processes used for calculation. 
+        If 1, files are processed serially. If None, all available CPU
+        cores are used. Default is 2.
+    :type max_proc: int or None
+
+    :arg mp_context: Multiprocessing start method used for parallel pore
+        calculations. If `None`, the default method for the operating system
+        is used. Windows and macOS use the ``'spawn'`` method by default,
+        whereas Linux typically uses ``'fork'``. Setting
+        ``mp_context='spawn'`` can be potentially used on Linux, but might 
+        be slower. Available values may include ``'spawn'``, ``'fork'``,
+        and ``'forkserver'``, depending on the operating system. 
+        Default is `None`.
+    :type mp_context: str or None
 
     :arg kwargs: Additional parameters passed to :func:`calcSurfaceCavities`.
         These can include `surf_radius`, `inner_radius`, `min_depth`, `max_depth`,
@@ -2071,6 +2099,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
 
     cavities_all = []
     surfaces_all = []
+    tasks = []
 
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
@@ -2086,6 +2115,7 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
 
         nfi = trajectory._nfi
         trajectory.reset()
+        
         if stop_frame == -1:
             traj = trajectory[start_frame:]
         else:
@@ -2093,20 +2123,13 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
 
         atoms_copy = atoms.copy()
         for j0, frame0 in enumerate(traj, start=start_frame):
-            LOGGER.info("Frame: {0}".format(j0))
-            atoms_copy.setCoords(frame0.getCoords())
-
             if output_path:
-                cavities, surface = calcSurfaceCavities(atoms_copy,
-                    output_path=str(output_path) + "{0}.pqr".format(j0), 
-                    separate=separate, **kwargs)
+                frame_output_path = str(output_path) + "{0}.pqr".format(j0)
             else:
-                cavities, surface = calcSurfaceCavities(atoms_copy, 
-                                                        separate=separate, 
-                                                        **kwargs)
+                frame_output_path = None
 
-            cavities_all.append(cavities)
-            surfaces_all.append(surface)
+            tasks.append((j0, atoms_copy, np.array(frame0.getCoords(), copy=True),
+                          frame_output_path, separate, kwargs))
 
         trajectory._nfi = nfi
 
@@ -2120,25 +2143,42 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
                 model_indices = range(start_frame, stop_frame + 1)
 
             for i in model_indices:
-                LOGGER.info("Model: {0}".format(i))
-                atoms.setACSIndex(i)
-
                 if output_path:
-                    cavities, surface = calcSurfaceCavities(
-                        atoms,
-                        output_path=str(output_path) + "{0}.pqr".format(i),
-                        separate=separate,
-                        **kwargs)
+                    frame_output_path = str(output_path) + "{0}.pqr".format(i)
                 else:
-                    cavities, surface = calcSurfaceCavities(
-                        atoms,
-                        separate=separate,
-                        **kwargs)
+                    frame_output_path = None
 
-                cavities_all.append(cavities)
-                surfaces_all.append(surface)
+                tasks.append((i, atoms, np.array(coordsets[i], copy=True),
+                              frame_output_path, separate, kwargs))
+
         else:
             LOGGER.info("Include trajectory or use multi-model PDB file.")
+    
+    import multiprocessing
+
+    if len(tasks) == 0:
+        _warn("No frames or models were found for surface cavity calculation.")
+        return cavities_all, surfaces_all
+
+    if max_proc is None:
+        max_proc = max(1, multiprocessing.cpu_count() // 2)
+
+    max_proc = max(1, min(int(max_proc), len(tasks)))
+
+    if max_proc == 1:
+        results = [_calcSurfaceCavitiesMultipleFramesWorker(task) for task in tasks]
+    else:
+        if mp_context is None:
+            ctx = multiprocessing.get_context()
+        else:
+            ctx = multiprocessing.get_context(mp_context)
+
+        with ctx.Pool(processes=max_proc) as pool:
+            results = pool.map(_calcSurfaceCavitiesMultipleFramesWorker, tasks)
+
+    for cavities, surface in results:
+        cavities_all.append(cavities)
+        surfaces_all.append(surface)
 
     return cavities_all, surfaces_all
 
@@ -4116,6 +4156,414 @@ def scanChannelParameters(atoms, inner_radius_values=(1.2, 1.4, 1.6),
     LOGGER.report('Channel parameters scan completed in %.2fs.', '_prody_scanChannelParameters')
 
     return channels_all, parameter_sets, str(occupancy_file)
+
+
+def scanSurfaceCavityParameters(atoms, surf_radius_values=(4.0, 4.5, 5.0),
+    inner_radius_values=(1.5, 2.0), min_depth_values=(1.5, 2.0),
+    max_depth_values=(2.5, 3.0), min_volume_values=(None, 50),
+    output_path='surface_cavity_parameter_grid', resolution=0.5, max_proc=2, **kwargs):
+    """Calculate surface cavities over a combination grid of parameters.
+
+    This function evaluates every combination of ``surf_radius``,
+    ``inner_radius``, ``min_depth``, ``max_depth``, and ``min_volume`` for one
+    molecular structure. All surface cavities obtained for one parameter
+    combination are saved together in one PQR file, so every grid point
+    contributes one equally weighted result to the final spatial occupancy map 
+    (obtained using :func:`calcSurfaceCavityOverlaps`).
+    The occupancy value written by :func:`calcSurfaceCavityOverlaps` is the
+    fraction of grid combinations in which a voxel belongs to at least one
+    predicted surface cavity.
+
+    :arg atoms: Atomic structure analyzed with :func:`calcSurfaceCavities`.
+    :type atoms: :class:`.Atomic`
+
+    :arg surf_radius_values: Probe radii used to define the outer molecular
+        surface. Default is ``(4.0, 4.5, 5.0)``.
+    :type surf_radius_values: float or sequence of float
+
+    :arg inner_radius_values: Probe radii used to define the inner accessible
+        cavity space. Default is ``(1.5, 2.0)``.
+    :type inner_radius_values: float or sequence of float
+
+    :arg min_depth_values: Minimum cavity depths tested in the grid. Default is
+        ``(1.5, 2.0)``.
+    :type min_depth_values: float or sequence of float
+
+    :arg max_depth_values: Maximum cavity depths tested in the grid. Portions
+        deeper than this value are trimmed. Default is ``(2.5, 3.0)``.
+    :type max_depth_values: float or sequence of float
+
+    :arg min_volume_values: Minimum cavity volumes tested in the grid. ``None``
+        disables volume filtering for a given run. Default is ``(None, 50)``.
+    :type min_volume_values: float, None, or sequence
+
+    :arg output_path: Directory in which individual PQR files, summaries, and
+        the final occupancy map are saved. Default is
+        ``'surface_cavity_parameter_grid'``.
+    :type output_path: str or pathlib.Path
+
+    :arg resolution: Voxel resolution used by
+        :func:`calcSurfaceCavityOverlaps`. Default is 0.5 Angstrom.
+    :type resolution: float
+
+    :arg max_proc: Maximum number of processes used for overlap calculation.
+        Default is 2; ``None`` uses all available CPU cores.
+    :type max_proc: int or None
+
+    :arg kwargs: Additional parameters passed unchanged to
+        :func:`calcSurfaceCavities`. Grid-controlled parameters
+        ``surf_radius``, ``inner_radius``, ``min_depth``, ``max_depth``,
+        ``min_volume``, ``output_path`` and ``separate`` must not be supplied
+        here.
+    :type kwargs: dict
+
+    :returns: Lists of surface cavities and parameter dictionaries in matching
+        order, followed by the path to the occupancy PDB file.
+    :rtype: tuple
+
+    Example usage:
+    cavities_all, parameter_sets, occupancy_file = scanSurfaceCavityParameters(
+        protein, surf_radius_values=[4.0, 4.5, 5.0],
+        inner_radius_values=[1.5, 2.0], min_depth_values=[1.5, 2.0],
+        max_depth_values=[2.5, 3.0], min_volume_values=[None, 50],
+        output_path='surface_cavity_parameter_grid')  """
+
+    from itertools import product
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError("atoms must be a ProDy Atomic object")
+
+    def prepareValues(values, name, allow_zero=False, allow_none=False):
+        if values is None:
+            values = [None]
+        elif np.isscalar(values):
+            values = [values]
+
+        checked = []
+        for value in values:
+            if value is None:
+                if allow_none:
+                    checked.append(None)
+                    continue
+                else:
+                    raise ValueError("{0} values must not contain None".format(name))
+
+            try:
+                value = float(value)
+            except (TypeError, ValueError):
+                raise TypeError("{0} must be a number or a sequence of numbers".format(name))
+
+            if not np.isfinite(value):
+                raise ValueError("{0} must contain finite values".format(name))
+
+            if value < 0 if allow_zero else value <= 0:
+                relation = "non-negative" if allow_zero else "greater than zero"
+                raise ValueError("{0} values must be {1}".format(name, relation))
+
+            checked.append(value)
+
+        if len(checked) == 0:
+            raise ValueError("{0} must contain at least one value".format(name))
+
+        unique_values = []
+        for value in checked:
+            if value not in unique_values:
+                unique_values.append(value)
+
+        return unique_values
+
+    forbidden_params = sorted(set(kwargs).intersection(
+        {'surf_radius', 'inner_radius', 'min_depth', 'max_depth',
+         'min_volume', 'output_path', 'separate', 'cavities_only',
+         'sparsity'}))
+
+    if forbidden_params:
+        raise ValueError(
+        "Grid-controlled arguments must not be passed in kwargs: {0}".format(
+        ', '.join(forbidden_params)))
+
+    surf_radius_values = prepareValues(surf_radius_values, 'surf_radius_values')
+    inner_radius_values = prepareValues(inner_radius_values, 'inner_radius_values')
+    min_depth_values = prepareValues(min_depth_values, 'min_depth_values', allow_zero=True)
+    max_depth_values = prepareValues(max_depth_values, 'max_depth_values', allow_zero=True)
+    min_volume_values = prepareValues(min_volume_values, 'min_volume_values', allow_zero=True, allow_none=True)
+
+    resolution = float(resolution)
+    if resolution <= 0:
+        raise ValueError("resolution must be greater than zero")
+
+    output_dir = Path(output_path)
+    if output_dir.exists() and not output_dir.is_dir():
+        raise ValueError("output_path must be a directory")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    parameter_grid = list(product(surf_radius_values, inner_radius_values,
+                                  min_depth_values, max_depth_values,
+                                  min_volume_values))
+
+    cavities_all = []
+    parameter_sets = []
+    pqr_files = []
+    summary_file = output_dir / 'surface_cavity_param_grid_summary.txt'
+    details_file = output_dir / 'surface_cavity_param_grid_cavities.txt'
+    occupancy_file = output_dir / 'surface_cavity_param_occupancy.pdb'
+
+    LOGGER.timeit('_prody_scanSurfaceCavityParameters')
+    LOGGER.info("Calculating surface cavities for {0} parameter combinations.".format(
+        len(parameter_grid)))
+
+    with open(str(summary_file), 'w') as summary, open(str(details_file), 'w') as details:
+        summary.write("# Run surf_radius [A] inner_radius [A] min_depth [A] max_depth [A] min_volume [A^3] Number_of_cavities PQR_file\n")
+        details.write("# Run Cavity_id surf_radius [A] inner_radius [A] min_depth [A] max_depth [A] min_volume [A^3] Volume [A^3] Depth [A] Tetrahedra_count\n")
+
+        for run_index, (surf_radius, inner_radius, min_depth, max_depth,
+                        min_volume) in enumerate(parameter_grid):
+
+            values_for_tag = (surf_radius, inner_radius, min_depth, max_depth,
+                              'none' if min_volume is None else min_volume)
+
+            tag = "run{0:03d}_surf_radius_{1}_inner_radius_{2}_mindepth_{3}_maxdepth_{4}_minvol_{5}".format(
+                run_index, *("{0:g}".format(value).replace('-', 'm').replace('.', 'p')
+                             if isinstance(value, float) else str(value)
+                             for value in values_for_tag))
+
+            pqr_file = output_dir / ('surface_cavities_' + tag + '.pqr')
+
+            LOGGER.info(
+                "Grid run {0}/{1}: surf_radius={2:g}, inner_radius={3:g}, "
+                "min_depth={4:g}, max_depth={5:g}, min_volume={6}".format(
+                    run_index + 1, len(parameter_grid), surf_radius,
+                    inner_radius, min_depth, max_depth, min_volume))
+
+            cavities, _ = calcSurfaceCavities(atoms, output_path=str(pqr_file), separate=False,
+                surf_radius=surf_radius, inner_radius=inner_radius, min_depth=min_depth,
+                max_depth=max_depth, min_volume=min_volume, **kwargs)
+
+            params = {'run': run_index,
+                      'surf_radius': surf_radius,
+                      'inner_radius': inner_radius,
+                      'min_depth': min_depth,
+                      'max_depth': max_depth,
+                      'min_volume': min_volume,
+                      'pqr_file': str(pqr_file)}
+
+            cavities_all.append(cavities)
+            parameter_sets.append(params)
+            pqr_files.append(str(pqr_file))
+
+            min_volume_text = 'None' if min_volume is None else "{0:.3f}".format(min_volume)
+
+            summary.write("{0} {1:.3f} {2:.3f} {3:.3f} {4:.3f} {5} {6} {7}\n".format(
+                run_index, surf_radius, inner_radius, min_depth, max_depth,
+                min_volume_text, len(cavities), pqr_file.name))
+
+            for cavity_index, cavity in enumerate(cavities):
+                volume = cavity.volume
+                depth = cavity.depth
+                tetrahedra_count = len(cavity.tetrahedra)
+
+                details.write("{0} {1} {2:.3f} {3:.3f} {4:.3f} {5:.3f} {6} {7:.3f} {8:.3f} {9}\n".format(
+                    run_index, cavity_index, surf_radius, inner_radius,
+                    min_depth, max_depth, min_volume_text, volume, depth,
+                    tetrahedra_count))
+
+    calcSurfaceCavityOverlaps(pqr_files=pqr_files,
+                              output_file_name=str(occupancy_file),
+                              resolution=resolution,
+                              max_proc=max_proc)
+
+    LOGGER.report('Surface cavity parameters scan completed in %.2fs.',
+                  '_prody_scanSurfaceCavityParameters')
+
+    return cavities_all, parameter_sets, str(occupancy_file)
+
+
+def calcFrequentObjectResidues(residues_all, count_residue_names=False, 
+                        count_once_per_frame=True, output_file_name=None):
+    """Count residues lining channels, pores, or surface cavities by chain.
+
+    This function analyzes the output returned by:
+    - getChannelResidueNamesMultipleFrames()
+    - getPoreResidueNamesMultipleFrames()
+    - getSurfaceCavityResidueNamesMultipleFrames()
+
+    :arg residues_all: Residue lists returned by one of the multiple-frame
+        residue-reporting functions. The expected input is a list of frame/model
+        entries, where each entry contains strings such as
+        ``'channel0: ASP108:A, LYS245:A'`` or ``'cavity1: GLY20:B, SER55:B'``.
+    :type residues_all: list
+
+    :arg count_residue_names: If **False**, individual residues are counted,
+        for example ``ASP108`` or ``LYS245``. If **True**, residue names are
+        counted instead, for example ``ASP`` or ``LYS``. Default is **False**.
+    :type count_residue_names: bool
+
+    :arg count_once_per_frame: If **True**, the same residue is counted only
+        once per frame/model, even if it appears in multiple objects in that
+        frame. If **False**, every occurrence is counted. Default is **True**.
+    :type count_once_per_frame: bool
+
+    :arg output_file_name: Optional base name for saving residue counts to a text
+        file. The suffix ``'_Residue_counts.txt'`` will be added. If
+        **None**, no file is written. Default is **None**.
+    :type output_file_name: str or None
+
+    Examples:
+    residues_all = getChannelResidueNamesMultipleFrames(protein, channels_all, trajectory=dcd)
+
+    counts = countObjectResiduesByChain(residues_all)
+
+    counts = countObjectResiduesByChain(residues_all, count_residue_names=True,
+        output_file_name='channel_res_counts') """
+
+    from collections import Counter, defaultdict
+
+    try:
+        string_types = (basestring,)
+    except NameError:
+        string_types = (str,)
+
+    def asFrameList(residues):
+        if isinstance(residues, string_types):
+            return [[residues]]
+        if len(residues) == 0:
+            return []
+        if all(isinstance(item, string_types) for item in residues):
+            return [residues]
+        return residues
+
+    def residueNameFromLabel(label):
+        name = []
+        for char in label:
+            if char.isdigit() or char in ('-', '+'):
+                break
+            name.append(char)
+        return ''.join(name) if name else label
+
+    counts_by_chain = defaultdict(Counter)
+    frames = asFrameList(residues_all)
+
+    for frame in frames:
+        frame_seen = set()
+
+        for object_line in frame:
+            if object_line is None:
+                continue
+
+            if ': ' in object_line:
+                residues_part = object_line.split(': ', 1)[1]
+            else:
+                residues_part = object_line
+
+            if residues_part == 'None':
+                continue
+
+            residues = [res.strip() for res in residues_part.split(',')]
+
+            for residue in residues:
+                if residue == '' or residue == 'None':
+                    continue
+
+                if ':' in residue:
+                    residue_id, chain = residue.rsplit(':', 1)
+                else:
+                    residue_id = residue
+                    chain = ''
+
+                if count_residue_names:
+                    key = residueNameFromLabel(residue_id)
+                else:
+                    key = residue_id
+
+                if count_once_per_frame:
+                    frame_seen.add((chain, key))
+                else:
+                    counts_by_chain[chain][key] += 1
+
+        if count_once_per_frame:
+            for chain, key in frame_seen:
+                counts_by_chain[chain][key] += 1
+
+    counts_by_chain = dict(counts_by_chain)
+
+    if output_file_name is not None:
+        output_file = output_file_name + '_ResCounts.txt'
+
+        with open(output_file, 'w') as out:
+            out.write('# Chain Residue Count\n')
+
+            for chain in sorted(counts_by_chain):
+                chain_label = chain if chain else 'no_chain'
+
+                for residue, count in counts_by_chain[chain].most_common():
+                    out.write('{0} {1} {2} \n'.format(chain_label, residue, count))
+
+        LOGGER.info("Residue counts by chain were saved to: {0}".format(output_file))
+
+    return counts_by_chain
+
+
+def showFrequentObjectResidues(counts_by_chain, top=50):
+    """Show residue-count bar plots.
+
+    This function visualizes residue counts returned by
+    :func:`calcFrequentObjectResidues`. Counts can be shown for one selected
+    chain or, if ``chain`` is **None**, separately for all chains. Residues are
+    displayed on the x-axis and their counts on the y-axis.
+
+    :arg counts_by_chain: Dictionary returned by
+        :func:`countObjectResiduesByChain`, with chain identifiers as keys and
+        :class:`collections.Counter` objects as values.
+    :type counts_by_chain: dict
+
+    :arg chain: Chain identifier to plot. If **None**, residue counts are plotted
+        separately for all chains. Default is **None**.
+    :type chain: str or None
+
+    :arg top: Maximum number of most frequent residues to display. If **None**,
+        all residues are shown. Default is 50.
+    :type top: int or None
+
+    Example usage:
+    import matplotlib.pyplot as plt
+    counts = countObjectResiduesByChain(residues_all)
+    showObjectResidueCountsByChain(counts, chain='A', top=None)
+    plt.show()
+    
+    or instead:
+    showObjectResidueCountsByChain(counts, top=20) """
+
+    if not isinstance(counts_by_chain, dict):
+        raise TypeError("counts_by_chain must be a dictionary returned by "
+                    "calcFrequentObjectResidues().")
+    
+    import matplotlib.pyplot as plt
+    
+    axes = []
+    for chain in sorted(counts_by_chain):
+        items = counts_by_chain[chain].most_common()
+
+        if top is not None:
+            items = items[:top]
+
+        labels = [item[0] for item in items]
+        values = [item[1] for item in items]
+
+        fig, ax = plt.subplots(figsize=(14, 4))
+        ax.bar(labels, values)
+        ax.set_xlabel("Residue")
+        ax.set_ylabel("Count")
+        ax.set_title("Residue counts for chain {0}".format(chain if chain else 'no_chain'))
+        ax.tick_params(axis='x', rotation=90)
+        fig.tight_layout()
+        axes.append(ax)
+        
+    return axes[0] if len(axes) == 1 else axes
 
 
 class Channel:
