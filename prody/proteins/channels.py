@@ -5334,21 +5334,34 @@ class ChannelCalculator:
             return
 
         kept = []  # (channel, pts, exit_xyz, opening_radius)
+        # The opening centres and radii of `kept`, carried as arrays so that step
+        # 1 can test a candidate against every reported opening at once. Grown on
+        # append instead of rebuilt per candidate: `kept` gains at most one entry
+        # per candidate, so rebuilding would put an O(len(kept)) Python pass back
+        # into the hot loop and cost more than it saves on a small `kept`.
+        centres = np.empty((0, 3))
+        radii = np.empty(0)
         for channel, node_costs in prepared:
             tetra = np.asarray(channel.tetrahedra)
             pts = vertices[tetra]
 
-            # step 1: cut at the first reported opening this route enters
+            # step 1: cut at the first reported opening this route enters.
+            # One (nodes x openings) distance test instead of the former Python
+            # double loop: np.argmax over the boolean rows returns the first
+            # True, so the node picked is the first one inside any opening and
+            # the cutter is the first opening in `kept` order that contains it -
+            # the same two `break`s the loop used to take. Multi-seeding pools
+            # every seed's candidates into this one pass, and the loop was its
+            # cost centre (measured 238s versus 6s single-seed on 1tqn).
             cut, cutter = None, None
-            for i in range(1, len(pts)):
-                for kxyz, kr in ((k[2], k[3]) for k in kept):
-                    if np.linalg.norm(pts[i] - kxyz) < kr:
-                        cut = i
-                        break
-                if cut is not None:
-                    cutter = next(k for k in kept
-                                  if np.linalg.norm(pts[cut] - k[2]) < k[3])
-                    break
+            if kept:
+                inside = np.linalg.norm(pts[1:, None, :] - centres,
+                                        axis=2) < radii
+                entered = inside.any(axis=1)
+                if entered.any():
+                    row = int(np.argmax(entered))
+                    cut = row + 1
+                    cutter = kept[int(np.argmax(inside[row]))]
             if cut is not None:
                 tetra = tetra[:cut + 1]
                 pts = pts[:cut + 1]
@@ -5386,7 +5399,7 @@ class ChannelCalculator:
                     # necessarily below that of the channel that cut it, since the
                     # cut lies upstream of that channel's mouth - so cost orders
                     # the output but does not mean the cut channel is "better".)
-                    kept.append((channel, pts, cutter[2], cutter[3]))
+                    opening_xyz, opening_radius = cutter[2], cutter[3]
                 else:
                     # One radius stands for this opening everywhere: it cuts routes
                     # that pass through it, it decides which channels share it, and
@@ -5395,10 +5408,13 @@ class ChannelCalculator:
                     # coarse tessellation it is erratic and can collapse to almost
                     # nothing, fragmenting one physical mouth into several; the
                     # sparsity floor keeps it mesh-independent.
-                    kept.append((channel, pts, pts[-1],
-                                 max(self.calculateMaxRadius(
-                                     pts[-1], points, vdw_radii,
-                                     simplices[tetra[-1]]), self.sparsity)))
+                    opening_xyz = pts[-1]
+                    opening_radius = max(self.calculateMaxRadius(
+                        pts[-1], points, vdw_radii,
+                        simplices[tetra[-1]]), self.sparsity)
+                kept.append((channel, pts, opening_xyz, opening_radius))
+                centres = np.vstack((centres, opening_xyz))
+                radii = np.append(radii, opening_radius)
         for channel, _pts, _xyz, _r in kept:
             cavity.addChannel(channel)
 
