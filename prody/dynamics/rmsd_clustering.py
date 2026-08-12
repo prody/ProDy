@@ -367,11 +367,11 @@ def calcAllClusterStatistics(distance_matrix, cluster_ids):
     Returns a list of dictionaries, each corresponding to a cluster with the statistic quantities
     as keys.
     
-    
     :arg distance_matrix: a two-dimensional square, symmetric pairwise distance matrix.
     :type distance_matrix: :class:`numpy.ndarray`
     
-    :arg cluster_ids: a one-dimensional array of the cluster IDs per element
+    :arg cluster_ids: a one-dimensional array of 1-indexed cluster IDs per element.
+                      Values less than 1 (e.g. 0, -1) are omitted.
     :type cluster_ids: :class:`numpy.ndarray`
     
     :returns: a list of dictionaries, one dictionary for each cluster with the statistic 
@@ -379,9 +379,12 @@ def calcAllClusterStatistics(distance_matrix, cluster_ids):
     :rtype: list of dict
     
     Example usage:
-    >>> cluster_ids, _= clusterHierarchical(distance_matrix, 4)
-    >>> all_stats = calcAllClusterStatistics(distance_matrix, cluster_ids)
+    >>> cluster_ids, _ = prody.clusterHierarchical(distance_matrix, 4)
+    >>> all_stats = prody.calcAllClusterStatistics(distance_matrix, cluster_ids)
     """
+    
+    import warnings
+    
     
     cluster_ids = np.asarray(cluster_ids)
     if cluster_ids.ndim != 1:
@@ -394,13 +397,19 @@ def calcAllClusterStatistics(distance_matrix, cluster_ids):
                          f"does not match distance_matrix frames ({distance_matrix.shape[0]}).")
     
     clusters = np.unique(cluster_ids)
+    
+    if 0 in clusters:
+        warnings.warn("Cluster ID '0' detected in cluster_ids."
+                      " This library uses 1-indexed clusters; ID 0 will be omitted from statistics.",
+                      UserWarning)
+        
     all_stats = []
     
     for c in clusters:
         if c <= 0:
             continue
         
-        cluster_stats = calcClusterStatistics(distance_matrix, cluster_ids = cluster_ids, cluster_number = int(c))
+        cluster_stats = calcClusterStatistics(distance_matrix, cluster_ids=cluster_ids, cluster_number=int(c))
         all_stats.append(cluster_stats) 
         
     return all_stats
