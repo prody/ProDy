@@ -2794,8 +2794,8 @@ def showRMSDEvolution(rmsd_array=None, ref_coords=None, aligned_coords=None, *ar
             raise ValueError(f"Incompatible shapes: reference is {ref_coords.shape}, but aligned frames have {aligned_coords.shape[1:]}.")
 
         rmsd_array = calcRMSD(ref_coords, target=aligned_coords)
-        
-    rmsd_array = np.asarray(rmsd_array)
+    else:    
+        rmsd_array = np.asarray(rmsd_array)
         
     if rmsd_array.ndim != 1:
         raise ValueError(f"rmsd_array must be one-dimensional, but got shape {rmsd_array.shape}")

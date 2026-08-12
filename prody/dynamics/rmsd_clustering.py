@@ -475,7 +475,8 @@ def showClusterStatisticsTable(all_stats, dissimilarity="RMSD", units="Å", show
     :arg **kwargs: keyword arguments passed directly to the ``tabulate`` function 
     :type **kwargs: dict
     
-    :returns: a dictionary containing the table, the row labels and the headers, with their names as keys
+    :returns: a dictionary containing the raw numeric table data, the row labels, 
+              and the headers, with their names as keys
     :rtype: dict
     
     Example usage:
@@ -483,13 +484,6 @@ def showClusterStatisticsTable(all_stats, dissimilarity="RMSD", units="Å", show
     >>> all_stats = calcAllClusterStatistics(distance_matrix, cluster_ids)
     >>> showClusterStatisticsTable(all_stats)
     """
-    
-    try:
-        from tabulate import tabulate
-    except ImportError:
-        raise ImportError("The 'tabulate' package is required to display the table. "
-                          "Please install it using 'pip install tabulate'.")
-    
     
     if isinstance(all_stats, dict):
         all_stats = [all_stats]
@@ -514,37 +508,63 @@ def showClusterStatisticsTable(all_stats, dissimilarity="RMSD", units="Å", show
         if missing:
             raise ValueError(f"Statistics dictionary is missing required keys: {sorted(missing)}.")
     
+    
+    floatfmt = kwargs.pop('floatfmt', '.2f')
+    
+    # The third element marks whether the metric is a floating point number (True) or an exact integer (False)
     metrics = [
-        ("population",    "Total Frames"),
-        ("pct",           "Population Percentage (%)"),
-        ("medoid_global", "Medoid Frame (Global)"),
-        ("medoid_local",  "Medoid Frame (Within Cluster)"),
-        ("mean",          f"Mean {dissimilarity} [{units}]"),
-        ("std",           f"Std {dissimilarity} [{units}]"),
-        ("median",        f"Median {dissimilarity} [{units}]"),
-        ("iqr",           f"IQR [{units}]"),
-        ("p95",           f"95th Percentile [{units}]"),
-        ("max",           f"Max {dissimilarity} [{units}]")
+        ("population",    "Total Frames",                  False),
+        ("pct",           "Population Percentage (%)",     True),
+        ("medoid_global", "Medoid Frame (Global)",         False),
+        ("medoid_local",  "Medoid Frame (Within Cluster)", False),
+        ("mean",          f"Mean {dissimilarity} [{units}]", True),
+        ("std",           f"Std {dissimilarity} [{units}]",  True),
+        ("median",        f"Median {dissimilarity} [{units}]", True),
+        ("iqr",           f"IQR [{units}]",                  True),
+        ("p95",           f"95th Percentile [{units}]",      True),
+        ("max",           f"Max {dissimilarity} [{units}]",  True)
     ]
     
-    table = []
+    table_raw = []
+    table_display = []
     row_labels = []
 
-    for key, label in metrics:
+    for key, label, is_float in metrics:
         row_labels.append(label)
-        table.append([stat[key] for stat in all_stats])
+        raw_row = [stat[key] for stat in all_stats]
+        table_raw.append(raw_row)
+        
+        fmt = floatfmt if is_float else ".0f"
+        
+        formatted_row = []
+        for val in raw_row:
+            if val is None:
+                formatted_row.append("N/A")
+            else:
+                try:
+                    formatted_row.append(format(val, fmt))
+                except ValueError:
+                    formatted_row.append(str(val))
+                    
+        table_display.append(formatted_row)
         
     if not isinstance(show, bool):
         raise TypeError("show must be a bool.")
     
     if show:
+        try:
+            from tabulate import tabulate
+        except ImportError:
+            raise ImportError("The 'tabulate' package is required to display the table. "
+                              "Please install it using 'pip install tabulate' or set show=False.")
+                              
         kwargs.setdefault('tablefmt', 'fancy_grid')
-        kwargs.setdefault('floatfmt', '.4f')
         kwargs.setdefault('stralign', 'center')
+        kwargs.setdefault('numalign', 'center')
         
-        print(tabulate(table, headers=headers, showindex=row_labels, **kwargs))
+        print(tabulate(table_display, headers=headers, showindex=row_labels, **kwargs))
     
-    return {"table": table, "row_labels": row_labels, "headers": headers}
+    return {"table": table_raw, "row_labels": row_labels, "headers": headers}
 
 
 def writeClusters(atoms, trajectory, distance_matrix, cluster_ids, write_dcd=True,
@@ -660,8 +680,8 @@ def clusterHierarchical(distance_matrix, method='average', cutoff=None):
     of the largest gap between consecutive linkage distances.
     
     Recommendation: Plot the dendrogram using showDendrogram() and choose the cutoff 
-                    manually whenever possible.
-    
+                    manually whenever possible.                
+        
         
     :arg distance_matrix: either a one-dimensional condensed distance matrix or 
                           a two-dimensional pairwise distance matrix.
@@ -682,6 +702,12 @@ def clusterHierarchical(distance_matrix, method='average', cutoff=None):
           IDs are 1-indexed (1 to number of clusters for the cutoff)
         * the hierarchical clustering linkage matrix
     :rtype: tuple(:class:`numpy.ndarray`, :class:`numpy.ndarray`)
+    
+    
+    .. seealso::
+        :func:`clusterMatrix`
+            Hierarchical clustering of a distance matrix using SciPy.
+
     
     Example usage:
     >>> distance_matrix = calcPairwiseRMSD(aligned_coords)
@@ -922,6 +948,12 @@ def clusterKMedoids(distance_matrix, k, method='alternate', method_sklearn='pam'
           medoids
         * the final sum of distances from each point to its nearest medoid
     :rtype: tuple(:class:`numpy.ndarray`, :class:`numpy.ndarray`, float)
+    
+    
+    .. seealso::
+        :func:`prody.utilities.catchall.calcKmedoidClusters`
+            Direct K-Medoids clustering on coordinate sets using ``scikit-learn-extra``.
+    
     
     Example usage:
     >>> distance_matrix = calcPairwiseRMSD(aligned_coords)
@@ -1489,3 +1521,4 @@ def _orderOPTICSSklearn(distance_matrix, minPts):
     ordering = optics.ordering_
     
     return reachability, ordering
+    

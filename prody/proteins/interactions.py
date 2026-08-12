@@ -4240,7 +4240,6 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
 
 
 
-
 class Interactions(object):
 
     """Class for Interaction analysis of proteins."""

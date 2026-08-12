@@ -416,6 +416,7 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
     return the sorted matrix, indices used for sorting, sorted labels (if **labels** are passed),  
     and linkage matrix (if **return_linkage** is **True**). 
     
+       
     :arg distance_matrix: an N-by-N matrix containing some measure of distance 
          such as 1. - seqid_matrix (Hamming distance), rmsds, or distances in PCA space
     :type distance_matrix: :class:`~numpy.ndarray`
@@ -438,6 +439,11 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
 
     Other arguments for :func:`~scipy.hierarchy.linkage` and :func:`~scipy.hierarchy.dendrogram`
     can also be provided and will be taken as **kwargs**.
+    
+    
+    .. seealso::
+        :func:`clusterHierarchical`
+            Hierarchical clustering of a distance matrix using SciPy.
     """
 
     import scipy.cluster.hierarchy as sch
@@ -1273,6 +1279,33 @@ calcGromosClusters = calcRMSDclusters
 calcGromacsClusters = calcRMSDclusters
 
 def calcKmedoidClusters(coordsets, nClusters):
+    """
+    Performs K-Medoids clustering directly on coordinate sets using ``scikit-learn-extra``.
+
+    Flattens the input coordinate sets into a 2D matrix and fits a K-Medoids model.
+    Note that this function requires the ``scikit-learn-extra`` package to be installed.
+
+    The returned cluster labels are 0-indexed.
+
+
+    :arg coordsets: coordinate sets of shape ``(n_conformations, n_atoms, 3)`` or any array 
+                    where the first dimension represents individual frames/conformations.
+    :type coordsets: :class:`numpy.ndarray`
+
+    :arg nClusters: prespecified number of clusters to form.
+    :type nClusters: int
+
+    :returns: a tuple of:
+        * a one-dimensional array of shape ``(nClusters,)`` containing the indices of the medoid frames
+        * a one-dimensional array containing the 0-indexed cluster label for each frame
+        * a one-dimensional array containing the number of items in each cluster
+    :rtype: tuple(:class:`numpy.ndarray`, :class:`numpy.ndarray`, :class:`numpy.ndarray`)
+
+
+    .. seealso::
+        :func:`clusterKMedoids`
+            K-Medoids clustering on distance matrices supporting multiple backends and 1-based indexing.
+    """
     try:
         from sklearn_extra.cluster import KMedoids
     except ImportError:
@@ -1389,3 +1422,4 @@ def showHistogram(data, *args, **kwargs):
         ax.grid(axis='y', alpha=0.3)
 
     return ax
+    
