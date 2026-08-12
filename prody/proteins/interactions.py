@@ -4237,7 +4237,7 @@ def calcSignatureInteractions(PDB_folder, **kwargs):
 
             # Proceed with plotting
             plot_barh(result, bond_type, n_per_plot=n_per_plot, min_height=min_height)
-
+            
 
 
 class Interactions(object):
