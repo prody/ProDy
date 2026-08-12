@@ -1330,7 +1330,8 @@ def _validateMinPts(minPts, distance_matrix):
         raise ValueError(f"minPts must be between 1 and {total_points}.")
         
 
-def showReachabilityPlot(distance_matrix, *args, minPts=None, method='custom', eps=None, fill=True, **kwargs):
+def showReachabilityPlot(distance_matrix, *args, minPts=None, method='custom', eps=None, 
+                         fill=True, colors=None, **kwargs):
     """
     Plots the reachability plot using a simplified OPTICS algorithm.
     The reachability plot should be used to determine the most suitable eps 
@@ -1366,6 +1367,10 @@ def showReachabilityPlot(distance_matrix, *args, minPts=None, method='custom', e
                Default is ``True``.
     :type fill: bool
     
+    :arg colors: custom color mapping for the valleys (list, dict, or colormap name).
+                 Default is ``None`` and uses Matplotlib's tab10 palette.
+    :type colors: list, dict, str, or None
+    
     :arg **kwargs: additional keyword arguments passed to Matplotlib's ``plot`` function 
     :type **kwargs: dict
     
@@ -1375,8 +1380,8 @@ def showReachabilityPlot(distance_matrix, *args, minPts=None, method='custom', e
     Example usage:
     >>> import matplotlib.pyplot as plt
     >>> plt.figure()
-    >>> showReachabilityPlot(distance_matrix, minPts=20, eps=1.8)
-    >>> plt.show()    
+    >>> showReachabilityPlot(distance_matrix, minPts = 20, eps = 2.8)
+    >>> plt.show()
     """
     
     import matplotlib.pyplot as plt
@@ -1434,7 +1439,7 @@ def showReachabilityPlot(distance_matrix, *args, minPts=None, method='custom', e
             below_eps_mask = (y <= eps)
             segments = []
             start = None
-    
+
             for i, below in enumerate(below_eps_mask):
                 if below and start is None:
                     start = i
@@ -1445,9 +1450,22 @@ def showReachabilityPlot(distance_matrix, *args, minPts=None, method='custom', e
             if start is not None:
                 segments.append((start, len(below_eps_mask)))
             
-            colors = plt.cm.tab10(np.linspace(0, 1, len(segments)))
-            
-            for (start, end), valley_color in zip(segments, colors):
+            if colors is None:
+                cmap = plt.get_cmap('tab10')
+            elif isinstance(colors, str):
+                cmap = plt.get_cmap(colors)
+            else:
+                cmap = colors
+
+            for i, (start, end) in enumerate(segments):
+                if isinstance(cmap, dict):
+                    valley_color = cmap.get(i, 'gray')
+                elif isinstance(cmap, (list, tuple)):
+                    valley_color = cmap[i % len(cmap)]
+                else:
+                    num_colors = getattr(cmap, 'N', 10) 
+                    valley_color = cmap(i % num_colors)
+                
                 ax.fill_between(x[start:end], y[start:end], eps, color=valley_color)
     
     if 'label' in kwargs:
@@ -1455,8 +1473,8 @@ def showReachabilityPlot(distance_matrix, *args, minPts=None, method='custom', e
         
     ax.grid(axis='y', linestyle='--', linewidth=0.8, alpha=0.3)
 
-    return ax
-    
+    return ax    
+
     
 def _orderOPTICSCustom(distance_matrix, minPts):
     """OPTICS algorithm with built-in modules and NumPy"""
