@@ -1130,7 +1130,45 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         too few channels, raise ``inner_radius`` instead and let the channels be
         traced afresh.
     :type bottleneck: float
-    
+
+    :arg seed_radius: Probe radius, in Angstrom, that decides where a channel may
+        *start*, as opposed to ``inner_radius``, which decides what it may pass
+        *through*. Default is ``max(1.4, inner_radius)``.
+
+        The cleared void is carved a second time with this larger probe, and each
+        connected piece that survives - a *chamber* - seeds one channel search.
+        Without it a cavity gets a single seed, its geodesically deepest
+        tetrahedron, which is right for a compact pocket and arbitrary for a large
+        or branched one: the necks between the real pockets are themselves cavity
+        under a small probe, so the deepest point can land in one of them. Every
+        channel is then at least as long as the cavity is deep, and the mouths of
+        the other lobes go unreported, because a route from that far seed is
+        absorbed at a nearer mouth before it arrives. On 1tqn at
+        ``inner_radius=1.4, seed_radius=1.8`` the four channels of the main cavity
+        kept their openings but fell from 46-58 A to 16-25 A and widened at the
+        bottleneck, since the route no longer has to cross a neck to get there.
+
+        It has to exceed ``inner_radius`` to prune anything - every tetrahedron of
+        the cleared state admits ``inner_radius`` by construction - and at or below
+        it the chamber pass is skipped entirely and the single deepest seed is
+        used, so a run at ``inner_radius >= 1.4`` keeps the older behaviour unless
+        a larger ``seed_radius`` is passed. ``start_point`` also overrides it
+        completely: an explicit starting point is where the search begins.
+    :type seed_radius: float
+
+    :arg min_chamber_tetrahedra: Smallest chamber, in tetrahedra, that may seed a
+        search. Below it a chamber is tessellation debris rather than a site.
+        Default is 5.
+    :type min_chamber_tetrahedra: int
+
+    :arg max_seeds: Largest number of chambers one cavity may be seeded at, widest
+        chamber first; ``None`` for no cap. Default is 20. Every seed multiplies
+        the candidate routes the deduplication has to compare, and a percolated
+        interior (a small ``inner_radius`` on a structure without hydrogens) can
+        offer dozens of chambers, so the cap bounds the work on exactly the runs
+        whose chambers are least trustworthy.
+    :type max_seeds: int or None
+
     :arg weighted_cache: Cache the raw additively-weighted Voronoi diagram to disk so
         that re-running ``diagram="weighted"`` on the same structure skips the
         expensive vorpy tessellation (which dominates the ~10 min run time). The
@@ -1259,6 +1297,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # run never touches.
     CHANNELS_ADVANCED_OPTIONS = {
         'bottleneck': inner_radius,
+        'seed_radius': max(1.4, inner_radius),
+        'min_chamber_tetrahedra': 5,
+        'max_seeds': 20,
         'restrict_channels_to_start_point': True,
         'min_enclosure': 0.70,
         'max_peel_depth': None,
@@ -1280,6 +1321,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     options = dict(CHANNELS_ADVANCED_OPTIONS, **kwargs)
     bottleneck = options['bottleneck']
+    seed_radius = options['seed_radius']
+    min_chamber_tetrahedra = options['min_chamber_tetrahedra']
+    max_seeds = options['max_seeds']
     restrict_channels_to_start_point = options['restrict_channels_to_start_point']
     min_enclosure = options['min_enclosure']
     max_peel_depth = options['max_peel_depth']
@@ -1578,6 +1622,31 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     simplices, neighbors, vertices = s_clr.getState()
     graph = calculator.buildSparseGraph(simplices, neighbors, vertices, coords,
                                          vdw_radii)
+
+    # Seed each cavity at its chambers rather than at its single deepest
+    # tetrahedron. Placed after buildSparseGraph because the seed of a chamber is
+    # its widest qualifying tetrahedron and the per-tetrahedron clearance that
+    # measures "widest" is cached there; computing it again here would repeat the
+    # same min over the whole cleared state. Skipped when start_point is given -
+    # the user has said where to start, and that wins over any chamber - and when
+    # seed_radius does not exceed inner_radius, where the carve cannot prune
+    # anything and the cavity would come back as one chamber (which would not be
+    # a no-op: it would silently move the seed from the deepest tetrahedron to
+    # the widest one).
+    if start_point is None and seed_radius > inner_radius:
+        LOGGER.timeit('_prody_channels_chambers')
+        chamber_labels, chamber_sizes = calculator.findChambers(
+            simplices, neighbors, vertices, coords, vdw_radii, seed_radius)
+        reseeded = calculator.setStartingTetrahedraFromChambers(
+            c_filtered_cavities, chamber_labels, chamber_sizes, min_depth,
+            min_chamber_tetrahedra, max_seeds)
+        LOGGER.report('Chambers ({0:.2f} A probe) seeded {1} of {2} cavities '
+            'with {3} starting tetrahedra in %.2fs.'.format(
+                seed_radius, reseeded, len(c_filtered_cavities),
+                sum(len(cavity.starting_tetrahedron)
+                    for cavity in c_filtered_cavities)),
+            '_prody_channels_chambers')
+
     for cavity in c_filtered_cavities:
         calculator.dijkstra(cavity, graph, simplices, neighbors, vertices,
                             coords, vdw_radii, similarity)
@@ -5246,10 +5315,70 @@ class ChannelCalculator:
                     groups.append(Cavity(current_group, False))
                 else:
                     groups.append(current_group)
-            
+
         return groups
 
-    def getSurfaceCavities(self, cavities, interior_simplices, second_layer, 
+    def findChambers(self, simplices, neighbors, vertices, points, vdw_radii,
+                     seed_radius):
+        """Label the tetrahedra of the cleared state by *chamber*: the connected
+        components of the sub-network a probe of ``seed_radius`` fits into.
+
+        A chamber is a place a channel should start from; ``inner_radius`` says
+        what it may then squeeze through. One probe doing both jobs is what makes
+        a single seed arbitrary: the interstices that merely connect the real
+        pockets are themselves cavity under a small probe, so the deepest point
+        of a cavity can be an accident of that network rather than a site.
+        Carving again with a larger probe prunes those necks and leaves the
+        pockets standing, which is where the seeds belong.
+
+        The carve runs on the already-cleared state, so the labels index it
+        directly - unlike :meth:`deleteSimplices3d`, which compacts the arrays
+        and renumbers. No second tessellation is involved: one :meth:`sphereFit`
+        pass and one connected-components call.
+
+        :arg seed_radius: chamber-defining probe radius in Angstrom. It has to
+            exceed ``inner_radius`` to prune anything: every tetrahedron of the
+            cleared state passes ``sphereFit(inner_radius)`` by construction, so
+            an equal radius keeps each cavity whole as a single chamber.
+        :type seed_radius: float
+
+        :returns: ``(labels, sizes)`` - the chamber of each tetrahedron, ``-1``
+            where the probe does not fit, and the tetrahedron count of each
+            chamber indexed by that label.
+        :rtype: tuple"""
+
+        from scipy.sparse import csr_matrix
+        from scipy.sparse.csgraph import connected_components
+
+        simplices = np.asarray(simplices)
+        neighbors = np.asarray(neighbors)
+        n = len(simplices)
+        labels = np.full(n, -1, dtype=np.intp)
+
+        fits = self.sphereFit(points, simplices, vertices, vdw_radii,
+                              seed_radius)
+        if not fits.any():
+            return labels, np.zeros(0, dtype=np.intp)
+
+        # An edge is kept only when the probe fits at both of its ends, so every
+        # component is either wholly inside the carve or a single tetrahedron
+        # outside it. That is what lets the sizes below be counted over the
+        # fitting tetrahedra alone: a label appearing among them can never be
+        # shared with a tetrahedron the probe does not fit into.
+        rows = np.repeat(np.arange(n), neighbors.shape[1])
+        cols = neighbors.ravel()
+        keep = (cols != -1) & fits[rows] & fits[np.where(cols < 0, 0, cols)]
+        graph = csr_matrix((np.ones(int(keep.sum()), dtype=bool),
+                            (rows[keep], cols[keep])), shape=(n, n))
+        _, components = connected_components(graph, directed=False)
+
+        labels[fits] = components[fits]
+        sizes = np.bincount(components[fits],
+                            minlength=int(components.max()) + 1)
+
+        return labels, sizes
+
+    def getSurfaceCavities(self, cavities, interior_simplices, second_layer,
                            state, points, vdw_radii, sparsity, mouth_oracle=None):
         surface_cavities = []
         
@@ -6408,6 +6537,98 @@ class ChannelCalculator:
                                                         float(best_cavity.depth)))
 
         return [best_cavity]
+
+    def setStartingTetrahedraFromChambers(self, cavities, labels, sizes,
+                                          min_depth, min_chamber_tetrahedra=5,
+                                          max_seeds=None):
+        '''Seed every cavity at each of its chambers instead of at its single
+        deepest tetrahedron.
+
+        :func:`findDeepestTetrahedra` gives a cavity one seed, the far end of its
+        geodesic depth field. For a compact pocket that is the site. For a large
+        or branched cavity it is arbitrary, and two things follow: every channel
+        is forced to be at least as long as the cavity is deep, and the mouths of
+        the other lobes go unreported, because a route from the far seed to them
+        is absorbed at some nearer mouth on the way and never arrives. Seeding
+        each chamber instead lets every lobe reach its own openings, and the
+        openings that were already reported get traced from the chamber that
+        actually feeds them - on 1tqn at ``inner_radius=1.4`` the four cavity-0
+        channels kept their exits but went from 46-58 A to 16-25 A, and their
+        bottlenecks widened, because the route no longer has to cross a neck.
+
+        The seed of a chamber is its widest tetrahedron *among those no shallower
+        than* `min_depth`. The order matters: a chamber can be deep and still
+        have its widest tetrahedron sitting in the mouth, and seeding there
+        produces a channel a fraction of an Angstrom long instead of the tunnel
+        that chamber really has. Filtering by depth first and taking the widest
+        of what remains keeps the seed inside the site.
+
+        Cavities are left with the seed `findDeepestTetrahedra` gave them when no
+        chamber of theirs qualifies, so a pocket too narrow to hold the chamber
+        probe still reports its channels.
+
+        :arg labels: chamber of each tetrahedron, from :meth:`findChambers`.
+        :type labels: :class:`~numpy.ndarray`
+
+        :arg sizes: tetrahedron count of each chamber, indexed by label.
+        :type sizes: :class:`~numpy.ndarray`
+
+        :arg min_depth: depth floor, in Angstrom, a seed must clear. The same
+            value that filters cavities, so "buried enough to be a site" means
+            one thing throughout.
+        :type min_depth: float
+
+        :arg min_chamber_tetrahedra: chambers smaller than this are ignored as
+            tessellation debris rather than sites. Default 5.
+        :type min_chamber_tetrahedra: int
+
+        :arg max_seeds: cap on the seeds of one cavity, widest chamber first.
+            ``None`` for no cap. A percolated interior can otherwise offer
+            dozens of chambers, and every seed multiplies the candidate routes
+            the dedup has to compare.
+        :type max_seeds: int or None
+
+        :returns: the number of cavities that were re-seeded.
+        :rtype: int'''
+
+        clearance = self._vertex_clearance
+        reseeded = 0
+
+        for index, cavity in enumerate(cavities):
+            tetrahedra = np.asarray(cavity.tetrahedra, dtype=np.intp)
+            depths = cavity.tetrahedra_depths
+
+            chambers = {}
+            for tetra, label in zip(tetrahedra, labels[tetrahedra]):
+                if label >= 0 and sizes[label] >= min_chamber_tetrahedra:
+                    chambers.setdefault(int(label), []).append(int(tetra))
+
+            seeds = {}
+            for label, members in chambers.items():
+                members = np.asarray(members, dtype=np.intp)
+                deep = members[np.array([depths.get(int(t), 0.0)
+                                         for t in members]) >= min_depth]
+                if len(deep) == 0:
+                    continue
+                seeds[int(deep[np.argmax(clearance[deep])])] = label
+
+            if not seeds:
+                continue
+
+            if max_seeds is not None and len(seeds) > max_seeds:
+                widest = sorted(seeds, key=lambda t: -clearance[t])[:max_seeds]
+                LOGGER.info("cavity {0}: {1} chambers found, seeding the {2} "
+                    "widest.".format(index, len(seeds), max_seeds))
+                seeds = {t: seeds[t] for t in widest}
+
+            # Sorted so that the seed order, and with it the order candidates
+            # reach the dedup, does not depend on the dict.
+            cavity.setStartingTetrahedron(np.array(sorted(seeds)))
+            # Which chamber each seed speaks for; the chamber links read it.
+            cavity.seed_chambers = seeds
+            reseeded += 1
+
+        return reseeded
 
     def reportSeedTetrahedron(self, info, search_radius, cavity_index=None):
         '''Log the seed tetrahedron `selectSeedTetrahedron` picked, and, when it is not
