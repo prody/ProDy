@@ -47,7 +47,7 @@ from prody.atomic import AtomGroup
 from prody.measure import calcTransformation, applyTransformation, calcRMSD
 from prody.ensemble import Ensemble
 from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
-from prody.utilities import createStringIO, importLA, mad
+from prody.utilities import checkBlocks, createStringIO, importLA, mad
 
 la = importLA()
 norm = la.norm
@@ -950,19 +950,27 @@ class ClustENM(Ensemble):
 
         return super(ClustENM, self)._getCoordsets(I, selected)
 
-    def writePDBFixed(self):
+    def writePDBFixed(self, filename=None, replace_spaces=False):
 
         'Write the fixed (initial) structure to a pdb file.'
+
+        if filename is None:
+            filename = self.getTitle()[:-8] + 'fixed.pdb'
+        if replace_spaces:
+            filename = filename.replace(" ", "_")
 
         try:
             from openmm.app import PDBFile
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
 
-        PDBFile.writeFile(self._topology,
-                          self._positions,
-                          open(self.getTitle()[:-8] + 'fixed.pdb', 'w'),
-                          keepIds=True)
+        with open(filename, 'w') as stream:
+            PDBFile.writeFile(self._topology,
+                            self._positions,
+                            stream,
+                            keepIds=True)
+
+        return filename
 
     def writePDB(self, filename=None, single=True, **kwargs):
 
@@ -1186,7 +1194,7 @@ class ClustENM(Ensemble):
 
             if len(self._maxclust) != self._n_gens + 1:
                 raise ValueError(
-                    'size mismatch: %d generations were set; %d maxclusts were given' % (
+                    'size mismatch: %d generations were set; %d maxclusts were given' % (  # noqa: UP031
                         self._n_gens + 1, len(self._maxclust)))
 
         if threshold is None:
@@ -1198,7 +1206,9 @@ class ClustENM(Ensemble):
                 self._threshold = (0,) + (threshold,) * n_gens
 
             if len(self._threshold) != self._n_gens + 1:
-                raise ValueError('size mismatch: %d generations were set; %d thresholds were given' % (self._n_gens + 1, self._threshold))
+                raise ValueError(
+                    'size mismatch: %d generations were set; %d thresholds were given' % (  # noqa: UP031
+                    self._n_gens + 1, len(self._threshold)))
 
         self._sol = solvent if self._nuc is None else 'exp'
         self._padding = kwargs.pop('padding', 1.0)
@@ -1224,6 +1234,17 @@ class ClustENM(Ensemble):
         self._v1 = kwargs.pop('v1', False)
 
         self._cycle = 0
+
+        if self._atoms is None:
+            raise ValueError('atoms are not set, use `setAtoms`')
+
+        # the block based subclasses check that blocks are set before getting
+        # here, so this checks them against the nodes they have to describe,
+        # which fails the run before it minimises anything rather than later
+        # when its ANM is built
+        blocks = getattr(self, '_blocks', None)
+        if blocks is not None:
+            checkBlocks(blocks, self._n_cg, 'coarse grained nodes')
 
         # check for discontinuity in the structure
         gnm = GNM()
