@@ -1323,35 +1323,34 @@ def showHistogram(data, *args, **kwargs):
     Plots the distribution of values on the current axis. 
     The input may be either a one-dimensional array or a symmetric square 2D matrix.
     
+    Uses Seaborn's :func:`sns.histplot` if available, falling back to 
+    Matplotlib's :meth:`matplotlib.axes.Axes.hist` if Seaborn is not installed.
+    
     
     :arg data: 1D array or 2D square symmetric matrix. 
                If 2D, the upper triangle (excluding diagonal) is automatically extracted.
     :type data: :class:`numpy.ndarray`
     
-    :arg *args: positional arguments passed directly to Seaborn's ``histplot`` function.
+    :arg *args: positional arguments passed directly to Seaborn's ``histplot`` 
+                or Matplotlib's ``hist`` function.
     :type *args: tuple
     
-    :arg title: title of the plot. 
-                Default is ``'Distribution'``.
+    :arg title: title of the plot. Default is ``'Distribution'``.
     :type title: str
     
-    :arg xlabel: label for the x-axis. 
-                 Default is ``'Value'``.
+    :arg xlabel: label for the x-axis. Default is ``'Value'``.
     :type xlabel: str
     
-    :arg ylabel: label for the y-axis. 
-                 Default is ``'Frequency'``.
+    :arg ylabel: label for the y-axis. Default is ``'Frequency'``.
     :type ylabel: str
     
-    :arg grid: whether to display horizontal grid lines.
-               Default is ``True``.
+    :arg grid: whether to display horizontal grid lines. Default is ``True``.
     :type grid: bool
     
-    :arg ax: axes on which to draw the plot. 
-             Default is ``None`` and the current axes are used.
+    :arg ax: axes on which to draw the plot. Default is ``None`` (current axes used).
     :type ax: :class:`matplotlib.axes.Axes`
     
-    :arg **kwargs: keyword arguments passed directly to Seaborn's ``histplot`` function 
+    :arg **kwargs: keyword arguments passed to Seaborn (if installed) or Matplotlib.
     :type **kwargs: dict
     
     :returns: the Matplotlib axes containing the plot.
@@ -1362,20 +1361,18 @@ def showHistogram(data, *args, **kwargs):
     >>> distance_matrix = calcPairwiseRMSD(aligned_coords)
     >>> plt.figure()
     >>> showHistogram(distance_matrix, xlabel='RMSD [Å]')
-    >>> plt.show()
+    >>> plt.show() 
     """
-
+    
     import matplotlib.pyplot as plt
     try:
         import seaborn as sns
+        has_seaborn = True
     except ImportError:
-        raise ImportError("The 'seaborn' package is required to display the histogram."
-                          "\nPlease install it using 'pip install seaborn'."
-                          "\nAlternatively, use standard matplotlib.pyplot.hist() for basic plots.")
-    
-    
+        has_seaborn = False
+
     data_array = np.asarray(data)
-    
+
     if data_array.ndim == 2:
         if data_array.shape[0] != data_array.shape[1]:
             raise ValueError(f"2D data matrix must be square, but got shape {data_array.shape}")
@@ -1384,40 +1381,51 @@ def showHistogram(data, *args, **kwargs):
         values = data_array
     else:
         raise ValueError(f"Expected 1D or 2D array, but got shape {data_array.shape}")
-    
+
     ax = kwargs.pop('ax', None)
     if ax is None:
         ax = plt.gca()
-        
+
     title = kwargs.pop('title', 'Distribution')
     xlabel = kwargs.pop('xlabel', 'Value')
     ylabel = kwargs.pop('ylabel', 'Frequency')
     grid = kwargs.pop('grid', True)
     label = kwargs.get('label', None)
 
-    # Seaborn Defaults
-    kwargs.setdefault('bins', 50)
-    kwargs.setdefault('element', 'bars')
-    kwargs.setdefault('stat', 'count')
-    kwargs.setdefault('kde', False)
-    kwargs.setdefault('alpha', 0.5)
-    kwargs.setdefault('color', 'teal')
-    kwargs.setdefault('edgecolor', 'black')
-    
     if 'lw' in kwargs:
         kwargs['linewidth'] = kwargs.pop('lw')
     else:
         kwargs.setdefault('linewidth', 0.8)
 
-    sns.histplot(values, *args, ax=ax, **kwargs)
-    
+    kwargs.setdefault('bins', 50)
+    kwargs.setdefault('color', 'teal')
+    kwargs.setdefault('alpha', 0.5)
+    kwargs.setdefault('edgecolor', 'black')
+
+    if has_seaborn:
+        kwargs.setdefault('element', 'bars')
+        kwargs.setdefault('stat', 'count')
+        kwargs.setdefault('kde', False)
+
+        sns.histplot(values, *args, ax=ax, **kwargs)
+    else: # matplotlib fallback
+        LOGGER.info("Package 'seaborn' not found; falling back to matplotlib.pyplot.hist().")
+        kde = kwargs.pop('kde', None)
+        kwargs.pop('element', None)
+        kwargs.pop('stat', None)
+        
+        if kde:
+            LOGGER.warning("Kernel density estimation (kde=True) requires 'seaborn' and will be ignored.")
+
+        ax.hist(values, *args, **kwargs)
+
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    
+
     if label is not None:
         ax.legend()
-    
+
     if grid:
         ax.grid(axis='y', alpha=0.3)
 
