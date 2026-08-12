@@ -640,6 +640,10 @@ class Ensemble(object):
                 matrix = dot((tar_org * weights).T,
                              (mob_org * weights)) / weights_dot
 
+            if linalg.__package__.startswith('torch'):
+                import torch
+                matrix = torch.from_numpy(matrix)
+
             U, s, Vh = svd(matrix)
             Id = array([[1, 0, 0], [0, 1, 0], [0, 0, sign(det(matrix))]])
             rotation = dot(Vh.T, dot(Id, U.T))
