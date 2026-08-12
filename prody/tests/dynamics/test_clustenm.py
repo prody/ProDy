@@ -54,6 +54,29 @@ except ImportError:
     warnings.warn(OPENMM_SKIP_MSG + ', so the ClustENM tests that need them '
                   'are being skipped')
 
+# Which platforms OpenMM can run a simulation on depends on how it was built
+# and on the hardware it finds, so the tests of each are skipped rather than
+# failed when it does not have that one, with a warning for the accelerated
+# ones so that not having tried them is not silent.
+if HAVE_OPENMM:
+    from openmm import Platform
+    PLATFORMS = [Platform.getPlatform(i).getName()
+                 for i in range(Platform.getNumPlatforms())]
+else:
+    PLATFORMS = []
+
+GPU_PLATFORMS = ('CUDA', 'OpenCL')
+_missing = [name for name in GPU_PLATFORMS if name not in PLATFORMS]
+if HAVE_OPENMM and _missing:
+    warnings.warn('OpenMM has no %s platform, so the ClustENM tests that run '
+                  'on it are being skipped' % ' or '.join(_missing))
+
+
+def platformSkipMsg(platform):
+    """Returns the reason for skipping a test of *platform*."""
+
+    return 'OpenMM has no %s platform' % platform
+
 
 def mockOpenMMApp():
     """Returns a ``patch.dict`` of :mod:`sys.modules` and a mock standing in
@@ -723,6 +746,83 @@ class TestClustENMMinimiseOnly(unittest.TestCase):
             self.assertTrue(np.isfinite(potentials).all(),
                             'ClustENM run with 0 generations gave a potential '
                             'energy that is not finite')
+
+
+class TestClustENMPlatform(unittest.TestCase):
+    """Properties can only be given to OpenMM for a platform that was named,
+    so each platform is run to make sure ClustENM asks for a combination of the
+    two that OpenMM accepts. Without a platform it picks the fastest it has,
+    and asking for properties as well used to be silently ignored but now
+    raises, so the run without one is the case that matters most here.
+
+    These are minimisation only runs, which is enough to build a simulation."""
+
+    def setUp(self):
+        if not prody.PY3K or not HAVE_OPENMM:
+            return
+
+        self.cwd = os.getcwd()
+        self.tmpdir = tempfile.mkdtemp()
+        os.chdir(self.tmpdir)
+
+        self.ATOMS = parseDatafile('1ubi')
+
+    def tearDown(self):
+        if not prody.PY3K or not HAVE_OPENMM:
+            return
+
+        os.chdir(self.cwd)
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def runOnPlatform(self, platform):
+        """Runs ClustENM over the fixed structure on *platform*, or on whichever
+        one OpenMM picks if it is **None**, and checks the minimised starting
+        structure that comes back."""
+
+        clustenm = ClustENM()
+        clustenm.setAtoms(self.ATOMS)
+
+        kwargs = {} if platform is None else {'platform': platform}
+        clustenm.run(n_gens=0, n_modes=2, sim=False, outlier=False, **kwargs)
+
+        named = 'no platform' if platform is None else platform
+        assert_equal(clustenm.numConfs(), 1,
+                     'ClustENM run with %s failed to give the minimised '
+                     'starting structure' % named)
+        self.assertTrue(np.isfinite(clustenm.getCoordsets()).all(),
+                        'ClustENM run with %s gave coordinates that are not '
+                        'finite' % named)
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testNoPlatform(self):
+        """Test running without naming a platform"""
+        if prody.PY3K:
+            self.runOnPlatform(None)
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    @unittest.skipUnless('CPU' in PLATFORMS, platformSkipMsg('CPU'))
+    def testCPUPlatform(self):
+        """Test running on the CPU platform, which is given a thread count"""
+        if prody.PY3K:
+            self.runOnPlatform('CPU')
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    @unittest.skipUnless('CUDA' in PLATFORMS, platformSkipMsg('CUDA'))
+    def testCUDAPlatform(self):
+        """Test running on the CUDA platform, which is given a precision"""
+        if prody.PY3K:
+            self.runOnPlatform('CUDA')
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    @unittest.skipUnless('OpenCL' in PLATFORMS, platformSkipMsg('OpenCL'))
+    def testOpenCLPlatform(self):
+        """Test running on the OpenCL platform, which is given a precision"""
+        if prody.PY3K:
+            self.runOnPlatform('OpenCL')
 
 
 if __name__ == '__main__':
