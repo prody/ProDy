@@ -292,12 +292,14 @@ class ClustENM(Ensemble):
                                         0.002*picosecond)
 
         # precision could be mixed, but single is okay.
-        platform = self._platform if self._platform is None else Platform.getPlatformByName(self._platform)
+        platform = None if self._platform is None else Platform.getPlatformByName(self._platform)
+
+        # properties are platform specific, so they can only be given for a
+        # platform we chose. Without one OpenMM picks the fastest it has and
+        # uses its own defaults, and asking for properties as well raises.
         properties = None
 
-        if self._platform is None:
-            properties = {'Precision': 'single'}
-        elif self._platform in ['CUDA', 'OpenCL']:
+        if self._platform in ['CUDA', 'OpenCL']:
             properties = {'Precision': 'single'}
         elif self._platform == 'CPU':
             if self._threads == 0:
