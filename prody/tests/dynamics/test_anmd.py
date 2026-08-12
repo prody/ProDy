@@ -1,10 +1,16 @@
 """This module contains unit tests for :mod:`~prody.dynamics`."""
 
 import os
+import shutil
 import sys
+import tempfile
+import warnings
+
 import numpy as np
 from numpy.testing import *
+
 from prody.utilities import importDec
+
 dec = importDec()
 
 from prody import *
@@ -16,7 +22,7 @@ from prody.tests.datafiles import *
 try:
     from unittest.mock import MagicMock, patch
 except ImportError:
-    from mock import MagicMock, patch
+    from mock import MagicMock, patch  # noqa: UP026
 
 # Prevent threading hangs on remote servers
 os.environ['OMP_NUM_THREADS'] = '1'
@@ -28,6 +34,19 @@ DATA = DATA_FILES['anmd']
 # We assume the 'anmd' test data is local/small and fine to load globally
 ENSEMBLE = PDBEnsemble(parseDatafile('anmd'))
 ENSEMBLE.setCoords(ENSEMBLE.getCoordsets()[2])
+
+# runANMD needs both of these to get as far as minimising anything. They are
+# optional dependencies, so the tests that need them are skipped rather than
+# failed when they are missing, with a warning so that the gap is not silent.
+OPENMM_SKIP_MSG = 'PDBFixer and OpenMM are needed to run ANMD'
+try:
+    import openmm
+    import pdbfixer
+    HAVE_OPENMM = True
+except ImportError:
+    HAVE_OPENMM = False
+    warnings.warn(OPENMM_SKIP_MSG + ', so the ANMD tests that run it are '
+                  'being skipped')
 
 class TestANMD(unittest.TestCase):
 
@@ -140,6 +159,60 @@ class TestAnmdResults(unittest.TestCase):
             assert_allclose(ens1.getRMSDs(), ENSEMBLE.getRMSDs(), 
                             rtol=1e-10, atol=0.25, # may not be so close
                             err_msg='runANMD with num_modes=1 failed to give expected RMSDs')
+
+class TestAnmdSpacedTitle(unittest.TestCase):
+    """runANMD hands the fixed structure to OpenMM through a PDB file whose
+    name it derives from the title of *atoms*, replacing spaces with
+    underscores. It used to look for that name while ClustENM wrote the
+    unreplaced one, so a title containing a space raised FileNotFoundError."""
+
+    def setUp(self):
+        if not prody.PY3K:
+            return
+
+        # runANMD writes its intermediate PDB files into the current directory
+        self.cwd = os.getcwd()
+        self.tmpdir = tempfile.mkdtemp()
+        os.chdir(self.tmpdir)
+
+        self.ATOMS = parseDatafile('1ubi')
+        self.ATOMS.setTitle('my prot')
+
+    def tearDown(self):
+        if not prody.PY3K:
+            return
+
+        os.chdir(self.cwd)
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testAnmdSpacedTitle(self):
+        """Test that a title containing a space is handled"""
+        if prody.PY3K:
+            # a loose tolerance keeps the minimisation short
+            ensembles = runANMD(self.ATOMS, num_modes=1, num_steps=1,
+                                tolerance=100.)
+
+            assert_equal(len(ensembles), 1,
+                         'runANMD with a spaced title failed to give 1 ensemble')
+            assert_equal(len(ensembles[0]), 3,
+                         'runANMD with a spaced title failed to give an '
+                         'ensemble with 3 conformers')
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testAnmdSpacedTitleCleansUp(self):
+        """Test that the intermediate files of a spaced title are removed"""
+        if prody.PY3K:
+            runANMD(self.ATOMS, num_modes=1, num_steps=1, tolerance=100.)
+
+            leftover = [name for name in os.listdir(self.tmpdir)
+                        if name.endswith('.pdb')]
+            assert_equal(leftover, [],
+                         'runANMD with a spaced title left intermediate files '  # noqa: UP031
+                         'behind: %s' % leftover)
+
 
 if __name__ == '__main__':
     unittest.main()
