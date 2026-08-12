@@ -1,5 +1,7 @@
 __author__ = 'Ahmet Bakan, Anindita Dutta, Wenzhi Mao, James Krieger'
 
+import os
+
 from prody.tests import TestCase
 
 from numpy import array, log, zeros, char, ones, fromfile
@@ -1200,6 +1202,17 @@ class TestDirectInfo(TestCase):
         assert_array_almost_equal(expect, result, err_msg='refine failed')
 
 class TestBuildMSA(TestCase):
+
+    def tearDown(self):
+        # buildMSA writes the sequences it aligns beside its output, both named
+        # after the title, and clustalw adds an .aln alignment and a .dnd guide
+        # tree of its own. A test that failed before writing one leaves nothing
+        # to remove, and raising here would report that instead of the failure
+        # which caused it.
+        for extension in ('.fasta', '.aln', '.dnd'):
+            filename = 'Unknown' + extension
+            if os.path.isfile(filename):
+                os.remove(filename)
 
     def testBuildMSAlocal(self):
         sequences = [ags[0].protein["A"].getSequence(),
