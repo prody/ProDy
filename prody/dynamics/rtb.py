@@ -5,7 +5,7 @@
 import numpy as np
 
 from prody import LOGGER
-from prody.utilities import checkCoords
+from prody.utilities import checkBlocks, checkCoords
 
 from .anm import ANMBase
 from .gnm import GNMBase
@@ -76,8 +76,7 @@ class RTB(ANMBase, GNMBase):
     def calcProjection(self, coords, blocks, **kwargs):
         natoms = self._n_atoms
 
-        if natoms != len(blocks):
-            raise ValueError('len(blocks) must match number of atoms')
+        checkBlocks(blocks, natoms)
 
         LOGGER.timeit('_rtb')
         from collections import defaultdict
