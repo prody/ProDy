@@ -72,6 +72,14 @@ VDW_RADII = {
 
 _OVERLAP_OFFSET_CACHE = {}
 
+# The tag a per-object file carries in its name, against the word the same
+# object is written under inside the residue and parameter text files. The two
+# differ for every object but the cavities, which would broke the reading side
+# of selectChannelBySelection when the per-object files labels change e.g., from
+# _channel0.pqr to _chl0.pqr.
+_OBJECT_TAGS = {'chl': 'channel', 'lnk': 'link', 'pore': 'pore',
+                'cavity': 'cavity'}
+
 @contextmanager
 def _warningsDelivered():
     """Let WARNING records through for the duration of the block.
@@ -151,8 +159,17 @@ def _requireCoords(atoms):
     getCoords(atoms)
 
 
-def _numberedPath(filename, tag, index):
+def _numberedPath(filename, tag, index, suffix='', stem=None):
     """``channels.pqr`` with ``('chl', 0)`` becomes ``channels_chl0.pqr``.
+
+    *suffix* is appended after the number, for the objects that have a far end
+    to name as well as a near one: a link out of start point 13 into start point
+    9 comes out as ``channels_sp13_lnk0_sp9.pqr``.
+
+    *stem* overrides the part before the tag. ``None`` takes it from the file
+    name, as above; ``''`` drops it and its separator, giving ``chl0.pqr``,
+    which is what a run told only a directory writes - there the stem carries no
+    information, being the same placeholder for every run.
 
     Only the file's own name is numbered. The per-object files used to be named
     by ``filename.replace('.pqr', ...)``, which rewrites every occurrence of the
@@ -168,8 +185,115 @@ def _numberedPath(filename, tag, index):
         from pathlib2 import Path
 
     path = Path(filename)
-    return path.with_name("{0}_{1}{2}{3}".format(path.stem, tag, index,
-                                                 path.suffix))
+    if stem is None:
+        stem = path.stem
+    return path.with_name("{0}{1}{2}{3}{4}".format(
+        stem + '_' if stem else '', tag, index, suffix, path.suffix))
+
+
+def _frameOutputPath(output_path, index, name):
+    """Where one frame of a multi-frame run writes.
+
+    A directory takes the files inside it, named after what they hold and the
+    frame they came from: ``2kid`` gives ``2kid/cavities3.pqr``, and the
+    per-object files under it carry that stem, so the frame stays in every name
+    and frames cannot overwrite one another. Anything else is used as a prefix,
+    as it always has been: ``2kid`` with no such directory gives ``2kid3.pqr``
+    beside it."""
+
+    import os
+
+    path = str(output_path)
+    if os.path.isdir(path):
+        return os.path.join(path, "{0}{1}.pqr".format(name, index))
+    return path + "{0}.pqr".format(index)
+
+
+def _splitObjectFileName(filename):
+    """``run1_sp0_chl3.pqr`` becomes ``('run1', 'channel', 3)``.
+
+    The inverse of :func:`_numberedPath`: it reads back the prefix, the kind of
+    object and its number from a per-object file name. Start points are not part
+    of the identity - an object is numbered over the whole run, not within its
+    start point - so both the ``_sp<N>`` before the tag and the ``_sp<M>`` a
+    link carries after its number are dropped. The prefix is empty for the names
+    a run told only a directory writes (``sp0_chl3.pqr``). Returns ``None`` when
+    the name is not one of ours."""
+
+    import re
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    match = re.match(r'^(?:(?P<head>.*)_)?(?P<tag>{0})(?P<index>\d+)'
+                     r'(?:_sp\d+)?$'.format('|'.join(_OBJECT_TAGS)),
+                     Path(filename).stem)
+    if match is None:
+        return None
+    # A start point sits between the prefix and the tag, so it lands in the head
+    # and is taken off here rather than in the pattern, where an optional group
+    # before a greedy one would just as happily read "sp0" as the prefix itself.
+    head = re.sub(r'(?:^|_)sp\d+$', '', match.group('head') or '')
+    return head, _OBJECT_TAGS[match.group('tag')], int(match.group('index'))
+
+
+def _selectObjectRows(files, suffix, object_name, file_prefix=None):
+    """The rows of ``<prefix><suffix>`` belonging to *files*, in their order.
+
+    One text file holds every object of a run, one row each, keyed by the prefix
+    the run was written under and the object's number. Each text file is read
+    once however many objects are looked up in it."""
+
+    import os
+
+    rows = []
+    cache = {}
+    unnamed = []
+    for path in files:
+        name = os.path.basename(str(path))
+        parsed = _splitObjectFileName(name)
+        if parsed is None:
+            # The combined file is one of these every time, so they are counted
+            # and reported once rather than warned about one by one.
+            unnamed.append(name)
+            continue
+        prefix, found_name, index = parsed
+        if found_name != object_name:
+            continue                   # a file of another kind, not an error
+        if file_prefix is not None:
+            prefix = file_prefix
+
+        text_file = prefix + suffix
+        if text_file not in cache:
+            try:
+                with open(text_file, 'r') as handle:
+                    cache[text_file] = handle.readlines()
+            except (IOError, OSError):
+                cache[text_file] = None
+                _warn("{0} not found, so nothing was extracted for {1}. It is "
+                      "written by the get*Parameters and get*ResidueNames "
+                      "functions under the name passed to them; pass "
+                      "file_prefix if that name is not {2!r}.".format(
+                          text_file, name, prefix))
+        lines = cache[text_file]
+        if lines is None:
+            continue
+
+        key = '{0}_{1}{2}:'.format(prefix, object_name, index)
+        matched = [line for line in lines if line.startswith(key)]
+        if not matched:
+            _warn("no row starting {0!r} in {1}, so {2} contributed "
+                  "nothing.".format(key, text_file, name))
+        rows.extend(matched)
+
+    if unnamed:
+        LOGGER.info("{0} file(s) hold no single numbered object, so no {1} row "
+                    "was looked up for them: {2}.".format(
+                        len(unnamed), object_name, ', '.join(unnamed)))
+
+    return rows
 
 
 def _kdTree(coords):
@@ -955,14 +1079,29 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         containing atomic coordinates and element types.
     :type atoms: `Atoms` object
 
-    :arg output_path: Optional path to save the resulting channels and 
-        associated data in PQR (or PDB) format. If None, results are not saved. 
+    :arg output_path: Optional path to save the resulting channels and
+        associated data in PQR (or PDB) format. If None, results are not saved.
         Default is None.
+
+        Naming a directory names nothing after the run: the files are named
+        after what they hold - ``channels.pqr`` beside ``links.pqr``, and with
+        ``separate=True`` per-object files carrying no stem at all
+        (``sp0_chl3.pqr``). Naming a file puts its stem on all of them
+        (``run1.pqr`` gives ``run1_links.pqr`` and ``run1_sp0_chl3.pqr``), which
+        is what tells two runs apart when they are written side by side.
     :type output_path: str or None
 
-    :arg separate: If True, each detected channel is saved to a separate PDB 
-        file. If False, all channels are saved in a single PDB file. Default is 
+    :arg separate: If True, each detected channel is saved to a separate PDB
+        file. If False, all channels are saved in a single PDB file. Default is
         False.
+
+        The per-object files carry the start point they were traced from, so
+        that everything belonging to one void globs together: ``out.pqr``
+        yields ``out_sp0_chl3.pqr`` for the fourth channel overall, traced from
+        start point 0. A chamber link carries the void it arrives at as well,
+        after the number - ``out_sp13_lnk0_sp9.pqr`` runs from start point 13
+        into start point 9 - so either end can be searched for. Start points are
+        numbered largest void first and listed in the log; see ``seed_radius``.
     :type separate: bool
 
     :arg start_point: Optional starting point for channel search. This can be
@@ -1599,8 +1738,15 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         if output_path:
             output_path = Path(output_path)
             
+            # A directory names no run, so nothing here is named after one: the
+            # file is named after what it holds, cavities.pqr beside the
+            # channels.pqr, links.pqr and pores.pqr the other entry points
+            # write, and the stem is not carried into the per-cavity files,
+            # which come out as cavity0.pqr.
+            separate_stem = None
             if output_path.is_dir():
-                output_path = output_path / "surface_cavities.pqr"
+                output_path = output_path / "cavities.pqr"
+                separate_stem = ''
             elif not (output_path.suffix == ".pdb" or output_path.suffix == ".pqr"):
                 output_path = output_path.with_suffix(".pqr")
 
@@ -1609,8 +1755,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             else:
                 LOGGER.info("Saving multiple surface cavities to directory " + str(output_path.parent) + ".")
 
-            calculator.saveCavitiesToPdb(c_filtered_cavities, s_clr.verti, 
-                                         output_path, separate)
+            calculator.saveCavitiesToPdb(c_filtered_cavities, s_clr.verti,
+                                         output_path, separate, separate_stem)
 
         LOGGER.report('Surface cavity calculation completed in %.2fs.', '_prody_calcChannels')
         return c_filtered_cavities, [coords, s_srf.simp, merged_cavities, s_clr.simp, s_clr.verti]
@@ -1895,12 +2041,23 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
     
     if output_path:
         output_path = Path(output_path)
+        # As in calcChannels: a directory names no run, so its placeholder file
+        # name is kept out of the per-pore ones.
+        separate_stem = None
         if output_path.is_dir():
             output_path = output_path / "pores.pqr"
+            separate_stem = ''
         elif output_path.suffix not in (".pdb", ".pqr"):
             output_path = output_path.with_suffix(".pqr")
 
-        calculator.saveChannelsToPdb(pores, output_path, separate=separate)
+        # Named as pores, not as channels. The writer's defaults were the only
+        # thing naming them, so a pore came out as <stem>_chl0.pqr with a REMARK
+        # reading "channel 0" - harmless while the stem told them apart, and a
+        # collision once a run told only a directory drops the stem and writes
+        # both into one folder.
+        calculator.saveChannelsToPdb(pores, output_path, separate=separate,
+                                     tag='pore', label='pore',
+                                     separate_stem=separate_stem)
 
     return pores
             
@@ -2019,7 +2176,7 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
         atoms_copy = atoms.copy()
         for j0, frame0 in enumerate(traj, start=start_frame):
             if output_path:
-                frame_output_path = str(output_path) + "{0}.pqr".format(j0)
+                frame_output_path = _frameOutputPath(output_path, j0, "channels")
             else:
                 frame_output_path = None
             
@@ -2034,7 +2191,8 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
                 model_nr = i + start_frame
 
                 if output_path:
-                    frame_output_path = str(output_path) + "{0}.pqr".format(model_nr)
+                    frame_output_path = _frameOutputPath(output_path, model_nr,
+                                                         "channels")
                 else:
                     frame_output_path = None
                 
@@ -2193,7 +2351,8 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
         atoms_copy = atoms.copy()
         for j0, frame0 in enumerate(traj, start=start_frame):
             if output_path:
-                frame_output_path = str(output_path) + "{0}.pqr".format(j0)
+                frame_output_path = _frameOutputPath(output_path, j0,
+                                                     "cavities")
             else:
                 frame_output_path = None
 
@@ -2213,7 +2372,8 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
 
             for i in model_indices:
                 if output_path:
-                    frame_output_path = str(output_path) + "{0}.pqr".format(i)
+                    frame_output_path = _frameOutputPath(output_path, i,
+                                                         "cavities")
                 else:
                     frame_output_path = None
 
@@ -2313,19 +2473,25 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
     else:
         from pathlib2 import Path
     
+    import os
     import multiprocessing
-    
+
     if len(channels_all) != len(details_all):
         raise ValueError("channels_all and details_all must contain the same number of frames")
 
-    if output_path is not None:
+    # A directory takes the frames inside it, as everywhere else; anything else
+    # is the name they are numbered from, as before.
+    into_directory = output_path is not None and os.path.isdir(str(output_path))
+    if output_path is not None and not into_directory:
         output_path = Path(output_path)
         if output_path.suffix not in ('.pqr', '.pdb'):
             output_path = output_path.with_suffix('.pqr')
 
     tasks = []
     for frame_nr, (channels, details) in enumerate(zip(channels_all, details_all)):
-        if output_path is not None:
+        if into_directory:
+            frame_output_path = _frameOutputPath(output_path, frame_nr, "pores")
+        elif output_path is not None:
             frame_output_path = output_path.with_name(
                     "{0}_frame{1}{2}".format(output_path.stem, frame_nr, output_path.suffix))
         else:
@@ -2353,23 +2519,29 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
     
     
 def parseParameters(channels, **kwargs):
-    """Extracts and returns the lengths, bottlenecks, and volumes of each 
-    channel in a given list of channels. """
-    
+    """Extracts and returns the lengths, bottlenecks, and volumes of each
+    channel in a given list of channels.
+
+    ``object_name`` names the objects in the rows and in the file the rows are
+    written to, so that a list of chamber links is not filed as channels.
+    Default ``'channel'``. """
+
     lengths = []
     bottlenecks = []
     volumes = []
     param_file_name = kwargs.pop('param_file_name', None)
-    
+    object_name = kwargs.pop('object_name', 'channel')
+
     for nr_ch, channel in enumerate(channels):
         lengths.append(channel.length)
         bottlenecks.append(channel.bottleneck)
         volumes.append(channel.volume)
-        
+
         if param_file_name is not None:
-            with open(param_file_name+'_Parameters_All_channels.txt', "a") as f_par:
-                f_par.write(("{0}_channel{1}: {2} {3} {4}\n".format(param_file_name, nr_ch, channel.length, channel.bottleneck, channel.volume)))
-            
+            with open('{0}_Parameters_All_{1}s.txt'.format(param_file_name,
+                                                           object_name), "a") as f_par:
+                f_par.write(("{0}_{1}{2}: {3} {4} {5}\n".format(param_file_name, object_name, nr_ch, channel.length, channel.bottleneck, channel.volume)))
+
     return lengths, bottlenecks, volumes
 
 
@@ -2461,7 +2633,7 @@ def getPoreParameters(pores, **kwargs):
     param_file_name = kwargs.get('param_file_name', None)
 
     try:
-        results_L_B_V = parseParameters(pores, **kwargs)
+        results_L_B_V = parseParameters(pores, object_name='pore', **kwargs)
         lengths, bottlenecks, volumes = results_L_B_V
         LOGGER.info("Pore {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]',
                                                              'Length [Å]', 
@@ -2473,8 +2645,9 @@ def getPoreParameters(pores, **kwargs):
     except:
         for nr_i,i in enumerate(pores):
             safe_param_file_name = param_file_name if param_file_name is not None else ""
-            results = parseParameters(pores[nr_i], param_file_name=safe_param_file_name + str(nr_i))
-            multi_model_param.append(results) 
+            results = parseParameters(pores[nr_i], object_name='pore',
+                                      param_file_name=safe_param_file_name + str(nr_i))
+            multi_model_param.append(results)
             
         LOGGER.info("Pore {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]', 
                                                             'Length [Å]', 
@@ -2796,11 +2969,11 @@ def _vertexRadiiSource(atoms):
 def _vertexRadii(points, source, k=24):
     """Inscribed-sphere radius at each Voronoi vertex, ``min(|v - x| - vdw)``.
 
-    Surface cavities keep no radius of their own -- ``saveCavitiesToPdb`` writes a
-    placeholder 1.00 into the radius column -- so the radius the diagram implies is
-    recomputed here. Only the nearest *k* atoms are consulted, which is ample: van
-    der Waals radii span barely half an Angstrom, so no atom outside the nearest
-    handful can hold the minimum."""
+    Surface cavities keep no radius of their own. The radius column of a cavity file
+    is a marker size (see :meth:`ChannelCalculator.saveCavitiesToPdb`), not the room
+    at the vertex, so the radius the diagram implies is recomputed here. Only the
+    nearest *k* atoms are consulted, which is ample: van der Waals radii span barely
+    half an Angstrom, so no atom outside the nearest handful can hold the minimum."""
 
     tree, vdw = source
     k = min(k, len(vdw))
@@ -2960,7 +3133,7 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
         the object.
     :type objects: list
     
-    :arg object_type: Type of the object; "channel" or "pore".
+    :arg object_type: Type of the object; "channel", "pore" or "link".
         Default is "channel".
     :type object_type: str
 
@@ -2998,8 +3171,9 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
 
     _requireCoords(atoms)
 
-    if object_type not in ('channel', 'pore'):
-        raise ValueError("object_type must be 'channel' or 'pore'")
+    plurals = {'channel': 'channels', 'pore': 'pores', 'link': 'links'}
+    if object_type not in plurals:
+        raise ValueError("object_type must be 'channel', 'pore' or 'link'")
 
     options = _popLiningOptions(kwargs)
 
@@ -3017,10 +3191,7 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
             # An object with no lining left is reported as "None" rather than
             # skipped, so that the returned list keeps one entry per object.
             residues_list = ", ".join(residues_info) if residues_info else "None"
-            if object_type == "channel":
-                residues_list = 'channel'+str(i)+': '+residues_list
-            elif object_type == "pore":
-                residues_list = "pore"+str(i)+': '+residues_list
+            residues_list = object_type + str(i) + ': ' + residues_list
             selected_residues_ch.append(residues_list)
 
     else:
@@ -3031,20 +3202,16 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
         selected_residues_ch = [", ".join(residues_info) if residues_info else "None"]
 
     if options.residues_file_name is not None:
-        if object_type == "channel":
-            output_file = options.residues_file_name + '_Residues_All_channels.txt'
-        elif object_type == "pore":
-            output_file = options.residues_file_name + '_Residues_All_pores.txt'
-            
+        output_file = '{0}_Residues_All_{1}.txt'.format(
+            options.residues_file_name, plurals[object_type])
+
         with open(output_file, "a") as f_res:
             for k in selected_residues_ch:
                 f_res.write(("{0}_{1}\n".format(options.residues_file_name, k)))
-        
-        if object_type == "channel":
-            LOGGER.info("Channel residues were saved to: {0}".format(output_file))
-        elif object_type == "pore":
-            LOGGER.info("Pore residues were saved to: {0}".format(output_file))
-                
+
+        LOGGER.info("{0} residues were saved to: {1}".format(
+            object_type.capitalize(), output_file))
+
     return selected_residues_ch
 
 
@@ -3068,7 +3235,7 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
         models are selected using ``setACSIndex``.
     :type trajectory: :class:`.Trajectory` or None
 
-    :arg object_type: Type of the object; "channel" or "pore".
+    :arg object_type: Type of the object; "channel", "pore" or "link".
         Default is "channel".
     :type object_type: str
 
@@ -3109,8 +3276,8 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
     residues_file_name = kwargs.pop('residues_file_name', None)
     selected_residues_all = []
 
-    if object_type not in ('channel', 'pore'):
-        raise ValueError("object_type must be 'channel' or 'pore'")
+    if object_type not in ('channel', 'pore', 'link'):
+        raise ValueError("object_type must be 'channel', 'pore' or 'link'")
 
     if trajectory is None:
         # multi-model PDB
@@ -3128,12 +3295,12 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
             else:
                 frame_residues_file_name = None
             
-            if object_type == "channel":
-                residues = getChannelResidueNames(atoms, objects,
-                                        residues_file_name=frame_residues_file_name, **kwargs)
-            elif object_type == "pore":
-                residues = getPoreResidueNames(atoms, objects,
-                                        residues_file_name=frame_residues_file_name, **kwargs)
+            # Straight to the general form: the per-type wrappers do nothing but
+            # pass object_type on, and branching over them here meant every new
+            # type had to be added in three places.
+            residues = getObjectResidueNames(atoms, objects,
+                                    object_type=object_type,
+                                    residues_file_name=frame_residues_file_name, **kwargs)
 
             selected_residues_all.append(residues)
 
@@ -3164,13 +3331,10 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
             else:
                 frame_residues_file_name = None
 
-            if object_type == "channel":
-                residues = getChannelResidueNames(atoms_copy, objects_all[frame_pos],
-                                        residues_file_name=frame_residues_file_name, **kwargs)
-            elif object_type == "pore":
-                residues = getPoreResidueNames(atoms_copy, objects_all[frame_pos],
-                                        residues_file_name=frame_residues_file_name, **kwargs)
-            
+            residues = getObjectResidueNames(atoms_copy, objects_all[frame_pos],
+                                    object_type=object_type,
+                                    residues_file_name=frame_residues_file_name, **kwargs)
+
             selected_residues_all.append(residues)
 
         if nfi is not None:
@@ -3626,9 +3790,27 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         getChannelResidues(), default is False 
     :type residues_file: bool
 
-    :arg param_file: File with residues forming the channel created by 
+    :arg param_file: File with residues forming the channel created by
         getChannelParameters(). Default is False.
-    :type param_file: bool  """
+    :type param_file: bool
+
+    :arg file_prefix: The name the residue and parameter files were written
+        under - what was passed as ``residues_file_name`` / ``param_file_name``
+        to :func:`getChannelResidueNames` and :func:`getChannelParameters`. By
+        default it is read from the PQR file names, which works when they share
+        that name (``1bbhA_sp0_chl3.pqr`` beside ``1bbhA_Residues_All_channels.txt``).
+        Give it where the two differ, and where the PQR files carry no name at
+        all because the run was told only a directory (``sp0_chl3.pqr``).
+    :type file_prefix: str
+
+    :arg object_name: The kind of object to extract rows for: ``'channel'``,
+        ``'link'``, ``'pore'`` or ``'cavity'``. Files of the other kinds are
+        copied as before but contribute no rows, so a directory holding channels
+        and links can be searched for either. Default is ``'channel'``; the
+        matching ``residues_suffix``, ``parameters_suffix``,
+        ``selected_residues_output`` and ``selected_parameters_output`` are
+        accepted as keywords beside it.
+    :type object_name: str  """
 
     _requireCoords(atoms)
     
@@ -3641,6 +3823,7 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
     param_file = kwargs.pop('param_file', False)
 
     object_name = kwargs.pop('object_name', 'channel')
+    file_prefix = kwargs.pop('file_prefix', None)
     residues_suffix = kwargs.pop('residues_suffix', '_Residues_All_channels.txt')
     parameters_suffix = kwargs.pop('parameters_suffix', '_Parameters_All_channels.txt')
     selected_residues_output = kwargs.pop('selected_residues_output', 
@@ -3662,53 +3845,39 @@ def selectChannelBySelection(atoms, residue_sele, **kwargs):
         channel = parsePQR(i)
         if 'FIL' in np.unique(channel.getResnames()):
             sele_FIL = channel.select('same residue as exwithin '+str(distA)+' of center', center=residue_sele.getCoords())
-        
+
             if sele_FIL is not None:
                 shutil.copy(i, folder_name)
-                LOGGER.info("Filtered files are now in: {0}".format(folder_name))
                 copied_files_list.append(i)
             else:
-                pass 
-
-    # Extract parameters and/or residues with channel selection
-    if residues_file == True:
-        selected_residues = []
-        for file in copied_files_list:
-            try:
-                PDB_id = file[:-4].split('_' + object_name)[0]
-                selected_name = file[:-4].split('_')[-1]
-                f = open(PDB_id + residues_suffix, 'r').readlines()
-
-                for line in f:
-                    if line.startswith(PDB_id + '_' + selected_name + ':'):
-                        selected_residues.append(line)
-            except:
-                LOGGER.info("File {0} was not analyzed due to the lack of file or multiple channel file.".format(file))
                 pass
 
-        with open('Selected_channel_residues.txt', 'w') as f_out:
+    if copied_files_list:
+        LOGGER.info("Filtered files are now in: {0}".format(folder_name))
+
+    # Extract parameters and/or residues for the selected objects. The rows are
+    # found by reading each file name back into (prefix, object, number) rather
+    # than by splitting on the object name, which never matched: the name in the
+    # file is the short tag - chl, lnk - while the row inside is written under
+    # the full word.
+    if residues_file == True:
+        selected_residues = _selectObjectRows(copied_files_list, residues_suffix,
+                                              object_name, file_prefix)
+        with open(selected_residues_output, 'w') as f_out:
             f_out.writelines(selected_residues)
+        LOGGER.info("{0} residue row(s) saved to: {1}".format(
+            len(selected_residues), selected_residues_output))
 
     if param_file == True:
-        selected_param = []
-        for file in copied_files_list:
-            try:
-                PDB_id = file[:-4].split('_chl')[0] 
-                channel_name = file[:-4].split('_')[-1]
-                f = open(PDB_id+'_Parameters_All_channels.txt', 'r').readlines()
-                for line in f:
-                    if line.startswith(PDB_id+'_'+channel_name+':'):
-                        selected_param.append(line)
-            except:
-                LOGGER.info("File {0} was not analyzed due to the lack of file or multiple channel file.".format(file))
-                pass
-
-        with open('Selected_channel_parameters.txt', 'w') as f_out:
+        selected_param = _selectObjectRows(copied_files_list, parameters_suffix,
+                                           object_name, file_prefix)
+        with open(selected_parameters_output, 'w') as f_out:
             f_out.writelines(selected_param)
+        LOGGER.info("{0} parameter row(s) saved to: {1}".format(
+            len(selected_param), selected_parameters_output))
 
     LOGGER.info("Selected files: ")
     LOGGER.info(' '.join(copied_files_list))
-    LOGGER.info("If newly created files are empty please check whether the parameter names are: PDB_id+_Parameters_All_channels.txt")
 
 
 def selectSurfaceCavityBySelection(atoms, residue_sele, **kwargs):
@@ -3958,13 +4127,19 @@ def calcSurfaceCavities(atoms, output_path=None, surf_radius=4.5, inner_radius=2
         containing atomic coordinates and element types.
     :type atoms: `Atoms` object
 
-    :arg output_path: Optional path to save the resulting cavities and 
+    :arg output_path: Optional path to save the resulting cavities and
         associated data in PQR (or PDB) format. If None, results are not saved.
          Default is None.
+
+        A cavity is written as one FIL pseudoatom per Voronoi vertex, preceded by
+        a REMARK reporting its volume, depth and tetrahedron count. The cloud
+        marks where the cavity is; every atom carries the same marker radius, so
+        the extent it draws is not the extent of the cavity and the radius column
+        is not a measurement. The REMARK is where the size is.
     :type output_path: str or None
 
-    :arg separate: If True, each detected cavity is saved to a separate PQR 
-        file. If False, all cavities are saved in a single PQR file. Default is 
+    :arg separate: If True, each detected cavity is saved to a separate PQR
+        file. If False, all cavities are saved in a single PQR file. Default is
         False.
     :type separate: bool
 
@@ -4003,12 +4178,21 @@ def calcSurfaceCavities(atoms, output_path=None, surf_radius=4.5, inner_radius=2
         be retained. Larger cavities are discarded. Default is None.
     :type max_tetrahedra: int
 
-    :arg min_volume: Minimum volume required for a channel/cavity to be 
-        retained. Default is 50.
+    :arg min_volume: Minimum volume, in cubic Angstrom, required for a cavity to
+        be retained. Default is 50.
+
+        The volume is the cavity's Delaunay tetrahedra summed. Their corners are
+        atom centres, so they lie against the wall of the pocket rather than
+        filling it, and the number is not the room inside: on ``dbja_prot`` the
+        largest cavity reports 485 A^3, while the probes that fit at its vertices
+        occupy some 620 A^3 of the space below the surface. Compare a threshold
+        against other cavities, then, not against a volume measured some other
+        way - and note that a channel volume is on another scale entirely, the
+        probe swept along the centerline.
     :type min_volume: float
 
-    :arg max_volume: Maximum volume allowed for a channel/cavity to be 
-        retained. Default is None.
+    :arg max_volume: Maximum volume allowed for a cavity to be retained, in cubic
+        Angstrom and on the same scale as ``min_volume``. Default is None.
     :type max_volume: float
 
     :returns: A tuple containing two elements:
@@ -4734,6 +4918,12 @@ def _rowsIsin(a, b):
 
 
 class ChannelCalculator:
+
+    # Every cavity atom is written with this radius. It is a marker size, not a
+    # measurement - see saveCavitiesToPdb for why a cavity cannot be drawn at its
+    # true width.
+    CAVITY_MARKER_RADIUS = 1.00
+
     def __init__(self, atoms, inner_radius=0.9, sparsity=1, route_tolerance=1.0,
                  edge_cost='integral'):
         # Only the parameters the class actually consults are held here. surf_radius,
@@ -6249,7 +6439,8 @@ class ChannelCalculator:
         return filtered_cavities
 
     @staticmethod
-    def _channelRecords(channel_index, channel, atom_index, num_samples):
+    def _channelRecords(channel_index, channel, atom_index, num_samples,
+                        label='channel'):
         """The FIL records of one channel: its REMARK, one ATOM per sampled
         sphere and the CONECT bonds between them.
 
@@ -6260,7 +6451,7 @@ class ChannelCalculator:
 
         # Each channel gets its own residue number so the channels stay
         # separable at the record level, matching saveCavitiesToPdb.
-        lines = [ChannelCalculator._channelRemark(channel_index, channel)]
+        lines = [ChannelCalculator._channelRemark(channel_index, channel, label)]
         for i, (x, y, z, radius) in enumerate(zip(centers[:, 0], centers[:, 1],
                                                   centers[:, 2], radii),
                                               start=atom_index):
@@ -6275,18 +6466,30 @@ class ChannelCalculator:
 
         return lines, len(centers)
 
-    def saveChannelsToPdb(self, channels, filename, separate=False, num_samples=5):
+    def saveChannelsToPdb(self, channels, filename, separate=False, num_samples=5,
+                          tag='chl', label='channel', separate_path=None,
+                          separate_stem=None):
         # ``channels`` is a flat list, already ordered by cost - that order is
         # the order they are written and numbered here. Each channel is preceded
         # by a REMARK reporting its length, bottleneck radius, curvature and cost.
+        # ``tag``/``label`` name the objects in the per-object file names and in
+        # that REMARK, so chamber links go through this same writer rather than a
+        # copy of it. ``separate_path`` is the name the per-object files are
+        # numbered from when it differs from the combined one - the links are
+        # collected in ``<stem>_links.pqr`` but numbered from ``<stem>.pqr``, so
+        # they come out as ``<stem>_lnk0.pqr`` and not ``<stem>_links_lnk0.pqr``.
+        # ``separate_stem=''`` drops the stem from those names altogether, which
+        # is what a run told only a directory does.
         filename = str(filename)
+        separate_path = str(separate_path) if separate_path else filename
 
         # All channels in a single file, one after another in list (cost) order.
         with open(filename, 'w') as pqr_file:
             atom_index = 1
             for channel_index, channel in enumerate(channels):
                 lines, samples = self._channelRecords(channel_index, channel,
-                                                      atom_index, num_samples)
+                                                      atom_index, num_samples,
+                                                      label)
                 pqr_file.writelines(lines)
                 pqr_file.write("\n")
                 atom_index += samples
@@ -6295,65 +6498,139 @@ class ChannelCalculator:
         # created, one per channel, numbered by the same cost order.
         if separate:
             for channel_index, channel in enumerate(channels):
-                channel_filename = _numberedPath(filename, 'chl', channel_index)
+                # The start point goes in the name, so that the files belonging
+                # to one void sort and glob together: <stem>_sp0_chl3.pqr. A
+                # link carries the void it arrives at as well, after the number:
+                # <stem>_sp13_lnk0_sp9.pqr. Both ends are then greppable - the
+                # prefix still gathers everything traced out of sp13, and sp9
+                # now matches everything touching sp9 from either side.
+                origin = getattr(channel, 'origin', None)
+                destination = getattr(channel, 'destination', None)
+                object_tag = (tag if origin is None
+                              else 'sp{0}_{1}'.format(origin, tag))
+                object_suffix = ('' if origin is None or destination is None
+                                 else '_sp{0}'.format(destination))
+                channel_filename = _numberedPath(separate_path, object_tag,
+                                                 channel_index, object_suffix,
+                                                 separate_stem)
 
                 with open(str(channel_filename), 'w') as pqr_file:
                     lines, _ = self._channelRecords(channel_index, channel,
-                                                    1, num_samples)
+                                                    1, num_samples, label)
                     pqr_file.writelines(lines)
 
     @staticmethod
-    def _channelRemark(channel_index, channel):
+    def _channelRemark(channel_index, channel, label='channel'):
         """One-line PQR/PDB REMARK with a channel's basic geometry:
         length, bottleneck radius, curvature and Dijkstra cost."""
         curv = 'n/a' if np.isnan(channel.curvature) else "%.3f" % channel.curvature
         cost = 'n/a' if channel.cost is None else "%.4g" % channel.cost
-        return ("REMARK   channel %d  length=%.3f A  bottleneck=%.3f A  "
-                "curvature=%s  cost=%s\n" % (
-                    channel_index, channel.length, channel.bottleneck, curv, cost))
+        # "from sp13 to sp9" rather than a pair of assignments: both ends of a
+        # link are start points, and reading them as a direction is the point.
+        # A channel has only the near end - the far end is the solvent.
+        origin = getattr(channel, 'origin', None)
+        destination = getattr(channel, 'destination', None)
+        where = '' if origin is None else "  from sp%d" % origin
+        if where and destination is not None:
+            where += " to sp%d" % destination
+        return ("REMARK   %s %d  length=%.3f A  bottleneck=%.3f A  "
+                "curvature=%s  cost=%s%s\n" % (
+                    label, channel_index, channel.length, channel.bottleneck,
+                    curv, cost, where))
 
 
-    def saveCavitiesToPdb(self, cavities, vertices, filename, separate=False):
-        """Save surface cavities to a PDB/PQR file as dummy atoms."""
+    @staticmethod
+    def _cavityRemark(cavity_index, cavity):
+        """One-line PQR/PDB REMARK with a cavity's basic geometry: volume, depth
+        and the number of tetrahedra it holds.
+
+        The counterpart of :meth:`_channelRemark`, and the only place a cavity
+        file states its size: the records below carry markers of a fixed radius,
+        not a measurement (see :meth:`saveCavitiesToPdb`). The volume is the one
+        :meth:`calculate_cavity_volumes` gives, the cavity's Delaunay tetrahedra
+        summed."""
+
+        return ("REMARK   cavity %d  volume=%.1f A^3  depth=%.1f A  "
+                "tetrahedra=%d\n" % (cavity_index, cavity.volume, cavity.depth,
+                                     len(cavity.tetrahedra)))
+
+    @staticmethod
+    def _cavityRecords(cavity_index, cavity, centers, atom_index):
+        """The FIL records of one cavity: its REMARK and one ATOM per Voronoi
+        vertex.
+
+        Written the same way into the combined file and into the per-cavity one,
+        so the two differ only in which cavities they hold and where the serial
+        numbers start - the arrangement :meth:`_channelRecords` already uses."""
+
+        radius = ChannelCalculator.CAVITY_MARKER_RADIUS
+        # Each cavity gets its own residue number so the cavities stay separable
+        # at the record level, matching saveChannelsToPdb.
+        lines = [ChannelCalculator._cavityRemark(cavity_index, cavity)]
+        for i, (x, y, z) in enumerate(centers, start=atom_index):
+            lines.append("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+                         % (i, cavity_index + 1, x, y, z, 1.00, radius))
+
+        return lines, len(centers)
+
+    def saveCavitiesToPdb(self, cavities, vertices, filename, separate=False,
+                          separate_stem=None):
+        """Save surface cavities to a PDB/PQR file as dummy atoms.
+
+        One atom per Voronoi vertex of the cavity, all of them of
+        ``CAVITY_MARKER_RADIUS``. The cloud marks where the cavity is; it is not
+        drawn at its true width, and the radius column must not be read as one.
+        The size of a cavity is in the REMARK.
+
+        That the radius is a constant looks like an oversight, so here is why it
+        stays one. The obvious fix is the one the channels use - write the probe
+        that fits at each vertex, as :meth:`_channelRecords` does - and it fails
+        here. ``max_depth`` keeps only
+        the shell of a pocket, so on protonated 3A2M the vertices sit a median 0.2 to
+        0.5 A from the exterior the ``surf_radius`` probe carved away, while the
+        probe that fits at them is 2.7 A. Those spheres put two thirds to nine
+        tenths of their volume outside that surface, half of it outside the convex
+        hull, reaching 7.7 A clear of every atom: a pocket drawn as balloons
+        hanging off the protein. Clipping them to the surface is no better, since
+        the mouth of an open pocket is continuous with the outside - it leaves
+        radii of 0.2 to 0.5 A. Sizing each atom by its own tetrahedron instead
+        lands within a few percent of the marker on every measure. What would work
+        is filling the pocket - the probe spheres intersected with the inside of
+        the ``surf_radius`` surface, voxelized - and that is a different file, of
+        some 17000 atoms rather than 869.
+
+        ``separate_stem=''`` names the per-cavity files ``cavity0.pqr`` rather
+        than ``<stem>_cavity0.pqr``, which is what a run told only a directory
+        does."""
 
         filename = str(filename)
 
+        # (cavity index, cavity, vertices) of every cavity that has tetrahedra, so
+        # that the combined file and the per-cavity ones number them alike.
+        drawn = []
+        for cavity in cavities:
+            tetrahedra = cavity.tetrahedra
+            if tetrahedra is None or len(tetrahedra) == 0:
+                continue
+            drawn.append((len(drawn), cavity, vertices[tetrahedra]))
+
         with open(filename, 'w') as pqr_file:
             atom_index = 1
-            cavity_index = 0
-
-            for cavity in cavities:
-                tetrahedra = cavity.tetrahedra
-                if tetrahedra is None or len(tetrahedra) == 0:
-                    continue
-
-                points = vertices[tetrahedra]
-                for x, y, z in points:
-                    pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
-                        % (atom_index, cavity_index + 1, x, y, z, 1.00, 1.00))
-                    atom_index += 1
-                cavity_index += 1
+            for cavity_index, cavity, centers in drawn:
+                lines, written = self._cavityRecords(cavity_index, cavity,
+                                                     centers, atom_index)
+                pqr_file.writelines(lines)
+                atom_index += written
 
         if separate:
-            cavity_index = 0
-
-            for cavity in cavities:
-                tetrahedra = cavity.tetrahedra
-                if tetrahedra is None or len(tetrahedra) == 0:
-                    continue
-
-                points = vertices[tetrahedra]
-                cavity_filename = _numberedPath(filename, 'cavity', cavity_index)
+            for cavity_index, cavity, centers in drawn:
+                cavity_filename = _numberedPath(filename, 'cavity', cavity_index,
+                                                stem=separate_stem)
 
                 with open(str(cavity_filename), 'w') as pqr_file:
-                    atom_index = 1
-
-                    for x, y, z in points:
-                        pqr_file.write("ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
-                            % (atom_index, cavity_index + 1, x, y, z, 1.00, 1.00))
-                        atom_index += 1
-
-                cavity_index += 1
+                    lines, _ = self._cavityRecords(cavity_index, cavity,
+                                                   centers, 1)
+                    pqr_file.writelines(lines)
             
     def calculateChannelLength(self, centerline_spline):
         t_values = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], len(centerline_spline.x) * 10)
