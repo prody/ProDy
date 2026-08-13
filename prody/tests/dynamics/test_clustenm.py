@@ -806,6 +806,168 @@ class TestClustENMMinimiseOnly(unittest.TestCase):
                             'energy that is not finite')
 
 
+class TestClustENMMultiStart(unittest.TestCase):
+    """setAtoms takes a list of structures to start a run from more than one
+    conformer. They become the generation 0 population, each of them minimised,
+    where a single structure gives a generation 0 of just itself. The topology
+    is built from the first, so the rest have to be the same molecule.
+
+    The models of an NMR structure stand in for the conformers a run would
+    start from, so that nothing has to be fetched."""
+
+    N_CONFS = 2
+    N_MODELS = 2
+
+    @classmethod
+    def setUpClass(cls):
+        if not prody.PY3K or not HAVE_OPENMM:
+            return
+
+        cls.cwd = os.getcwd()
+        cls.tmpdir = tempfile.mkdtemp()
+        os.chdir(cls.tmpdir)
+
+        cls.path = pathDatafile('multi_model_truncated')
+        cls.MODELS = [cls.model(i) for i in range(1, cls.N_MODELS + 1)]
+
+        # the tests which only read a run from every model share this one
+        cls.MULTISTART = cls.runFrom(cls.MODELS)
+
+    @classmethod
+    def tearDownClass(cls):
+        if not prody.PY3K or not HAVE_OPENMM:
+            return
+
+        os.chdir(cls.cwd)
+        shutil.rmtree(cls.tmpdir, ignore_errors=True)
+
+    @classmethod
+    def model(cls, number):
+        """Returns model *number* of the structure the models come from."""
+
+        return parsePDB(cls.path, model=number).select('protein and chain A')
+
+    @classmethod
+    def runFrom(cls, models):
+        """Runs ClustENM started from *models* and returns it."""
+
+        clustenm = ClustENM('multistart')
+        clustenm.setAtoms(models)
+        clustenm.run(n_gens=1, n_modes=2, n_confs=cls.N_CONFS, rmsd=1.0,
+                     maxclust=cls.N_CONFS, sim=False, outlier=False)
+        return clustenm
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testInitialStructures(self):
+        """Test that every structure given starts the run"""
+        if prody.PY3K:
+            clustenm = self.MULTISTART
+
+            assert_equal(clustenm.numConfs(0), self.N_MODELS,
+                         'ClustENM run from %d structures failed to start '
+                         'generation 0 from all of them' % self.N_MODELS)
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testKeysAndLabels(self):
+        """Test that the initial structures are keyed as generation 0"""
+        if prody.PY3K:
+            clustenm = self.MULTISTART
+
+            # every initial structure, then however many generation 1 kept
+            expect = ([[0, i] for i in range(self.N_MODELS)]
+                      + [[1, j] for j in range(clustenm.numConfs(1))])
+
+            keys = [list(key) for key in clustenm.getKeys()]
+            assert_equal(keys, expect,
+                         'ClustENM run from %d structures failed to key them '
+                         'as generation 0' % self.N_MODELS)
+            assert_equal(clustenm.getLabels(),
+                         ['%d_%d' % tuple(key) for key in expect],
+                         'ClustENM run from %d structures failed to label them '
+                         'as generation 0' % self.N_MODELS)
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testSampledGeneration(self):
+        """Test that a generation is sampled from the structures given.
+
+        How many conformers it keeps depends on the machine, so this counts
+        them, as the single start tests do."""
+        if prody.PY3K:
+            clustenm = self.MULTISTART
+
+            sampled = clustenm.numConfs(1)
+            self.assertGreaterEqual(sampled, 1,
+                                    'ClustENM run from several structures '
+                                    'failed to sample a generation from them')
+            self.assertLessEqual(sampled, self.N_CONFS,
+                                 'ClustENM run from several structures gave '
+                                 'more conformers than it sampled')
+            assert_equal(clustenm.numConfs(), self.N_MODELS + sampled,
+                         'ClustENM run from several structures failed to give '
+                         'the initial structures and the sampled conformers')
+
+            coordsets = clustenm.getCoordsets()
+            assert_equal(coordsets.shape,
+                         (clustenm.numConfs(),
+                          clustenm.getAtoms().numAtoms(), 3),
+                         'ClustENM run from several structures failed to give '
+                         'coordinates for every conformer and atom')
+            self.assertTrue(np.isfinite(coordsets).all(),
+                            'ClustENM run from several structures gave '
+                            'coordinates that are not finite')
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testMoreThanTwoStructures(self):
+        """Test starting from more structures than two"""
+        if prody.PY3K:
+            models = self.MODELS + [self.model(self.N_MODELS + 1)]
+            clustenm = self.runFrom(models)
+
+            assert_equal(clustenm.numConfs(0), len(models),
+                         'ClustENM run from %d structures failed to start '
+                         'generation 0 from all of them' % len(models))
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testOneStructureInAList(self):
+        """Test that a list of one structure starts a single conformer run"""
+        if prody.PY3K:
+            clustenm = self.runFrom(self.MODELS[:1])
+
+            assert_equal(clustenm.numConfs(0), 1,
+                         'ClustENM run from a list of one structure failed to '
+                         'give the one minimised starting structure')
+
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testNoStructures(self):
+        """Test response to an empty list of structures."""
+        if prody.PY3K:
+            with self.assertRaisesRegex(
+                    ValueError, 'empty list of structures',
+                    msg='ClustENM given no structures to start from failed to '
+                        'say so'):
+                ClustENM().setAtoms([])
+
+    @dec.slow
+    @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
+    def testDifferentMolecules(self):
+        """Test response to structures that are not the same molecule.
+
+        The topology comes from the first, so the coordinates of the rest have
+        to fit it."""
+        if prody.PY3K:
+            other = parseDatafile('1ubi').select('protein')
+            with self.assertRaisesRegex(
+                    ValueError, 'must be the same molecule',
+                    msg='ClustENM given structures of different molecules to '
+                        'start from failed to say so'):
+                ClustENM().setAtoms([self.MODELS[0], other])
+
+
 class TestClustENMPlatform(unittest.TestCase):
     """Properties can only be given to OpenMM for a platform that was named,
     so each platform is run to make sure ClustENM asks for a combination of the
