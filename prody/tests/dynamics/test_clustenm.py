@@ -56,26 +56,50 @@ except ImportError:
 
 # Which platforms OpenMM can run a simulation on depends on how it was built
 # and on the hardware it finds, so the tests of each are skipped rather than
-# failed when it does not have that one, with a warning for the accelerated
-# ones so that not having tried them is not silent.
-if HAVE_OPENMM:
-    from openmm import Platform
-    PLATFORMS = [Platform.getPlatform(i).getName()
-                 for i in range(Platform.getNumPlatforms())]
-else:
-    PLATFORMS = []
+# failed when it cannot use that one, with a warning so that not having tried
+# them is not silent.
+def usablePlatform(name):
+    """Returns whether OpenMM can make a context on the platform called *name*.
 
-GPU_PLATFORMS = ('CUDA', 'OpenCL')
-_missing = [name for name in GPU_PLATFORMS if name not in PLATFORMS]
-if HAVE_OPENMM and _missing:
-    warnings.warn('OpenMM has no %s platform, so the ClustENM tests that run '
-                  'on it are being skipped' % ' or '.join(_missing))
+    Being one of the platforms it lists is not enough. The OpenCL plugin loads
+    on machines that have no device it can use, where the platform is offered
+    but making a context on it raises, so each one is tried rather than looked
+    up."""
+
+    if not HAVE_OPENMM:
+        return False
+
+    from openmm import Context, Platform, System, VerletIntegrator
+
+    listed = [Platform.getPlatform(i).getName()
+              for i in range(Platform.getNumPlatforms())]
+    if name not in listed:
+        return False
+
+    # a single particle is enough to make a context and find out
+    system = System()
+    system.addParticle(1.)
+    try:
+        Context(system, VerletIntegrator(0.001),
+                Platform.getPlatformByName(name))
+    except Exception:
+        return False
+
+    return True
+
+
+PLATFORMS = {name: usablePlatform(name) for name in ('CPU', 'CUDA', 'OpenCL')}
+_unusable = sorted(name for name, usable in PLATFORMS.items() if not usable)
+if HAVE_OPENMM and _unusable:
+    warnings.warn('OpenMM cannot run on the %s platform here, so the ClustENM '
+                  'tests that run on it are being skipped'
+                  % ' or '.join(_unusable))
 
 
 def platformSkipMsg(platform):
     """Returns the reason for skipping a test of *platform*."""
 
-    return 'OpenMM has no %s platform' % platform
+    return 'OpenMM cannot run on the %s platform here' % platform
 
 
 def mockOpenMMApp():
@@ -836,7 +860,7 @@ class TestClustENMPlatform(unittest.TestCase):
 
     @dec.slow
     @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
-    @unittest.skipUnless('CPU' in PLATFORMS, platformSkipMsg('CPU'))
+    @unittest.skipUnless(PLATFORMS['CPU'], platformSkipMsg('CPU'))
     def testCPUPlatform(self):
         """Test running on the CPU platform, which is given a thread count"""
         if prody.PY3K:
@@ -844,7 +868,7 @@ class TestClustENMPlatform(unittest.TestCase):
 
     @dec.slow
     @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
-    @unittest.skipUnless('CUDA' in PLATFORMS, platformSkipMsg('CUDA'))
+    @unittest.skipUnless(PLATFORMS['CUDA'], platformSkipMsg('CUDA'))
     def testCUDAPlatform(self):
         """Test running on the CUDA platform, which is given a precision"""
         if prody.PY3K:
@@ -852,7 +876,7 @@ class TestClustENMPlatform(unittest.TestCase):
 
     @dec.slow
     @unittest.skipUnless(HAVE_OPENMM, OPENMM_SKIP_MSG)
-    @unittest.skipUnless('OpenCL' in PLATFORMS, platformSkipMsg('OpenCL'))
+    @unittest.skipUnless(PLATFORMS['OpenCL'], platformSkipMsg('OpenCL'))
     def testOpenCLPlatform(self):
         """Test running on the OpenCL platform, which is given a precision"""
         if prody.PY3K:
