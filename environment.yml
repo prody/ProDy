@@ -20,7 +20,8 @@ dependencies:
   - mdtraj
   - openmm
   - clustalw
-  
+  - clustalo
+
   # Pip packages
   - pip
   - pip:

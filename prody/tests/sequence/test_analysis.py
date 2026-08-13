@@ -1,6 +1,9 @@
 __author__ = 'Ahmet Bakan, Anindita Dutta, Wenzhi Mao, James Krieger'
 
-from prody.tests import TestCase
+import os
+import warnings
+
+from prody.tests import TestCase, skipUnless
 
 from numpy import array, log, zeros, char, ones, fromfile
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -11,8 +14,22 @@ from prody import LOGGER, calcShannonEntropy, buildMutinfoMatrix, parseMSA, pars
 from prody import calcMSAOccupancy, buildSeqidMatrix, uniqueSequences
 from prody import buildOMESMatrix, buildSCAMatrix, calcMeff, buildMSA
 from prody import buildDirectInfoMatrix
+from prody.utilities import which
 
 LOGGER.verbosity = None
+
+# buildMSA can align with clustalw or clustalo, neither of which is a required
+# dependency, so the tests that align with them are skipped rather than failed
+# when they are missing, with a warning so that the gap is not silent.
+CLUSTALW = which('clustalw') or which('clustalw2')
+CLUSTALO = which('clustalo')
+CLUSTALW_SKIP_MSG = 'clustalw is not found'
+CLUSTALO_SKIP_MSG = 'clustalo is not found'
+for _program, _found, _message in (('clustalw', CLUSTALW, CLUSTALW_SKIP_MSG),
+                                   ('clustalo', CLUSTALO, CLUSTALO_SKIP_MSG)):
+    if _found is None:
+        warnings.warn(_message + ', so the buildMSA tests that align with it '
+                      'are being skipped')
 
 FASTA = parseMSA(pathDatafile('msa_Cys_knot.fasta'))
 FASTA_ALPHA = char.isalpha(FASTA._msa)
@@ -1201,18 +1218,92 @@ class TestDirectInfo(TestCase):
 
 class TestBuildMSA(TestCase):
 
-    def testBuildMSAlocal(self):
-        sequences = [ags[0].protein["A"].getSequence(),
-                     ags[1].protein["A"].getSequence()]
+    LABELS = ["A2", "A3"]
+    TITLE = 'test_buildmsa_title'
+    OUTFILENAME = 'test_buildmsa_outfilename.fasta'
 
+    def setUp(self):
+        self.sequences = [ags[0].protein["A"].getSequence(),
+                          ags[1].protein["A"].getSequence()]
+
+    def tearDown(self):
+        # buildMSA writes the sequences it aligns beside its output, both named
+        # after the title unless outfilename says otherwise, and clustalw adds
+        # an .aln alignment and a .dnd guide tree of its own. A test that failed
+        # before writing one leaves nothing to remove, and raising here would
+        # report that instead of the failure which caused it.
+        for name in ('Unknown', self.TITLE,
+                     os.path.splitext(self.OUTFILENAME)[0]):
+            for extension in ('.fasta', '.aln', '.dnd'):
+                filename = name + extension
+                if os.path.isfile(filename):
+                    os.remove(filename)
+
+    def testBuildMSAlocal(self):
         expect1 = parseMSA(pathDatafile('msa_3hsyA_3o21A.fasta'))
-        result = buildMSA(sequences, method="local", labels=["A2", "A3"])
+        result = buildMSA(self.sequences, method="local", labels=self.LABELS)
         assert result == expect1, "The list of expected buildMSA results did not contain " + result
 
+    @skipUnless(CLUSTALW, CLUSTALW_SKIP_MSG)
     def testBuildMSAclustalw(self):
-        sequences = [ags[0].protein["A"].getSequence(),
-                     ags[1].protein["A"].getSequence()]
+        expect1 = parseMSA(pathDatafile('msa_3hsyA_3o21A_clustalw.fasta'))
+        result = buildMSA(self.sequences, method="clustalw", labels=self.LABELS)
+        assert result == expect1, "The list of expected buildMSA clustalw results did not contain " + result
+
+    @skipUnless(CLUSTALO, CLUSTALO_SKIP_MSG)
+    def testBuildMSAclustalo(self):
+        """Test aligning with clustalo, which gives an alignment of its own
+        rather than the one clustalw gives, so it is checked for being a valid
+        alignment of the sequences instead of against a stored one."""
+
+        result = buildMSA(self.sequences, method="clustalo", labels=self.LABELS)
+
+        assert_array_equal(result.getLabels(), self.LABELS,
+                           'buildMSA with clustalo failed to label the '
+                           'sequences it was given')
+        self.assertEqual(len(result), len(self.sequences),
+                         'buildMSA with clustalo failed to align every sequence')
+        for i, sequence in enumerate(self.sequences):
+            aligned = str(result[i])
+            self.assertEqual(len(aligned), result.numResidues(),
+                             'buildMSA with clustalo gave sequence {0} a '
+                             'length other than the alignment'.format(i))
+            self.assertEqual(aligned.replace('-', ''), sequence,
+                             'buildMSA with clustalo changed sequence {0} by '
+                             'more than the gaps it inserted'.format(i))
+
+    @skipUnless(CLUSTALW, CLUSTALW_SKIP_MSG)
+    def testBuildMSAtitle(self):
+        """Test that the files written are named after a given title"""
 
         expect1 = parseMSA(pathDatafile('msa_3hsyA_3o21A_clustalw.fasta'))
-        result = buildMSA(sequences, method="clustalw", labels=["A2", "A3"])
-        assert result == expect1, "The list of expected buildMSA clustalw results did not contain " + result
+        result = buildMSA(self.sequences, title=self.TITLE, method="clustalw",
+                          labels=self.LABELS)
+
+        assert result == expect1, "buildMSA with a title did not give the expected alignment"
+        for extension in ('.fasta', '.aln'):
+            filename = self.TITLE + extension
+            self.assertTrue(os.path.isfile(filename),
+                            'buildMSA failed to name its {0} file after the '
+                            'title it was given'.format(extension))
+        self.assertFalse(os.path.isfile('Unknown.fasta'),
+                         'buildMSA with a title still wrote to the name the '
+                         'default title gives')
+        self.assertEqual(parseMSA(self.TITLE + '.fasta'), expect1,
+                         'buildMSA wrote an alignment to the title named file '
+                         'other than the one it returned')
+
+    @skipUnless(CLUSTALW, CLUSTALW_SKIP_MSG)
+    def testBuildMSAoutfilename(self):
+        """Test that the alignment is written where outfilename says"""
+
+        expect1 = parseMSA(pathDatafile('msa_3hsyA_3o21A_clustalw.fasta'))
+        result = buildMSA(self.sequences, method="clustalw", labels=self.LABELS,
+                          outfilename=self.OUTFILENAME)
+
+        assert result == expect1, "buildMSA with outfilename did not give the expected alignment"
+        self.assertTrue(os.path.isfile(self.OUTFILENAME),
+                        'buildMSA failed to write the alignment to outfilename')
+        self.assertEqual(parseMSA(self.OUTFILENAME), expect1,
+                         'buildMSA wrote an alignment to outfilename other '
+                         'than the one it returned')
