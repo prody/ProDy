@@ -1262,21 +1262,21 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         probe itself would not fit through is not reported; pass ``bottleneck=0``
         to switch the filter off and see every channel the search traced.
 
-        Set it whenever the question is "what can actually pass through", because
+        Set it whenever the question is what can actually pass through, because
         ``inner_radius`` alone does not guarantee it: channels regularly come out
-        somewhat narrower than the probe that found them (although with 
-        ``diagram="homogenized"`` and small max_deviationthe difference will 
-        be minor), and with ``diagram="simple"`` they can be several times 
-        narrower, so there this is the only real width control. A good starting
-        value is either 0, or  ``inner_radius`` itself, raised to the radius 
-        of the ligand or ion of interest if that is what you are screening for.
+        somewhat narrower than the probe that found them. The difference is minor
+        with ``diagram="homogenized"`` and a small ``max_deviation``, but with
+        ``diagram="simple"`` a channel can be several times narrower, and there
+        this is the only real width control. Useful values are 0,
+        ``inner_radius`` itself, or the radius of the ligand or ion of interest
+        if that is what you are screening for.
 
         Unlike ``inner_radius``, it does not change the search: it drops entries
-        from the finished list (before they are numbered and written to file),
-        never reroutes them. Filtering is therefore cheap, but it cannot recover
-        a wide route that the search did not take - if raising it leaves you with
-        too few channels, raise ``inner_radius`` instead and let the channels be
-        traced afresh.
+        from the finished list, before they are numbered and written to file,
+        rather than rerouting them. Filtering is therefore cheap, but it cannot
+        recover a wide route that the search did not take - if raising it leaves
+        you with too few channels, raise ``inner_radius`` instead and let the
+        channels be traced afresh.
     :type bottleneck: float
 
     :arg seed_radius: Probe radius, in Angstrom, that decides where a channel may
@@ -1617,11 +1617,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # sponge rather than merely widening. Those routes might be fictitious, not the real
     # ones made wider. So a sub-water probe needs real hydrogens.
     if not has_hydrogens and inner_radius < 1.2:
-        _warn("structure has no hydrogens and inner_radius={0:.2f} is below 1.2 A: the space "
+        _warn("structure has no hydrogens and inner_radius={0:.2f} is below 1.2 Å: the space "
               "left by the missing H is then wide enough for the probe to pass, and "
               "channels will be found through interstices that do not exist in the "
               "real protein (their number can rise several-fold). Either add "
-              "hydrogens, or raise inner_radius to 1.2 A or more, where protonated and "
+              "hydrogens, or raise inner_radius to 1.2 Å or more, where protonated and "
               "unprotonated structures give the same channels.".format(inner_radius))
 
     if diagram == "simple":
@@ -1653,7 +1653,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     if diagram == "homogenized":
         LOGGER.timeit('_prody_channels_homogenize')
         coords, vdw_radii = calculator.homogenizeAtoms(coords, vdw_radii, max_deviation)
-        LOGGER.report("Substituted {0} atoms with {1} homogeneous balls of radius {2:.2f} A in %.2fs.".format(
+        LOGGER.report("Substituted {0} atoms with {1} homogeneous balls of radius {2:.2f} Å in %.2fs.".format(
             atoms.numAtoms(), len(coords), float(vdw_radii[0])), '_prody_channels_homogenize')
 
     LOGGER.timeit('_prody_channels_tessellation')
@@ -1777,8 +1777,11 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
             start_point_search)
 
     c_filtered_cavities = calculator.filterCavities(c_surface_cavities, min_depth)
-    LOGGER.report('{0} surface cavities detected and filtered in %.2fs.'.format(
-        len(c_filtered_cavities)), '_prody_channels_cavities')
+    LOGGER.report('Surface cavities: {0} found, {1} deeper than '
+        'min_depth={2:.1f} Å and {3}, in %.2fs.'.format(
+            len(c_surface_cavities), len(c_filtered_cavities), float(min_depth),
+            'kept' if cavities_only else 'searched for channels'),
+        '_prody_channels_cavities')
     
     if cavities_only:
         if max_depth is not None:
@@ -7547,13 +7550,13 @@ class ChannelCalculator:
         best_cavity.setStartingTetrahedron(np.array([best_info['seed']]))
         self.reportSeedTetrahedron(best_info, search_radius)
         LOGGER.info("    restricting the channel search to the cavity that contains it "
-            "({0} tetrahedra, depth {1:.1f} A).".format(len(best_cavity.tetrahedra),
+            "({0} tetrahedra, depth {1:.1f} Å).".format(len(best_cavity.tetrahedra),
                                                         float(best_cavity.depth)))
 
         return [best_cavity]
 
-    def setStartingTetrahedraFromChambers(self, cavities, labels, sizes,
-                                          min_depth, min_chamber_tetrahedra=5,
+    def setStartingTetrahedraFromChambers(self, cavities, labels, volumes,
+                                          min_depth, seed_volume=30.0,
                                           max_seeds=None):
         '''Seed every cavity at each of its chambers instead of at its single
         deepest tetrahedron.
@@ -7711,23 +7714,23 @@ class ChannelCalculator:
 
         where = '' if cavity_index is None else ' of cavity {0}'.format(cavity_index)
         LOGGER.info("start_point seeded at tetrahedron {0}{1} (Voronoi vertex at "
-            "[{2:.3f}, {3:.3f}, {4:.3f}], {5:.3f} A from start_point, inscribed radius "
-            "{6:.3f} A, depth {7:.1f} A)."
+            "[{2:.3f}, {3:.3f}, {4:.3f}], {5:.3f} Å from start_point, inscribed radius "
+            "{6:.3f} Å, depth {7:.1f} Å)."
             .format(info['seed'], where, info['seed_vertex'][0], info['seed_vertex'][1],
                     info['seed_vertex'][2], info['seed_distance'], info['seed_radius'],
                     info['seed_depth']))
 
         if info['seed'] != info['anchor']:
-            LOGGER.info("    widened from the nearest tetrahedron {0} ({1:.3f} A away, "
-                "inscribed radius {2:.3f} A, depth {3:.1f} A), the widest of the {4} tetrahedra "
-                "no shallower than it among the {5} reachable within {6:.1f} A; seeding "
+            LOGGER.info("    widened from the nearest tetrahedron {0} ({1:.3f} Å away, "
+                "inscribed radius {2:.3f} Å, depth {3:.1f} Å), the widest of the {4} tetrahedra "
+                "no shallower than it among the {5} reachable within {6:.1f} Å; seeding "
                 "the narrow one would have capped every channel here at its radius."
                 .format(info['anchor'], info['anchor_distance'], info['anchor_radius'],
                         info['anchor_depth'], info['eligible'], info['searched'],
                         float(search_radius)))
         elif search_radius and search_radius > 0:
             LOGGER.info("    already the widest of the {0} tetrahedra no shallower than "
-                "it among the {1} reachable within {2:.1f} A."
+                "it among the {1} reachable within {2:.1f} Å."
                 .format(info['eligible'], info['searched'], float(search_radius)))
 
 
