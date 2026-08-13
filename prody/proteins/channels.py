@@ -36,6 +36,8 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'showPores', 'getPoreParameters', 'getPoreResidueNames',
            'calcPoresFromChannelsMultipleFrames', 'getPoreParametersMultipleFrames',
            'getPoreResidueNamesMultipleFrames', 'scanChannelParameters',
+           'getLinkParameters', 'getLinkResidueNames',
+           'getLinkParametersMultipleFrames', 'getLinkResidueNamesMultipleFrames',
            'scanSurfaceCavityParameters',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues']
 
@@ -1855,6 +1857,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # anything and the cavity would come back as one chamber (which would not be
     # a no-op: it would silently move the seed from the deepest tetrahedron to
     # the widest one).
+    chamber_labels = None
     if start_point is None and seed_radius > inner_radius:
         LOGGER.timeit('_prody_channels_chambers')
         # Depth of every tetrahedron lying in a cavity, gathered into one array so
@@ -1893,9 +1896,15 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     for cavity in c_filtered_cavities:
         calculator.dijkstra(cavity, graph, simplices, neighbors, vertices,
-                            coords, vdw_radii, similarity)
-    LOGGER.report('Channel pathfinding (graph Dijkstra) over {0} cavities completed in %.2fs.'.format(
-        len(c_filtered_cavities)), '_prody_channels_pathfinding')
+                            coords, vdw_radii, similarity,
+                            chamber_labels if chamber_links else None)
+    # Sites, not cavities: one Dijkstra runs per site, so the number of sites is
+    # what the time divides into.
+    LOGGER.report('Channel search (Dijkstra) over {0} search sites in {1} '
+        'cavities completed in %.2fs.'.format(
+            sum(len(cavity.starting_tetrahedron)
+                for cavity in c_filtered_cavities),
+            len(c_filtered_cavities)), '_prody_channels_pathfinding')
 
     calculator.filterChannelsByBottleneck(c_filtered_cavities, bottleneck)
     
@@ -1909,23 +1918,193 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # the returned list and the channel numbering in the saved PQR/PDB files.
     channels.sort(key=lambda ch: ch.cost if ch.cost is not None else float('inf'))
 
-    no_of_channels = len(channels)
-    LOGGER.info("Detected " + str(no_of_channels) + " channels.")
-        
+    # Links are filtered by the same width rule as the channels - a neck the
+    # traversal probe would not fit through is not a way from one chamber to the
+    # next - but not by min_volume, which is a size floor written for objects that
+    # reach the surface; a link is by construction only the neck.
+    links = [link for cavity in c_filtered_cavities for link in cavity.links
+             if link.bottleneck >= bottleneck]
+    links.sort(key=lambda ln: ln.cost if ln.cost is not None else float('inf'))
+
+    # Start points, numbered over the cavities in the order they were searched:
+    # one per chamber where the cavity was seeded per chamber, one for the whole
+    # cavity where no chamber qualified. Every object carries the index of the one
+    # it was traced from, which is all the labelling needed - the voids nest
+    # strictly, a chamber never spanning two cavities, so a start point names one
+    # void unambiguously and the objects sharing it are the ways out of it.
+    # Volumes for the report: a chamber's own where the cavity was seeded per
+    # chamber, the whole cavity's where it was not. Both on the Delaunay scale,
+    # which is not the swept-sphere scale a channel volume is on.
+    #
+    # Numbered largest first, over all the start points at once rather than
+    # within each cavity, so that sp0 is the biggest void the search ran from
+    # and the numbering is the order the sites are worth looking at. The two
+    # kinds are ranked against each other: each row reports the size of the void
+    # its start point actually names, the whole cavity where the cavity is the
+    # site and the one lobe where a lobe is. Ties are broken by cavity and then
+    # by seed, so the numbering is reproducible.
+    seed_rows = []
+    for cavity_index, cavity in enumerate(c_filtered_cavities):
+        seeds = [int(seed) for seed in np.asarray(cavity.starting_tetrahedron)]
+        for seed in seeds:
+            seed_rows.append((cavity_index, cavity, seed, len(seeds),
+                              cavity.tetrahedra_depths.get(seed, 0.0),
+                              cavity.seed_volumes.get(seed, cavity.volume)))
+    seed_rows.sort(key=lambda row: (-row[5], row[0], row[2]))
+
+    origins = {}
+    origin_rows = []
+    ordinals = {}
+    for cavity_index, cavity, seed, count, depth, volume in seed_rows:
+        origins[seed] = len(origins)
+        # The chamber's rank inside its own cavity, taken from this same order,
+        # so that "chamber 1 of 20 in cavity 0" is that cavity's largest and
+        # never contradicts the start point numbers.
+        ordinal = ordinals.get(cavity_index, 0)
+        ordinals[cavity_index] = ordinal + 1
+        origin_rows.append((cavity_index,
+                            ordinal if cavity.seed_chambers else None,
+                            count, depth, volume, cavity.chambers_found))
+    for entry in channels + links:
+        entry.origin = origins.get(int(np.asarray(entry.tetrahedra)[0]))
+
+    # The far end of a link, named the way its near end is. Chamber labels are
+    # internal to the carve, so they are translated here, where the start points
+    # they stand for have just been numbered.
+    for cavity in c_filtered_cavities:
+        reached = {label: origins[int(seed)]
+                   for seed, label in cavity.seed_chambers.items()}
+        for link in cavity.links:
+            link.destination = reached.get(link.joined_chamber)
+
+    LOGGER.info("Found {0} channel{1}{2}.".format(
+        len(channels), '' if len(channels) == 1 else 's',
+        '' if not links else
+        " and {0} link{1} (a link joins a deep chamber to a shallower one and "
+        "never reaches the surface)".format(
+            len(links), '' if len(links) == 1 else 's')))
+
+    if origin_rows:
+        # One row per site, in the order the sites are numbered. Laid out as a
+        # table because every row says the same six things: written as sentences
+        # they came out in three different grammars ("chamber 1 of 20 seeded in
+        # cavity 0 (of 41 found)", "the only chamber of cavity 1", "cavity 2
+        # whole (no chamber found)"), which read as three unrelated remarks
+        # rather than as one list. How many chambers a cavity has and how many
+        # of them were seeded is said once, in the chamber lines above, instead
+        # of being repeated on every row that belongs to that cavity.
+        rows = []
+        for index, (cavity_index, chamber, seeded, depth,
+                    volume, found) in enumerate(origin_rows):
+            if chamber is None:
+                where = 'cavity {0}, whole'.format(cavity_index)
+            else:
+                where = 'cavity {0}, chamber {1}/{2}'.format(
+                    cavity_index, chamber + 1, seeded)
+            traced = [entry for entry in channels if entry.origin == index]
+            linked = [entry for entry in links if entry.origin == index]
+            # Where the links go, so that the connections can be followed from
+            # the report without opening the files. Named only on the deep end,
+            # which is the end a link is reported from.
+            note = '  -> {0}'.format(', '.join(
+                'sp{0}'.format(entry.destination) for entry in linked
+                if entry.destination is not None)) if linked else ''
+            if not (traced or linked):
+                # Why the site reports nothing; the bottleneck it failed and
+                # what to do about it are in the summary line below the table.
+                note = '  sealed'
+            rows.append(['sp{0}'.format(index), where, '{0:.0f}'.format(volume),
+                         '{0:.1f}'.format(depth),
+                         str(len(traced)) if traced else '-',
+                         str(len(linked)) if linked else '-', note])
+
+        header = ['site', 'void', 'volume [Å³]', 'depth [Å]',
+                  'channels', 'links']
+        widths = [max(len(row[column]) for row in [header] + rows)
+                  for column in range(len(header))]
+
+        def formatRow(row):
+            # The two labels left, the four numbers right, so that a column of
+            # volumes or counts can be compared by eye down the page.
+            return '    ' + '  '.join(
+                text.ljust(width) if column < 2 else text.rjust(width)
+                for column, (text, width) in enumerate(zip(row, widths)))
+
+        LOGGER.info("Search sites (sp), the void each search ran from, largest "
+                    "first; sp<n> tags every channel, link and output file:")
+        LOGGER.info(formatRow(header))
+        for row in rows:
+            LOGGER.info(formatRow(row[:len(header)]) + row[len(header)])
+        LOGGER.info("    (site volumes measure the void itself and are not on "
+                    "the swept-sphere scale of the channel volumes)")
+
+    # A chamber can end up reporting nothing at all: its own channels dropped by
+    # the dedup as duplicates of a shallower chamber's shorter ones, and its link
+    # then dropped by the bottleneck filter because the neck it would leave
+    # through is too tight for the probe. That is a real finding - the chamber is
+    # sealed at this width - but an invisible one, because nothing is written
+    # about a chamber that reports no object, and the void simply goes missing
+    # from the output.
+    if chamber_labels is not None:
+        reported = set()
+        for objects in (channels, links):
+            for entry in objects:
+                reported.add(int(np.asarray(entry.tetrahedra)[0]))
+        sealed = sum(1 for cavity in c_filtered_cavities
+                     for seed in cavity.seed_chambers if int(seed) not in reported)
+        if sealed:
+            LOGGER.info("The {0} site{1} marked sealed above report neither a "
+                        "channel nor a link: every route out of them is "
+                        "narrower than bottleneck={2:.2f} Å. Lower it to see "
+                        "how they connect.".format(
+                            sealed, '' if sealed == 1 else 's', bottleneck))
+
     if output_path:
         output_path = Path(output_path)
         
-        if output_path.is_dir():
-            output_path = output_path / "output.pqr"
-        
+        # A directory names no run, so nothing here is named after one: the
+        # files are named after what they hold, channels.pqr beside links.pqr,
+        # and the per-object files carry no stem either - sp0_chl3.pqr rather
+        # than output_sp0_chl3.pqr, a stem that would be the same word for every
+        # run and so tell the reader nothing.
+        into_directory = output_path.is_dir()
+        separate_stem = None
+        if into_directory:
+            output_path = output_path / "channels.pqr"
+            separate_stem = ''
+
         elif not (output_path.suffix == ".pdb" or output_path.suffix == ".pqr"):
             output_path = output_path.with_suffix(".pqr")
-    
+
+        # Beside the channels rather than among them: a link does not reach
+        # the surface, so a viewer loading the channel file should not find
+        # one in it.
+        links_path = output_path.with_name(
+            ('links' if into_directory else output_path.stem + '_links')
+            + output_path.suffix)
+
+        # One line for the whole of what was written, so that the reader sees
+        # where the channels went and where the links went in one place.
         if not separate:
-            LOGGER.info("Saving results to " + str(output_path) + ".")
+            LOGGER.info("Saving {0} channels to {1}{2}.".format(
+                len(channels), output_path,
+                '' if not links else
+                " and {0} links to {1}".format(len(links), links_path)))
         else:
-            LOGGER.info("Saving multiple results to directory " + str(output_path.parent) + ".")
-        calculator.saveChannelsToPdb(channels, output_path, separate)
+            LOGGER.info("Saving {0} channels{1} to directory {2}, one file per "
+                        "object named sp<site>_chl<n>{3}.".format(
+                            len(channels),
+                            '' if not links else
+                            " and {0} links".format(len(links)),
+                            output_path.parent,
+                            '' if not links else " and sp<site>_lnk<n>"))
+        calculator.saveChannelsToPdb(channels, output_path, separate,
+                                     separate_stem=separate_stem)
+        if links:
+            calculator.saveChannelsToPdb(links, links_path, separate,
+                                         tag='lnk', label='link',
+                                         separate_path=output_path,
+                                         separate_stem=separate_stem)
     else:
         LOGGER.info("No output path given.")
 
@@ -1933,12 +2112,16 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     # Additional information can be obtained
     if return_details:
-        details = {'calculator': calculator, 
-                    'simplices': s_clr.simp, 
-                    'neighbors': s_clr.neigh, 
-                    'vertices': s_clr.verti, 
-                    'coords': coords, 
-                    'vdw_radii': vdw_radii}
+        details = {'calculator': calculator,
+                    'simplices': s_clr.simp,
+                    'neighbors': s_clr.neigh,
+                    'vertices': s_clr.verti,
+                    'coords': coords,
+                    'vdw_radii': vdw_radii,
+                    # Chamber links ride in details rather than in the returned
+                    # tuple, so that `channels, surface = calcChannels(...)` keeps
+                    # working. Empty unless the cavities were seeded per chamber.
+                    'links': links}
         
         return channels, [coords, s_srf.simp, merged_cavities, s_clr.simp], details
 
@@ -3675,6 +3858,55 @@ def getPoreResidueNames(atoms, pores, **kwargs):
     return getObjectResidueNames(atoms, pores, object_type='pore', **kwargs)
 
 
+def getLinkResidueNames(atoms, links, **kwargs):
+    '''Provides the resnames and resid of residues that are forming the chamber
+    link(s) returned in ``details['links']`` by :func:`calcChannels`.
+    Residues are extracted based on distA which is the distance between FIL atoms
+    (link atoms) and protein residues. A link runs from one chamber into a
+    shallower one and is cut where it joins it, so the residues reported are
+    those lining the neck between the two sites, not a whole route to the solvent.
+    Results could be save as txt file by providing the `residues_file_name` parameter.
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+
+    :arg links: A list of link objects. Each link has a method `getSplines()`
+        that returns the centerline spline and radius spline of the link.
+    :type links: list
+
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
+
+    :arg residues_file_name: The file with residues will be saved in a text
+        file with the provided name. Use one word which will be added to
+        '_Residues_All_links.txt' sufix.
+    :type residues_file_name: str
+
+    :arg one_letter_aa: Whether to apply 1-latter code to residue name
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
+
+    return getObjectResidueNames(atoms, links, object_type='link', **kwargs)
+
+
 def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwargs):
     '''Provides the resnames and resid of residues that are forming the channel(s). 
     Residues are extracted based on distA which is the distance between FIL atoms 
@@ -3771,9 +4003,63 @@ def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None, **kwargs):
         ``ASP108`` labels written by earlier versions.
     :type include_chain: bool  '''
 
-    return getObjectResidueNamesMultipleFrames(atoms, pores, trajectory=trajectory, 
+    return getObjectResidueNamesMultipleFrames(atoms, pores, trajectory=trajectory,
                                                     object_type='pore', **kwargs)
-                
+
+
+def getLinkResidueNamesMultipleFrames(atoms, links, trajectory=None, **kwargs):
+    '''Provides the resnames and resid of residues that are forming the chamber
+    link(s) in multiple frames/models.
+
+    Each element of ``links`` is the ``details['links']`` of one frame, which
+    :func:`calcChannelsMultipleFrames` returns in its third value when called
+    with ``return_details=True``; the links of a frame are not part of its
+    channel list.
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+
+    :arg links: list of link lists, one per model or trajectory frame.
+    :type links: list
+
+    :arg trajectory: Trajectory object containing multiple frames. If not given,
+        the coordinate sets of *atoms* are used and the files are named
+        ``_model<i>`` rather than ``_frame<i>``.
+    :type trajectory: :class:`.Atomic`, :class:`.Ensemble`, or trajectory-like object
+
+    :arg distA: Residues reaching within this distance of the object's surface
+        are reported. The local probe radius is added to it, so the reach past
+        the surface is the same in a wide part of the object as in a narrow one.
+        The distance runs to the atom centre, so a touching atom sits at about
+        one van der Waals radius. Default is 2.5 [Ang]
+    :type distA: int, float
+
+    :arg residues_file_name: The file with residues will be saved in a text
+        file with the provided name, one per frame/model, with
+        '_Residues_All_links.txt' added.
+    :type residues_file_name: str
+
+    :arg one_letter_aa: Whether to apply 1-latter code to residue name
+        by defult is False. Only amino acids and nucleotides are translated;
+        ligands, cofactors and ions keep their residue name, so that the ion K
+        stays K rather than being read as a lysine.
+    :type one_letter_aa: bool
+
+    :arg include_water: Whether to list water molecules among the lining
+        residues. They are reported one entry per molecule, so a solvated
+        structure gives hundreds of them. Default is False.
+    :type include_water: bool
+
+    :arg include_chain: Whether to append the chain identifier to each residue,
+        as ``ASP108:A``. Default is True: without it a residue number does not
+        identify a residue, since an oligomer lines a channel with residues of
+        the same number from several chains. Pass False for the plain
+        ``ASP108`` labels written by earlier versions.
+    :type include_chain: bool  '''
+
+    return getObjectResidueNamesMultipleFrames(atoms, links, trajectory=trajectory,
+                                               object_type='link', **kwargs)
+
 
 def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     '''Provides the resnames and resid of residues that form surface cavities.
@@ -5069,6 +5355,21 @@ class Channel:
         # curvature: path length / straight-line end-to-end distance
         # (dimensionless, >= 1; 1.0 == perfectly straight).
         self.curvature = self._computeCurvature()
+        # origin: index of the start point this object was traced from, so that
+        # the objects of one void can be analysed together. One label is enough
+        # because the voids nest strictly - a chamber never spans two cavities,
+        # since the chamber carve refines the cavity components - so the start
+        # point names a chamber where chambers are defined and the whole cavity
+        # where none qualified. Set by calcChannels; None when it did not run.
+        self.origin = None
+        # destination: for a chamber link, the start point of the chamber it
+        # joins - the far end of the route, which a channel does not have,
+        # since a channel ends at the solvent. None on channels and pores.
+        self.destination = None
+        # joined_chamber: the chamber label behind `destination`, set where the
+        # link is built and kept only until calcChannels can translate it into
+        # a start point, the labels themselves being internal to one run.
+        self.joined_chamber = None
 
     def _computeCurvature(self):
         """Path length divided by straight-line end-to-end distance."""
@@ -5111,10 +5412,24 @@ class Cavity:
         self.is_connected_to_surface = is_connected_to_surface
         self.starting_tetrahedron = None
         self.channels = []
+        # Routes from one chamber of this cavity to a shallower one; see
+        # ChannelCalculator.dijkstra. Empty unless the cavity was seeded per
+        # chamber and chamber_links is on.
+        self.links = []
+        # Chamber of each seed, {starting tetrahedron: chamber label}, and its
+        # volume, both filled by setStartingTetrahedraFromChambers.
+        self.seed_chambers = {}
+        self.seed_volumes = {}
+        # How close each seeded chamber comes to the surface, {chamber label:
+        # smallest depth over its tetrahedra}. This is what orders a pair of
+        # chambers for the links, not the depth of either seed; see dijkstra.
+        self.chamber_depths = {}
+        # How many chambers lie in this cavity at all, seeded or not.
+        self.chambers_found = 0
         self.depth = 0
         self.tetrahedra_depths = {}
         self.volume = 0.0
-        
+
     def makeSurface(self):
         self.is_connected_to_surface = True
         
@@ -5130,6 +5445,9 @@ class Cavity:
         
     def addChannel(self, channel):
         self.channels.append(channel)
+
+    def addLink(self, link):
+        self.links.append(link)
     
         
 def _rowsIsin(a, b):
@@ -6166,7 +6484,7 @@ class ChannelCalculator:
         return csr_matrix((weight, (rows, cols)), shape=(N, N))
 
     def dijkstra(self, cavity, graph, simplices, neighbors, vertices, points,
-                 vdw_radii, similarity=0.8):
+                 vdw_radii, similarity=0.8, chamber_labels=None):
         # a single multi-target Dijkstra from the seed over the cavity subgraph,
         # then every exit path reconstructed from the predecessor tree - 
         # instead of one heap search per (seed, exit) pair.
@@ -6255,6 +6573,19 @@ class ChannelCalculator:
             terminals_local = absorbing
 
         candidates = []
+        # Chamber links: the deep chamber of a cavity often has no way out of its
+        # own, and reaches the surface only by joining a shallower chamber and
+        # using that one's channels. Once every chamber is seeded, the dedup
+        # rightly drops such a route as a duplicate of the shallower chamber's
+        # shorter one, so the deep chamber's own access would go unreported. The
+        # link is that access: the route from the deep seed, cut where it first
+        # joins a shallower seeded chamber, so the full way out reads as
+        # link(deep -> shallow) + channel(shallow -> surface) and the link's
+        # bottleneck is the neck between them, which is the number that governs.
+        link_candidates = []
+        chamber_of_seed = cavity.seed_chambers if chamber_labels is not None else {}
+        seed_of_chamber = {label: seed for seed, label in chamber_of_seed.items()}
+        chamber_depth = cavity.chamber_depths
 
         for start_global in cavity.starting_tetrahedron:
             if start_global not in global_to_local:
@@ -6272,6 +6603,25 @@ class ChannelCalculator:
             for node, parent in enumerate(predecessors):
                 if parent >= 0:
                     parent_to_children[parent].append(node)
+
+            own_chamber = chamber_of_seed.get(int(start_global))
+
+            def firstForeignChamber(path_local):
+                """Where along `path_local` the route first joins a chamber other
+                than the one it started in, as ``(index, chamber)``.
+
+                This is the point a route stops being this chamber's business.
+                Both the channels and the links are cut here: past it the route is
+                the joined chamber's own way out, which that chamber reports from
+                its own seed, so continuing would report one corridor twice - once
+                as the shallow chamber's channel and once as a longer, narrower
+                copy owned by every chamber behind it."""
+                for i, node in enumerate(path_local):
+                    chamber = int(chamber_labels[cavity_tetra[node]])
+                    if (chamber >= 0 and chamber != own_chamber
+                            and chamber in seed_of_chamber):
+                        return i, chamber
+                return None, None
 
             paths = {}
             stack = [(start_local, [start_local])]
@@ -6303,6 +6653,18 @@ class ChannelCalculator:
                 if path_local is None:
                     continue
 
+                # A route that joins another chamber on its way out is not this
+                # chamber's channel: it is a link to that chamber followed by that
+                # chamber's own channel, and both halves are reported separately.
+                # Emitting it whole is what leaves long, narrow duplicates that
+                # run through one pocket to surface at another's mouth. The exit
+                # is not lost by dropping it - the chamber the route joined
+                # searches the same mouth from much closer.
+                if chamber_labels is not None:
+                    joined_at, _ = firstForeignChamber(path_local)
+                    if joined_at is not None:
+                        continue
+
                 path_global = cavity_tetra[path_local]
                 channel = Channel(path_global, *self.processChannel(
                     path_global, vertices, points, vdw_radii, simplices),
@@ -6312,8 +6674,98 @@ class ChannelCalculator:
                 node_costs = np.asarray(distances)[np.asarray(path_local)]
                 candidates.append((channel, node_costs))
 
-        self._addDedupedChannels(cavity, candidates, similarity, vertices,
-                                 points, vdw_radii, simplices)
+            # One link per other seed reachable from this one, cut at the first
+            # chamber the route joins. The cut chamber need not be the chamber of
+            # the seed aimed at: a route that crosses chamber X on its way to seed
+            # T is really S -> X, and X -> T is a link of its own, so cutting at
+            # the first foreign chamber decomposes the chain instead of reporting
+            # the composite. Emitted only in the deep -> shallow direction, so a
+            # pair yields one link and it runs the way the molecule does: the
+            # shallow chamber talks to the surface, the deep one talks to it.
+            for target_global in chamber_of_seed:
+                target_local = global_to_local.get(int(target_global))
+                if target_local is None or target_local == start_local:
+                    continue
+                if np.isinf(distances[target_local]):
+                    continue
+                path_local = paths.get(target_local)
+                if path_local is None:
+                    continue
+
+                cut, joined = firstForeignChamber(path_local)
+                if not cut:            # never joined one, or started inside it
+                    continue
+
+                # Deeper source only, where "deeper" is how close each chamber
+                # comes to the surface anywhere along itself, not how deep its
+                # seed sits. The seed is the widest tetrahedron at least
+                # min_depth down, so it is buried in every chamber and says
+                # nothing about whether the chamber has its own way out. An exact
+                # tie (two chambers both reaching the surface) is broken by seed
+                # index so that the pair still yields exactly one link.
+                here = chamber_depth.get(own_chamber, 0.0)
+                there = chamber_depth.get(joined, 0.0)
+                if here < there or (here == there and
+                                    int(start_global) > int(seed_of_chamber[joined])):
+                    continue
+
+                path_global = cavity_tetra[path_local[:cut + 1]]
+                link = Channel(path_global, *self.processChannel(
+                    path_global, vertices, points, vdw_radii, simplices),
+                    cost=float(distances[path_local[cut]]))
+                link.joined_chamber = joined
+                link_candidates.append((link, joined))
+
+        # Channels first: a link is judged against the openings they report, so
+        # they have to exist by the time the links are deduped.
+        openings = self._addDedupedChannels(cavity, candidates, similarity,
+                                            vertices, points, vdw_radii,
+                                            simplices)
+        self._addDedupedLinks(cavity, link_candidates, similarity, openings)
+
+    def _addDedupedLinks(self, cavity, candidates, similarity, openings=None):
+        """Keep one link per (chamber joined, corridor taken), cheapest first.
+
+        The same two-part identity the channels use, with the chamber standing in
+        for the opening: two routes into one chamber along one corridor are one
+        link, while two corridors into the same chamber are two, as are two
+        chambers reached along what starts out as the same corridor. Cheapest
+        first, and each candidate judged only against what is already kept, so
+        the result does not depend on the order the seeds were searched in.
+
+        A link that runs through a reported opening is dropped first. That is the
+        same test :meth:`_addDedupedChannels` makes in its step 1 - a route
+        passing through the exit sphere of a reported channel has left the
+        protein there - and links were the one object never held to it, the
+        chamber cut having been assumed to stop them soon enough. It does not: a
+        route aimed at another seed has no reason to enter a mouth, so absorption
+        never fires, and it steps around one through a neighbouring tetrahedron
+        and travels the outside instead. 
+
+        Where a channel is *cut* at the opening and keeps what came before, a
+        link is dropped outright: what came before is the seed's route to the
+        surface, which is a channel, and is already reported as one."""
+
+        kept = []                                   # (points, chamber joined)
+        centres, radii = openings if openings is not None else (None, None)
+        for link, joined in sorted(candidates, key=lambda c: c[0].cost):
+            points_on_route = np.asarray(link.centerline_spline(
+                link.centerline_spline.x))
+            if centres is not None and len(centres):
+                if (np.linalg.norm(points_on_route[:, None, :] - centres,
+                                   axis=2) < radii).any():
+                    continue
+            duplicate = False
+            for kept_points, kept_chamber in kept:
+                if kept_chamber != joined:
+                    continue
+                if self._routeCoverage(points_on_route,
+                                       kept_points) >= similarity:
+                    duplicate = True
+                    break
+            if not duplicate:
+                kept.append((points_on_route, joined))
+                cavity.addLink(link)
 
     def _addDedupedChannels(self, cavity, candidates, similarity, vertices,
                             points, vdw_radii, simplices):
@@ -6352,7 +6804,7 @@ class ChannelCalculator:
         # scores differently at different max_deviation.
         prepared = sorted(candidates, key=lambda c: c[0].cost)
         if not prepared:
-            return
+            return np.empty((0, 3)), np.empty(0)
 
         kept = []  # (channel, pts, exit_xyz, opening_radius)
         # The opening centres and radii of `kept`, carried as arrays so that step
@@ -6438,6 +6890,9 @@ class ChannelCalculator:
                 radii = np.append(radii, opening_radius)
         for channel, _pts, _xyz, _r in kept:
             cavity.addChannel(channel)
+        # The openings this cavity reports, handed on so that the links can be
+        # held to the same rule as the candidates were in step 1.
+        return centres, radii
 
     def _routeCoverage(self, a, b, tol=None, center=None, radius=0.0):
         """Fraction of the SHORTER centerline's arc length that runs within ``tol``
