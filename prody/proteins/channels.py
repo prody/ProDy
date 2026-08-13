@@ -2660,7 +2660,71 @@ def getPoreParameters(pores, **kwargs):
         return multi_model_param
 
 
-def getChannelParametersMultipleFrames(channels_all, **kwargs):
+def getLinkParameters(links, **kwargs):
+    """Extracts and returns the lengths, bottlenecks, and volumes of each
+    chamber link returned in ``details['links']`` by :func:`calcChannels`.
+
+    A link is the route from one chamber of a cavity into a shallower one, cut
+    where it joins that chamber, so its bottleneck is the neck between the two -
+    the width that decides whether the deeper site can be reached at all. Its
+    length and volume measure that neck only, not the way out to the solvent,
+    which is a channel of the chamber it joins.
+
+    :arg links: A list of link objects, each with `length`, `bottleneck` and
+        `volume` attributes.
+    :type links: list
+
+    :arg param_file_name: The files with parameters will be saved in a text
+        file with the provided name. Use one word which will be added to
+        '_Parameters_All_links.txt' suffix.
+    :type param_file_name: str
+
+    :returns: Three lists containing the lengths, bottlenecks, and volumes of
+        the links.
+    :rtype: tuple (list, list, list)
+
+    Example usage:
+    channels, surface, details = calcChannels(atoms, return_details=True)
+    lengths, bottlenecks, volumes = getLinkParameters(details['links']) """
+
+    results = parseParameters(links, object_name='link', **kwargs)
+    lengths, bottlenecks, volumes = results
+    LOGGER.info("Link {0}: \t{1} \t{2} \t{3}".format('ID', 'Volume [Å³]',
+                                                     'Length [Å]',
+                                                     'Bottleneck [Å]'))
+    for i, link in enumerate(links):
+        # Both ends named, since a link is the one object with two of them, and
+        # a list of lengths says nothing about what is connected to what.
+        ends = ''
+        if getattr(link, 'origin', None) is not None:
+            ends = "\tsp{0}".format(link.origin)
+            if getattr(link, 'destination', None) is not None:
+                ends += " -> sp{0}".format(link.destination)
+        LOGGER.info("link {0}: \t{1} \t\t{2} \t\t{3}{4}".format(
+            i, np.round(volumes[i], 2), np.round(lengths[i], 2),
+            np.round(bottlenecks[i], 2), ends))
+    return results
+
+
+def _frameParamFileName(param_file_name, frame_nr, trajectory):
+    """``2kid/2kid`` becomes ``2kid/2kid_model3`` (or ``_frame3``).
+
+    Every frame needs its own file: the rows are keyed by object number alone,
+    so writing all the frames under one name either overwrites the file each
+    time - the surface cavity writer opens it with 'w', and only the last frame
+    survived - or piles them up under colliding keys, which the channel and pore
+    writers did by opening it with 'a'. The word matches the one the residue
+    wrappers use, so the parameters and the lining of one frame stay findable
+    under the same prefix."""
+
+    if param_file_name is None:
+        return None
+    return '{0}_{1}{2}'.format(param_file_name,
+                               'frame' if trajectory is not None else 'model',
+                               frame_nr)
+
+
+def getChannelParametersMultipleFrames(channels_all, trajectory=None, **kwargs):
     """Extract channel parameters for multiple frames or models.
 
     This function is a multi-frame wrapper for :func:`getChannelParameters`.
@@ -2676,6 +2740,11 @@ def getChannelParametersMultipleFrames(channels_all, **kwargs):
         model or trajectory frame.
     :type channels_all: list
 
+    :arg trajectory: The trajectory the frames came from, if any. Only its
+        presence is used, to name the files ``_frame<i>`` rather than
+        ``_model<i>``, matching :func:`getChannelResidueNamesMultipleFrames`.
+    :type trajectory: :class:`.Atomic`, :class:`.Ensemble`, or trajectory-like object
+
     :arg param_file_name: base name for the output parameter files. If provided,
         one file will be written for each model/frame with the frame/model index
         added to the file name.
@@ -2685,16 +2754,20 @@ def getChannelParametersMultipleFrames(channels_all, **kwargs):
         channel lengths, bottlenecks, and volumes.
     :rtype: list  """
 
+    param_file_name = kwargs.pop('param_file_name', None)
     parameters_all = []
     for frame_nr, channels in enumerate(channels_all):
         LOGGER.info("Frame/model: {0}".format(frame_nr))
+        frame_name = _frameParamFileName(param_file_name, frame_nr, trajectory)
+        if frame_name is not None:
+            kwargs['param_file_name'] = frame_name
         params = getChannelParameters(channels, **kwargs)
         parameters_all.append(params)
 
     return parameters_all
 
 
-def getPoreParametersMultipleFrames(pores_all, **kwargs):
+def getPoreParametersMultipleFrames(pores_all, trajectory=None, **kwargs):
     """Extract pore parameters for multiple frames or models.
 
     This function is a multi-frame wrapper for :func:`getPoreParameters`.
@@ -2710,6 +2783,11 @@ def getPoreParametersMultipleFrames(pores_all, **kwargs):
         model or trajectory frame.
     :type pores_all: list
 
+    :arg trajectory: The trajectory the frames came from, if any. Only its
+        presence is used, to name the files ``_frame<i>`` rather than
+        ``_model<i>``, matching :func:`getPoreResidueNamesMultipleFrames`.
+    :type trajectory: :class:`.Atomic`, :class:`.Ensemble`, or trajectory-like object
+
     :arg param_file_name: base name for the output parameter files. If provided,
         one file will be written for each model/frame with the frame/model index
         added to the file name.
@@ -2719,11 +2797,59 @@ def getPoreParametersMultipleFrames(pores_all, **kwargs):
         pore lengths, bottlenecks, and volumes.
     :rtype: list  """
 
+    param_file_name = kwargs.pop('param_file_name', None)
     parameters_all = []
     for frame_nr, pores in enumerate(pores_all):
         LOGGER.info("Frame/model: {0}".format(frame_nr))
+        frame_name = _frameParamFileName(param_file_name, frame_nr, trajectory)
+        if frame_name is not None:
+            kwargs['param_file_name'] = frame_name
         params = getPoreParameters(pores, **kwargs)
         parameters_all.append(params)
+
+    return parameters_all
+
+
+def getLinkParametersMultipleFrames(links_all, trajectory=None, **kwargs):
+    """Extract chamber link parameters for multiple frames or models.
+
+    This function is a multi-frame wrapper for :func:`getLinkParameters`. Each
+    element of ``links_all`` is the ``details['links']`` of one frame, which
+    :func:`calcChannelsMultipleFrames` returns in its third value when called
+    with ``return_details=True``; the links of a frame are not part of its
+    channel list.
+
+    :arg links_all: list of link lists, one per model or trajectory frame.
+    :type links_all: list
+
+    :arg trajectory: The trajectory the frames came from, if any. Only its
+        presence is used, to name the files ``_frame<i>`` rather than
+        ``_model<i>``, matching :func:`getLinkResidueNamesMultipleFrames`.
+    :type trajectory: :class:`.Atomic`, :class:`.Ensemble`, or trajectory-like object
+
+    :arg param_file_name: base name for the output parameter files. If provided,
+        one file will be written for each model/frame with the frame/model index
+        added to the file name.
+    :type param_file_name: str
+
+    :returns: A list of parameter tuples for each model/frame. Each tuple contains
+        link lengths, bottlenecks, and volumes.
+    :rtype: list
+
+    Example usage:
+    channels_all, surfaces_all, details_all = calcChannelsMultipleFrames(
+        atoms, trajectory=dcd, return_details=True)
+    params = getLinkParametersMultipleFrames([d['links'] for d in details_all],
+                                             trajectory=dcd)  """
+
+    param_file_name = kwargs.pop('param_file_name', None)
+    parameters_all = []
+    for frame_nr, links in enumerate(links_all):
+        LOGGER.info("Frame/model: {0}".format(frame_nr))
+        frame_name = _frameParamFileName(param_file_name, frame_nr, trajectory)
+        if frame_name is not None:
+            kwargs['param_file_name'] = frame_name
+        parameters_all.append(getLinkParameters(links, **kwargs))
 
     return parameters_all
 
@@ -2819,7 +2945,7 @@ def getSurfaceCavityParameters(cavities, **kwargs):
         return multi_model_param
 
 
-def getSurfaceCavityParametersMultipleFrames(cavities_all, **kwargs):
+def getSurfaceCavityParametersMultipleFrames(cavities_all, trajectory=None, **kwargs):
     """Provides surface cavity parameters for multiple frames or models.
 
     It analyzes surface cavities calculated for multi-model PDB files or
@@ -2829,6 +2955,12 @@ def getSurfaceCavityParametersMultipleFrames(cavities_all, **kwargs):
         :func:`calcSurfaceCavitiesMultipleFrames`.
     :type cavities_all: list
     
+    :arg trajectory: The trajectory the frames came from, if any. Only its
+        presence is used, to name the files ``_frame<i>`` rather than
+        ``_model<i>``, matching
+        :func:`getSurfaceCavityResidueNamesMultipleFrames`.
+    :type trajectory: :class:`.Atomic`, :class:`.Ensemble`, or trajectory-like object
+
     :arg param_file_name: base name for the output parameter files. If provided,
         one file will be written for each model/frame with the frame/model index
         added to the file name.
@@ -2837,10 +2969,14 @@ def getSurfaceCavityParametersMultipleFrames(cavities_all, **kwargs):
     :returns: A list with surface cavity parameters for each frame/model.
     :rtype: list """
 
+    param_file_name = kwargs.pop('param_file_name', None)
     parameters_all = []
 
     for i, cavities in enumerate(cavities_all):
         LOGGER.info("Model/frame: {0}".format(i))
+        frame_name = _frameParamFileName(param_file_name, i, trajectory)
+        if frame_name is not None:
+            kwargs['param_file_name'] = frame_name
         params = getSurfaceCavityParameters(cavities, **kwargs)
         parameters_all.append(params)
 
