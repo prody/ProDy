@@ -285,7 +285,7 @@ def sortAtoms(atoms, label, reverse=False):
     return AtomMap(ag, sort, acsi)
 
 
-def sliceAtoms(atoms, select):
+def sliceAtoms(atoms, select, allowSame=False):
     """Slice *atoms* using the selection defined by *select*.
 
     :arg atoms: atoms to be selected from
@@ -297,6 +297,8 @@ def sliceAtoms(atoms, select):
     """
 
     if atoms == select:
+        if allowSame:
+            return atoms._getSubset('all'), atoms.all
         raise ValueError('atoms and select arguments are the same')
 
     try:

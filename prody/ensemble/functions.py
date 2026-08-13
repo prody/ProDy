@@ -215,7 +215,7 @@ def loadEnsemble(filename, **kwargs):
                 data[key] = arr
     else:
         atoms = None
-    ensemble.setAtoms(atoms)
+    ensemble.setAtoms(atoms, allowSame=True)
 
     if '_indices' in attr_dict:
         indices = attr_dict['_indices']
