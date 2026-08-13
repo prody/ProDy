@@ -41,7 +41,8 @@ __all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showPerturbResponse', 'showTree', 'showTree_networkx',
            'showAtomicMatrix', 'pimshow', 'showAtomicLines', 'pplot', 
            'showDomainBar', 'showAtomicBars', 'showSelectionMatrix',
-           'showRMSDEvolution', 'showPairwiseRMSDHeatmap', 'showClusterRMSDComparison']
+           'showRMSDEvolution', 'showPairwiseRMSDHeatmap', 'showClusterRMSDComparison',
+           'showClusterRMSDEvolution', 'showClusterBarcode']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -2998,7 +2999,7 @@ def showClusterRMSDComparison(all_stats, *args, **kwargs):
         if kde:
             LOGGER.warning("Kernel density estimation (kde=True) requires 'seaborn' and will be ignored.")
         
-        kwargs.setdefault('histtype', 'step')
+        kwargs.setdefault('histtype', 'stepfilled')
 
     for cluster_stats in all_stats:
         if "cluster" not in cluster_stats or "distances" not in cluster_stats:
@@ -3021,5 +3022,327 @@ def showClusterRMSDComparison(all_stats, *args, **kwargs):
     
     if grid:
         ax.grid(axis='y', alpha=0.3)
+
+    return ax
+
+
+def showClusterRMSDEvolution(cluster_ids, rmsd_array=None, ref_coords=None, aligned_coords=None,
+                             colors=None, mode='background', alpha=0.3, *args, **kwargs):
+    """
+    Plots the RMSD evolution over trajectory frames, highlighting or color-coding
+    the clusters for visual validation.
+
+    Accepts either ``rmsd_array`` or ``ref_coords`` and ``aligned_coords`` for
+    RMSD calculation.
+
+
+    :arg cluster_ids: 1D array mapping each frame to its assigned cluster ID.
+                      Cluster IDs are expected to be 1-based. Values less than 1
+                      (e.g., 0 or -1) are ignored when coloring clusters.
+    :type cluster_ids: :class:`numpy.ndarray`
+
+    :arg rmsd_array: 1D array containing pre-calculated RMSD values per frame.
+                     If ``None``, ``ref_coords`` and ``aligned_coords`` are used
+                     to calculate the RMSD values.
+    :type rmsd_array: :class:`numpy.ndarray`
+
+    :arg ref_coords: reference coordinates for RMSD calculation.
+    :type ref_coords: :class:`numpy.ndarray`
+
+    :arg aligned_coords: aligned trajectory coordinates for RMSD calculation.
+    :type aligned_coords: :class:`numpy.ndarray`
+
+    :arg colors: custom color mapping for clusters. Can be a list or tuple of
+                 colors, a dictionary mapping cluster IDs to colors, or a
+                 Matplotlib colormap name. If ``None``, the ``tab10`` colormap
+                 is used.
+    :type colors: list, tuple, dict, str, or None
+
+    :arg mode: how to visualize cluster membership.
+               Options are ``'background'`` and ``'dots'``.
+               Default is ``'background'``.
+    :type mode: str
+
+    :arg alpha: transparency for background spans or scatter dots.
+                Default is ``0.3``.
+    :type alpha: float
+
+    :arg *args: positional arguments passed directly to :func:`showRMSDEvolution`.
+    :type *args: tuple
+
+    :arg **kwargs: additional keyword arguments passed directly to :func:`showRMSDEvolution`.
+    :type **kwargs: dict
+
+    :returns: Matplotlib axes containing the plot.
+    :rtype: :class:`matplotlib.axes.Axes`
+
+    Example usage:
+    >>> import matplotlib.pyplot as plt
+    >>> ref_coords, aligned_coords = alignTrajectory(pdb, dcd, select='resname DAP')
+    >>> rmsd_evolution = calcRMSD(ref_coords, target=aligned_coords)
+    >>> rmsd_distance_matrix = calcPairwiseRMSD(aligned_coords)
+    >>> hier_cluster_ids, _ = clusterHierarchical(rmsd_distance_matrix)
+    >>> plt.figure()
+    >>> showClusterRMSDEvolution(cluster_ids=hier_cluster_ids, rmsd_array=rmsd_evolution, mode='background')
+    >>> plt.show()
+    """
+
+    import matplotlib.pyplot as plt
+    import warnings
+
+
+    cluster_ids = np.asarray(cluster_ids)
+
+    if cluster_ids.ndim != 1:
+        raise ValueError(f"cluster_ids must be a 1D array, but got shape {cluster_ids.shape}.")
+
+    if cluster_ids.size == 0:
+        raise ValueError("cluster_ids must not be empty.")
+    
+    if mode not in ('background', 'dots'):
+        raise ValueError(f"Unknown mode '{mode}'. Choose either 'background' or 'dots'.")
+    
+    n_frames = len(cluster_ids)
+
+    if rmsd_array is None:
+        if ref_coords is None or aligned_coords is None:
+            raise ValueError("Either rmsd_array or both ref_coords and aligned_coords must be provided.")
+
+        rmsd_array = calcRMSD(ref_coords, target=aligned_coords)
+    else:
+        rmsd_array = np.asarray(rmsd_array)
+
+    if rmsd_array.ndim != 1:
+        raise ValueError(f"rmsd_array must be a 1D array, but got shape {rmsd_array.shape}.")
+
+    if len(rmsd_array) != n_frames:
+        raise ValueError(f"rmsd_array must contain one value per frame, but got {len(rmsd_array)} RMSD values for {n_frames} frames.")
+
+    ax = kwargs.pop('ax', None)
+    if ax is None:
+        ax = plt.gca()
+
+    kwargs['ax'] = ax
+
+    ax = showRMSDEvolution(rmsd_array=rmsd_array, *args, **kwargs)
+    unique_clusters = np.unique(cluster_ids)
+
+    if 0 in unique_clusters:
+        warnings.warn("Cluster ID '0' detected in cluster_ids. "
+                      "This library uses 1-indexed clusters; ID 0 will not be colored.",
+                      UserWarning)
+    valid_clusters = [cluster for cluster in unique_clusters if cluster > 0]
+
+    if colors is None:
+        cmap = plt.get_cmap('tab10')
+    elif isinstance(colors, str):
+        cmap = plt.get_cmap(colors)
+    else:
+        cmap = colors
+
+    if isinstance(colors, (list, tuple)) and len(colors) == 0:
+        raise ValueError("colors cannot be an empty list or tuple.")
+
+    num_colors = getattr(cmap, 'N', 10)
+
+    cluster_color_map = {}
+    for i, cluster_number in enumerate(valid_clusters):
+
+        if isinstance(colors, dict):
+            if cluster_number in colors:
+                cluster_color_map[cluster_number] = colors[cluster_number]
+            else:
+                cluster_color_map[cluster_number] = cmap(i % num_colors)
+
+        elif isinstance(colors, (list, tuple)):
+            cluster_color_map[cluster_number] = colors[i % len(colors)]
+
+        else:
+            cluster_color_map[cluster_number] = cmap(i % num_colors)
+
+    if mode == 'background':
+        change_points = np.where(cluster_ids[:-1] != cluster_ids[1:])[0] + 1
+        segment_starts = np.insert(change_points, 0, 0)
+        segment_ends = np.append(change_points, n_frames)
+        drawn_labels = set()
+        
+        for start, end in zip(segment_starts, segment_ends):
+            cluster_number = cluster_ids[start]
+            if cluster_number not in cluster_color_map:
+                continue
+            cluster_color = cluster_color_map[cluster_number]
+
+            if cluster_number not in drawn_labels:
+                cluster_label = f"Cluster {cluster_number}"
+                drawn_labels.add(cluster_number)
+            else:
+                cluster_label = None
+
+            ax.axvspan(start - 0.5, end - 0.5, color=cluster_color, alpha=alpha, label=cluster_label, linewidth=0)
+
+    elif mode == 'dots':
+        for cluster_number, cluster_color in cluster_color_map.items():
+            mask = cluster_ids == cluster_number
+            frame_indices = np.where(mask)[0]
+            ax.scatter(frame_indices, rmsd_array[mask], color=cluster_color, alpha=alpha,
+                       s=15, label=f"Cluster {cluster_number}", zorder=3)
+            
+    if cluster_color_map:
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            def legend_sort_key(pair):
+                label = pair[1]
+                if label.startswith("Cluster "):
+                    try:
+                        return (1, int(label.split()[1]))
+                    except (IndexError, ValueError):
+                        pass
+                return (0, label)
+
+            sorted_pairs = sorted(zip(handles, labels), key=legend_sort_key)
+            sorted_handles, sorted_labels = zip(*sorted_pairs)
+            
+            ax.legend(sorted_handles, sorted_labels, bbox_to_anchor=(1.01, 1), loc='upper left')
+
+    return ax
+
+
+def showClusterBarcode(cluster_ids, colors=None, *args, **kwargs):
+    """
+    Creates a 1D barcode-style timeline of trajectory frames, where each frame
+    is represented by a vertical line colored according to its cluster ID.
+
+
+    :arg cluster_ids: 1D array assigning each frame to a cluster.
+                      Cluster IDs are expected to be 1-based. Values less than 1
+                      (e.g., 0 or -1) are ignored when coloring clusters.
+    :type cluster_ids: :class:`numpy.ndarray`
+
+    :arg colors: custom color mapping for clusters. Can be a list or tuple of
+                 colors, a dictionary mapping cluster IDs to colors, or a
+                 Matplotlib colormap name. If ``None``, the ``tab10`` colormap
+                 is used.
+    :type colors: list, tuple, dict, str, or None
+
+    :arg ax: axes on which to draw the plot.
+             Default is ``None`` and the current axes are used.
+    :type ax: :class:`matplotlib.axes.Axes`
+
+    :arg title: title of the plot.
+                Default is ``'Trajectory Cluster Timeline'``.
+    :type title: str
+
+    :arg xlabel: label for the x-axis.
+                 Default is ``'Frame Index'``.
+    :type xlabel: str
+
+    :arg *args: positional arguments passed directly to Matplotlib's ``axvspan`` function.
+    :type *args: tuple
+
+    :arg **kwargs: keyword arguments passed directly to Matplotlib's ``axvspan`` function.
+    :type **kwargs: dict
+
+    :returns: Matplotlib axes containing the plot.
+    :rtype: :class:`matplotlib.axes.Axes`
+
+    Example usage:
+    >>> import matplotlib.pyplot as plt
+    >>> hier_cluster_ids, _ = clusterHierarchical(distance_matrix)
+    >>> plt.figure()
+    >>> showClusterBarcode(hier_cluster_ids)
+    >>> plt.show()
+    """
+
+    import matplotlib.pyplot as plt
+    import warnings
+
+
+    cluster_ids = np.asarray(cluster_ids)
+
+    if cluster_ids.ndim != 1:
+        raise ValueError(f"cluster_ids must be a 1D array, but got shape {cluster_ids.shape}.")
+    if cluster_ids.size == 0:
+        raise ValueError("cluster_ids must not be empty.")
+
+    ax = kwargs.pop('ax', None)
+    if ax is None:
+        ax = plt.gca()
+
+    title = kwargs.pop('title', 'Trajectory Cluster Timeline')
+    xlabel = kwargs.pop('xlabel', 'Frame Index')
+
+    n_frames = len(cluster_ids)
+
+    unique_clusters = np.unique(cluster_ids)
+    if 0 in unique_clusters:
+        warnings.warn("Cluster ID '0' detected. "
+                      "This library uses 1-indexed clusters; ID 0 will not be colored.", 
+                      UserWarning)
+
+    valid_clusters = [cluster_number for cluster_number in unique_clusters if cluster_number > 0]
+
+    if colors is None:
+        cmap = plt.get_cmap('tab10')
+    elif isinstance(colors, str):
+        cmap = plt.get_cmap(colors)
+    else:
+        cmap = colors
+
+    if isinstance(colors, (list, tuple)) and len(colors) == 0:
+        raise ValueError("colors cannot be an empty list or tuple.")
+
+    num_colors = getattr(cmap, 'N', 10)
+
+    cluster_color_map = {}
+
+    for i, cluster_number in enumerate(valid_clusters):
+        if isinstance(colors, dict):
+            cluster_color_map[cluster_number] = colors.get(cluster_number, cmap(i % num_colors))
+        elif isinstance(colors, (list, tuple)):
+            cluster_color_map[cluster_number] = colors[i % len(colors)]
+        else:
+            cluster_color_map[cluster_number] = cmap(i % num_colors)
+
+    kwargs.setdefault('linewidth', 0)
+
+    change_points = np.where(cluster_ids[:-1] != cluster_ids[1:])[0] + 1
+    segment_starts = np.insert(change_points, 0, 0)
+    segment_ends = np.append(change_points, n_frames)
+
+    drawn_labels = set()
+
+    for start, end in zip(segment_starts, segment_ends):
+        cluster_number = cluster_ids[start]
+
+        if cluster_number not in cluster_color_map:
+            continue
+
+        if cluster_number not in drawn_labels:
+            cluster_label = f"Cluster {cluster_number}"
+            drawn_labels.add(cluster_number)
+        else:
+            cluster_label = None
+
+        ax.axvspan(start - 0.5, end - 0.5, *args, color=cluster_color_map[cluster_number], 
+                   label=cluster_label, **kwargs)
+
+    ax.set_xlim(-0.5, n_frames - 0.5)
+    ax.set_ylim(0, 1)
+
+    ax.set_yticks([])
+    ax.spines['left'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.set_xlabel(xlabel)
+    ax.set_title(title)
+
+    if cluster_color_map:
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            sorted_pairs = sorted(zip(handles, labels), key=lambda x: int(x[1].split()[1]))
+            sorted_handles, sorted_labels = zip(*sorted_pairs)
+            
+            ax.legend(sorted_handles, sorted_labels, bbox_to_anchor=(1.01, 1), loc='upper left')
 
     return ax
