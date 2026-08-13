@@ -341,10 +341,14 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
         try:
             url = getURL(pdb)
             if format != 'pdb':
-                url = url.replace('.pdb', extension)
+                if url.find('.pdb') != -1:
+                    url = url.replace('.pdb', extension)
+                elif url.find('.ent') != -1:
+                    url = url.replace('.ent', extension)
 
                 if url.find('divided/pdb') != -1:
                     url = url.replace('divided/pdb', 'divided/' + long_format)
+
             handle = openURL(url)
         except Exception as err:
             if not _isExtendedPDBID(pdb):
