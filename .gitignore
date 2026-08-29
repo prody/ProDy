@@ -43,6 +43,7 @@ __pycache__
 
 .pypirc
 .gitignore
+.python-version
 
 chauthorinfo.sh
 pre-commit.sh
@@ -55,3 +56,5 @@ Documentation/*
 *log
 *BAK
 *.sublime*
+*.code-workspace
+.vscode/

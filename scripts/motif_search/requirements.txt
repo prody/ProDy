@@ -1,0 +1,7 @@
+flask
+requests
+requests_cache
+biopython<=1.76
+Numpy>=1.10
+pyparsing
+scipy
