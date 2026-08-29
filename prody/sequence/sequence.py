@@ -48,7 +48,10 @@ class Sequence(object):
     def __str__(self):
 
         if PY3K:
-            return self._array.tobytes().decode()
+            try:
+                return self._array.tostring().decode()
+            except:
+                return self._array.tobytes().decode()
         else:
             return self._array.tobytes()
 

@@ -435,8 +435,12 @@ class MSAFile(object):
                     raise TypeError('invalid slice: ' + repr(slice))
                 else:
                     self._slice = slice
-                    self._slicer = lambda seq, slc=slice: fromstring(seq,
-                                                        '|S1')[slc].tobytes()
+                    try:
+                        self._slicer = lambda seq, slc=slice: fromstring(seq,
+                                                            '|S1')[slc].tostring()
+                    except:
+                        self._slicer = lambda seq, slc=slice: fromstring(seq,
+                                                            '|S1')[slc].tobytes()
             else:
                 self._slice = slice
                 self._slicer = lambda seq, slc=slice: seq[slc]
