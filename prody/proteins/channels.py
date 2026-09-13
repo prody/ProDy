@@ -39,23 +39,155 @@ __all__ =['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getLinkParameters', 'getLinkResidueNames',
            'getLinkParametersMultipleFrames', 'getLinkResidueNamesMultipleFrames',
            'scanSurfaceCavityParameters', 'connectChannelsToSurfaceCavities',
-           'calcFrequentObjectResidues', 'showFrequentObjectResidues']
+           'calcFrequentObjectResidues', 'showFrequentObjectResidues',
+           'writeChannelsCIF']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
 # vertex against, so both read them from here.
+# Sources:
+# BD  - Bondi family - J. Phys. Chem. 1964, 68, 441-451.,
+#                      J. Phys. Chem. 1966, 70, 3006.,
+#                      J. Phys. Chem. A 2009, 113, 5806-5812.
+# AZ  - Alvarez - Dalton Trans. 2013, 42, 8617-8636.
+# C&T - Charry and Tkatchenko - J. Chem. Theory Comput. 2024, 20, 7469-7478.
+
 VDW_RADII = {
-    'H': 1.20, 'HE': 1.40, 'LI': 1.82, 'BE': 1.53, 'B': 1.92, 'C': 1.70,
-    'N': 1.55, 'O': 1.52, 'F': 1.47, 'NE': 1.54, 'NA': 2.27, 'MG': 1.73,
-    'AL': 1.84, 'SI': 2.10, 'P': 1.80, 'S': 1.80, 'CL': 1.75, 'AR': 1.88,
-    'K': 2.75, 'CA': 2.31, 'SC': 2.11, 'NI': 1.63, 'CU': 1.40, 'ZN': 1.39,
-    'GA': 1.87, 'GE': 2.11, 'AS': 1.85, 'SE': 1.90, 'BR': 1.85, 'KR': 2.02,
-    'RB': 3.03, 'SR': 2.49, 'PD': 1.63, 'AG': 1.72, 'CD': 1.58, 'IN': 1.93,
-    'SN': 2.17, 'SB': 2.06, 'TE': 2.06, 'I': 1.98, 'XE': 2.16, 'CS': 3.43,
-    'BA': 2.68, 'PT': 1.75, 'AU': 1.66, 'HG': 1.55, 'TL': 1.96, 'PB': 2.02,
-    'BI': 2.07, 'PO': 1.97, 'AT': 2.02, 'RN': 2.20, 'FR': 3.48, 'RA': 2.83,
-    'U': 1.86, 'FE': 2.44
+    # BD + AZ agree within 0.1 A, or the AZ value is uncertain: keeping BD.
+    # Note that the values for Si, Br and Te are corrections from the later
+    # papers of the BD family.
+    'H': 1.20, 'HE': 1.40, 'B': 1.92, 'C': 1.70, 'N': 1.55, 'O': 1.52, 
+    'F': 1.47, 'NE': 1.54,'NA': 2.27, 'SI': 2.22, 'P': 1.80, 'S': 1.80, 
+    'CL': 1.75, 'AR': 1.88,'K': 2.75, 'GE': 2.11, 'AS': 1.85, 'SE': 1.90, 
+    'BR': 1.83, 'KR': 2.02,'RB': 3.03, 'SB': 2.06, 'TE': 2.00, 'I': 1.98, 
+    'XE': 2.16, 'CS': 3.43,
+
+    # AZ values here, given the known issues of BD: some of its values are
+    # effectively metallic radii, and a bare-atom probe artifact. In ambiguous
+    # cases AZ shows the best agreement with the C&T radii.
+    'LI': 2.12, 'BE': 1.98, 'MG': 2.51, 'AL': 2.25, 'CA': 2.62, 'SC': 2.58, 
+    'TI': 2.46, 'V': 2.42, 'CR': 2.45, 'MN': 2.45, 'FE': 2.44, 'CO': 2.40,
+    'NI': 2.40, 'CU': 2.38, 'ZN': 2.39, 'GA': 2.32, 'SR': 2.84, 'Y': 2.75, 
+    'ZR': 2.52, 'NB': 2.56, 'MO': 2.45, 'TC': 2.44, 'RU': 2.46, 'RH': 2.44,
+    'PD': 2.15, 'AG': 2.53, 'CD': 2.49, 'IN': 2.43, 'SN': 2.42, 'BA': 3.03, 
+    'LA': 2.98, 'CE': 2.88, 'PR': 2.92, 'ND': 2.95, 'SM': 2.90, 'EU': 2.87, 
+    'GD': 2.83, 'TB': 2.79, 'DY': 2.87, 'HO': 2.81, 'ER': 2.83, 'TM': 2.79,
+    'YB': 2.80, 'LU': 2.74, 'HF': 2.63, 'TA': 2.53, 'W': 2.57, 'RE': 2.49, 
+    'OS': 2.48, 'IR': 2.41, 'PT': 2.29, 'AU': 2.32, 'HG': 2.45, 'TL': 2.47, 
+    'PB': 2.60, 'BI': 2.54, 'AC': 2.80, 'TH': 2.93, 'PA': 2.88, 'U': 2.71, 
+    'NP': 2.82, 'PU': 2.81, 'AM': 2.83, 'CM': 3.05, 'BK': 3.40, 'CF': 3.05, 
+    'ES': 2.70,
+
+    # BD only: no contesting reference for these, but the values are likely
+    # underestimated.
+    'PO': 1.97, 'AT': 2.02, 'RN': 2.20, 'FR': 3.48, 'RA': 2.83,
+
+    # Not an element: the radius the lining queries fall back on where the table
+    # covers no entry, named so that the fallback is visible here rather than
+    # buried as a literal at the point of use. 2.0.
+    'UNKNOWN': 2.00
 }
+
+# Per-residue property scales, for the physicochemical categories of the sb-ncbr
+# tunnels mmCIF schema (see writeChannelsCIF). The schema names no scale, but the
+# MOLE method page its items were written from does, and it pins each one by its
+# extremes; those extremes are quoted below and agree with the tables here, which
+# is what makes the choice checkable rather than asserted.
+# Sources:
+# KD  - Kyte and Doolittle - J. Mol. Biol. 1982, 157, 105-132.
+# CID - Cid, Bunster, Canales and Gazitua - Protein Eng. 1992, 5, 373-375.
+#       (AAindex CIDH920105; note the AAindex record is laid out in A/L R/K ...
+#        column pairs, so a naive row-wise read of it transposes the scale.)
+# ZIM - Zimmerman, Eliezer and Simha - J. Theor. Biol. 1968, 21, 170-201.
+
+# Hydropathy. The schema pins ARG -4.5 as most hydrophilic and ILE 4.5 as most
+# hydrophobic; both hold here.
+_KYTE_DOOLITTLE = {
+    'ALA': 1.8, 'ARG': -4.5, 'ASN': -3.5, 'ASP': -3.5, 'CYS': 2.5,
+    'GLN': -3.5, 'GLU': -3.5, 'GLY': -0.4, 'HIS': -3.2, 'ILE': 4.5,
+    'LEU': 3.8, 'LYS': -3.9, 'MET': 1.9, 'PHE': 2.8, 'PRO': -1.6,
+    'SER': -0.8, 'THR': -0.7, 'TRP': -0.9, 'TYR': -1.3, 'VAL': 4.2
+}
+
+# Hydrophobicity, as an average of normalized scales. The schema pins GLU -1.140
+# as most hydrophilic and ILE 1.810 as most hydrophobic; both hold here, and they
+# are what identifies this scale as Cid's rather than one of the several other
+# normalized consensus scales the description would otherwise fit.
+_CID_HYDROPHOBICITY = {
+    'ALA': 0.02, 'ARG': -0.42, 'ASN': -0.77, 'ASP': -1.04, 'CYS': 0.77,
+    'GLN': -1.10, 'GLU': -1.14, 'GLY': -0.80, 'HIS': 0.26, 'ILE': 1.81,
+    'LEU': 1.14, 'LYS': -0.41, 'MET': 1.00, 'PHE': 1.35, 'PRO': -0.09,
+    'SER': -0.97, 'THR': -0.77, 'TRP': 1.71, 'TYR': 1.11, 'VAL': 1.13
+}
+
+# Polarity. The schema pins ALA and GLY at 0.00, SER at 1.67, GLU at 49.90 and
+# ARG at 52.00; all four hold here.
+_ZIMMERMAN_POLARITY = {
+    'ALA': 0.00, 'ARG': 52.00, 'ASN': 3.38, 'ASP': 49.70, 'CYS': 1.48,
+    'GLN': 3.53, 'GLU': 49.90, 'GLY': 0.00, 'HIS': 51.60, 'ILE': 0.13,
+    'LEU': 0.13, 'LYS': 49.50, 'MET': 1.43, 'PHE': 0.35, 'PRO': 1.58,
+    'SER': 1.67, 'THR': 1.66, 'TRP': 2.10, 'TYR': 1.61, 'VAL': 0.13
+}
+
+# Relative mutability, from empirical substitution matrices; the scale's reference
+# is ALA at 100. Beware that Dayhoff's relative mutability is a different table
+# under the same name - it is the one ProtScale serves - and differs by up to 40
+# points, so a lookup by name alone lands on the wrong one. MOLE's own method page
+# quotes thirteen of these values, and all thirteen agree with the table here.
+# JTT - Jones, Taylor and Thornton - Bioinformatics 1992, 8, 275-282.
+_JTT_MUTABILITY = {
+    'ALA': 100, 'ARG': 83, 'ASN': 104, 'ASP': 86, 'CYS': 44,
+    'GLN': 84, 'GLU': 77, 'GLY': 50, 'HIS': 91, 'ILE': 103,
+    'LEU': 54, 'LYS': 72, 'MET': 93, 'PHE': 51, 'PRO': 58,
+    'SER': 117, 'THR': 107, 'TRP': 25, 'TYR': 50, 'VAL': 98
+}
+
+# Lipophilicity and solubility of the Cbeta side-chain fragments, predicted rather
+# than measured: MOLE obtained them from chemicalize.org and publishes them only as
+# prose in its method page, which is where these were read from. Glycine has no
+# side-chain fragment, so all three give it 0 rather than leaving it out.
+#
+# logP is the octanol/water partition coefficient of the fragment and logD the
+# distribution coefficient at pH 7.4, which differ only where the fragment ionises
+# - the two tables are equal for the fifteen neutral residues and lower in logD for
+# ASP, GLU, ARG, LYS and HIS. That relationship is worth keeping in mind if these
+# are ever re-typed, since it is the one internal check on them.
+_MOLE_LOGP = {
+    'ALA': 1.08, 'ARG': -0.08, 'ASN': -1.03, 'ASP': -0.22, 'CYS': 0.84,
+    'GLN': -0.33, 'GLU': 0.48, 'GLY': 0.00, 'HIS': -0.01, 'ILE': 2.24,
+    'LEU': 2.08, 'LYS': 0.70, 'MET': 1.48, 'PHE': 2.49, 'PRO': 1.80,
+    'SER': -0.52, 'THR': -0.16, 'TRP': 2.59, 'TYR': 2.18, 'VAL': 1.80
+}
+
+_MOLE_LOGD = {
+    'ALA': 1.08, 'ARG': -2.49, 'ASN': -1.03, 'ASP': -3.00, 'CYS': 0.84,
+    'GLN': -0.33, 'GLU': -2.12, 'GLY': 0.00, 'HIS': -0.11, 'ILE': 2.24,
+    'LEU': 2.08, 'LYS': -1.91, 'MET': 1.48, 'PHE': 2.49, 'PRO': 1.80,
+    'SER': -0.52, 'THR': -0.16, 'TRP': 2.59, 'TYR': 2.18, 'VAL': 1.80
+}
+
+# Water solubility at pH 7.4, as a unit-stripped base-10 logarithm of mol/litre.
+_MOLE_LOGS = {
+    'ALA': 0.59, 'ARG': 1.63, 'ASN': 0.54, 'ASP': 2.63, 'CYS': 0.16,
+    'GLN': 0.13, 'GLU': 2.23, 'GLY': 0.00, 'HIS': -0.20, 'ILE': -1.85,
+    'LEU': -1.79, 'LYS': 1.46, 'MET': -0.72, 'PHE': -1.81, 'PRO': -1.30,
+    'SER': 1.11, 'THR': 0.77, 'TRP': -2.48, 'TYR': -1.44, 'VAL': -1.30
+}
+
+# The residues every scale above covers - they share one set of twenty keys. What
+# lies outside it is what a lining report has to be honest about: a nucleotide, a
+# cofactor, a modified or differently protonated residue, an ion.
+_SCALE_RESIDUES = frozenset(_KYTE_DOOLITTLE)
+
+# Charge, as the schema itself defines it rather than by way of ProDy's acidic
+# and basic flags: the item description spells the formula out, so taking it
+# literally is what makes the number reproducible from the schema alone.
+_CHARGED_RESIDUES = {'ARG': 1, 'LYS': 1, 'HIS': 1, 'ASP': -1, 'GLU': -1}
+
+# Residues that can carry a charge at some pH, which is a wider set than the one
+# charged at pH 7 - the schema's wording is "can go into an ionic state".
+_IONIZABLE_RESIDUES = frozenset(['ASP', 'GLU', 'HIS', 'CYS', 'TYR', 'LYS',
+                                 'ARG'])
 
 _OVERLAP_OFFSET_CACHE = {}
 
@@ -178,7 +310,48 @@ def _numberedPath(filename, tag, index, suffix='', stem=None):
         stem + '_' if stem else '', tag, index, suffix, path.suffix))
 
 
-def _frameOutputPath(output_path, index, name):
+def _frameBounds(n_frames, start_frame=0, stop_frame=-1):
+    """Half-open ``[first, last)`` over the 0-based frames a run covers.
+
+    The one definition of what ``start_frame`` and ``stop_frame`` mean, because
+    having several was how they came to disagree. ``stop_frame`` is **inclusive** -
+    the last frame analysed, as every docstring in this module says - and ``-1``
+    means "through the last one". Frames are numbered from 0, matching
+    :meth:`~.AtomGroup.setACSIndex` and :meth:`~.AtomGroup.getCoordsets`; note that
+    a multi-model PDB numbers its ``MODEL`` records from 1, so ``stop_frame=0`` is
+    ``MODEL 1``.
+
+    *n_frames* is how many there are, or ``None`` where that is not known yet - a
+    trajectory read frame by frame - in which case ``last`` comes back ``None``,
+    which slices to the end just as an omitted bound does.
+
+    The reason this exists rather than a slice at each call site: ``-1`` is a
+    sentinel here, but it is also a perfectly good Python index, and
+    ``coordsets[start:-1]`` therefore silently drops the last frame instead of
+    keeping all of them. A slice is also exclusive where this API is inclusive, so
+    the same expression is off by one again for every other value. Both mistakes
+    read as correct code, which is why they lasted.
+
+    An out-of-range *stop_frame* is clamped rather than raising: callers wrote
+    ``stop_frame=atoms.numCoordsets()`` to work around the exclusive behaviour, and
+    that should keep meaning "all of them" rather than becoming an IndexError."""
+
+    first = max(0, int(start_frame))
+
+    if stop_frame is None or int(stop_frame) < 0:
+        last = n_frames
+    else:
+        last = int(stop_frame) + 1
+        if n_frames is not None:
+            last = min(last, n_frames)
+
+    if last is not None and last < first:
+        last = first
+
+    return first, last
+
+
+def _frameOutputPath(output_path, index, name, suffix='.pqr'):
     """Where one frame of a multi-frame run writes.
 
     A directory takes the files inside it, named after what they hold and the
@@ -186,14 +359,19 @@ def _frameOutputPath(output_path, index, name):
     per-object files under it carry that stem, so the frame stays in every name
     and frames cannot overwrite one another. Anything else is used as a prefix,
     as it always has been: ``2kid`` with no such directory gives ``2kid3.pqr``
-    beside it."""
+    beside it.
+
+    *suffix* is what the frame's file is named with, so that an mmCIF run numbers
+    its frames exactly as a PQR one does. The schema has no frame of its own - it
+    describes one structure - so a frame per file is what keeps each written file
+    something the schema can actually describe."""
 
     import os
 
     path = str(output_path)
     if os.path.isdir(path):
-        return os.path.join(path, "{0}{1}.pqr".format(name, index))
-    return path + "{0}.pqr".format(index)
+        return os.path.join(path, "{0}{1}{2}".format(name, index, suffix))
+    return path + "{0}{1}".format(index, suffix)
 
 
 def _splitObjectFileName(filename):
@@ -1380,8 +1558,8 @@ def showSurfaceCavities(surface, cavities=None, model=None, show_surface=False,
 def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     start_point_search=3.0, surf_radius=15, inner_radius=1.2, min_depth=5,
     min_volume=None, max_volume=None, max_depth=None, sparsity=6,
-    cavities_only=False, diagram="homogenized", max_deviation=0.1, 
-    route_divergence=0.2, return_details=False, **kwargs):
+    cavities_only=False, diagram="homogenized", max_deviation=0.1,
+    route_divergence=0.2, return_details=False, output_format='pqr', **kwargs):
     """Computes and identifies channels within a molecular structure using 
     Voronoi and Delaunay tessellations.
 
@@ -1435,7 +1613,30 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         numbered largest void first and listed in the log; see ``seed_radius``.
         A search that ran from a single start point tags nothing with it, every
         object having the same one, and writes ``out_chl3.pqr``.
+
+        Ignored for ``output_format="mmcif"``, which always writes one file.
     :type separate: bool
+
+    :arg output_format: What ``output_path`` is written as; ``"pqr"`` (the
+        default) or ``"mmcif"``. The format is a property of the one output path
+        rather than a second path of its own, so a run has one place its results
+        go. Anything else raises, rather than falling back on the default: a
+        misspelled format that quietly wrote PQR would be found only by opening
+        the file.
+
+        There is no ``"pdb"``. The flag picks the format family and the path
+        picks the extension, which is how PDB has always been chosen here -
+        ``output_path`` ending in ``.pdb``.
+
+        ``"mmcif"`` writes the sb-ncbr tunnels schema
+        (https://github.com/sb-ncbr/tunnels-schema) through
+        :func:`writeChannelsCIF`: the profile, the layers and the lining
+        residues of every channel in one file, with keys joining them, which is
+        what the PQR and the residue text files cannot express between them.
+        Chamber links go into the same file under
+        ``_sb_ncbr_channel.type`` ``Path``, a directory takes ``channels.cif``,
+        and no viewer script is written, that being a PQR arrangement.
+    :type output_format: str
 
     :arg start_point: Optional starting point for channel search. This can be
         either a 3D coordinate point or an atomic selection/AtomGroup. If the
@@ -1692,8 +1893,33 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         rather than rerouting them. Filtering is therefore cheap, but it cannot
         recover a wide route that the search did not take - if raising it leaves
         you with too few channels, raise ``inner_radius`` instead and let the
-        channels be traced afresh.
+        channels be traced afresh, or set ``prune_narrow_edges``, which makes
+        this floor bound the search as well.
     :type bottleneck: float
+
+    :arg prune_narrow_edges: Whether to leave Voronoi edges narrower than
+        ``bottleneck`` out of the search graph, instead of routing through them
+        and discarding the resulting channel afterwards. Default ``False``.
+
+        The two behaviours are the two established approaches: MOLE filters the
+        finished channels, CAVER prunes the graph. Filtering alone can lose a
+        corridor. Where a cheap route to a mouth pinches below the floor and a
+        wider route to the same mouth costs more, the search returns the cheap
+        one, the filter drops it, and the wider route - open, and the one asked
+        for - is never reported, because only one path per exit is returned.
+        Pruning takes those edges out of the search, so the wider way round is
+        what the search finds.
+
+        Pruning cannot cost a channel. A path over a dropped edge pinches at or
+        below that edge's gate, so the floor rejects it either way, while a path
+        that survives the floor crosses no dropped edge and keeps its cost, so it
+        remains the cheapest route to its exit. The difference is one-sided: the
+        same channels, plus any the filter was masking.
+
+        Off by default because it changes what is reported, and the channels it
+        adds are ones no earlier run listed. ``bottleneck=0`` prunes nothing
+        whatever this is set to, there being no floor to prune at.
+    :type prune_narrow_edges: bool
 
     :arg seed_radius: Probe radius, in Angstrom, that decides where a channel may
         *start*, as opposed to ``inner_radius``, which decides what it may pass
@@ -1919,6 +2145,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # run never touches.
     CHANNELS_ADVANCED_OPTIONS = {
         'bottleneck': inner_radius,
+        'prune_narrow_edges': False,
         'seed_radius': max(1.4, inner_radius),
         'seed_volume': 50.0,
         'max_seeds': 20,
@@ -1945,6 +2172,7 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
     options = dict(CHANNELS_ADVANCED_OPTIONS, **kwargs)
     bottleneck = options['bottleneck']
+    prune_narrow_edges = options['prune_narrow_edges']
     seed_radius = options['seed_radius']
     seed_volume = options['seed_volume']
     max_seeds = options['max_seeds']
@@ -2274,8 +2502,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
     # state, then run a single multi-target Dijkstra per cavity (scipy csgraph),
     # instead of one heap Dijkstra per (seed, exit) pair.
     simplices, neighbors, vertices = s_clr.getState()
-    graph = calculator.buildSparseGraph(simplices, neighbors, vertices, coords,
-                                         vdw_radii)
+    graph = calculator.buildSparseGraph(
+        simplices, neighbors, vertices, coords, vdw_radii,
+        gate_floor=bottleneck if prune_narrow_edges else 0.0)
 
     # Seed each cavity at its chambers rather than at its single deepest
     # tetrahedron. Placed after buildSparseGraph because the seed of a chamber is
@@ -2526,29 +2755,27 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                     "how the first kind connect.".format(
                         sealed, '' if sealed == 1 else 's', bottleneck))
 
-    if output_path:
-        output_path = Path(output_path)
-        
-        # A directory names no run, so nothing here is named after one: the
-        # files are named after what they hold, channels.pqr beside links.pqr,
-        # and the per-object files carry no stem either - sp0_chl3.pqr rather
-        # than output_sp0_chl3.pqr, a stem that would be the same word for every
-        # run and so tell the reader nothing.
-        into_directory = output_path.is_dir()
-        separate_stem = None
-        if into_directory:
-            output_path = output_path / "channels.pqr"
-            separate_stem = ''
+    if output_path and not (channels or links):
+        # Nothing found, so nothing is written - no file, and no viewer for a
+        # file that is not there. An empty file would say only that a run
+        # happened, which the count reported above already says, and it cannot
+        # be told apart from a run that failed while writing. What an earlier run
+        # left behind is worth a word, though: it survives now, and goes on
+        # looking like this run's output.
+        _warnStaleOutputs(output_path, output_format, separate)
 
-        elif not (output_path.suffix == ".pdb" or output_path.suffix == ".pqr"):
-            output_path = output_path.with_suffix(".pqr")
+    elif output_path and _isMmcifFormat(output_format, separate):
+        written = writeChannelsCIF(output_path, channels, atoms, links=links,
+                                   auto=start_point is None)
+        # As on the PQR path: only for a run told a directory. Told a file, the
+        # parent is usually the working directory, and a run has no business
+        # leaving a script there.
+        if written and Path(output_path).is_dir():
+            _writeVisScript(Path(written).parent, Path(written).name)
 
-        # Beside the channels rather than among them: a link does not reach
-        # the surface, so a viewer loading the channel file should not find
-        # one in it.
-        links_path = output_path.with_name(
-            ('links' if into_directory else output_path.stem + '_links')
-            + output_path.suffix)
+    elif output_path:
+        output_path, links_path, into_directory, separate_stem = \
+            _pqrOutputPaths(output_path)
 
         # One line for the whole of what was written, so that the reader sees
         # where the channels went and where the links went in one place.
@@ -2606,7 +2833,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
 
 def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end=None,
     min_bottleneck=None, max_bottleneck=None, min_length=None, max_length=None,
-    min_volume=None, max_volume=None, output_path=None, separate=False):
+    min_volume=None, max_volume=None, output_path=None, separate=False,
+    output_format='pqr', atoms=None):
     """Construct potential pores from previously identified channels using 
     :func:`calcChannels`. This function performs a post-processing analysis of 
     channels and requires ``return_details`` set to ``True`` in :func:`calcChannels`.
@@ -2679,13 +2907,27 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         will be excluded. The value is given in cubic Angstroms. Default is None.
     :type max_volume: int, float
 
-    :arg output_path: Optional path to save the resulting pores and 
-        associated data in PQR (or PDB) format. If None, results are not saved. 
+    :arg output_path: Optional path to save the resulting pores and
+        associated data in PQR (or PDB) format. If None, results are not saved.
         Default is None.
     :type output_path: str or None
 
+    :arg output_format: What ``output_path`` is written as; ``"pqr"`` (the
+        default) or ``"mmcif"``, as in :func:`calcChannels`. A directory takes
+        ``pores.cif``, named apart from ``channels.cif`` so that a run writing
+        both into one folder does not have the second overwrite the first.
+        ``separate`` is ignored for mmCIF.
+    :type output_format: str
+
+    :arg atoms: Structure to measure the pore lining against, used only for
+        ``output_format="mmcif"``. This function is given channels and their
+        tessellation rather than a structure, so without it the mmCIF holds the
+        geometry alone - every category that describes what surrounds the route
+        is left out rather than guessed at.
+    :type atoms: :class:`.Atomic` or None
+
     :returns: Potential pores constructed from compatible channel pairs.
-    :rtype: list of Channel 
+    :rtype: list of Channel
     
     Usage:
     channels, surface, details = calcChannels(protein, return_details=True)
@@ -2797,7 +3039,30 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         pore = Channel(pore_path, centerline_spline, radius_spline, length, bottleneck, volume, 0.0)
         pores.append(pore)
     
-    if output_path:
+    if output_path and not pores:
+        # As in calcChannels: no pores, no file - and a word about whatever an
+        # earlier run left at the same place. Pores are named apart from
+        # channels, so the tag globbed for and the mmCIF name are the pore ones.
+        # Through both resolvers, in the order the writing path applies them:
+        # _poreCifPath picks the name inside a directory, and writeChannelsCIF
+        # then adds the suffix. Checking only the first would look for `out`
+        # where `out.cif` was written.
+        _warnStaleOutputs(output_path, output_format, separate, tags=('pore',),
+                          cif_path=_cifOutputPath(_poreCifPath(output_path)))
+
+    elif output_path and _isMmcifFormat(output_format, separate):
+        # A directory takes pores.cif rather than channels.cif, for the same
+        # reason the PQR path names them apart: a run writing both into one
+        # folder would otherwise have the second overwrite the first.
+        written = writeChannelsCIF(_poreCifPath(output_path), pores, atoms,
+                                   object_type='pore')
+        # As on the PQR path and in calcChannels: a viewer only for a run told a
+        # directory. The one script reads either format, so the hint names the
+        # file rather than a glob.
+        if written and Path(output_path).is_dir():
+            _writeVisScript(Path(written).parent, Path(written).name)
+
+    elif output_path:
         output_path = Path(output_path)
         # As in calcChannels: a directory names no run, so its placeholder file
         # name is kept out of the per-pore ones.
@@ -3158,44 +3423,59 @@ def calcChannelsMultipleFrames(atoms, trajectory=None, output_path=None,
     return_details = kwargs.pop('return_details', False)
     start_frame = kwargs.pop('start_frame', 0)
     stop_frame = kwargs.pop('stop_frame', -1)
-    
+
+    # Read rather than popped: the worker forwards the rest of kwargs to
+    # calcChannels, which is where the format takes effect. It is wanted here only
+    # to name the per-frame files. The schema describes one structure and has no
+    # frame of its own, so a frame per file is what keeps each written file
+    # something the schema can describe - the same arrangement the PQR path uses.
+    frame_suffix = '.cif' if _isMmcifFormat(
+        kwargs.get('output_format', 'pqr'), separate) else '.pqr'
+
     if output_path:
         output_path = Path(output_path)
-        if output_path.suffix == ".pqr":
+        if output_path.suffix in ('.pqr', '.cif'):
             output_path = output_path.with_suffix('')
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
 
-        nfi = trajectory._nfi
-        trajectory.reset()
+        # `_nfi` is a DCD read cursor, so only a file-backed trajectory has one;
+        # an Ensemble holds its coordinates in memory and has nothing to rewind.
+        # Reading it unguarded made every in-memory input raise, the conversion
+        # just above included - the one branch written to accept an Atomic turned
+        # it into the very type that could not survive the next line.
+        nfi = getattr(trajectory, '_nfi', None)
+        if hasattr(trajectory, 'reset'):
+            trajectory.reset()
 
-        if stop_frame == -1:
-            traj = trajectory[start_frame:]
-        else:
-            traj = trajectory[start_frame:stop_frame+1]
-        
+        first, last = _frameBounds(None, start_frame, stop_frame)
+        traj = trajectory[first:last]
+
         atoms_copy = atoms.copy()
-        for j0, frame0 in enumerate(traj, start=start_frame):
+        for j0, frame0 in enumerate(traj, start=first):
             if output_path:
-                frame_output_path = _frameOutputPath(output_path, j0, "channels")
+                frame_output_path = _frameOutputPath(output_path, j0, "channels",
+                                                     frame_suffix)
             else:
                 frame_output_path = None
             
             tasks.append((j0, atoms_copy, np.array(frame0.getCoords(), copy=True),
                             frame_output_path, separate, start_point, return_details, kwargs))
-        trajectory._nfi = nfi
+        if nfi is not None:
+            trajectory._nfi = nfi
 
     else:
         if atoms.numCoordsets() > 1:
             coordsets = atoms.getCoordsets()
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                model_nr = i + start_frame
+            first, last = _frameBounds(len(coordsets), start_frame, stop_frame)
+            for model_nr in range(first, last):
 
                 if output_path:
                     frame_output_path = _frameOutputPath(output_path, model_nr,
-                                                         "channels")
+                                                         "channels",
+                                                         frame_suffix)
                 else:
                     frame_output_path = None
                 
@@ -3343,16 +3623,17 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
 
-        nfi = trajectory._nfi
-        trajectory.reset()
-        
-        if stop_frame == -1:
-            traj = trajectory[start_frame:]
-        else:
-            traj = trajectory[start_frame:stop_frame + 1]
+        # As in calcChannelsMultipleFrames: only a file-backed trajectory carries
+        # a read cursor, and an in-memory one has nothing to save or rewind.
+        nfi = getattr(trajectory, '_nfi', None)
+        if hasattr(trajectory, 'reset'):
+            trajectory.reset()
+
+        first, last = _frameBounds(None, start_frame, stop_frame)
+        traj = trajectory[first:last]
 
         atoms_copy = atoms.copy()
-        for j0, frame0 in enumerate(traj, start=start_frame):
+        for j0, frame0 in enumerate(traj, start=first):
             if output_path:
                 frame_output_path = _frameOutputPath(output_path, j0,
                                                      "cavities")
@@ -3362,18 +3643,16 @@ def calcSurfaceCavitiesMultipleFrames(atoms, trajectory=None, output_path=None,
             tasks.append((j0, atoms_copy, np.array(frame0.getCoords(), copy=True),
                           frame_output_path, separate, kwargs))
 
-        trajectory._nfi = nfi
+        if nfi is not None:
+            trajectory._nfi = nfi
 
     else:
         if atoms.numCoordsets() > 1:
             coordsets = atoms.getCoordsets()
 
-            if stop_frame == -1:
-                model_indices = range(start_frame, len(coordsets))
-            else:
-                model_indices = range(start_frame, stop_frame + 1)
+            first, last = _frameBounds(len(coordsets), start_frame, stop_frame)
 
-            for i in model_indices:
+            for i in range(first, last):
                 if output_path:
                     frame_output_path = _frameOutputPath(output_path, i,
                                                          "cavities")
@@ -3482,18 +3761,25 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
     if len(channels_all) != len(details_all):
         raise ValueError("channels_all and details_all must contain the same number of frames")
 
+    # Read rather than popped: the worker forwards the rest of kwargs to
+    # calcPoresFromChannels, where the format takes effect. Wanted here only to
+    # name the per-frame files.
+    mmcif = _isMmcifFormat(kwargs.get('output_format', 'pqr'), separate)
+    frame_suffix = '.cif' if mmcif else '.pqr'
+
     # A directory takes the frames inside it, as everywhere else; anything else
     # is the name they are numbered from, as before.
     into_directory = output_path is not None and os.path.isdir(str(output_path))
     if output_path is not None and not into_directory:
         output_path = Path(output_path)
-        if output_path.suffix not in ('.pqr', '.pdb'):
-            output_path = output_path.with_suffix('.pqr')
+        if output_path.suffix not in ('.pqr', '.pdb', '.cif'):
+            output_path = output_path.with_suffix(frame_suffix)
 
     tasks = []
     for frame_nr, (channels, details) in enumerate(zip(channels_all, details_all)):
         if into_directory:
-            frame_output_path = _frameOutputPath(output_path, frame_nr, "pores")
+            frame_output_path = _frameOutputPath(output_path, frame_nr, "pores",
+                                                 frame_suffix)
         elif output_path is not None:
             frame_output_path = output_path.with_name(
                     "{0}_frame{1}{2}".format(output_path.stem, frame_nr, output_path.suffix))
@@ -4000,12 +4286,29 @@ def _sampleObjectSpheres(object, num_samples=5):
     radius they need survives no better in a PDB radius column than in memory."""
 
     centerline_spline, radius_spline = object.getSplines()
-    samples = len(object.tetrahedra) * num_samples
-    if samples < 1:
+    t = _objectSampleParameters(object, num_samples)
+    if len(t) == 0:
         return np.empty((0, 3)), np.empty(0)
 
-    t = np.linspace(centerline_spline.x[0], centerline_spline.x[-1], samples)
     return centerline_spline(t), radius_spline(t)
+
+
+def _objectSampleParameters(object, num_samples=5):
+    """The spline parameters :func:`_sampleObjectSpheres` samples at.
+
+    Split out because the mmCIF export needs the parameters themselves and not only
+    the spheres read off them: arc length along the route has to be evaluated at the
+    same points the spheres came from, or the profile's ``distance`` column would
+    describe a slightly different sampling than its coordinates do. Recomputing the
+    ``linspace`` at the call site would work until one of the two definitions was
+    edited and the other was not."""
+
+    samples = len(object.tetrahedra) * num_samples
+    if samples < 1:
+        return np.empty(0)
+
+    spline = object.getSplines()[0]
+    return np.linspace(spline.x[0], spline.x[-1], samples)
 
 
 def getChannelAtoms(channels, protein=None, num_samples=5):
@@ -4090,6 +4393,25 @@ def getChannelAtoms(channels, protein=None, num_samples=5):
     return channels_atomic
 
 
+def _atomRadii(atoms, warn=True):
+    """Van der Waals radius of every atom of *atoms*, from :data:`VDW_RADII`.
+
+    :meth:`ChannelCalculator.getVdwRadii` reading an :class:`.Atomic` rather than
+    a list of symbols, and covering the one case it cannot: a file that gave no
+    element column at all is read as unknown throughout instead of as the string
+    ``None``. Both reporting paths measure through here, so a structure that one
+    of them can describe is never one the other dies on.
+
+    *warn* is passed down. A cavity report reads the radii twice, over all the
+    atoms and again over the dry ones, and the substitution is worth saying once
+    rather than twice for what is nearly the same set."""
+
+    elements = atoms.getElements()
+    if elements is None:
+        elements = np.zeros(atoms.numAtoms(), dtype='<U2')
+    return ChannelCalculator.getVdwRadii(elements, warn=warn)
+
+
 def _vertexRadiiSource(atoms):
     """``(tree, vdw_radii)`` over the atoms a tessellation would have used.
 
@@ -4103,9 +4425,9 @@ def _vertexRadiiSource(atoms):
     if dry is None:
         dry = atoms
 
-    vdw = ChannelCalculator.getVdwRadii(
-        np.char.upper(np.asarray(dry.getElements(), dtype=str)))
-    return _kdTree(dry), vdw
+    # Silent: getSurfaceCavityResidueNames has already measured the same atoms
+    # through _liningSource, which said whatever there was to say about them.
+    return _kdTree(dry), _atomRadii(dry, warn=False)
 
 
 def _vertexRadii(points, source, k=24):
@@ -4125,37 +4447,169 @@ def _vertexRadii(points, source, k=24):
     return (distances - vdw[indices]).min(axis=1)
 
 
-def _liningResidues(atoms, tree, points, radii, distA):
-    """Whole residues of *atoms* reaching within *distA* of the probe surface.
+def _liningSource(atoms):
+    """``(tree, coords, vdw_radii)`` for the lining queries over *atoms*.
+
+    The radii come from :data:`VDW_RADII`, the table :func:`calcChannels`
+    tessellates with, so the clearance the lining measures is a clearance from
+    the surface the channel was actually carved against, and not from some other
+    scale's idea of the same atom. Several such scales exist and they disagree by
+    more than the distance being measured, so which one is used matters less than
+    that it is the same one throughout.
+
+    An element the table does not cover falls back on its ``UNKNOWN`` entry rather
+    than raising, and says so. The lining is reported against whatever structure
+    the caller passes, which is routinely wider than the selection that was traced
+    - the ions, cofactors and metals the tessellation never saw - so it is the
+    report rather than the trace that meets an uncovered element first."""
+
+    return _kdTree(atoms), atoms.getCoords(), _atomRadii(atoms)
+
+
+def _liningContacts(source, points, radii, distA, deep=None):
+    """Every (probe, atom) pair whose surfaces come within *distA* of each other.
+
+    The criterion itself, stated once: an atom contacts a probe when
+    ``|x_p - x_a| - r_p - r_a <= distA``, the gap between the two surfaces. Why both
+    radii belong in it is argued at length in :func:`_liningResidues`, one of the two
+    callers.
+
+    Returns ``(probes, candidates, gaps)``, three arrays of equal length indexing
+    into *points* and into the *source* structure respectively. The pairing is what
+    separates this from :func:`_liningResidues`: that one collapses immediately to
+    whole residues and so can say neither *where along* an object a residue lines it
+    nor which of its atoms did the lining. The mmCIF export wants both per sphere - a
+    layer is a run of spheres sharing one lining set, and the schema's ``backbone``
+    flag asks which atom qualified - so the pairing is kept here and discarded by
+    whoever does not need it.
+
+    *source* is a :func:`_liningSource` bundle. *deep* is an optional dict, updated
+    in place with the atoms lying inside the route rather than beside it.
+
+    Empty arrays come back when nothing qualifies, so a caller tests ``len()`` once
+    instead of special-casing "no points at all" apart from "no contacts"."""
+
+    tree, coords, atom_radii = source
+    points = np.asarray(points, dtype=float)
+    radii = np.asarray(radii, dtype=float)
+
+    empty = (np.empty(0, dtype=int), np.empty(0, dtype=int), np.empty(0))
+    if len(points) == 0 or len(coords) == 0:
+        return empty
+
+    # A radius query and not a k-nearest one: a fixed k truncates wherever the
+    # wall is denser than the k it was chosen for, and the neighbours it drops
+    # are the far ones the criterion is deciding on. query_ball_point takes no
+    # per-neighbour radius, so the search is widened by the largest van der Waals
+    # radius present and the candidates are then held to their own.
+    hits = tree.query_ball_point(points,
+                                 radii + distA + float(atom_radii.max()))
+    counts = np.fromiter((len(hit) for hit in hits), dtype=int, count=len(hits))
+    if not counts.any():
+        return empty
+
+    # One flat (probe, candidate) list, so the exact gap is a single vectorized
+    # pass rather than a per-probe one; the widened query leaves few candidates
+    # to reject, and none to add.
+    candidates = np.fromiter((atom for hit in hits for atom in hit),
+                             dtype=int, count=int(counts.sum()))
+    probes = np.repeat(np.arange(len(points)), counts)
+    gaps = (np.linalg.norm(points[probes] - coords[candidates], axis=1)
+            - radii[probes] - atom_radii[candidates])
+
+    if deep is not None:
+        # A probe sphere is inscribed in the atoms the tessellation was built
+        # from, so against those it cannot overlap one. The spheres are read off
+        # the spline rather than off the Voronoi vertices, though, so a probe
+        # overshoots its inscribed sphere by a little and clips the wall. This
+        # floor sits well above that overshoot and far below a real overlap, so
+        # what it collects is only atoms the tessellation never saw.
+        inside = gaps < -0.5
+        for atom, gap in zip(candidates[inside].tolist(), gaps[inside].tolist()):
+            if gap < deep.get(atom, 0.0):
+                deep[atom] = gap
+
+    within = gaps <= distA
+    if not within.any():
+        return empty
+
+    return probes[within], candidates[within], gaps[within]
+
+
+def _liningResidues(atoms, source, points, radii, distA, deep=None):
+    """Whole residues of *atoms* whose surface comes within *distA* of the probe's.
 
     The probe spheres are given by *points* and *radii*, and a residue lines the
-    object when one of its atoms falls within ``radii + distA`` of a probe centre.
-    The radius belongs in the criterion because the probe is a sphere and not a
-    point: measured from the centre alone a fixed *distA* reaches only ``distA - r``
-    past the surface, so it gathers a second shell where the object is narrow and
-    misses the wall where it is wide. Two thirds of the vertices of the default
-    surface cavities of 3A2M have their nearest wall atom beyond 4 A, and the
-    residues lining that volume were absent from the report altogether.
+    object when one of its atoms satisfies ``|x_p - x_a| - r_p - r_a <= distA`` -
+    the gap between the two surfaces. Both radii belong in it.
+
+    The probe radius, because the probe is a sphere and not a point: measured from
+    its centre a fixed *distA* reaches only ``distA - r_p`` past the surface, so it
+    gathers a second shell where the object is narrow and misses the wall where it
+    is wide.
+
+    The atom radius, because without it the reach past an atom's *own* surface is
+    ``distA - r_a``, which varies with the element. It is widest at a hydrogen,
+    narrower at every heavy atom, and negative for the alkali and alkaline-earth
+    ions, which then have to overlap the probe before being reported at all.
+    Whole-residue completion hides that wherever a residue is polyatomic, one
+    qualifying atom carrying the rest, and leaves it exposed for exactly the
+    monatomic species a lining report exists to name. It also made the criterion
+    depend on whether the depositor modelled hydrogens, a hydrogen being the
+    element the missing term favours most.
+
+    *source* is a :func:`_liningSource` bundle and not something derived from
+    *atoms* here, because the reports call this once per object against one
+    structure: on a large structure, building the tree and the radii again per
+    object costs more than the query it serves.
+
+    *deep* is an optional dict, updated in place with the atoms lying inside the
+    route rather than beside it; :func:`_reportDeepLiningAtoms` reads it.
 
     Residues are completed but never widened past what the caller supplied, which
     is what the ``same residue as`` selection this replaces also did."""
 
-    if len(points) == 0:
-        return None
-
-    hits = tree.query_ball_point(np.asarray(points, dtype=float),
-                                 np.asarray(radii, dtype=float) + distA)
-    hits = [h for h in hits if len(h)]
-    if not hits:
+    # The probe each atom answered for is what separates the two functions; this
+    # one wants only the set of atoms, so the pairing is dropped here.
+    _, candidates, _ = _liningContacts(source, points, radii, distA, deep)
+    if len(candidates) == 0:
         return None
 
     resindices = atoms.getResindices()
-    lining = np.unique(resindices[np.unique(np.concatenate(hits))])
+    lining = np.unique(resindices[np.unique(candidates)])
     selected = np.flatnonzero(np.isin(resindices, lining))
 
     if hasattr(atoms, 'getAtomGroup'):   # a selection: index back into its group
         return atoms.getAtomGroup()[atoms.getIndices()[selected].tolist()]
     return atoms[selected.tolist()]
+
+
+def _reportDeepLiningAtoms(atoms, deep):
+    """Name the residues lying inside the route rather than beside it.
+
+    *deep* is what :func:`_liningResidues` collected. These are atoms the
+    tessellation never saw: an ion or a cofactor sitting in the route, which is a
+    result worth having and is what measuring to the atom centre was most likely
+    to miss, or a structure that is not the one the channels were traced on, which
+    is not. Geometry cannot tell the two apart - a permeant ion and a mismatched
+    structure overlap the route alike - so this states what was found and leaves
+    the reading to the caller, rather than warning about a mismatch that is
+    usually a ligand."""
+
+    if not deep:
+        return
+
+    indices = np.fromiter(deep, dtype=int, count=len(deep))
+    resnames, resnums = atoms.getResnames(), atoms.getResnums()
+    _, first = np.unique(atoms.getResindices()[indices], return_index=True)
+    labels = ['{0}{1}'.format(resnames[i], resnums[i])
+              for i in indices[first].tolist()]
+
+    LOGGER.info("{0} residue(s) lie inside the route rather than beside it "
+                "({1}), reaching {2:.2f} A past its surface. These atoms were "
+                "not part of the tessellation the channels came from.".format(
+                    len(labels), ', '.join(labels[:8]) +
+                    (', ...' if len(labels) > 8 else ''), -min(deep.values())))
 
 
 def _oneLetterResname(residue):
@@ -4208,7 +4662,7 @@ def _popLiningOptions(kwargs):
     once here instead of in two lists that have to be kept in step."""
 
     return _LiningOptions(
-        distA=kwargs.pop('distA', 2.5),
+        distA=kwargs.pop('distA', 1.5),
         residues_file_name=kwargs.pop('residues_file_name', None),
         one_letter_aa=kwargs.pop('one_letter_aa', False),
         include_water=kwargs.pop('include_water', False),
@@ -4263,8 +4717,9 @@ def _formatLiningResidues(residues, options):
 
 def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
     '''Provides the resnames and resid of residues that are forming the object(s). 
-    Residues are extracted based on distA which is the distance between FIL atoms 
-    (object atoms) and protein residues.
+    Residues are extracted based on distA, the clearance between the surface of
+    the FIL atoms (object atoms) and the van der Waals surface of the residue's
+    own atoms.
     Results could be save as txt file by providing the `residues_file_name` parameter.
     
     :arg atoms: an Atomic object from which residues are selected 
@@ -4280,10 +4735,11 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
     :type object_type: str
 
     :arg distA: Residues reaching within this distance of the object's surface
-        are reported. The local probe radius is added to it, so the reach past
-        the surface is the same in a wide part of the object as in a narrow one.
-        The distance runs to the atom centre, so a touching atom sits at about
-        one van der Waals radius. Default is 2.5 [Ang]
+        are reported. It is a clearance between surfaces: the local probe radius
+        and the atom's van der Waals radius are both taken off, so a touching
+        atom sits at 0 and the reach is the same in a wide part of the object as
+        in a narrow one, and the same at a hydrogen as at a potassium ion.
+        Default is 1.5 [Ang]
     :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
@@ -4319,7 +4775,8 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
 
     options = _popLiningOptions(kwargs)
 
-    tree = _kdTree(atoms)
+    source = _liningSource(atoms)
+    deep = {}
 
     if isinstance(objects, list):
         # Multiple objects
@@ -4327,7 +4784,8 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
 
         for i, object in enumerate(objects):
             points, radii = _sampleObjectSpheres(object)
-            residues = _liningResidues(atoms, tree, points, radii, options.distA)
+            residues = _liningResidues(atoms, source, points, radii,
+                                       options.distA, deep)
             residues_info = _formatLiningResidues(residues, options)
 
             # An object with no lining left is reported as "None" rather than
@@ -4339,9 +4797,14 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
     else:
         # Single object analysis in case someone provide objects[0]
         points, radii = _sampleObjectSpheres(objects)
-        residues = _liningResidues(atoms, tree, points, radii, options.distA)
+        residues = _liningResidues(atoms, source, points, radii, options.distA,
+                                   deep)
         residues_info = _formatLiningResidues(residues, options)
         selected_residues_ch = [", ".join(residues_info) if residues_info else "None"]
+
+    # Once for the whole report, not once per object: a cofactor lines several
+    # channels of the same protein and is one finding, not several.
+    _reportDeepLiningAtoms(atoms, deep)
 
     if options.residues_file_name is not None:
         output_file = '{0}_Residues_All_{1}.txt'.format(
@@ -4360,8 +4823,9 @@ def getObjectResidueNames(atoms, objects, object_type='channel', **kwargs):
 def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, object_type='channel', **kwargs):
     '''Provides the resnames and resid of residues that are forming the object(s) in
     multiple frames/models. 
-    Residues are extracted based on distA which is the distance between FIL atoms 
-    (object atoms) and protein residues.
+    Residues are extracted based on distA, the clearance between the surface of
+    the FIL atoms (object atoms) and the van der Waals surface of the residue's
+    own atoms.
     Results could be save as txt file by providing the `residues_file_name` parameter.
     
     :arg atoms: an Atomic object from which residues are selected 
@@ -4382,10 +4846,11 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
     :type object_type: str
 
     :arg distA: Residues reaching within this distance of the object's surface
-        are reported. The local probe radius is added to it, so the reach past
-        the surface is the same in a wide part of the object as in a narrow one.
-        The distance runs to the atom centre, so a touching atom sits at about
-        one van der Waals radius. Default is 2.5 [Ang]
+        are reported. It is a clearance between surfaces: the local probe radius
+        and the atom's van der Waals radius are both taken off, so a touching
+        atom sits at 0 and the reach is the same in a wide part of the object as
+        in a narrow one, and the same at a hydrogen as at a potassium ion.
+        Default is 1.5 [Ang]
     :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
@@ -4422,12 +4887,13 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
         raise ValueError("object_type must be 'channel', 'pore' or 'link'")
 
     if trajectory is None:
-        # multi-model PDB
-        for frame_pos, objects in enumerate(objects_all):
-            model_index = start_frame + frame_pos
-
-            if stop_frame != -1 and model_index > stop_frame:
-                break
+        # multi-model PDB. objects_all is already one entry per analysed frame,
+        # numbered from start_frame, so the bounds are taken over the labels
+        # rather than over the list.
+        first, last = _frameBounds(start_frame + len(objects_all),
+                                   start_frame, stop_frame)
+        for model_index in range(first, last):
+            objects = objects_all[model_index - first]
 
             LOGGER.info("Model: {0}".format(model_index))
             atoms.setACSIndex(model_index)
@@ -4453,14 +4919,12 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
         if hasattr(trajectory, 'reset'):
             trajectory.reset()
 
-        if stop_frame == -1:
-            traj = trajectory[start_frame:]
-        else:
-            traj = trajectory[start_frame:stop_frame + 1]
+        first, last = _frameBounds(None, start_frame, stop_frame)
+        traj = trajectory[first:last]
 
         atoms_copy = atoms.copy()
         for frame_pos, frame in enumerate(traj):
-            frame_index = start_frame + frame_pos
+            frame_index = first + frame_pos
 
             if frame_pos >= len(objects_all):
                 break
@@ -4487,8 +4951,9 @@ def getObjectResidueNamesMultipleFrames(atoms, objects_all, trajectory=None, obj
 
 def getChannelResidueNames(atoms, channels, **kwargs):
     '''Provides the resnames and resid of residues that are forming the channel(s). 
-    Residues are extracted based on distA which is the distance between FIL atoms 
-    (channel atoms) and protein residues.
+    Residues are extracted based on distA, the clearance between the surface of
+    the FIL atoms (channel atoms) and the van der Waals surface of the residue's
+    own atoms.
     Results could be save as txt file by providing the `residues_file_name` parameter.
     
     :arg atoms: an Atomic object from which residues are selected 
@@ -4500,10 +4965,11 @@ def getChannelResidueNames(atoms, channels, **kwargs):
     :type channels: list
 
     :arg distA: Residues reaching within this distance of the object's surface
-        are reported. The local probe radius is added to it, so the reach past
-        the surface is the same in a wide part of the object as in a narrow one.
-        The distance runs to the atom centre, so a touching atom sits at about
-        one van der Waals radius. Default is 2.5 [Ang]
+        are reported. It is a clearance between surfaces: the local probe radius
+        and the atom's van der Waals radius are both taken off, so a touching
+        atom sits at 0 and the reach is the same in a wide part of the object as
+        in a narrow one, and the same at a hydrogen as at a potassium ion.
+        Default is 1.5 [Ang]
     :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
@@ -4536,8 +5002,9 @@ def getChannelResidueNames(atoms, channels, **kwargs):
 
 def getPoreResidueNames(atoms, pores, **kwargs):
     '''Provides the resnames and resid of residues that are forming the pore(s). 
-    Residues are extracted based on distA which is the distance between FIL atoms 
-    (pore atoms) and protein residues.
+    Residues are extracted based on distA, the clearance between the surface of
+    the FIL atoms (pore atoms) and the van der Waals surface of the residue's own
+    atoms.
     Results could be save as txt file by providing the `residues_file_name` parameter.
     
     :arg atoms: an Atomic object from which residues are selected 
@@ -4549,10 +5016,11 @@ def getPoreResidueNames(atoms, pores, **kwargs):
     :type pores: list
 
     :arg distA: Residues reaching within this distance of the object's surface
-        are reported. The local probe radius is added to it, so the reach past
-        the surface is the same in a wide part of the object as in a narrow one.
-        The distance runs to the atom centre, so a touching atom sits at about
-        one van der Waals radius. Default is 2.5 [Ang]
+        are reported. It is a clearance between surfaces: the local probe radius
+        and the atom's van der Waals radius are both taken off, so a touching
+        atom sits at 0 and the reach is the same in a wide part of the object as
+        in a narrow one, and the same at a hydrogen as at a potassium ion.
+        Default is 1.5 [Ang]
     :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
@@ -4586,8 +5054,9 @@ def getPoreResidueNames(atoms, pores, **kwargs):
 def getLinkResidueNames(atoms, links, **kwargs):
     '''Provides the resnames and resid of residues that are forming the chamber
     link(s) returned in ``details['links']`` by :func:`calcChannels`.
-    Residues are extracted based on distA which is the distance between FIL atoms
-    (link atoms) and protein residues. A link runs from one chamber into a
+    Residues are extracted based on distA, the clearance between the surface of
+    the FIL atoms (link atoms) and the van der Waals surface of the residue's own
+    atoms. A link runs from one chamber into a
     shallower one and is cut where it joins it, so the residues reported are
     those lining the neck between the two sites, not a whole route to the solvent.
     Results could be save as txt file by providing the `residues_file_name` parameter.
@@ -4600,10 +5069,11 @@ def getLinkResidueNames(atoms, links, **kwargs):
     :type links: list
 
     :arg distA: Residues reaching within this distance of the object's surface
-        are reported. The local probe radius is added to it, so the reach past
-        the surface is the same in a wide part of the object as in a narrow one.
-        The distance runs to the atom centre, so a touching atom sits at about
-        one van der Waals radius. Default is 2.5 [Ang]
+        are reported. It is a clearance between surfaces: the local probe radius
+        and the atom's van der Waals radius are both taken off, so a touching
+        atom sits at 0 and the reach is the same in a wide part of the object as
+        in a narrow one, and the same at a hydrogen as at a potassium ion.
+        Default is 1.5 [Ang]
     :type distA: int, float
 
     :arg residues_file_name: The file with residues will be saved in a text
@@ -4634,8 +5104,9 @@ def getLinkResidueNames(atoms, links, **kwargs):
 
 def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwargs):
     '''Provides the resnames and resid of residues that are forming the channel(s). 
-    Residues are extracted based on distA which is the distance between FIL atoms 
-    (channel atoms) and protein residues.
+    Residues are extracted based on distA, the clearance between the surface of
+    the FIL atoms (channel atoms) and the van der Waals surface of the residue's
+    own atoms.
     Results could be save as txt file by providing the `residues_file_name` parameter.
     
     :arg atoms: an Atomic object from which residues are selected 
@@ -4647,10 +5118,11 @@ def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwa
     :type channels: list
 
     :arg distA: Residues reaching within this distance of the object's surface
-        are reported. The local probe radius is added to it, so the reach past
-        the surface is the same in a wide part of the object as in a narrow one.
-        The distance runs to the atom centre, so a touching atom sits at about
-        one van der Waals radius. Default is 2.5 [Ang]
+        are reported. It is a clearance between surfaces: the local probe radius
+        and the atom's van der Waals radius are both taken off, so a touching
+        atom sits at 0 and the reach is the same in a wide part of the object as
+        in a narrow one, and the same at a hydrogen as at a potassium ion.
+        Default is 1.5 [Ang]
     :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
@@ -4684,8 +5156,9 @@ def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwa
 
 def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None, **kwargs):
     '''Provides the resnames and resid of residues that are forming the pore(s). 
-    Residues are extracted based on distA which is the distance between FIL atoms 
-    (pore atoms) and protein residues.
+    Residues are extracted based on distA, the clearance between the surface of
+    the FIL atoms (pore atoms) and the van der Waals surface of the residue's own
+    atoms.
     Results could be save as txt file by providing the `residues_file_name` parameter.
     
     :arg atoms: an Atomic object from which residues are selected 
@@ -4697,10 +5170,11 @@ def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None, **kwargs):
     :type pores: list
 
     :arg distA: Residues reaching within this distance of the object's surface
-        are reported. The local probe radius is added to it, so the reach past
-        the surface is the same in a wide part of the object as in a narrow one.
-        The distance runs to the atom centre, so a touching atom sits at about
-        one van der Waals radius. Default is 2.5 [Ang]
+        are reported. It is a clearance between surfaces: the local probe radius
+        and the atom's van der Waals radius are both taken off, so a touching
+        atom sits at 0 and the reach is the same in a wide part of the object as
+        in a narrow one, and the same at a hydrogen as at a potassium ion.
+        Default is 1.5 [Ang]
     :type distA: int, float
     
     :arg residues_file_name: The file with residues will be saved in a text 
@@ -4753,10 +5227,11 @@ def getLinkResidueNamesMultipleFrames(atoms, links, trajectory=None, **kwargs):
     :type trajectory: :class:`.Atomic`, :class:`.Ensemble`, or trajectory-like object
 
     :arg distA: Residues reaching within this distance of the object's surface
-        are reported. The local probe radius is added to it, so the reach past
-        the surface is the same in a wide part of the object as in a narrow one.
-        The distance runs to the atom centre, so a touching atom sits at about
-        one van der Waals radius. Default is 2.5 [Ang]
+        are reported. It is a clearance between surfaces: the local probe radius
+        and the atom's van der Waals radius are both taken off, so a touching
+        atom sits at 0 and the reach is the same in a wide part of the object as
+        in a narrow one, and the same at a hydrogen as at a potassium ion.
+        Default is 1.5 [Ang]
     :type distA: int, float
 
     :arg residues_file_name: The file with residues will be saved in a text
@@ -4789,8 +5264,8 @@ def getLinkResidueNamesMultipleFrames(atoms, links, trajectory=None, **kwargs):
 def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     '''Provides the resnames and resid of residues that form surface cavities.
 
-    Residues are extracted based on distA, which is the distance between surface
-    cavity points and protein residues. Surface cavity points are taken from
+    Residues are extracted based on distA, the clearance between the surface of
+    the cavity points and the van der Waals surface of the residue's own atoms. Surface cavity points are taken from
     Voronoi vertices assigned to each cavity. Results can be saved as a txt file 
     by providing the `residues_file_name` parameter.
 
@@ -4806,10 +5281,11 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     :type surface: list
 
     :arg distA: Residues reaching within this distance of the object's surface
-        are reported. The local probe radius is added to it, so the reach past
-        the surface is the same in a wide part of the object as in a narrow one.
-        The distance runs to the atom centre, so a touching atom sits at about
-        one van der Waals radius. Default is 2.5 [Ang]
+        are reported. It is a clearance between surfaces: the local probe radius
+        and the atom's van der Waals radius are both taken off, so a touching
+        atom sits at 0 and the reach is the same in a wide part of the object as
+        in a narrow one, and the same at a hydrogen as at a potassium ion.
+        Default is 1.5 [Ang]
     :type distA: int, float
 
     :arg residues_file_name: The file with residues will be saved in a text file
@@ -4851,7 +5327,7 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
         cavities = [cavities]
 
     selected_residues_cav = []
-    tree = _kdTree(atoms)
+    source = _liningSource(atoms)
     radii_source = _vertexRadiiSource(atoms)
     intruding = 0
 
@@ -4861,9 +5337,15 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
             continue
 
         points = vertices[cavity.tetrahedra]
+        # No deep-atom accounting here, unlike the object reports: a cavity keeps
+        # no radius of its own, so the probe is _vertexRadii's min over the very
+        # atoms being reported, and the gap to the atom holding that minimum is
+        # identically zero. Nothing can lie inside a probe fitted around it. The
+        # intruding count below is the signal that survives, a vertex swallowed
+        # whole rather than an atom reaching into the route.
         radii = _vertexRadii(points, radii_source)
         intruding += int((radii < 0).sum())
-        residues = _liningResidues(atoms, tree, points, radii, options.distA)
+        residues = _liningResidues(atoms, source, points, radii, options.distA)
 
         residues_info = _formatLiningResidues(residues, options)
         residues_list = ", ".join(residues_info) if residues_info else "None"
@@ -4880,7 +5362,8 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     if options.residues_file_name is not None:
         output_file = options.residues_file_name + '_Residues_All_surface_cavities.txt'
         with open(output_file, "w") as f_res:
-            f_res.write("# cavity_id residues_within_" + str(options.distA) + "_A\n")
+            f_res.write("# cavity_id residues_within_" + str(options.distA)
+                        + "_A_of_the_cavity_surface\n")
             for k in selected_residues_cav:
                 f_res.write("{0}_{1}\n".format(options.residues_file_name, k))
                 
@@ -4935,10 +5418,11 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
     :type residues_file_name: str
 
     :arg distA: Residues reaching within this distance of the cavity's surface
-        are reported. The inscribed radius at each cavity vertex is added to it,
-        so the reach past the surface is the same in a wide cavity as in a
-        narrow one. The distance runs to the atom centre, so a touching atom
-        sits at about one van der Waals radius. Default is 2.5 Å.
+        are reported. It is a clearance between surfaces: the inscribed radius at
+        each cavity vertex and the atom's van der Waals radius are both taken
+        off, so a touching atom sits at 0 and the reach is the same in a wide
+        cavity as in a narrow one, and the same at a hydrogen as at a potassium
+        ion. Default is 1.5 Å.
     :type distA: int, float
 
     :arg one_letter_aa: whether to apply one-letter code to residue names.
@@ -4960,15 +5444,23 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
     :type include_chain: bool  """
 
     start_frame = kwargs.pop('start_frame', 0)
+    # Popped and honoured rather than left in kwargs: the docstring has always
+    # documented it, but it was neither read here nor accepted by the per-frame
+    # report it was forwarded to.
+    stop_frame = kwargs.pop('stop_frame', -1)
     residues_file_name = kwargs.pop('residues_file_name', None)
 
     selected_residues_all = []
-    
+
     if trajectory is None:
-        # multi-model PDB
-        for frame_pos, (cavities, surface) in enumerate(zip(cavities_all, 
-                                                            surfaces_all)):
-            model_index = start_frame + frame_pos
+        # multi-model PDB. As in getObjectResidueNamesMultipleFrames, the lists
+        # already hold one entry per analysed frame, numbered from start_frame.
+        available = min(len(cavities_all), len(surfaces_all))
+        first, last = _frameBounds(start_frame + available, start_frame,
+                                   stop_frame)
+        for model_index in range(first, last):
+            cavities = cavities_all[model_index - first]
+            surface = surfaces_all[model_index - first]
             atoms.setACSIndex(model_index)
 
             if residues_file_name is not None:
@@ -4986,9 +5478,16 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
         if hasattr(trajectory, 'reset'):
             trajectory.reset()
 
+        first, last = _frameBounds(None, start_frame, stop_frame)
         atoms_copy = atoms.copy()
-        for frame_pos, frame in enumerate(trajectory):
-            frame_index = start_frame + frame_pos
+        for frame_pos, frame in enumerate(trajectory[first:last]):
+            # The frames outlast the results whenever the trajectory is longer
+            # than the run that produced them, and indexing past the end of the
+            # lists would raise rather than stop.
+            if frame_pos >= min(len(cavities_all), len(surfaces_all)):
+                break
+
+            frame_index = first + frame_pos
             atoms_copy.setCoords(frame.getCoords())
 
             if residues_file_name is not None:
@@ -6066,8 +6565,965 @@ def showFrequentObjectResidues(counts_by_chain, top=50):
     return axes[0] if len(axes) == 1 else axes
 
 
+# The dictionary the written file declares conformance to, quoted from the schema's
+# own README so that a reader can check the file against the same document we wrote
+# it from. https://github.com/sb-ncbr/tunnels-schema
+_CIF_DICT_NAME = 'mmcif_tunnels.dic'
+_CIF_DICT_VERSION = '1.0'
+_CIF_DICT_LOCATION = \
+    'https://sb-ncbr.github.io/tunnels-schema/schemas/mmcif_tunnels_v10.dic'
+
+# The schema's vocabulary for _sb_ncbr_channel.type against this module's. The
+# schema names no enumeration - the item is free text and its description says
+# "Pore, Path, etc." - so these are MOLE's words for the same three things, chosen
+# because a file nobody else's reader recognises is not worth the format.
+_CIF_OBJECT_TYPES = {'channel': 'Tunnel', 'pore': 'Pore', 'link': 'Path'}
+
+
+def _cifValue(value, precision=3):
+    """One data item, formatted for a CIF loop.
+
+    ``None`` and NaN become ``?``, the CIF's own "value not given", which is what
+    every unmeasured item in this export writes; the schema marks most items
+    mandatory, and a mandatory item is satisfied by an explicit ``?`` but not by a
+    guess.
+
+    Text is quoted only where it has to be - whitespace, or a leading character that
+    would otherwise start a comment, a data block or a quoted string. Nothing this
+    module writes needs quoting today, since residue and chain identifiers are bare
+    codes, but a structure with a chain named ``'`` should produce an unreadable file
+    rather than a silently wrong one."""
+
+    if value is None:
+        return '?'
+    if isinstance(value, bool):
+        # Ahead of the numeric branch: bool is an int in Python, and the schema's
+        # own examples for its boolean items read True/False.
+        return 'True' if value else 'False'
+    if isinstance(value, float):
+        if not np.isfinite(value):
+            return '?'
+        return '{0:.{1}f}'.format(value, precision)
+    if isinstance(value, (int, np.integer)):
+        return str(int(value))
+
+    text = str(value)
+    if text == '':
+        return "''"
+    if any(c.isspace() for c in text) or text[0] in '_#$[];\'"':
+        return "'{0}'".format(text.replace("'", "\\'"))
+    return text
+
+
+def _cifLoop(out, category, columns, rows, precision=None):
+    """Write one ``loop_`` of *rows* under *category*, or nothing when it is empty.
+
+    *columns* are the item names without their category prefix. *precision* is an
+    optional per-column dict of float precisions; anything unnamed uses the default.
+
+    An empty loop is skipped rather than written headerless, because a ``loop_`` with
+    no rows is a syntax error in CIF and a category with nothing to say is better
+    absent - the schema marks every category ``mandatory_code no`` precisely so that
+    a producer can leave out what it does not compute."""
+
+    if not rows:
+        return
+
+    precision = precision or {}
+
+    out.write('#\n')
+    out.write('loop_\n')
+    for column in columns:
+        out.write('_{0}.{1}\n'.format(category, column))
+
+    for row in rows:
+        out.write(' '.join(
+            _cifValue(row[column], precision.get(column, 3))
+            for column in columns) + '\n')
+
+
+def _pqrOutputPaths(output_path):
+    """``(channels_path, links_path, into_directory, separate_stem)`` for a PQR run.
+
+    A directory names no run, so nothing here is named after one: the files are
+    named after what they hold, ``channels.pqr`` beside ``links.pqr``, and the
+    per-object files carry no stem either - ``sp0_chl3.pqr`` rather than
+    ``output_sp0_chl3.pqr``, a stem that would be the same word for every run and
+    so tell the reader nothing.
+
+    Links go beside the channels rather than among them: a link does not reach the
+    surface, so a viewer loading the channel file should not find one in it.
+
+    Split out so that the run which writes these files and the check for stale ones
+    left by an earlier run resolve them the same way. Two copies of this would
+    disagree eventually, and the disagreement would be a warning about the wrong
+    file, or no warning at all."""
+
+    from pathlib import Path
+
+    output_path = Path(output_path)
+
+    into_directory = output_path.is_dir()
+    separate_stem = None
+    if into_directory:
+        output_path = output_path / "channels.pqr"
+        separate_stem = ''
+
+    elif not (output_path.suffix == ".pdb" or output_path.suffix == ".pqr"):
+        output_path = output_path.with_suffix(".pqr")
+
+    links_path = output_path.with_name(
+        ('links' if into_directory else output_path.stem + '_links')
+        + output_path.suffix)
+
+    return output_path, links_path, into_directory, separate_stem
+
+
+def _warnStaleOutputs(output_path, output_format='pqr', separate=False,
+                      tags=('chl', 'lnk'), cif_path=None):
+    """Name the files an earlier run left where this one has just written nothing.
+
+    A run that finds nothing now leaves no file at all, which is right - an empty
+    one cannot be told from a write that failed. It does mean an older file at the
+    same place survives and goes on looking like this run's output, and that is
+    worse than an empty file, because it is wrong rather than merely uninformative.
+    So the paths are resolved exactly as a writing run would resolve them, and
+    whatever is already there is named.
+
+    The per-object files cannot be listed from a run that produced none, so they are
+    globbed by the tag they carry in their names instead."""
+
+    from pathlib import Path
+
+    if not output_path:
+        return
+
+    stale = []
+    if _isMmcifFormat(output_format, separate=False):
+        path = _cifOutputPath(output_path) if cif_path is None else Path(cif_path)
+        if path.exists():
+            stale.append(path)
+    else:
+        channels_path, links_path, into_directory, _ = \
+            _pqrOutputPaths(output_path)
+        stale.extend(p for p in (channels_path, links_path) if p.exists())
+
+        if separate:
+            prefix = '' if into_directory else channels_path.stem + '_'
+            for tag in tags:
+                stale.extend(sorted(channels_path.parent.glob(
+                    '{0}*{1}*{2}'.format(prefix, tag, channels_path.suffix))))
+
+    if not stale:
+        return
+
+    stale = sorted(set(str(p) for p in stale))
+    _warn("Nothing was found, so nothing was written, but {0} file(s) from an "
+          "earlier run are still there and now describe no run at all: {1}{2}. "
+          "Delete them, or write this run somewhere else.".format(
+              len(stale), ', '.join(stale[:6]),
+              ', ...' if len(stale) > 6 else ''))
+
+
+def _cifOutputPath(path):
+    """Resolve *path* to the file the mmCIF is written to.
+
+    An existing directory takes ``channels.cif`` inside it, which is what
+    :func:`calcChannels` already does with a directory given as ``output_path``.
+    There is no ``links.cif`` beside it: links share the file and are told apart by
+    ``_sb_ncbr_channel.type``, the column the schema provides for exactly that.
+
+    One trap this exists to keep in one place: a path that does not exist yet is not
+    a directory as far as :meth:`~pathlib.Path.is_dir` is concerned, so a suffixless
+    ``results`` becomes ``results.cif`` beside the working directory rather than a
+    file within it - surprising, but it is what ``output_path`` has always done, and
+    two rules would be worse than one."""
+
+    from pathlib import Path
+
+    path = Path(path)
+    if path.is_dir():
+        return path / 'channels.cif'
+
+    if path.suffix.lower() == '.cif':
+        return path
+    return path.with_name(path.name + '.cif')
+
+
+def _isMmcifFormat(output_format, separate=False):
+    """Whether *output_format* asks for mmCIF, rejecting anything else outright.
+
+    One flag rather than a second output path, so that a run has one place its
+    results go and the format is a property of that place. An unknown value raises
+    rather than falling back on PQR: a misspelled format that quietly wrote the old
+    one would be found only by opening the file.
+
+    *separate* is ignored for mmCIF, since the value of the format is the joins
+    between its categories and a file per channel would cut exactly those. Said once
+    here, so that a run asking for both does not leave the reader wondering which
+    won."""
+
+    if output_format is None:
+        return False
+
+    fmt = str(output_format).lower().lstrip('.')
+    if fmt == 'pqr':
+        return False
+    if fmt not in ('mmcif', 'cif'):
+        # 'pdb' is not among them on purpose. The flag picks the format family
+        # and the path picks the extension, which is how PDB has always been
+        # chosen here - output_path ending in .pdb. A 'pdb' accepted alongside
+        # would name an extension it could not promise, since the path would
+        # still decide it. It is the one wrong value worth answering rather
+        # than only rejecting, being the one a reader would reasonably try.
+        raise ValueError(
+            "output_format must be 'pqr' or 'mmcif', not {0!r}.{1}".format(
+                output_format,
+                " For PDB rather than PQR, keep output_format='pqr' and give "
+                "output_path a .pdb suffix." if fmt == 'pdb' else ''))
+
+    if separate:
+        LOGGER.info('separate is ignored for mmCIF output: every channel goes '
+                    'into one file, which is what lets its categories refer to '
+                    'one another.')
+
+    return True
+
+
+def _poreCifPath(output_path):
+    """``pores.cif`` where *output_path* is a directory, otherwise unchanged.
+
+    :func:`_cifOutputPath` would call it ``channels.cif``, which is right for a
+    channel run and wrong for a pore one told the same folder - the second would
+    overwrite the first. The PQR path names them apart for the same reason."""
+
+    from pathlib import Path
+
+    path = Path(output_path)
+    return path / 'pores.cif' if path.is_dir() else path
+
+
+def _cumulativeArcLength(centerline_spline, t):
+    """Arc length from the start of the route to each parameter in *t*.
+
+    Measured on the same polyline
+    :meth:`~ChannelCalculator.calculateChannelLength` uses - the same ten points per
+    knot - so that the last value of the profile's ``distance`` column equals the
+    channel's reported length by construction rather than by coincidence. Evaluating
+    the integral more accurately here would be worse, not better: it would put a
+    length in the file that disagrees with the one the same run reports everywhere
+    else."""
+
+    dense = np.linspace(centerline_spline.x[0], centerline_spline.x[-1],
+                        max(2, len(centerline_spline.x) * 10))
+    points = centerline_spline(dense)
+    steps = np.linalg.norm(np.diff(points, axis=0), axis=1)
+    cumulative = np.concatenate(([0.0], np.cumsum(steps)))
+
+    return np.interp(t, dense, cumulative)
+
+
+def _backboneRadiiSource(atoms):
+    """``(tree, vdw_radii)`` over backbone atoms, or ``None`` where there are none.
+
+    The schema's ``free_radius`` is the radius a probe would have if only main-chain
+    atoms confined it, which is MOLE's way of saying how much room a side chain could
+    make by moving. Only the source differs from an ordinary clearance query, so
+    :func:`_vertexRadii` does the measuring for both.
+
+    Main-chain atoms being a subset of all of them, the free radius reads as though
+    it must be at least the radius, and mostly it is. It is not an invariant, though,
+    and the exception is intrinsic rather than a sign of trouble: the spheres are read
+    off the splines, not off the Voronoi vertices they were fitted to, so a sample
+    overshoots its inscribed sphere by a little and clips the wall. The shortfall is a
+    few hundredths of an Angstrom - the same overshoot the ``-0.5`` floor in
+    :func:`_liningContacts` is set well above. Nothing is clamped, because a clamp
+    would hide the one case that does mean something, a report measured against a
+    structure other than the traced one."""
+
+    backbone = atoms.select('backbone')
+    if backbone is None or len(backbone) == 0:
+        return None
+
+    return _kdTree(backbone), _atomRadii(backbone, warn=False)
+
+
+def _residueProperties(resnames):
+    """The schema's physicochemical items for one set of lining residues.
+
+    *resnames* is one entry per residue, repeated names included where a lining holds
+    several residues of a kind. Returns a dict keyed by the schema's own item names.
+
+    The averages are taken over the residues the scales cover, and a lining that
+    covers none of them - a channel through a nucleic acid, or between ligands - gets
+    ``None`` rather than a mean over nothing. The counts and the charge are taken over
+    every residue, since a residue absent from a scale is genuinely uncharged rather
+    than unmeasured.
+
+    The averages are taken over lining residues, which is how MOLE defines every one
+    of these, and over side-chain values, since that is what the scales measure. MOLE
+    additionally gives a residue touching the route only through its backbone a
+    per-scale mainchain value rather than its own; that is not reproduced here, being
+    undocumented for four of the seven scales and inferable only by fitting. The
+    numbers are therefore MOLE's scales computed over this module's lining, and agree
+    with MOLEonline's to the extent the two linings agree - not bit for bit."""
+
+    def mean(scale):
+        values = [scale[name] for name in resnames if name in scale]
+        return float(np.mean(values)) if values else None
+
+    # Everything is computed over the standard residues alone - the ones the scales
+    # and the schema's own formulas are defined for - and never over a default
+    # substituted for the rest. Calling an unscored residue neutral would put a
+    # figure in the file that is untrue rather than merely partial: a route walled
+    # by nucleotides is not uncharged, whatever its charged amino acids sum to.
+    #
+    # What makes the numbers honest is therefore not their arithmetic but the
+    # fraction they cover, which the caller records and reports; see
+    # _reportUncoveredLining.
+    scored = [name for name in resnames if name in _SCALE_RESIDUES]
+
+    charges = [_CHARGED_RESIDUES.get(name, 0) for name in scored]
+
+    # A lining with nothing scorable in it yields no count either, not a zero.
+    # Summing an empty set gives 0 and averaging one is undefined, so left alone
+    # the two halves of this dict would describe the same empty set differently -
+    # `?` for the averages and a confident 0 for the counts. Zero charged amino
+    # acids is also the truthful reading of a wall made entirely of nucleotides,
+    # and the least useful one.
+    return {
+        'charge': int(sum(charges)) if scored else None,
+        'numPositives': (int(sum(1 for c in charges if c > 0))
+                         if scored else None),
+        'numNegatives': (int(sum(1 for c in charges if c < 0))
+                         if scored else None),
+        'hydropathy': mean(_KYTE_DOOLITTLE),
+        'hydrophobicity': mean(_CID_HYDROPHOBICITY),
+        'polarity': mean(_ZIMMERMAN_POLARITY),
+        'ionizable': (int(sum(1 for name in scored
+                              if name in _IONIZABLE_RESIDUES))
+                      if scored else None),
+        'mutability': mean(_JTT_MUTABILITY),
+        'logD': mean(_MOLE_LOGD),
+        'logP': mean(_MOLE_LOGP),
+        'logS': mean(_MOLE_LOGS),
+    }
+
+
+def _sampleLining(atoms, source, centers, radii, distA, deep=None):
+    """Which residues line each probe sphere, and which of their atoms did it.
+
+    Returns ``(residues_per_sample, backbone_residues)``: a list with one set of
+    residue indices per sphere, and the set of residue indices that touched the route
+    through a main-chain atom anywhere along it.
+
+    One query for the whole route rather than one per sphere - :func:`_liningContacts`
+    is already batched, and the per-sphere split is a regrouping of its output."""
+
+    probes, candidates, _ = _liningContacts(source, centers, radii, distA, deep)
+
+    per_sample = [set() for _ in range(len(centers))]
+    backbone = set()
+    if len(candidates) == 0:
+        return per_sample, backbone
+
+    resindices = atoms.getResindices()
+    names = atoms.getNames()
+    bb_names = ('N', 'CA', 'C', 'O')
+
+    for probe, atom in zip(probes.tolist(), candidates.tolist()):
+        residue = int(resindices[atom])
+        per_sample[probe].add(residue)
+        if names[atom] in bb_names:
+            backbone.add(residue)
+
+    return per_sample, backbone
+
+
+def _channelLayers(per_sample):
+    """Group consecutive spheres sharing one lining into layers.
+
+    Returns a list of ``(first, last, residues)``, both bounds inclusive.
+
+    This is MOLE's definition of a layer: the route is cut wherever the set of
+    residues around it changes, so a layer is a stretch of channel with one wall.
+    MOLE additionally merges layers below a length it does not publish; that is not
+    reproduced here, because a merge rule guessed at would produce a different
+    partition wearing the same name. The consequence is that our layers are shorter
+    and more numerous than MOLEonline's for the same structure."""
+
+    layers = []
+    if not per_sample:
+        return layers
+
+    start = 0
+    for i in range(1, len(per_sample) + 1):
+        if i == len(per_sample) or per_sample[i] != per_sample[start]:
+            layers.append((start, i - 1, per_sample[start]))
+            start = i
+
+    return layers
+
+
+def _objectCifRows(object_id, obj, type_name, context, num_samples):
+    """Every schema row one channel, pore or link contributes.
+
+    *context* bundles what is shared across the objects of one file: the structure
+    the lining is measured against, its query sources, the clearance, and the
+    residue lookups. Returns a dict keyed by the schema's category names.
+
+    Without a structure only the geometry is produced - the lining categories and
+    everything derived from them are simply absent, which the schema permits and a
+    guess would not."""
+
+    from collections import Counter
+
+    atoms = context['atoms']
+    rows = {'channel': [], 'profile': [], 'props': [], 'layer': [],
+            'residue': [], 'layer_residue': [], 'weighted': []}
+
+    centers, radii = _sampleObjectSpheres(obj, num_samples)
+    if len(centers) == 0:
+        return rows
+
+    t = _objectSampleParameters(obj, num_samples)
+    distance = _cumulativeArcLength(obj.centerline_spline, t)
+    total = float(distance[-1])
+    # A route of no length has no normalized position along it; 0 everywhere keeps
+    # the column present and the key unique, there being only one sphere to key.
+    fraction = distance / total if total > 0 else np.zeros_like(distance)
+
+    free = (_vertexRadii(centers, context['backbone'])
+            if context['backbone'] is not None else None)
+
+    rows['channel'].append({
+        'id': object_id,
+        'type': type_name,
+        'method': 'CaviTracer',
+        'software': context['software'],
+        'auto': context['auto'],
+        # The item is typed int and described as a count of the structure's
+        # cavities, yet it sits on a per-channel row, where only an index makes
+        # sense. Read as an index, and filled with the search site (sp<n>) rather
+        # than with the index of the Delaunay cavity the site lies in.
+        #
+        # Deliberately, because the site is this module's operative void: chambers
+        # are carved at a probe radius of their own, and each seeded chamber is
+        # searched independently, so two chambers of one cavity are two separate
+        # sub-cavities here and their channels have no more in common than any
+        # other pair. The cavity index would group them; that grouping is the one
+        # the trace does not use.
+        #
+        # The consequence to know is that channels sharing a Delaunay cavity can
+        # carry different values, two chambers of one cavity being two sites. The
+        # log's site table gives the cavity for every site, and the
+        # schema has nowhere to record the chamber, its `cavity` being an int.
+        'cavity': 0 if obj.origin is None else int(obj.origin),
+    })
+
+    if atoms is None:
+        for i in range(len(centers)):
+            rows['profile'].append({
+                'channel_id': object_id, 'radius': float(radii[i]),
+                'free_radius': None, 'distance': float(distance[i]),
+                'T': float(fraction[i]), 'x': float(centers[i, 0]),
+                'y': float(centers[i, 1]), 'z': float(centers[i, 2]),
+                'charge': None})
+        return rows
+
+    per_sample, backbone_residues = _sampleLining(
+        atoms, context['lining'], centers, radii, context['distA'],
+        context['deep'])
+
+    allowed = context['allowed']
+    per_sample = [residues & allowed for residues in per_sample]
+
+    resname_of = context['resname_of']
+
+    for i in range(len(centers)):
+        names = [resname_of[r] for r in per_sample[i]]
+        rows['profile'].append({
+            'channel_id': object_id,
+            'radius': float(radii[i]),
+            'free_radius': None if free is None else float(free[i]),
+            'distance': float(distance[i]),
+            'T': float(fraction[i]),
+            'x': float(centers[i, 0]),
+            'y': float(centers[i, 1]),
+            'z': float(centers[i, 2]),
+            'charge': int(sum(_CHARGED_RESIDUES.get(n, 0) for n in names)),
+        })
+
+    # Residues in the order they are first met along the route, which is what the
+    # schema's `order` means and what `layer_residue.residue_id` points back to.
+    first_seen = {}
+    for i, residues in enumerate(per_sample):
+        for residue in residues:
+            first_seen.setdefault(residue, i)
+
+    ordered = sorted(first_seen, key=lambda r: (first_seen[r], r))
+    residue_order = {}
+    for position, residue in enumerate(ordered, start=1):
+        residue_order[residue] = position
+        rows['residue'].append({
+            'channel_id': object_id,
+            'order': position,
+            'sequence_number': int(context['resnum_of'][residue]),
+            'chain_id': context['chid_of'][residue] or '.',
+            'backbone': residue in backbone_residues,
+        })
+
+    layers = _channelLayers(per_sample)
+    narrowest = int(np.argmin(radii))
+    layer_minima = [float(radii[first:last + 1].min())
+                    for first, last, _ in layers]
+
+    # Kept beside the rows rather than read back out of them: the weighted props
+    # average logD, logP and logS over the layers, and sb_ncbr_channel_layer has no
+    # column for those three, so taking the weighting input from the written rows
+    # would silently weight nothing and write `?`.
+    layer_props = []
+
+    for index, (first, last, residues) in enumerate(layers):
+        props = _residueProperties([resname_of[r] for r in residues])
+        layer_props.append(props)
+        order = index + 1
+
+        local_minimum = (
+            (index == 0 or layer_minima[index - 1] > layer_minima[index]) and
+            (index == len(layers) - 1 or
+             layer_minima[index + 1] > layer_minima[index]))
+
+        row = {
+            'channel_id': object_id,
+            'order': order,
+            'min_radius': layer_minima[index],
+            'min_free_radius': (None if free is None
+                                else float(free[first:last + 1].min())),
+            'start_distance': float(distance[first]),
+            'end_distance': float(distance[last]),
+            'local_minimum': bool(local_minimum),
+            'bottleneck': first <= narrowest <= last,
+        }
+        for item in ('charge', 'numPositives', 'numNegatives',
+                     'hydrophobicity', 'hydropathy', 'polarity', 'mutability'):
+            row[item] = props[item]
+        rows['layer'].append(row)
+
+        for position, residue in enumerate(
+                sorted(residues, key=lambda r: residue_order[r]), start=1):
+            rows['layer_residue'].append({
+                'channel_id': object_id,
+                'layer_id': order,
+                'order': position,
+                'residue_id': residue_order[residue],
+            })
+
+    lining = [resname_of[r] for r in ordered]
+
+    # Counted once per object, on the whole lining, rather than per layer, where
+    # the same residue would be tallied for every layer it touches.
+    #
+    # The schema defines every one of these items over amino acids - "a sum of
+    # charged amino acid residues", "amino acid polarities" - so a nucleotide, a
+    # cofactor or a modified residue has no value under it, and MOLE excludes them
+    # too. Nothing here departs from that. What is worth saying out loud is how much
+    # of the wall it leaves out, because the residues left out are rarely a random
+    # sample of it: a D-peptide loses its D-residues, a ribosomal route its
+    # nucleotides, and either can be half of a lining.
+    missing = [name for name in lining if name not in _SCALE_RESIDUES]
+    if missing and lining:
+        context['uncovered'].update(missing)
+        context['coverage'][object_id] = (len(lining) - len(missing), len(lining),
+                                          Counter(missing))
+
+    props = _residueProperties(lining)
+    props['channel_id'] = object_id
+    props['bRadius'] = _bRadius(atoms, context, layers, layer_minima, narrowest)
+    rows['props'].append(props)
+
+    weights = [row['end_distance'] - row['start_distance']
+               for row in rows['layer']]
+    weighted = {'channel_id': object_id}
+    for item in ('hydropathy', 'hydrophobicity', 'mutability', 'polarity',
+                 'logD', 'logP', 'logS'):
+        weighted[item] = _weightedMean(
+            [props[item] for props in layer_props], weights)
+    rows['weighted'].append(weighted)
+
+    return rows
+
+
+def _weightedMean(values, weights):
+    """Mean of *values* weighted by *weights*, ignoring the entries that are ``None``.
+
+    A layer whose lining no scale covers contributes nothing rather than a zero, and
+    an item no layer could measure stays ``None`` all the way up."""
+
+    pairs = [(v, w) for v, w in zip(values, weights)
+             if v is not None and w > 0]
+    if not pairs:
+        return None
+
+    total = sum(w for _, w in pairs)
+    if total <= 0:
+        return None
+
+    return float(sum(v * w for v, w in pairs) / total)
+
+
+def _bRadius(atoms, context, layers, layer_minima, narrowest):
+    """``min_radius + RMSF`` at the bottleneck, or ``None`` without B-factors.
+
+    The schema describes the item as a radius widened by the mobility of the residues
+    around it, with the mobility read off the B-factors as
+    ``RMSF = sqrt(3B / 8 pi^2)``. A structure that carries no B-factors - an MD frame,
+    or a model - gets ``None``; the schema's own example value for this item is
+    ``null``, so an absent value is expected here rather than exceptional."""
+
+    betas = context['betas']
+    if betas is None or not layers:
+        return None
+
+    for index, (first, last, residues) in enumerate(layers):
+        if not (first <= narrowest <= last):
+            continue
+        if not residues:
+            return None
+        mask = np.isin(atoms.getResindices(), list(residues))
+        values = betas[mask]
+        if len(values) == 0:
+            return None
+        rmsf = np.sqrt(3.0 * np.maximum(values, 0.0) / (8.0 * np.pi ** 2))
+        return float(layer_minima[index] + rmsf.mean())
+
+    return None
+
+
+def writeChannelsCIF(filename, channels, atoms=None, structure=None, links=None,
+                     object_type='channel', num_samples=5, auto=True,
+                     autoext=True, **kwargs):
+    """Write *channels* as an mmCIF conforming to the sb-ncbr tunnels schema.
+
+    The schema is the one MOLEonline and ChannelsDB publish their tunnels under
+    (https://github.com/sb-ncbr/tunnels-schema, v1.0). Writing it puts the profile,
+    the layers and the lining of every channel in one file with keys joining them,
+    where this module otherwise spreads them over a PQR and two text tables joined
+    only by filename.
+
+    :arg filename: file to write. ``.cif`` is appended when *autoext* and the name
+        does not carry it; an existing directory takes ``channels.cif`` within it.
+    :type filename: str
+
+    :arg channels: the objects to write, from :func:`calcChannels` or
+        :func:`calcPoresFromChannels`.
+    :type channels: list
+
+    :arg atoms: structure the lining is measured against. Without it only
+        ``sb_ncbr_channel`` and the geometry of ``sb_ncbr_channel_profile`` are
+        written, every other category depending on knowing what surrounds the route.
+    :type atoms: :class:`.Atomic`
+
+    :arg structure: structure to write as ``_atom_site`` ahead of the channel
+        categories, so that the file opens on its own in a viewer. Needs Biopython,
+        as :func:`.writeMMCIF` does the writing; without it the file holds channels
+        alone and a reader supplies the structure.
+    :type structure: :class:`.Atomic`
+
+    :arg links: chamber links, written into the same file as
+        ``_sb_ncbr_channel.type`` ``Path``. Unlike the PQR output, which keeps links
+        in a file of their own so that a viewer loading channels does not find one
+        among them, the schema has a type column and one file is what a consumer of
+        it wants.
+    :type links: list
+
+    :arg object_type: what *channels* holds; ``"channel"`` or ``"pore"``.
+    :type object_type: str
+
+    :arg num_samples: samples per tetrahedron of the route, as elsewhere in this
+        module. The profile is the very spheres the PQR writes, not a second
+        sampling of the same splines.
+    :type num_samples: int
+
+    :arg auto: whether the start point was chosen automatically. A channel does not
+        record this, so :func:`calcChannels` passes ``start_point is None``.
+    :type auto: bool
+
+    Accepts ``distA`` (default 1.5) and ``include_water`` as
+    :func:`getChannelResidueNames` does.
+
+    Three mappings are this module's reading of the schema rather than the schema's
+    own words, since it fixes no vocabulary for them. ``type`` follows MOLE, a
+    channel being a ``Tunnel``, a pore a ``Pore`` and a link a ``Path``. ``cavity``
+    is typed as an int and described as a count, but sits on a per-channel row where
+    only an index makes sense, so it carries the search site (``sp<n>``) the object
+    was traced from - the void this module actually works in, a chamber being carved
+    at its own probe radius and searched on its own. Channels in one Delaunay cavity
+    but different chambers therefore differ here; the log's site table maps every
+    site to its cavity. ``method`` is ``CaviTracer`` and ``software`` is ProDy and
+    its version.
+
+    Every physicochemical item is written, on the scales MOLE's method page names:
+    hydropathy from Kyte and Doolittle, hydrophobicity from Cid *et al.*, polarity
+    from Zimmerman *et al.*, mutability from Jones, Taylor and Thornton, and the
+    ``logP``, ``logD`` and ``logS`` fragment values MOLE publishes as prose. Only
+    ``bRadius`` can be absent, where the structure carries no B-factors.
+
+    They are those scales averaged over *this* module's lining, not a reproduction
+    of MOLEonline's numbers: the two disagree wherever the two linings do, and MOLE
+    also applies an undocumented per-scale mainchain value to backbone-only contacts
+    that is not imitated here.
+
+    Unlike the PQR writers in this module, and like :func:`.writePDB` and
+    :func:`.writePQR`, this takes the filename first, goes through
+    :func:`.openFile` - so the backup setting is honoured - and returns the name it
+    wrote. ``separate`` has no counterpart here: the value of the format is the joins
+    between its categories, and a file per channel would cut exactly those.
+
+    :returns: the filename written
+    :rtype: str"""
+
+    from pathlib import Path
+    from prody.utilities import openFile
+
+    if object_type not in ('channel', 'pore'):
+        raise ValueError("object_type must be 'channel' or 'pore'")
+
+    options = _popLiningOptions(kwargs)
+    if kwargs:
+        # As calcChannels does: a misspelled option that was quietly dropped would
+        # be found only by noticing the file was written with the default.
+        raise TypeError('writeChannelsCIF() got an unexpected keyword argument '
+                        '{0}.'.format(', '.join(repr(k) for k in sorted(kwargs))))
+
+    if not isinstance(channels, list):
+        channels = [channels]
+    links = list(links) if links else []
+
+    path = _cifOutputPath(filename) if autoext else Path(filename)
+
+    context = _cifContext(atoms, options, auto)
+
+    rows = {'channel': [], 'profile': [], 'props': [], 'layer': [],
+            'residue': [], 'layer_residue': [], 'weighted': []}
+
+    for objects, kind in ((channels, object_type), (links, 'link')):
+        for index, obj in enumerate(objects):
+            produced = _objectCifRows(
+                '{0}{1}'.format(kind, index), obj, _CIF_OBJECT_TYPES[kind],
+                context, num_samples)
+            for category, values in produced.items():
+                rows[category].extend(values)
+
+    if not rows['channel']:
+        # Nothing traced, so no file: a block holding only its own audit record
+        # says a run happened and nothing else, and a reader cannot tell it from
+        # a file whose channels failed to write. The count is already reported by
+        # the caller. Returns None rather than a name nothing is under.
+        return None
+
+    notes = []
+    if atoms is not None:
+        # Once for the file, not once per object: a cofactor sitting in several
+        # channels of one protein is one finding.
+        _reportDeepLiningAtoms(atoms, context['deep'])
+        notes = _reportUncoveredLining(context)
+
+    if structure is not None:
+        from prody.proteins.ciffile import writeMMCIF
+        writeMMCIF(str(path), structure, autoext=False)
+        out = openFile(str(path), 'a')
+    else:
+        out = openFile(str(path), 'w')
+        out.write('data_{0}\n'.format(context['block']))
+
+    try:
+        _writeCifCategories(out, rows, notes)
+    finally:
+        out.close()
+
+    LOGGER.info("{0} channel(s) written to {1}{2}.".format(
+        len(rows['channel']), path,
+        '' if atoms is not None else
+        ' (geometry only - no structure given to measure the lining against)'))
+
+    return str(path)
+
+
+def _cifContext(atoms, options, auto):
+    """What every object of one file shares: the structure and its lookups.
+
+    Built once because the queries are per structure and not per channel - the tree
+    and the radii cost more to rebuild than the query they serve, which is the same
+    reason :func:`_liningSource` is passed in rather than derived per object."""
+
+    from prody import __version__
+
+    from collections import Counter
+
+    context = {'atoms': atoms, 'auto': bool(auto), 'deep': {},
+               'uncovered': Counter(), 'coverage': {},
+               'distA': options.distA, 'block': 'channels',
+               'software': 'ProDy {0}'.format(__version__),
+               'lining': None, 'backbone': None, 'betas': None,
+               'allowed': set(), 'resname_of': {}, 'resnum_of': {},
+               'chid_of': {}}
+
+    if atoms is None:
+        return context
+
+    title = (atoms.getTitle() or '').strip()
+    if title:
+        context['block'] = '_'.join(title.split())
+
+    context['lining'] = _liningSource(atoms)
+    context['backbone'] = _backboneRadiiSource(atoms)
+
+    betas = atoms.getBetas()
+    context['betas'] = betas if betas is not None and np.any(betas) else None
+
+    # The residues a lining report may name, as _formatLiningResidues decides it:
+    # waters shape no channel, calcChannels having dropped them before tessellating,
+    # and FIL pseudoatoms are this module's own output.
+    reportable = atoms.select('not resname FIL' if options.include_water
+                              else 'not water and not resname FIL')
+    if reportable is not None:
+        context['allowed'] = set(reportable.getResindices().tolist())
+
+    resindices = atoms.getResindices()
+    unique, first = np.unique(resindices, return_index=True)
+    resnames, resnums = atoms.getResnames(), atoms.getResnums()
+    chids, icodes = atoms.getChids(), atoms.getIcodes()
+
+    for residue, index in zip(unique.tolist(), first.tolist()):
+        context['resname_of'][residue] = resnames[index]
+        context['resnum_of'][residue] = resnums[index]
+        context['chid_of'][residue] = chids[index].strip()
+        if icodes[index].strip():
+            # The schema has no home for an insertion code: sequence_number is an
+            # int linked to _atom_site.auth_seq_id. Two residues differing only by
+            # icode therefore write the same number, which is worth saying once.
+            context.setdefault('icodes', []).append(residue)
+
+    if context.get('icodes'):
+        _warn("{0} residue(s) carry insertion codes, which the tunnels schema "
+              "cannot record - _sb_ncbr_channel_residue.sequence_number is an "
+              "integer. Those residues are written under their number "
+              "alone.".format(len(context['icodes'])))
+
+    return context
+
+
+def _objectSortKey(object_id):
+    """``('channel', 9)`` for ``channel9``, so ids sort numerically not lexically."""
+
+    import re
+
+    match = re.match(r'^(\D*)(\d+)$', object_id)
+    return (match.group(1), int(match.group(2))) if match else (object_id, -1)
+
+
+def _reportUncoveredLining(context):
+    """Say how much of each lining the physicochemical properties actually cover.
+
+    Returns the lines to write into the file as comments, having already logged the
+    same thing.
+
+    The properties are computed over standard residues alone, which is how the
+    schema defines them and what MOLE does. That is a true statement about those
+    residues and a misleading one about the channel, wherever the rest of the wall
+    is a nucleotide, a cofactor or a modified residue - and the rest is rarely a
+    random sample, a D-peptide losing its D-residues and a ribosomal route its
+    nucleotides. So the fraction covered travels with the numbers.
+
+    It goes in as a CIF comment because the schema has nowhere to put it: no
+    category carries a coverage or a het-residue field, and inventing an item would
+    make the file non-conformant. A comment is ignored by every parser and read by
+    every person, which is the right audience for a caveat. The residues themselves
+    are named in ``sb_ncbr_channel_residue`` regardless, so a reader can always
+    recompute this."""
+
+    coverage = context.get('coverage') or {}
+    if not coverage:
+        return []
+
+    def named(counts):
+        """``HEM`` for one, ``DLE(4), DVA(2)`` where a name recurs."""
+        return ', '.join(name if count == 1 else '{0}({1})'.format(name, count)
+                         for name, count in counts.most_common())
+
+    worst = min(scored / float(total) for scored, total, _ in coverage.values())
+
+    _warn("{0} channel(s) are lined in part by residues no scale covers, so their "
+          "properties describe only the standard residues - as little as {1:.0%} of "
+          "the lining. Not covered: {2}.".format(
+              len(coverage), worst, named(context['uncovered'])))
+
+    lines = ['# Physicochemical properties are computed over standard residues only,',
+             '# as the schema defines them. Where a lining holds anything else, the',
+             '# properties describe the standard part of it alone:']
+    # Numerically, so channel9 precedes channel11 as it does everywhere else.
+    for object_id in sorted(coverage, key=_objectSortKey):
+        scored, total, counts = coverage[object_id]
+        lines.append('#   {0}: {1} of {2} residues ({3:.0%}); not covered: {4}'.format(
+            object_id, scored, total, scored / float(total), named(counts)))
+    return lines
+
+
+def _writeCifCategories(out, rows, notes=()):
+    """Write the audit block and every non-empty category, in schema order."""
+
+    out.write('#\n')
+    out.write('loop_\n')
+    out.write('_audit_conform.dict_name\n')
+    out.write('_audit_conform.dict_version\n')
+    out.write('_audit_conform.dict_location\n')
+    out.write('{0} {1} {2}\n'.format(_CIF_DICT_NAME, _CIF_DICT_VERSION,
+                                     _CIF_DICT_LOCATION))
+
+    _cifLoop(out, 'sb_ncbr_channel', ['id', 'type', 'method', 'software',
+                                      'auto', 'cavity'], rows['channel'])
+
+    _cifLoop(out, 'sb_ncbr_channel_profile',
+             ['channel_id', 'radius', 'free_radius', 'distance', 'T',
+              'x', 'y', 'z', 'charge'], rows['profile'],
+             # T keys the category together with channel_id, and three decimals
+             # collide on a route sampled at more than a thousand points.
+             precision={'T': 5})
+
+    if notes:
+        out.write('#\n')
+        for line in notes:
+            out.write(line + '\n')
+
+    _cifLoop(out, 'sb_ncbr_channel_props',
+             ['channel_id', 'charge', 'hydropathy', 'hydrophobicity',
+              'mutability', 'numNegatives', 'numPositives', 'polarity',
+              'logD', 'logP', 'logS', 'ionizable', 'bRadius'], rows['props'])
+
+    _cifLoop(out, 'sb_ncbr_channel_layer',
+             ['channel_id', 'order', 'min_radius', 'min_free_radius',
+              'start_distance', 'end_distance', 'local_minimum', 'bottleneck',
+              'charge', 'numPositives', 'numNegatives', 'hydrophobicity',
+              'hydropathy', 'polarity', 'mutability'], rows['layer'])
+
+    _cifLoop(out, 'sb_ncbr_channel_layer_weighted_props',
+             ['channel_id', 'hydropathy', 'hydrophobicity', 'mutability',
+              'polarity', 'logD', 'logP', 'logS'], rows['weighted'])
+
+    _cifLoop(out, 'sb_ncbr_channel_residue',
+             ['channel_id', 'order', 'sequence_number', 'chain_id',
+              'backbone'], rows['residue'])
+
+    _cifLoop(out, 'sb_ncbr_channel_layer_residue',
+             ['channel_id', 'layer_id', 'order', 'residue_id'],
+             rows['layer_residue'])
+
+    out.write('#\n')
+
+
 class Channel:
-    def __init__(self, tetrahedra, centerline_spline, radius_spline, length, 
+    def __init__(self, tetrahedra, centerline_spline, radius_spline, length,
                  bottleneck, volume, cost=None):
         self.tetrahedra = tetrahedra
         self.centerline_spline = centerline_spline
@@ -6576,13 +8032,32 @@ class ChannelCalculator:
         return simp, neigh, verti
 
     @staticmethod
-    def getVdwRadii(atoms):
+    def getVdwRadii(atoms, warn=True):
         """Van der Waals radius of each element in *atoms*, from :data:`VDW_RADII`.
 
-        A static method, so the radii a diagram would have been built on can be
-        had without a calculator to build one (see :func:`_vertexRadiiSource`)."""
+        *atoms* is a sequence of element symbols, matched case-insensitively. An
+        element the table does not cover takes its ``UNKNOWN`` entry: a structure
+        is tessellated as the caller supplied it, and only water is dropped
+        first, so any ion or cofactor kept in the selection reaches here - a
+        metal outside the table would otherwise stop the trace rather than the
+        report, which is the wrong end to fail at. The substitution is announced
+        unless *warn* is false, for callers that have already said it themselves.
 
-        return np.array([VDW_RADII[atom] for atom in atoms])
+        A static method, so the radii a diagram would have been built on can be
+        had without a calculator to build one (see :func:`_atomRadii`)."""
+
+        elements = np.char.upper(np.asarray(atoms, dtype=str))
+        if warn:
+            unknown = sorted(set(elements.tolist()) - set(VDW_RADII))
+            if unknown:
+                _warn("No van der Waals radius for {0}; {1} atom(s) are "
+                      "measured with the UNKNOWN radius of {2} A instead."
+                      .format(', '.join(repr(element) for element in unknown),
+                              int(np.isin(elements, unknown).sum()),
+                              VDW_RADII['UNKNOWN']))
+
+        return np.array([VDW_RADII.get(element, VDW_RADII['UNKNOWN'])
+                         for element in elements])
 
     def _fibonacciSphere(self, n):
         """Return ``n`` roughly evenly distributed unit vectors on a sphere using
@@ -7123,9 +8598,12 @@ class ChannelCalculator:
                 cost[ii] = np.trapz(rr ** (-z), nodes, axis=1) * L[ii]
         return cost
 
-    def buildSparseGraph(self, simplices, neighbors, vertices, points, vdw_radii):
+    def buildSparseGraph(self, simplices, neighbors, vertices, points, vdw_radii,
+                         gate_floor=0.0):
         # One weighted CSR adjacency matrix for the whole cleared state, built
         # from array ops over the (N, deg) neighbour table - no Python loop.
+        # Edges narrower than ``gate_floor`` are left out of it; see the pruning
+        # at the end.
         # Edge (tetra -> neigh) weight is l / (d**2 + b), where l is the
         # vertex-to-vertex distance and d is the gate clearance on the shared
         # Delaunay face (min clearance along the connecting Voronoi edge). The
@@ -7207,12 +8685,38 @@ class ChannelCalculator:
 
         # Per-edge gate cache (unordered key) read by _pathGates: each face edge
         # stored once, keyed (lo, hi). The reported bottleneck reads the same map.
+        # Filled before the pruning below, so a gate is available whether or not
+        # its edge is left in the graph.
         undirected = face & (rows < cols)
         self._edge_bottleneck = {
             (int(i), int(j)): float(v)
             for i, j, v in zip(rows[undirected], cols[undirected],
                                d[undirected])
         }
+
+        # Edges the floor's probe does not fit through are dropped, so the search
+        # routes around them instead of crossing one and having the channel
+        # discarded afterwards by that same floor. calcChannels passes
+        # ``bottleneck`` here under prune_narrow_edges and 0 otherwise. The floor
+        # is that and not inner_radius: set below inner_radius it asks for
+        # channels narrower than the traversal probe, and pruning at the probe
+        # would delete exactly those.
+        #
+        # No channel can be lost this way. A path over a dropped edge pinches at
+        # or below that edge's gate, so the floor filters it either way, while
+        # every path that survives the filter uses only kept edges at unchanged
+        # cost and so remains the cheapest route to its exit. What can appear is
+        # a wider route to an exit whose cheapest one was narrow.
+        #
+        # ``d`` is the gate on face edges and the entered node's clearance on the
+        # rare non-face ones, where _pathGates reports the tighter of the two
+        # endpoints instead; d is then the larger of them, so an edge is dropped
+        # only when the gate it would report is below the floor as well.
+        if gate_floor > 0:
+            open_enough = d >= gate_floor
+            rows = rows[open_enough]
+            cols = cols[open_enough]
+            weight = weight[open_enough]
 
         return csr_matrix((weight, (rows, cols)), shape=(N, N))
 
@@ -8367,6 +9871,13 @@ class ChannelCalculator:
         # REMARKs. It tells the objects of one search site apart from another's,
         # so it says nothing at all when the run had a single site: there every
         # channel would carry the same sp0, which is clutter and not a label.
+        # Nothing found, nothing written - not even the empty file that opening
+        # for writing would leave, which says only that something ran and cannot
+        # be told apart from a write that failed halfway. The count the run found
+        # is already reported by the caller.
+        if not channels:
+            return
+
         filename = str(filename)
         separate_path = str(separate_path) if separate_path else filename
 
@@ -8503,6 +10014,12 @@ class ChannelCalculator:
             if tetrahedra is None or len(tetrahedra) == 0:
                 continue
             drawn.append((len(drawn), cavity, vertices[tetrahedra]))
+
+        # As in saveChannelsToPdb: nothing to draw, nothing written. Tested on
+        # what is actually drawn rather than on the cavities given, since a
+        # cavity with no tetrahedra contributes no atoms either.
+        if not drawn:
+            return
 
         with open(filename, 'w') as pqr_file:
             atom_index = 1
@@ -9003,25 +10520,51 @@ _VIS_CHANNELS_SCRIPT = r'''import colorsys
 import glob
 import os
 import re
+import shlex
 import sys
 
 # --- Parse command-line args ---
 # Invoke as:  pymol vis_channels.py -- protein.pdb "por*chl*.pqr"
+#         or: pymol vis_channels.py -- protein.pdb channels.cif
+#         or: pymol vis_channels.py -- channels.cif        (structure inside)
 # The regex MUST be quoted so the shell doesn't glob-expand it before PyMOL sees it.
+#
+# One script for both formats rather than one each. The two write the same
+# spheres and are coloured off the same 0-based rank, so a channel is the same
+# colour whichever way the run was written, and a directory holding both opens
+# with either in view.
 protein_file = None
+cif_file = None
 channel_regex = None
 for arg in sys.argv[1:]:
-    if arg == "--":
+    # Without a "--" PyMOL leaves its own flags and this script in argv, and the
+    # script is an existing file, so unguarded it gets loaded as the protein.
+    # That only bites when nothing else is passed, which is exactly the
+    # "just find the mmCIF yourself" invocation.
+    if arg == "--" or arg.startswith("-") or arg.lower().endswith(".py"):
         continue
     if os.path.isfile(arg):
-        if protein_file is None:
+        if arg.lower().endswith(".cif"):
+            if cif_file is None:
+                cif_file = arg
+        elif protein_file is None:
             protein_file = arg
     elif channel_regex is None:
         channel_regex = arg
 
 if channel_regex is None:
     channel_regex = "*chl*.pqr"   # fallback default
+
+# Nothing named and no PQRs about: an mmCIF run leaves a single file, so look
+# for one before giving up.
+if cif_file is None and not glob.glob(channel_regex):
+    found = sorted(glob.glob("*.cif"))
+    if found:
+        cif_file = found[0]
+
 print(f"Using channel regex: {channel_regex}")
+if cif_file:
+    print(f"Using mmCIF: {cif_file}")
 
 # --- Palette ---
 # CAVER 3's first six colours, from its out/pymol/modules/rgb.py in the order
@@ -9039,13 +10582,24 @@ CAVER_PRIMARIES = [(0.0, 0.0, 1.0),    # blue
 # the golden angle -- an irrational fraction of the circle, so it never returns
 # to a hue it has used and consecutive steps land as far apart as the circle
 # allows -- while saturation and value cycle on 3, so neighbours differ in more
-# than hue alone. The offset keeps the early generated hues clear of the six
-# primaries: without it rank 12 lands beside blue. It was chosen by maximising
-# the smallest CIE-Lab separation over 8..24 colours, where most cases sit,
-# which holds that separation near 15 where CAVER's own table dropped to 5.
+# than hue alone.
+#
+# The offset and the cycle are chosen for how the colours read on shaded
+# spheres, not as flat swatches. A sphere runs from lit to shadowed, so the
+# shadowed side of a bright colour can match the lit side of a dark one: two
+# colours count as distinct only if no version of one, dimmed to as little as
+# 0.55 of its light, matches such a version of the other. Distance is OKLab,
+# taken against the six primaries as well as among the generated colours, and
+# the worst pair is maximised across 8 to 24 channels, where most runs sit.
+#
+# Re-tune on those terms or not at all. Flat CIE-Lab rated the previous choice
+# near 15 where OKLab found 4.1, with rank 6 the same cyan as rank 3, and a
+# cycle tuned on flat OKLab alone collapsed its greens into one another once
+# shaded. Past a dozen channels no palette keeps every pair apart, so colour
+# stops identifying a channel there and the object names have to.
 GOLDEN_ANGLE = (3.0 - 5.0 ** 0.5) / 2.0
-HUE_OFFSET = 0.098
-SATURATION_VALUE = ((0.95, 1.00), (0.70, 1.00), (0.95, 0.72))
+HUE_OFFSET = 0.796
+SATURATION_VALUE = ((0.95, 0.55), (0.65, 0.65), (0.65, 0.95))
 
 def caverColour(rank):
     """Name of the colour for a 0-based channel rank, registered on first use.
@@ -9065,9 +10619,53 @@ def caverColour(rank):
     cmd.set_color(name, list(rgb))
     return name
 
-if protein_file:
-    protein_name = os.path.splitext(os.path.basename(protein_file))[0]
-    cmd.load(protein_file, protein_name)
+def cifLoops(path):
+    """category -> (columns, rows-as-token-lists). Enough CIF for what we write.
+
+    Deliberately not a general CIF parser: this reads back files this module
+    wrote, whose loops are one row per line with no multi-line values. shlex
+    does the splitting so a quoted value ('ProDy 2.6.1') stays one token.
+    """
+    loops = {}
+    with open(path) as handle:
+        lines = handle.read().splitlines()
+    i = 0
+    while i < len(lines):
+        if lines[i].strip() != "loop_":
+            i += 1
+            continue
+        i += 1
+        columns, category = [], None
+        while i < len(lines) and lines[i].startswith("_"):
+            category, _, column = lines[i].strip()[1:].partition(".")
+            columns.append(column)
+            i += 1
+        rows = []
+        while i < len(lines) and lines[i] and not lines[i][0] in "#_" \
+                and not lines[i].startswith(("loop_", "data_")):
+            try:
+                tokens = shlex.split(lines[i])
+            except ValueError:
+                tokens = lines[i].split()
+            if len(tokens) == len(columns):
+                rows.append(tokens)
+            i += 1
+        loops[category] = (columns, rows)
+    return loops
+
+# The protein: a file named on the command line, or the _atom_site the mmCIF
+# carries when it was written with one. Loading the .cif for its structure is
+# safe either way -- PyMOL simply finds no atoms when there is none -- but an
+# empty object beside the channels is noise, so it is checked for first.
+structure_source = protein_file
+if structure_source is None and cif_file:
+    with open(cif_file) as handle:
+        if "_atom_site." in handle.read(200000):
+            structure_source = cif_file
+
+if structure_source:
+    protein_name = os.path.splitext(os.path.basename(structure_source))[0]
+    cmd.load(structure_source, protein_name)
     cmd.hide("everything", protein_name)
     cmd.show("cartoon", protein_name)
     cmd.show("surface", protein_name)
@@ -9149,12 +10747,94 @@ def freeName(name):
         suffix = str(int(suffix or 1) + 1)
     return name + suffix
 
+def loadCifChannels(path):
+    """Draw every object in a tunnels-schema mmCIF, one PyMOL object each.
+
+    The same spheres the PQR holds, from the same profile: x/y/z and radius per
+    sample. They are built as a PDB string rather than one pseudoatom per
+    sphere, which for a thousand samples is the difference between instant and
+    a visible wait, and the radius is then assigned exactly as loadSpheres does
+    for a PQR.
+    """
+    loops = cifLoops(path)
+    if "sb_ncbr_channel_profile" not in loops:
+        print(f"  {path}: no _sb_ncbr_channel_profile loop")
+        return {}
+
+    columns, rows = loops["sb_ncbr_channel_profile"]
+    index = {name: columns.index(name) for name in columns}
+    needed = ("channel_id", "x", "y", "z", "radius")
+    if any(name not in index for name in needed):
+        print(f"  {path}: profile loop is missing one of {needed}")
+        return {}
+
+    samples = {}
+    for row in rows:
+        samples.setdefault(row[index["channel_id"]], []).append(
+            (float(row[index["x"]]), float(row[index["y"]]),
+             float(row[index["z"]]), float(row[index["radius"]])))
+
+    # The type each id was written under, so channels, pores and links can be
+    # grouped apart the way the PQR output keeps them in separate files.
+    #
+    # The group names are this module's, not the schema's: a Tunnel goes into
+    # chnl_grp and a Path into link_grp, so that a directory opens with the same
+    # group names whichever format it was written in. Naming them after the
+    # schema instead would give one run chnl_grp and the other tunnel_grp for
+    # the very same channels.
+    kinds = {}
+    if "sb_ncbr_channel" in loops:
+        cols, crows = loops["sb_ncbr_channel"]
+        if "id" in cols and "type" in cols:
+            for row in crows:
+                kinds[row[cols.index("id")]] = row[cols.index("type")]
+
+    groups = {}
+    for channel_id in sorted(samples, key=natural_sort_key):
+        spheres = samples[channel_id]
+        rank = channelRank(channel_id)
+        colour = caverColour(rank if rank is not None else 0)
+
+        text = "".join(
+            "ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+            % (i + 1, i + 1, x, y, z, 1.00, radius)
+            for i, (x, y, z, radius) in enumerate(spheres))
+
+        obj = channel_id
+        cmd.read_pdbstr(text, obj)
+        radii_list = [radius for _, _, _, radius in spheres]
+        cmd.alter(obj, "vdw = radii_list.pop(0)",
+                  space={'radii_list': radii_list})
+        cmd.hide("everything", obj)
+        cmd.show("spheres", obj)
+        cmd.color(colour, obj)
+
+        kind = kinds.get(channel_id, "Tunnel")
+        groups.setdefault(kind, []).append(obj)
+        print(f"  {obj:<20s} {colour}  ({kind}, {len(spheres)} spheres)")
+
+    return groups
+
 # both sets read their rank off the same 0-based scale, so the first channel of
 # either program is blue and the two stay comparable side by side
 sets = [("chnl_grp", sorted(glob.glob(channel_regex), key=natural_sort_key), False),
         ("tun_grp", sorted(glob.glob("tun_*"), key=natural_sort_key), True)]
 
-if not any(files for _, files, _ in sets):
+CIF_GROUPS = {"Tunnel": "chnl_grp", "Pore": "pore_grp", "Path": "link_grp"}
+
+if cif_file:
+    cif_groups = loadCifChannels(cif_file)
+    for kind, objects in sorted(cif_groups.items()):
+        group = CIF_GROUPS.get(kind, kind.lower() + "_grp")
+        cmd.group(freeName(group), " ".join(objects))
+    cmd.rebuild()
+    cmd.set("sphere_scale", 1.0)
+    cmd.set("sphere_quality", 2)
+    cmd.bg_color("white")
+    cmd.zoom()
+    print(f"Success: {sum(len(o) for o in cif_groups.values())} object(s) "
+          f"loaded from {cif_file}.")
+elif not any(files for _, files, _ in sets):
     print("Error: No channel files found. Check your working directory (pwd).")
 else:
     for group, files, start_off in sets:
@@ -9193,15 +10873,28 @@ else:
 def _writeVisScript(directory, pattern='chl*.pqr'):
     """Leave ``vis_channels.py`` in ``directory`` unless it is already there.
 
-    A run drops a viewer beside its PQRs, as CAVER leaves ``view.py`` beside its
+    A run drops a viewer beside its output, as CAVER leaves ``view.py`` beside its
     clusters, so the output can be opened without hunting for a script. An
     existing file is never overwritten: edits made to one run's copy survive a
     rerun, and so does a newer script left by an earlier one.
+
+    One script serves both output formats. *pattern* is what the log tells the
+    reader to pass, a glob for a PQR run and the file itself for an mmCIF one;
+    the script reads whichever it is handed, and finds the other on its own when
+    handed nothing, so a directory holding both opens either way.
     """
     import os
 
     path = os.path.join(str(directory), 'vis_channels.py')
+    usage = '`pymol vis_channels.py -- <protein>.pdb "{0}"`'.format(pattern)
+
     if os.path.exists(path):
+        # Left as it is, but still announced. The hint is the useful half of this
+        # function, and a rerun into the same directory - the usual way to try a
+        # different setting - used to get a script and no word on how to use it,
+        # the one run that said so having scrolled away.
+        LOGGER.info('View the output with the PyMOL viewer already in {0}: '
+                    '{1}.'.format(os.path.dirname(path), usage))
         return
     try:
         with open(path, 'w') as script_file:
@@ -9211,5 +10904,4 @@ def _writeVisScript(directory, pattern='chl*.pqr'):
         _warn("Could not write the PyMOL viewer {0}: {1}".format(path, err))
     else:
         LOGGER.info('Wrote the PyMOL viewer {0}. View the output with '
-                    '`pymol vis_channels.py -- <protein>.pdb "{1}"`.'.format(
-                        path, pattern))
+                    '{1}.'.format(path, usage))
