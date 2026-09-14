@@ -1968,10 +1968,7 @@ for fname, field in ATOMIC_FIELDS.items():
 
                 if not np.isscalar(array):
                     if var == 'chain':
-                        max_len = 0
-                        for val in array:
-                            if len(val) > max_len:
-                                max_len = len(val)
+                        max_len = max(map(len, array), default=0)
 
                         if max_len > int(dtype[1:]):
                             dtype = dtype[0] + str(max_len)
