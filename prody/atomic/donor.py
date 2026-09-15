@@ -125,7 +125,8 @@ def evalDonors(donors, n_atoms):
         # remove entries corresponding to missing hydrogens (with 0 in them that became -1)
         donors = donors[np.argwhere(donors == -1)[-1][0]+1:]
 
-    numdonors = np.bincount(donors.reshape((donors.shape[0] * 2)))        
+    numdonors = np.bincount(donors.reshape((donors.shape[0] * 2)),
+                            minlength=n_atoms)        
 
     domap = np.zeros((n_atoms, numdonors.max()), int)
     index = np.zeros(n_atoms, int)
