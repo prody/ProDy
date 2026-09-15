@@ -73,6 +73,9 @@ html_theme_options = {
 
 # Ensure this is set so Sphinx looks in the _static folder
 html_static_path = ['_static']
+html_js_files = [
+    "smart_search.js",
+]
 
 # -- Extension Configuration -------------------------------------------------
 
@@ -100,3 +103,59 @@ intersphinx_mapping = {
     'scipy': ('https://docs.scipy.org/doc/scipy/', None),
     'matplotlib': ('https://matplotlib.org/stable/', None),
 }
+import os
+import sys
+import json
+import os
+from sphinx.util.inventory import InventoryFile
+
+def build_api_index(app, exception):
+    # If build failed, don't do anything
+    if exception is not None:
+        return
+
+    inv_path = os.path.join(app.outdir, "objects.inv")
+    if not os.path.isfile(inv_path):
+        print("WARNING: objects.inv not found, skipping api_index.json generation")
+        return
+
+    with open(inv_path, "rb") as f:
+        inv = InventoryFile.load(f, "", lambda base, uri: uri)
+
+    # Map lowercase simple name -> URL
+    # Also keep full names in case you want them later
+    exact_simple = {}
+    exact_full = {}
+
+    # Prefer functions over methods if there's a collision
+    role_priority = ["py:function", "py:method"]
+
+    for role in role_priority:
+        if role not in inv:
+            continue
+        for fullname, data in inv[role].items():
+            # data = (project, version, uri, dispname)
+            uri = data[2]
+            # Sphinx inventory sometimes uses "$" as placeholder for fullname
+            uri = uri.replace("$", fullname)
+
+            simple = fullname.split(".")[-1].lower()
+            full_lower = fullname.lower()
+
+            # fill full map always
+            exact_full[full_lower] = uri
+
+            # fill simple map only if empty (function wins because we iterate functions first)
+            if simple not in exact_simple:
+                exact_simple[simple] = uri
+
+    out_path = os.path.join(app.outdir, "_static", "api_index.json")
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump({"exact_simple": exact_simple, "exact_full": exact_full}, f)
+
+    print(f"Wrote {out_path} with {len(exact_simple)} simple entries")
+
+def setup(app):
+    app.connect("build-finished", build_api_index)
