@@ -251,7 +251,7 @@ def fetchPDB(*pdb, **kwargs):
                       'specify another folder'.format(folder))
 
     if compressed is not None and not compressed:
-        filedict = findPDBFiles(folder, compressed=True)
+        filedict = findPDBFiles(folder, compressed=True, format=format_)
         not_found, decompress = [], not_found
         for i, pdb in decompress:
             if pdb in filedict:
