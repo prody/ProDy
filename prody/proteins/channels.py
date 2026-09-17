@@ -10956,14 +10956,24 @@ def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
     :returns: Paths to the result PQR file, protein PDB file and VMD TCL script.
     :rtype: tuple 
     
-    Usage:
+    Usage (for channels):
     atoms = parsePDB('1tqn').select("protein")
     channels, surface = calcChannels(atoms)
     writeVmdCaviTracerScript(channels, atoms)
 
     Next (bash console): 
-    >> vmd -e vis_channels.tcl 
-    """
+    >> vmd -e vis_channels.tcl
+    
+    Pores: writeVmdCaviTracerScript(pores, protein, object_type='pores')
+    
+    Links: writeVmdCaviTracerScript(details['links'], protein, object_type='links')
+    
+    Surface Cavities: writeVmdCaviTracerScript(cavities, protein,
+                         object_type='surface_cavities', surface=cavity_surface)
+     
+    Surface cavities+ channels: writeVmdCaviTracerScript(connected, protein,
+                         object_type='connected_cavities_channels',
+                         surface=cavity_surface)   """
 
     if PY3K:
         from pathlib import Path
