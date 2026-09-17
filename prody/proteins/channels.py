@@ -40,7 +40,7 @@ __all__ =['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getLinkParametersMultipleFrames', 'getLinkResidueNamesMultipleFrames',
            'scanSurfaceCavityParameters', 'connectChannelsToSurfaceCavities',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues',
-           'writeChannelsCIF']
+           'writeChannelsCIF', 'writeVmdCaviTracerScript']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -10905,3 +10905,415 @@ def _writeVisScript(directory, pattern='chl*.pqr'):
     else:
         LOGGER.info('Wrote the PyMOL viewer {0}. View the output with '
                     '{1}.'.format(path, usage))
+
+
+def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
+                             surface=None, output_path='.', num_samples=5):
+    """Write CaviTracer results and a TCL script for visualization in VMD.
+
+    The function saves the supplied CaviTracer objects to a combined PQR file,
+    saves the molecular structure to a PDB file, and creates a VMD TCL script
+    that loads both files and prepares their visualization.
+
+    Channels, pores and chamber links are displayed as VDW spheres using the
+    radii calculated by CaviTracer. Surface cavities are displayed using
+    QuickSurf. For connected surface-cavity/channel results, channels are shown
+    as VDW spheres and cavity regions using QuickSurf.
+
+    Each CaviTracer object is displayed as a separate VMD representation and
+    assigned a different color. The protein is displayed as NewCartoon together
+    with a transparent molecular surface.
+
+    :arg objects: CaviTracer objects to visualize. This can be a list of
+        channels, pores, links, surface cavities, or connected cavity-channel
+        results.
+    :type objects: list or CaviTracer object
+
+    :arg atoms: Molecular structure to display together with the CaviTracer
+        results.
+    :type atoms: :class:`.Atomic`
+
+    :arg object_type: Type of CaviTracer result. Accepted values are
+        ``'channels'``, ``'pores'``, ``'links'``,
+        ``'surface_cavities'`` and ``'connected_cavities_channels'``.
+        Default is ``'channels'``.
+    :type object_type: str
+
+    :arg surface: Surface information returned by
+        :func:`calcSurfaceCavities`. Required for ``'surface_cavities'`` and
+        ``'connected_cavities_channels'``. Ignored for channels, pores and
+        links.
+    :type surface: list or None
+
+    :arg output_path: Directory in which the PQR, PDB and TCL files are saved.
+        Default is the current directory.
+    :type output_path: str or pathlib.Path
+
+    :arg num_samples: Number of samples per tetrahedron used to represent
+        channels, pores and links. Default is 5.
+    :type num_samples: int
+
+    :returns: Paths to the result PQR file, protein PDB file and VMD TCL script.
+    :rtype: tuple 
+    
+    Usage:
+    atoms = parsePDB('1tqn').select("protein")
+    channels, surface = calcChannels(atoms)
+    writeVmdCaviTracerScript(channels, atoms)
+
+    Next (bash console): 
+    >> vmd -e vis_channels.tcl 
+    """
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    _requireCoords(atoms)
+
+    aliases = {
+        'channel': 'channels',
+        'channels': 'channels',
+        'pore': 'pores',
+        'pores': 'pores',
+        'link': 'links',
+        'links': 'links',
+        'cavity': 'surface_cavities',
+        'cavities': 'surface_cavities',
+        'surface_cavity': 'surface_cavities',
+        'surface_cavities': 'surface_cavities',
+        'connected': 'connected_cavities_channels',
+        'connected_cavity_channel': 'connected_cavities_channels',
+        'connected_cavities_channels': 'connected_cavities_channels'}
+
+    object_type = aliases.get(str(object_type).lower())
+
+    if object_type is None:
+        raise ValueError(
+            "object_type must be 'channels', 'pores', 'links', "
+            "'surface_cavities' or 'connected_cavities_channels'")
+
+    if object_type in ('surface_cavities', 'connected_cavities_channels'):
+        if surface is None or len(surface) < 5:
+            raise ValueError(
+                "surface returned by calcSurfaceCavities() must be provided "
+                "for object_type='{0}'.".format(object_type))
+
+    if objects is None:
+        raise ValueError("objects cannot be None")
+
+    if object_type == 'connected_cavities_channels':
+        if isinstance(objects, dict):
+            objects = [objects]
+    elif not isinstance(objects, list):
+        objects = [objects]
+
+    if len(objects) == 0:
+        raise ValueError("objects contains no CaviTracer objects to visualize")
+
+    output_path = Path(output_path)
+
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    names = {'channels': ('channels', 'vis_channels'),
+             'pores': ('pores', 'vis_pores'),
+             'links': ('links', 'vis_links'),
+             'surface_cavities': ('cavities', 'vis_surface_cavities'),
+             'connected_cavities_channels':
+            ('connected_cavities_channels',
+             'vis_connected_cavities_channels')}
+
+    result_stem, script_stem = names[object_type]
+
+    number = 0
+
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+
+        result_file = output_path / (
+            result_stem + suffix + '.pqr')
+        protein_file = output_path / (
+            'protein' + suffix + '.pdb')
+        script_file = output_path / (
+            script_stem + suffix + '.tcl')
+
+        if not (result_file.exists() or
+                protein_file.exists() or
+                script_file.exists()):
+            break
+
+        number += 1
+
+    # ------------------------------------------------------------------
+    # Save protein
+    # ------------------------------------------------------------------
+
+    writePDB(str(protein_file), atoms)
+
+    # ------------------------------------------------------------------
+    # Save CaviTracer objects
+    # ------------------------------------------------------------------
+
+    if object_type in ('channels', 'pores', 'links'):
+
+        labels = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}
+        label = labels[object_type]
+
+        with open(str(result_file), 'w') as handle:
+            atom_index = 1
+
+            for object_index, obj in enumerate(objects):
+                lines, written = ChannelCalculator._channelRecords(
+                    object_index, obj, atom_index, num_samples,
+                    label=label, name_sites=True)
+
+                handle.writelines(lines)
+                handle.write("\n")
+                atom_index += written
+
+    elif object_type == 'surface_cavities':
+
+        vertices = np.asarray(surface[4])
+        atom_index = 1
+        drawn = []
+
+        for cavity in objects:
+            tetrahedra = cavity.tetrahedra
+
+            if tetrahedra is None or len(tetrahedra) == 0:
+                continue
+
+            drawn.append((len(drawn), cavity,
+                          vertices[np.asarray(tetrahedra, dtype=np.intp)]))
+
+        if not drawn:
+            raise ValueError("No surface cavity contains points that can be visualized")
+
+        with open(str(result_file), 'w') as handle:
+            for cavity_index, cavity, centers in drawn:
+                lines, written = ChannelCalculator._cavityRecords(
+                    cavity_index, cavity, centers, atom_index)
+
+                handle.writelines(lines)
+                atom_index += written
+
+    else:
+        _saveConnectedCavityChannels(objects, surface, result_file, separate=False,
+                                    num_samples=num_samples)
+
+    # ------------------------------------------------------------------
+    # VMD script
+    # ------------------------------------------------------------------
+
+    tcl = r'''# CaviTracer visualization for VMD
+#
+# Run with:
+#     vmd -e __SCRIPT_NAME__
+
+set script_dir [file dirname [file normalize [info script]]]
+
+set protein_file [file join $script_dir {__PROTEIN_FILE__}]
+set result_file  [file join $script_dir {__RESULT_FILE__}]
+set object_type "__OBJECT_TYPE__"
+
+# ----------------------------------------------------------------------
+# Display
+# ----------------------------------------------------------------------
+
+color Display Background white
+display projection Orthographic
+display depthcue off
+axes location Off
+
+# ----------------------------------------------------------------------
+# Protein
+# ----------------------------------------------------------------------
+
+mol new $protein_file type pdb waitfor all
+set protein_mol [molinfo top]
+mol rename $protein_mol "Protein"
+
+mol delrep 0 $protein_mol
+
+mol representation NewCartoon
+mol color ColorID 2
+mol selection "protein"
+mol material Opaque
+mol addrep $protein_mol
+
+mol representation Surf
+mol color ColorID 8
+mol selection "protein"
+mol material Transparent
+mol addrep $protein_mol
+
+# ----------------------------------------------------------------------
+# CaviTracer object
+# ----------------------------------------------------------------------
+
+mol new $result_file type pqr waitfor all
+set result_mol [molinfo top]
+
+# CaviTracer stores the sphere radius in the final PQR field. Set the
+# VMD atomic radius explicitly rather than depending on the PQR reader.
+
+proc set_cavitracer_radii {molid filename} {
+
+    set radii {}
+    set handle [open $filename r]
+
+    while {[gets $handle line] >= 0} {
+
+        if {[string match "ATOM*" $line] ||
+            [string match "HETATM*" $line]} {
+
+            set fields [regexp -all -inline {\S+} $line]
+
+            if {[llength $fields] > 0} {
+                lappend radii [lindex $fields end]
+            }
+        }
+    }
+
+    close $handle
+
+    set sel [atomselect $molid "all"]
+
+    if {[$sel num] == [llength $radii]} {
+        $sel set radius $radii
+    } else {
+        puts "WARNING: Number of CaviTracer radii does not match number of atoms."
+        puts "         atoms = [$sel num], radii = [llength $radii]"
+    }
+
+    $sel delete
+}
+
+set_cavitracer_radii $result_mol $result_file
+
+mol delrep 0 $result_mol
+
+# VMD ColorIDs used for consecutive CaviTracer objects.
+set cavitracer_colors {
+    0 7 1 10 4 11
+    3 9 12 13 14 15
+    5 6 17 18 19 20
+    21 22 23 24 25 26
+    27 28 29 30 31 32
+}
+
+set ncolors [llength $cavitracer_colors]
+
+proc add_vdw_objects {molid selection_prefix colors ncolors} {
+
+    set all [atomselect $molid $selection_prefix]
+    set resids [lsort -integer -unique [$all get resid]]
+    $all delete
+
+    set index 0
+
+    foreach resid $resids {
+
+        set color_id [lindex $colors [expr {$index % $ncolors}]]
+
+        mol representation VDW 1.0 20.0
+        mol color ColorID $color_id
+        mol selection "$selection_prefix and resid $resid"
+        mol material Opaque
+        mol addrep $molid
+
+        incr index
+    }
+}
+
+proc add_quicksurf_objects {molid selection_prefix colors ncolors} {
+
+    set all [atomselect $molid $selection_prefix]
+    set resids [lsort -integer -unique [$all get resid]]
+    $all delete
+
+    set index 0
+
+    foreach resid $resids {
+
+        set color_id [lindex $colors [expr {$index % $ncolors}]]
+
+        mol representation QuickSurf 1.0 0.5 0.25 2.0
+        mol color ColorID $color_id
+        mol selection "$selection_prefix and resid $resid"
+        mol material Opaque
+        mol addrep $molid
+
+        incr index
+    }
+}
+
+if {$object_type == "channels"} {
+
+    mol rename $result_mol "CaviTracer channels"
+    add_vdw_objects $result_mol "resname FIL" \
+        $cavitracer_colors $ncolors
+
+} elseif {$object_type == "pores"} {
+
+    mol rename $result_mol "CaviTracer pores"
+    add_vdw_objects $result_mol "resname FIL" \
+        $cavitracer_colors $ncolors
+
+} elseif {$object_type == "links"} {
+
+    mol rename $result_mol "CaviTracer links"
+    add_vdw_objects $result_mol "resname FIL" \
+        $cavitracer_colors $ncolors
+
+} elseif {$object_type == "surface_cavities"} {
+
+    mol rename $result_mol "CaviTracer surface cavities"
+    add_quicksurf_objects $result_mol "resname FIL" \
+        $cavitracer_colors $ncolors
+
+} elseif {$object_type == "connected_cavities_channels"} {
+
+    mol rename $result_mol "CaviTracer connected cavities and channels"
+
+    # _saveConnectedCavityChannels writes cavity markers in chain C
+    # and channel spheres in chain H.
+    add_quicksurf_objects $result_mol "resname FIL and chain C" \
+        $cavitracer_colors $ncolors
+
+    add_vdw_objects $result_mol "resname FIL and chain H" \
+        $cavitracer_colors $ncolors
+}
+
+# Keep the protein as the top molecule and centre the complete view.
+mol top $protein_mol
+display resetview
+
+puts ""
+puts "CaviTracer visualization ready."
+puts "Protein: __PROTEIN_FILE__"
+puts "Result:  __RESULT_FILE__"
+'''
+
+    tcl = tcl.replace('__SCRIPT_NAME__', script_file.name)
+    tcl = tcl.replace('__PROTEIN_FILE__', protein_file.name)
+    tcl = tcl.replace('__RESULT_FILE__', result_file.name)
+    tcl = tcl.replace('__OBJECT_TYPE__', object_type)
+
+    with open(str(script_file), 'w') as handle:
+        handle.write(tcl)
+
+    LOGGER.info("CaviTracer VMD files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    VMD script: {0}".format(script_file))
+    LOGGER.info("View the result with: vmd -e {0}".format(script_file.name))
+
+    return str(result_file), str(protein_file), str(script_file)
+    
+    
