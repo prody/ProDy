@@ -11507,10 +11507,10 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
     Other CaviTracer objects:
     writeChimeraXCaviTracerScript(pores, atoms, object_type='pores')
 
-    writeChimeraXCaviTracerScript(cavities, protein, object_type='surface_cavities', 
+    writeChimeraXCaviTracerScript(cavities, atoms, object_type='surface_cavities', 
                                     surface=surface)
 
-    writeChimeraXCaviTracerScript(connected, protein,
+    writeChimeraXCaviTracerScript(connected, atoms,
                     object_type='connected_cavities_channels', surface=cavity_surface) 
                     
     Next (bash console): 
@@ -11757,7 +11757,7 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
     LOGGER.info("    protein: {0}".format(protein_file))
     LOGGER.info("    results: {0}".format(result_file))
     LOGGER.info("    ChimeraX script: {0}".format(script_file))
-    LOGGER.info("Open {0} in ChimeraX to view the result.".format(script_file.name))
-
+    LOGGER.info("View the result with: chimerax {0}".format(script_file.name))
+    
     return str(result_file), str(protein_file), str(script_file)
     
