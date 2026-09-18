@@ -11348,7 +11348,19 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     :type num_samples: int
 
     :returns: Paths to the mmCIF file, protein PDB file and PyMOL script.
-    :rtype: tuple """
+    :rtype: tuple 
+    
+    Usage:
+    atoms = parsePDB('1tqn').select("protein")
+    channels, surface = calcChannels(atoms)
+    
+    For channels:
+    writePyMolCaviTracerScript(channels, protein)
+    
+    For pores:
+    writePyMolCaviTracerScript(pores, protein, object_type='pores') 
+    
+    Next: pymol vis_channels.py -- protein.pdb channels.cif   """
 
     if PY3K:
         from pathlib import Path
