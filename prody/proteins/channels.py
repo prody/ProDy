@@ -11013,14 +11013,11 @@ def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
     if objects is None:
         raise ValueError("objects cannot be None")
 
-    if object_type == 'connected_cavities_channels':
-        if isinstance(objects, dict):
-            objects = [objects]
-    elif not isinstance(objects, list):
+    if isinstance(objects, list):
+        if not objects:
+            raise ValueError("objects contains no CaviTracer objects to visualize")
+    else:
         objects = [objects]
-
-    if len(objects) == 0:
-        raise ValueError("objects contains no CaviTracer objects to visualize")
 
     output_path = Path(output_path)
 
@@ -11059,15 +11056,7 @@ def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
 
         number += 1
 
-    # ------------------------------------------------------------------
-    # Save protein
-    # ------------------------------------------------------------------
-
     writePDB(str(protein_file), atoms)
-
-    # ------------------------------------------------------------------
-    # Save CaviTracer objects
-    # ------------------------------------------------------------------
 
     if object_type in ('channels', 'pores', 'links'):
 
