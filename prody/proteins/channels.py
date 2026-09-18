@@ -40,7 +40,7 @@ __all__ =['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getLinkParametersMultipleFrames', 'getLinkResidueNamesMultipleFrames',
            'scanSurfaceCavityParameters', 'connectChannelsToSurfaceCavities',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues',
-           'writeChannelsCIF', 'writeVmdCaviTracerScript']
+           'writeChannelsCIF', 'writeVmdCaviTracerScript', 'writePyMolCaviTracerScript']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -11314,5 +11314,127 @@ puts "Result:  __RESULT_FILE__"
     LOGGER.info("View the result with: vmd -e {0}".format(script_file.name))
 
     return str(result_file), str(protein_file), str(script_file)
+    
+    
+def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
+                               output_path='.', num_samples=5):
+    """Prepare CaviTracer results for visualization in PyMOL.
+
+    This function writes CaviTracer objects in the tunnels-schema mmCIF format,
+    saves the supplied molecular structure as a PDB file, and creates the
+    existing CaviTracer PyMOL visualization script.
+
+    The function uses the same mmCIF writer and PyMOL viewer as
+    :func:`calcChannels` and :func:`calcPoresFromChannels`.
+
+    :arg objects: CaviTracer channels, pores, or chamber links to visualize.
+    :type objects: list or Channel
+
+    :arg atoms: Molecular structure to display together with the CaviTracer
+        results.
+    :type atoms: :class:`.Atomic`
+
+    :arg object_type: Type of CaviTracer objects. Accepted values are
+        ``'channels'``, ``'pores'`` and ``'links'``.
+        Default is ``'channels'``.
+    :type object_type: str
+
+    :arg output_path: Directory in which the mmCIF, PDB and PyMOL viewer are
+        saved. Default is the current directory.
+    :type output_path: str or pathlib.Path
+
+    :arg num_samples: Number of samples per tetrahedron used for the channel,
+        pore, or link profile. Default is 5.
+    :type num_samples: int
+
+    :returns: Paths to the mmCIF file, protein PDB file and PyMOL script.
+    :rtype: tuple """
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    _requireCoords(atoms)
+
+    aliases = {
+        'channel': 'channels',
+        'channels': 'channels',
+        'pore': 'pores',
+        'pores': 'pores',
+        'link': 'links',
+        'links': 'links'}
+
+    object_type = aliases.get(str(object_type).lower())
+
+    if object_type is None:
+        raise ValueError("object_type must be 'channels', 'pores' or 'links'")
+
+    if objects is None:
+        raise ValueError("objects cannot be None")
+
+    if isinstance(objects, list):
+        if not objects:
+            raise ValueError("objects contains no CaviTracer objects to visualize")
+    else:
+        objects = [objects]
+
+    output_path = Path(output_path)
+
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    result_stems = {'channels': 'channels', 'pores': 'pores', 'links': 'links'}
+    result_stem = result_stems[object_type]
+    number = 0
+
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+
+        result_file = output_path / (
+            result_stem + suffix + '.cif')
+        protein_file = output_path / (
+            'protein' + suffix + '.pdb')
+
+        if not result_file.exists() and not protein_file.exists():
+            break
+
+        number += 1
+
+    writePDB(str(protein_file), atoms)
+
+    if object_type == 'channels':
+        written = writeChannelsCIF(result_file, objects, 
+                            atoms=atoms, num_samples=num_samples)
+
+    elif object_type == 'pores':
+        written = writeChannelsCIF(result_file, objects, atoms=atoms,
+            object_type='pore', num_samples=num_samples)
+
+    else:
+        written = writeChannelsCIF(result_file, [], 
+                                    atoms=atoms, 
+                                    links=objects,
+                                    num_samples=num_samples)
+
+    if written is None:
+        raise ValueError("No CaviTracer objects were written to the mmCIF file")
+
+    written = Path(written)
+    _writeVisScript(written.parent, written.name)
+    script_file = written.parent / 'vis_channels.py'
+
+    LOGGER.info("CaviTracer PyMOL files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(written))
+    LOGGER.info("    PyMOL script: {0}".format(script_file))
+    LOGGER.info(
+        "View the result with: pymol {0} -- {1} {2}".format(
+            script_file.name, protein_file.name, written.name))
+
+    return str(written), str(protein_file), str(script_file)
     
     
