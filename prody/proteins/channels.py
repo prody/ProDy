@@ -11361,7 +11361,8 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     For pores:
     writePyMolCaviTracerScript(pores, protein, object_type='pores') 
     
-    Next: pymol vis_channels.py -- protein.pdb channels.cif   """
+    Next (bash console): 
+    $ pymol vis_channels.py -- protein.pdb channels.cif   """
 
     if PY3K:
         from pathlib import Path
@@ -11495,7 +11496,25 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
 
     :returns: Paths to the result PQR file, protein PDB file and ChimeraX
         command file.
-    :rtype: tuple  """
+    :rtype: tuple  
+    
+    Usage:
+    p = parsePDB('1tqn')
+    atoms = p.select("protein")
+    channels, surface = calcChannels(atoms)
+    writeChimeraXCaviTracerScript(channels, atoms)
+    
+    Other CaviTracer objects:
+    writeChimeraXCaviTracerScript(pores, atoms, object_type='pores')
+
+    writeChimeraXCaviTracerScript(cavities, protein, object_type='surface_cavities', 
+                                    surface=surface)
+
+    writeChimeraXCaviTracerScript(connected, protein,
+                    object_type='connected_cavities_channels', surface=cavity_surface) 
+                    
+    Next (bash console): 
+    $ chimerax vis_channels.cxc  """
 
     if PY3K:
         from pathlib import Path
@@ -11621,6 +11640,21 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         _saveConnectedCavityChannels(
             objects, surface, result_file, separate=False,
             num_samples=num_samples)
+            
+    cavitracer_radii = []
+    with open(str(result_file), 'r') as handle:
+        for line in handle:
+            if not line.startswith(('ATOM', 'HETATM')):
+                continue
+
+            fields = line.split()
+            try:
+                serial = int(fields[1])
+                radius = float(fields[-1])
+            except (ValueError, IndexError):
+                continue
+
+            cavitracer_radii.append((serial, radius))
 
     protein_path = protein_file.resolve().as_posix().replace('"', '\\"')
     result_path = result_file.resolve().as_posix().replace('"', '\\"')
@@ -11652,6 +11686,14 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         '# CaviTracer result.',
         'open "{0}" id #2 name "CaviTracer {1}" autoStyle false atomic false'.format(
             result_path, object_type.replace('_', ' '))]
+
+    lines.extend(['', '# Set the CaviTracer radii explicitly.'])
+
+    for serial, radius in cavitracer_radii:
+        lines.append(
+            'size #2@@serial_number={0} atomRadius {1:.4f}'.format(
+                serial, radius))
+    lines.append('')
 
     if object_type in ('channels', 'pores', 'links'):
         lines.extend([
