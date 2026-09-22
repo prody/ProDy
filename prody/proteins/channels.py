@@ -40,7 +40,8 @@ __all__ =['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'getLinkParametersMultipleFrames', 'getLinkResidueNamesMultipleFrames',
            'scanSurfaceCavityParameters', 'connectChannelsToSurfaceCavities',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues',
-           'writeChannelsCIF', 'writeVmdCaviTracerScript']
+           'writeChannelsCIF', 'writeVmdCaviTracerScript', 'writePyMolCaviTracerScript',
+           'writeChimeraXCaviTracerScript']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -11315,4 +11316,448 @@ puts "Result:  __RESULT_FILE__"
 
     return str(result_file), str(protein_file), str(script_file)
     
+    
+def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
+                               output_path='.', num_samples=5):
+    """Prepare CaviTracer results for visualization in PyMOL.
+
+    This function writes CaviTracer objects in the tunnels-schema mmCIF format,
+    saves the supplied molecular structure as a PDB file, and creates the
+    existing CaviTracer PyMOL visualization script.
+
+    The function uses the same mmCIF writer and PyMOL viewer as
+    :func:`calcChannels` and :func:`calcPoresFromChannels`.
+
+    :arg objects: CaviTracer channels, pores, or chamber links to visualize.
+    :type objects: list or Channel
+
+    :arg atoms: Molecular structure to display together with the CaviTracer
+        results.
+    :type atoms: :class:`.Atomic`
+
+    :arg object_type: Type of CaviTracer objects. Accepted values are
+        ``'channels'``, ``'pores'`` and ``'links'``.
+        Default is ``'channels'``.
+    :type object_type: str
+
+    :arg output_path: Directory in which the mmCIF, PDB and PyMOL viewer are
+        saved. Default is the current directory.
+    :type output_path: str or pathlib.Path
+
+    :arg num_samples: Number of samples per tetrahedron used for the channel,
+        pore, or link profile. Default is 5.
+    :type num_samples: int
+
+    :returns: Paths to the mmCIF file, protein PDB file and PyMOL script.
+    :rtype: tuple 
+    
+    Usage:
+    atoms = parsePDB('1tqn').select("protein")
+    channels, surface = calcChannels(atoms)
+    
+    For channels:
+    writePyMolCaviTracerScript(channels, protein)
+    
+    For pores:
+    writePyMolCaviTracerScript(pores, protein, object_type='pores') 
+    
+    Next (bash console): 
+    $ pymol vis_channels.py -- protein.pdb channels.cif   """
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    _requireCoords(atoms)
+
+    aliases = {
+        'channel': 'channels',
+        'channels': 'channels',
+        'pore': 'pores',
+        'pores': 'pores',
+        'link': 'links',
+        'links': 'links'}
+
+    object_type = aliases.get(str(object_type).lower())
+
+    if object_type is None:
+        raise ValueError("object_type must be 'channels', 'pores' or 'links'")
+
+    if objects is None:
+        raise ValueError("objects cannot be None")
+
+    if isinstance(objects, list):
+        if not objects:
+            raise ValueError("objects contains no CaviTracer objects to visualize")
+    else:
+        objects = [objects]
+
+    output_path = Path(output_path)
+
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    result_stems = {'channels': 'channels', 'pores': 'pores', 'links': 'links'}
+    result_stem = result_stems[object_type]
+    number = 0
+
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+
+        result_file = output_path / (
+            result_stem + suffix + '.cif')
+        protein_file = output_path / (
+            'protein' + suffix + '.pdb')
+
+        if not result_file.exists() and not protein_file.exists():
+            break
+
+        number += 1
+
+    writePDB(str(protein_file), atoms)
+
+    if object_type == 'channels':
+        written = writeChannelsCIF(result_file, objects, 
+                            atoms=atoms, num_samples=num_samples)
+
+    elif object_type == 'pores':
+        written = writeChannelsCIF(result_file, objects, atoms=atoms,
+            object_type='pore', num_samples=num_samples)
+
+    else:
+        written = writeChannelsCIF(result_file, [], 
+                                    atoms=atoms, 
+                                    links=objects,
+                                    num_samples=num_samples)
+
+    if written is None:
+        raise ValueError("No CaviTracer objects were written to the mmCIF file")
+
+    written = Path(written)
+    _writeVisScript(written.parent, written.name)
+    script_file = written.parent / 'vis_channels.py'
+
+    LOGGER.info("CaviTracer PyMOL files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(written))
+    LOGGER.info("    PyMOL script: {0}".format(script_file))
+    LOGGER.info(
+        "View the result with: pymol {0} -- {1} {2}".format(
+            script_file.name, protein_file.name, written.name))
+
+    return str(written), str(protein_file), str(script_file)
+    
+    
+def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
+                                  surface=None, output_path='.', num_samples=5):
+    """Write CaviTracer results and a ChimeraX command script.
+
+    The function saves the supplied CaviTracer objects to a combined PQR file,
+    saves the molecular structure to a PDB file, and creates a ChimeraX command
+    file (.cxc) that loads and visualizes both files.
+
+    Channels, pores and chamber links are displayed as spheres using the
+    radii stored in the CaviTracer PQR file. Surface cavities are displayed
+    as molecular surfaces generated around the cavity marker atoms.
+    Connected surface-cavity/channel results display the cavity regions as
+    surfaces and the connected channels as spheres.
+
+    The protein is displayed as a cartoon together with a transparent
+    molecular surface.
+
+    :arg objects: CaviTracer objects to visualize.
+    :type objects: list or CaviTracer object
+
+    :arg atoms: Molecular structure displayed with the CaviTracer results.
+    :type atoms: :class:`.Atomic`
+
+    :arg object_type: Type of CaviTracer result. Accepted values are
+        ``'channels'``, ``'pores'``, ``'links'``,
+        ``'surface_cavities'`` and ``'connected_cavities_channels'``.
+        Default is ``'channels'``.
+    :type object_type: str
+
+    :arg surface: Surface information returned by
+        :func:`calcSurfaceCavities`. Required for ``'surface_cavities'`` and
+        ``'connected_cavities_channels'``.
+    :type surface: list or None
+
+    :arg output_path: Directory in which the PQR, PDB and ChimeraX command
+        files are saved. Default is the current directory.
+    :type output_path: str or pathlib.Path
+
+    :arg num_samples: Number of samples per tetrahedron used to represent
+        channels, pores and links. Default is 5.
+    :type num_samples: int
+
+    :returns: Paths to the result PQR file, protein PDB file and ChimeraX
+        command file.
+    :rtype: tuple  
+    
+    Usage:
+    p = parsePDB('1tqn')
+    atoms = p.select("protein")
+    channels, surface = calcChannels(atoms)
+    writeChimeraXCaviTracerScript(channels, atoms)
+    
+    Other CaviTracer objects:
+    writeChimeraXCaviTracerScript(pores, atoms, object_type='pores')
+
+    writeChimeraXCaviTracerScript(cavities, atoms, object_type='surface_cavities', 
+                                    surface=surface)
+
+    writeChimeraXCaviTracerScript(connected, atoms,
+                    object_type='connected_cavities_channels', surface=cavity_surface) 
+                    
+    Next (bash console): 
+    $ chimerax vis_channels.cxc  """
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    _requireCoords(atoms)
+
+    aliases = {
+        'channel': 'channels',
+        'channels': 'channels',
+        'pore': 'pores',
+        'pores': 'pores',
+        'link': 'links',
+        'links': 'links',
+        'cavity': 'surface_cavities',
+        'cavities': 'surface_cavities',
+        'surface_cavity': 'surface_cavities',
+        'surface_cavities': 'surface_cavities',
+        'connected': 'connected_cavities_channels',
+        'connected_cavity_channel': 'connected_cavities_channels',
+        'connected_cavities_channels': 'connected_cavities_channels'}
+
+    object_type = aliases.get(str(object_type).lower())
+
+    if object_type is None:
+        raise ValueError("object_type must be 'channels', 'pores', 'links', "
+                        "'surface_cavities' or 'connected_cavities_channels'")
+
+    if object_type in ('surface_cavities', 'connected_cavities_channels'):
+        if surface is None or len(surface) < 5:
+            raise ValueError("surface returned by calcSurfaceCavities() must be provided "
+                            "for object_type='{0}'.".format(object_type))
+
+    if objects is None:
+        raise ValueError("objects cannot be None")
+
+    if isinstance(objects, list):
+        if not objects:
+            raise ValueError("objects contains no CaviTracer objects to visualize")
+    else:
+        objects = [objects]
+
+    output_path = Path(output_path)
+
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    names = {'channels': ('channels', 'vis_channels'),
+            'pores': ('pores', 'vis_pores'),
+            'links': ('links', 'vis_links'),
+            'surface_cavities': ('cavities', 'vis_surface_cavities'),
+            'connected_cavities_channels':
+                ('connected_cavities_channels',
+                'vis_connected_cavities_channels')}
+
+    result_stem, script_stem = names[object_type]
+    number = 0
+
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+
+        result_file = output_path / (result_stem + suffix + '.pqr')
+        protein_file = output_path / ('protein' + suffix + '.pdb')
+        script_file = output_path / (script_stem + suffix + '.cxc')
+
+        if not (result_file.exists() or
+                protein_file.exists() or
+                script_file.exists()):
+            break
+
+        number += 1
+
+    writePDB(str(protein_file), atoms)
+
+    if object_type in ('channels', 'pores', 'links'):
+
+        labels = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}
+        label = labels[object_type]
+
+        with open(str(result_file), 'w') as handle:
+            atom_index = 1
+
+            for object_index, obj in enumerate(objects):
+                lines, written = ChannelCalculator._channelRecords(
+                    object_index, obj, atom_index, num_samples,
+                    label=label, name_sites=True)
+
+                handle.writelines(lines)
+                handle.write("\n")
+                atom_index += written
+
+    elif object_type == 'surface_cavities':
+
+        vertices = np.asarray(surface[4])
+        atom_index = 1
+        drawn = []
+
+        for cavity in objects:
+            tetrahedra = cavity.tetrahedra
+
+            if tetrahedra is None or len(tetrahedra) == 0:
+                continue
+
+            drawn.append((len(drawn),cavity,
+                vertices[np.asarray(tetrahedra, dtype=np.intp)]))
+
+        if not drawn:
+            raise ValueError("No surface cavity contains points that can be visualized")
+
+        with open(str(result_file), 'w') as handle:
+            for cavity_index, cavity, centers in drawn:
+                lines, written = ChannelCalculator._cavityRecords(
+                    cavity_index, cavity, centers, atom_index)
+
+                handle.writelines(lines)
+                atom_index += written
+
+    else:
+        _saveConnectedCavityChannels(
+            objects, surface, result_file, separate=False,
+            num_samples=num_samples)
+            
+    cavitracer_radii = []
+    with open(str(result_file), 'r') as handle:
+        for line in handle:
+            if not line.startswith(('ATOM', 'HETATM')):
+                continue
+
+            fields = line.split()
+            try:
+                serial = int(fields[1])
+                radius = float(fields[-1])
+            except (ValueError, IndexError):
+                continue
+
+            cavitracer_radii.append((serial, radius))
+
+    protein_path = protein_file.resolve().as_posix().replace('"', '\\"')
+    result_path = result_file.resolve().as_posix().replace('"', '\\"')
+
+    colors = ['blue', 'green', 'red', 'cyan', 'yellow', 'magenta',
+        'orange', 'purple', 'lime', 'pink', 'gold', 'tan']
+
+    lines = [
+        '# CaviTracer visualization for ChimeraX',
+        '#',
+        '# Open this file in ChimeraX or start ChimeraX with this file.',
+        '',
+        '# Start from a clean visualization.',
+        'close',
+        '',
+        '# Display settings.',
+        'graphics bgColor white',
+        'camera ortho',
+        '',
+        '# Protein.',
+        'open "{0}" id #1 name Protein autoStyle false'.format(protein_path),
+        'hide #1 atoms,bonds',
+        'show #1 cartoons',
+        'color #1 lightgray target c',
+        'surface #1',
+        'color #1 lightgray target s',
+        'transparency #1 65 target s',
+        '',
+        '# CaviTracer result.',
+        'open "{0}" id #2 name "CaviTracer {1}" autoStyle false atomic false'.format(
+            result_path, object_type.replace('_', ' '))]
+
+    lines.extend(['', '# Set the CaviTracer radii explicitly.'])
+
+    for serial, radius in cavitracer_radii:
+        lines.append(
+            'size #2@@serial_number={0} atomRadius {1:.4f}'.format(
+                serial, radius))
+    lines.append('')
+
+    if object_type in ('channels', 'pores', 'links'):
+        lines.extend([
+            'hide #2 atoms,bonds',
+            'show #2 atoms',
+            'style #2 sphere',
+            ''])
+
+        for index in range(len(objects)):
+            color = colors[index % len(colors)]
+            resid = index + 1
+            lines.append('color #2/T:{0} {1} target a'.format(
+                resid, color))
+
+    elif object_type == 'surface_cavities':
+
+        lines.extend(['hide #2 atoms,bonds', ''])
+
+        for index in range(len(drawn)):
+            color = colors[index % len(colors)]
+            resid = index + 1
+
+            lines.append('surface #2/T:{0}'.format(resid))
+            lines.append('color #2/T:{0} {1} target s'.format(resid, color))
+
+    else:
+        lines.extend(['hide #2 atoms,bonds', 'show #2/H atoms', 'style #2/H sphere', ''])
+
+        cavity_indices = sorted(set(
+            int(result['cavity_index']) for result in objects))
+        channel_indices = sorted(set(
+            int(result['channel_index']) for result in objects))
+
+        lines.append('# Connected surface cavities.')
+
+        for i, cavity_index in enumerate(cavity_indices):
+            color = colors[i % len(colors)]
+            resid = cavity_index + 1
+
+            lines.append('surface #2/C:{0}'.format(resid))
+            lines.append('color #2/C:{0} {1} target s'.format(resid, color))
+
+        lines.append('')
+        lines.append('# Connected channels.')
+
+        offset = len(cavity_indices)
+
+        for i, channel_index in enumerate(channel_indices):
+            color = colors[(i + offset) % len(colors)]
+            resid = channel_index + 1
+
+            lines.append('color #2/H:{0} {1} target a'.format(resid, color))
+
+    lines.extend(['', '# Fit the complete system to the window.',
+        'view', '', 'log text CaviTracer visualization ready.'])
+
+    with open(str(script_file), 'w') as handle:
+        handle.write('\n'.join(lines) + '\n')
+
+    LOGGER.info("CaviTracer ChimeraX files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    ChimeraX script: {0}".format(script_file))
+    LOGGER.info("View the result with: chimerax {0}".format(script_file.name))
+    
+    return str(result_file), str(protein_file), str(script_file)
     
