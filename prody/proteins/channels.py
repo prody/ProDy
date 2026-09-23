@@ -41,7 +41,7 @@ __all__ =['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'scanSurfaceCavityParameters', 'connectChannelsToSurfaceCavities',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues',
            'writeChannelsCIF', 'writeVmdCaviTracerScript', 'writePyMolCaviTracerScript',
-           'writeChimeraXCaviTracerScript']
+           'writeChimeraXCaviTracerScript', 'mergeFramesPQR']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -3785,10 +3785,126 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
         
         with ctx.Pool(processes=max_proc) as pool:
             pores_all = pool.map(_calcPoresFromChannelsWorker, tasks)
-    
-    return pores_all    
-    
-    
+
+    return pores_all
+
+
+def mergeFramesPQR(inputs, filename, prefix=None, stride=1):
+    """Merge the per-frame PQR files of a multi-frame run into one multi-model
+    PQR, a ``MODEL`` block per frame.
+
+    :func:`calcChannelsMultipleFrames` and the other multi-frame functions write
+    a file per frame, the frame number ending its name: ``channels12.pqr`` in a
+    directory, ``<output_path>12.pqr`` otherwise. This gathers them after the
+    run into the one file the multi-model viewer scripts read.
+
+    The ``MODEL`` number is the frame number rather than a count, so a frame
+    keeps its number whatever else was merged, and the files of two frame
+    ranges concatenate without renumbering. A frame that found nothing left no
+    file, so it has no block either.
+
+    Each frame's records are copied as they stand, blank lines aside. Its serial
+    numbers start from 1 as they did in its own file, which keeps them within
+    the five columns a PQR serial has, however many frames there are.
+
+    :arg inputs: the per-frame files: a directory, a glob pattern, or a list
+        of paths.
+    :type inputs: str or list
+
+    :arg filename: the multi-model PQR to write.
+    :type filename: str
+
+    :arg prefix: the part of the names before the frame number, such as
+        ``'channels'``. Only files named ``<prefix><frame>.pqr`` are taken. Needed
+        only where the files given are of more than one kind, as in a directory
+        written with ``separate=True``, which holds ``channels12_chl3.pqr`` beside
+        ``channels12.pqr``. Default is the one prefix all the names share.
+    :type prefix: str
+
+    :arg stride: keep only the frames whose number is a multiple of *stride*.
+        Default is 1, every frame.
+    :type stride: int
+
+    :returns: the filename written
+    :rtype: str
+
+    Usage:
+    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms,
+        trajectory=dcd, output_path='frames')
+    mergeFramesPQR('frames', 'channels_frames.pqr')
+    mergeFramesPQR('frames/channels*.pqr', 'every10th.pqr', stride=10)"""
+
+    import glob
+    import os
+    import re
+
+    stride = int(stride)
+    if stride < 1:
+        raise ValueError('stride must be a positive integer, not {0}'.format(stride))
+
+    if isinstance(inputs, (list, tuple)):
+        paths = [str(path) for path in inputs]
+    elif os.path.isdir(str(inputs)):
+        paths = glob.glob(os.path.join(str(inputs), '*.pqr'))
+    else:
+        paths = glob.glob(str(inputs))
+
+    # The frame is the number ending the name, and what comes before it says
+    # what kind of file it is. A name ending in no number is no frame's file -
+    # the links beside a frame's channels, <name>12_links.pqr - and is passed
+    # over; one of another kind, a separate channel's <name>12_chl3.pqr, would
+    # be read as frame 3 and is refused below instead.
+    pattern = re.compile(r'^(.*?)(\d+)\.pqr$')
+    found = {}
+    for path in paths:
+        match = pattern.match(os.path.basename(path))
+        if match is None or (prefix is not None and match.group(1) != prefix):
+            continue
+        found.setdefault(match.group(1), {}).setdefault(
+            int(match.group(2)), []).append(path)
+
+    if not found:
+        raise ValueError('no per-frame PQR files found in {0!r}{1}'.format(
+            inputs, '' if prefix is None else ' named {0}<frame>.pqr'.format(prefix)))
+    if len(found) > 1:
+        # Shortest first, which puts the frames' own files ahead of the
+        # per-channel ones, of which there are as many kinds as frames.
+        named = sorted(found, key=lambda name: (len(name), name))
+        raise ValueError('the files are of more than one kind, named {0}{1}; '
+                         'choose the one to merge with prefix='.format(
+                             ', '.join(name + '<frame>.pqr' for name in named[:4]),
+                             ', ...' if len(named) > 4 else ''))
+
+    (stem, frames), = found.items()
+    for frame, given in sorted(frames.items()):
+        if len(given) > 1:
+            raise ValueError('frame {0} is given more than once: {1}'.format(
+                frame, ', '.join(given)))
+    frames = dict((frame, given[0]) for frame, given in frames.items())
+
+    kept = sorted(frame for frame in frames if frame % stride == 0)
+    if not kept:
+        raise ValueError('stride={0} keeps none of the {1} frames found, {2} to '
+                         '{3}'.format(stride, len(frames), min(frames), max(frames)))
+
+    with open(str(filename), 'w') as out:
+        out.write('REMARK   {0} frames of {1}<frame>.pqr, one MODEL each\n'.format(
+            len(kept), stem))
+        out.write('REMARK   MODEL numbers are frame numbers\n')
+        for frame in kept:
+            out.write('MODEL%9d\n' % frame)
+            with open(frames[frame]) as handle:
+                out.writelines(line for line in handle
+                               if line.strip() and line.split()[0] != 'END')
+            out.write('ENDMDL\n')
+        out.write('END\n')
+
+    LOGGER.info('{0} frames merged into {1}{2}.'.format(
+        len(kept), filename,
+        '' if stride == 1 else ' (every frame numbered a multiple of {0})'.format(stride)))
+    return str(filename)
+
+
 def parseParameters(channels, **kwargs):
     """Extracts and returns the lengths, bottlenecks, and volumes of each
     channel in a given list of channels.
