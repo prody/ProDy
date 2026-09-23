@@ -531,8 +531,13 @@ def _calcChannelsMultipleFramesWorker(args):
     atoms_copy = atoms.copy()
     atoms_copy.setCoords(frame_coords)
 
-    return calcChannels(atoms_copy, output_path=frame_output_path, separate=separate,
-                        start_point=start_point, return_details=return_details, **kwargs)
+    result = calcChannels(atoms_copy, output_path=frame_output_path, separate=separate,
+                          start_point=start_point, return_details=return_details, **kwargs)
+    if return_details:
+        # The frame travels with its details, so that the pores built from them
+        # later are named by the frame and not by their place in the list.
+        result[2]['frame'] = frame_nr
+    return result
 
 
 def _calcSurfaceCavitiesMultipleFramesWorker(args):
@@ -3760,7 +3765,11 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
             output_path = output_path.with_suffix(frame_suffix)
 
     tasks = []
-    for frame_nr, (channels, details) in enumerate(zip(channels_all, details_all)):
+    for position, (channels, details) in enumerate(zip(channels_all, details_all)):
+        # The frame the channels came from, as calcChannelsMultipleFrames records
+        # it, so that a run started past frame 0 keeps its numbers; details put
+        # together otherwise are numbered by position, as they always were.
+        frame_nr = details.get('frame', position)
         if into_directory:
             frame_output_path = _frameOutputPath(output_path, frame_nr, "pores",
                                                  frame_suffix)
