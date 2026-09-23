@@ -42,7 +42,8 @@ __all__ =['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues',
            'writeChannelsCIF', 'writeVmdCaviTracerScript', 'writePyMolCaviTracerScript',
            'writeChimeraXCaviTracerScript', 'mergeFramesPQR',
-           'writeChimeraXMultiModelScript', 'writePyMolMultiModelScript']
+           'writeChimeraXMultiModelScript', 'writePyMolMultiModelScript',
+           'writeVmdMultiModelScript']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -11567,6 +11568,53 @@ def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
         _saveConnectedCavityChannels(objects, surface, result_file, separate=False,
                                     num_samples=num_samples)
 
+    _writeVmdScript(script_file, protein_file, result_file, object_type)
+
+    LOGGER.info("CaviTracer VMD files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    VMD script: {0}".format(script_file))
+    LOGGER.info("View the result with: vmd -e {0}".format(script_file.name))
+
+    return str(result_file), str(protein_file), str(script_file)
+
+
+def _writeVmdScript(script_file, protein_file, result_file, object_type):
+    """Write the VMD script drawing the PQR *result_file* over the structure
+    *protein_file*.
+
+    The script reads the PQR itself rather than through VMD's reader, which
+    takes only the first ``MODEL`` of a file whose models differ in size, as
+    the frames of a :func:`mergeFramesPQR` file do. Each ``MODEL`` becomes a
+    molecule, a file of one structure a single one, all drawn alike and
+    coloured by rank; with several, VMD's animation slider shows one frame's
+    molecule at a time. The number of ranks to colour is read from the file
+    too, so a file written by :func:`writeVmdCaviTracerScript` and one already
+    on disk open alike."""
+
+    import os
+    from pathlib import Path
+
+    script_dir = str(Path(script_file).parent)
+
+    # The most residues any one frame holds on any one chain: the ranks the
+    # script colours, each chain's objects taking the palette from rank 0.
+    residues, frame = {}, None
+    with open(str(result_file)) as handle:
+        for line in handle:
+            if line.startswith('MODEL'):
+                frame = line[5:].strip()
+            elif line.startswith(('ATOM', 'HETATM')):
+                residues.setdefault((frame, line[21]), set()).add(line[22:26])
+    ranks = max(len(resids) for resids in residues.values()) if residues else 0
+
+    def named(path):
+        """*path* as the script finds it: from its own directory."""
+        try:
+            return os.path.relpath(str(path), script_dir)
+        except ValueError:
+            return str(Path(path).resolve())    # on another drive
+
     # ------------------------------------------------------------------
     # VMD script
     # ------------------------------------------------------------------
@@ -11617,47 +11665,78 @@ mol addrep $protein_mol
 # CaviTracer object
 # ----------------------------------------------------------------------
 
-mol new $result_file type pqr waitfor all
-set result_mol [molinfo top]
+# The PQR is read here rather than by VMD's PQR reader, which takes only the
+# first MODEL of a file whose models differ in size, as the frames of a
+# multi-model file do. Each MODEL becomes a molecule of its own, and a file
+# of one structure a single one. CaviTracer stores the sphere radius in the
+# final PQR field.
 
-# CaviTracer stores the sphere radius in the final PQR field. Set the
-# VMD atomic radius explicitly rather than depending on the PQR reader.
+proc load_cavitracer_frames {filename} {
 
-proc set_cavitracer_radii {molid filename} {
-
-    set radii {}
+    set frames {}
+    set number ""
+    set records {}
     set handle [open $filename r]
 
     while {[gets $handle line] >= 0} {
 
-        if {[string match "ATOM*" $line] ||
-            [string match "HETATM*" $line]} {
+        set record [string range $line 0 5]
 
-            set fields [regexp -all -inline {\S+} $line]
-
-            if {[llength $fields] > 0} {
-                lappend radii [lindex $fields end]
-            }
+        if {$record eq "MODEL "} {
+            set number [string trim [string range $line 5 end]]
+        } elseif {$record eq "ATOM  " || $record eq "HETATM"} {
+            lappend records $line
+        } elseif {$record eq "ENDMDL"} {
+            lappend frames [list $number $records]
+            set records {}
         }
     }
 
     close $handle
 
-    set sel [atomselect $molid "all"]
-
-    if {[$sel num] == [llength $radii]} {
-        $sel set radius $radii
-    } else {
-        puts "WARNING: Number of CaviTracer radii does not match number of atoms."
-        puts "         atoms = [$sel num], radii = [llength $radii]"
+    if {[llength $records] > 0} {
+        lappend frames [list $number $records]
     }
 
-    $sel delete
+    set molecules {}
+
+    foreach frame $frames {
+
+        lassign $frame number records
+
+        set xyz {}
+        set radii {}
+        set resids {}
+        set chains {}
+
+        foreach line $records {
+            lappend xyz [list [string trim [string range $line 30 37]] \
+                              [string trim [string range $line 38 45]] \
+                              [string trim [string range $line 46 53]]]
+            lappend radii [lindex [regexp -all -inline {\S+} $line] end]
+            lappend resids [string trim [string range $line 22 25]]
+            lappend chains [string index $line 21]
+        }
+
+        set molid [mol new atoms [llength $records]]
+        animate dup $molid
+
+        set sel [atomselect $molid "all"]
+        $sel set {x y z} $xyz
+        $sel set radius $radii
+        $sel set resid $resids
+        $sel set chain $chains
+        $sel set resname FIL
+        $sel set name H
+        $sel delete
+
+        lappend molecules [list $molid $number]
+    }
+
+    return $molecules
 }
 
-set_cavitracer_radii $result_mol $result_file
-
-mol delrep 0 $result_mol
+set result_mols [load_cavitracer_frames $result_file]
 
 # VMD ColorIDs used for consecutive CaviTracer objects.
 __PALETTE__
@@ -11708,45 +11787,110 @@ proc add_quicksurf_objects {molid selection_prefix colors ncolors} {
     }
 }
 
-if {$object_type == "channels"} {
+# Every molecule is drawn alike: the one of a single structure, or each
+# frame's.
+foreach entry $result_mols {
 
-    mol rename $result_mol "CaviTracer channels"
-    add_vdw_objects $result_mol "resname FIL" \
-        $cavitracer_colors $ncolors
+    set result_mol [lindex $entry 0]
 
-} elseif {$object_type == "pores"} {
+    if {$object_type == "channels"} {
 
-    mol rename $result_mol "CaviTracer pores"
-    add_vdw_objects $result_mol "resname FIL" \
-        $cavitracer_colors $ncolors
+        mol rename $result_mol "CaviTracer channels"
+        add_vdw_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
 
-} elseif {$object_type == "links"} {
+    } elseif {$object_type == "pores"} {
 
-    mol rename $result_mol "CaviTracer links"
-    add_vdw_objects $result_mol "resname FIL" \
-        $cavitracer_colors $ncolors
+        mol rename $result_mol "CaviTracer pores"
+        add_vdw_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
 
-} elseif {$object_type == "surface_cavities"} {
+    } elseif {$object_type == "links"} {
 
-    mol rename $result_mol "CaviTracer surface cavities"
-    add_quicksurf_objects $result_mol "resname FIL" \
-        $cavitracer_colors $ncolors
+        mol rename $result_mol "CaviTracer links"
+        add_vdw_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
 
-} elseif {$object_type == "connected_cavities_channels"} {
+    } elseif {$object_type == "surface_cavities"} {
 
-    mol rename $result_mol "CaviTracer connected cavities and channels"
+        mol rename $result_mol "CaviTracer surface cavities"
+        add_quicksurf_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
 
-    # _saveConnectedCavityChannels writes cavity markers in chain C
-    # and channel spheres in chain H.
-    add_quicksurf_objects $result_mol "resname FIL and chain C" \
-        $cavitracer_colors $ncolors
+    } elseif {$object_type == "connected_cavities_channels"} {
 
-    add_vdw_objects $result_mol "resname FIL and chain H" \
-        $cavitracer_colors $ncolors
+        mol rename $result_mol "CaviTracer connected cavities and channels"
+
+        # _saveConnectedCavityChannels writes cavity markers in chain C
+        # and channel spheres in chain H.
+        add_quicksurf_objects $result_mol "resname FIL and chain C" \
+            $cavitracer_colors $ncolors
+
+        add_vdw_objects $result_mol "resname FIL and chain H" \
+            $cavitracer_colors $ncolors
+    }
 }
 
-# Keep the protein as the top molecule and centre the complete view.
-mol top $protein_mol
+# The protein is the top molecule, unless there are frames to step through.
+set top_mol $protein_mol
+
+# Several frames: each molecule is named for its frame, and a molecule of one
+# atom and a frame per frame of the file drives them. VMD's animation slider
+# moves it, and each move shows that frame's molecule alone.
+if {[llength $result_mols] > 1} {
+
+    foreach entry $result_mols {
+        mol rename [lindex $entry 0] "frame [lindex $entry 1]"
+    }
+
+    # The atom sits on the first sphere, where it cannot pull the view away.
+    set first [atomselect [lindex [lindex $result_mols 0] 0] "index 0"]
+    set frame_driver [mol new atoms 1]
+    mol rename $frame_driver "CaviTracer frames"
+    animate dup $frame_driver
+    set atom [atomselect $frame_driver "all"]
+    $atom set {x y z} [$first get {x y z}]
+    $atom delete
+    $first delete
+
+    for {set i 1} {$i < [llength $result_mols]} {incr i} {
+        animate dup $frame_driver
+    }
+
+    proc show_cavitracer_frame {args} {
+
+        global frame_driver result_mols
+
+        set current [molinfo $frame_driver get frame]
+        set index 0
+
+        foreach entry $result_mols {
+            if {$index == $current} {
+                mol on [lindex $entry 0]
+            } else {
+                mol off [lindex $entry 0]
+            }
+            incr index
+        }
+    }
+
+    trace add variable ::vmd_frame($frame_driver) write show_cavitracer_frame
+    set top_mol $frame_driver
+
+    # Only the driver follows the animation. VMD rebuilds the representations
+    # of every active molecule at each change of frame, and the protein's
+    # surface alone took seconds a step, though it has a single frame.
+    mol inactive $protein_mol
+    foreach entry $result_mols {
+        mol inactive [lindex $entry 0]
+    }
+
+    molinfo $frame_driver set frame 0
+    show_cavitracer_frame
+}
+
+# Centre the complete view.
+mol top $top_mol
 display resetview
 
 puts ""
@@ -11755,25 +11899,100 @@ puts "Protein: __PROTEIN_FILE__"
 puts "Result:  __RESULT_FILE__"
 '''
 
-    tcl = tcl.replace('__SCRIPT_NAME__', script_file.name)
-    tcl = tcl.replace('__PROTEIN_FILE__', protein_file.name)
-    tcl = tcl.replace('__RESULT_FILE__', result_file.name)
+    tcl = tcl.replace('__SCRIPT_NAME__', Path(script_file).name)
+    tcl = tcl.replace('__PROTEIN_FILE__', named(protein_file))
+    tcl = tcl.replace('__RESULT_FILE__', named(result_file))
     tcl = tcl.replace('__OBJECT_TYPE__', object_type)
     # A colour for every rank drawn, from the palette of the PyMOL and ChimeraX
     # scripts, so that a channel is the same colour whichever of them shows it.
-    tcl = tcl.replace('__PALETTE__', _vmdPalette(
-        len(drawn) if object_type == 'surface_cavities' else len(objects)))
+    tcl = tcl.replace('__PALETTE__', _vmdPalette(ranks))
 
     with open(str(script_file), 'w') as handle:
         handle.write(tcl)
 
+
+def writeVmdMultiModelScript(pqr_file, atoms, object_type='channels',
+                             output_path='.'):
+    """Write a VMD script for a PQR already on disk, such as the multi-model
+    one :func:`mergeFramesPQR` writes.
+
+    The script reads the PQR itself, one molecule per frame, each named for its
+    frame and coloured by rank as :func:`writeVmdCaviTracerScript` colours one
+    structure, and VMD's animation slider shows one frame at a time. A PQR of
+    one structure opens just as that function's own would.
+
+    Rank is all that ties an object to its namesakes in other frames: channel 3
+    of one frame and channel 3 of the next are the fourth cheapest of each, not
+    one channel followed through the trajectory.
+
+    :arg pqr_file: the PQR to draw, one structure or several frames.
+    :type pqr_file: str
+
+    :arg atoms: structure to draw the objects against. Its active coordinate
+        set is written, a single backdrop for every frame.
+    :type atoms: :class:`.Atomic`
+
+    :arg object_type: what the PQR holds: ``'channels'`` (the default),
+        ``'pores'``, ``'links'``, ``'surface_cavities'`` or
+        ``'connected_cavities_channels'``, as in
+        :func:`writeVmdCaviTracerScript`.
+    :type object_type: str
+
+    :arg output_path: directory the structure and the script are written to.
+        The script finds the PQR where it is. Default is the current directory.
+    :type output_path: str
+
+    :returns: paths to the PQR, the structure PDB and the VMD script
+    :rtype: tuple
+
+    Usage:
+    mergeFramesPQR('frames', 'channels_frames.pqr')
+    writeVmdMultiModelScript('channels_frames.pqr', atoms)
+
+    Next (bash console):
+    $ vmd -e vis_channels_frames.tcl"""
+
+    from pathlib import Path
+
+    _requireCoords(atoms)
+
+    object_types = ('channels', 'pores', 'links', 'surface_cavities',
+                    'connected_cavities_channels')
+    if object_type not in object_types:
+        raise ValueError('object_type must be one of {0}'.format(
+            ', '.join(repr(name) for name in object_types)))
+
+    pqr_file = Path(pqr_file)
+    if not pqr_file.is_file():
+        raise ValueError('no PQR at {0}'.format(pqr_file))
+
+    output_path = Path(output_path)
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    number = 0
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+        protein_file = output_path / ('protein' + suffix + '.pdb')
+        script_file = output_path / ('vis_' + pqr_file.stem + suffix + '.tcl')
+        if not (protein_file.exists() or script_file.exists()):
+            break
+        number += 1
+
+    # The active frame only: written whole, a trajectory's structure would come
+    # out as a model per frame, all of them drawn at once behind the channels.
+    writePDB(str(protein_file), atoms, csets=atoms.getACSIndex())
+    _writeVmdScript(script_file, protein_file, pqr_file, object_type)
+
     LOGGER.info("CaviTracer VMD files written:")
     LOGGER.info("    protein: {0}".format(protein_file))
-    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    results: {0}".format(pqr_file))
     LOGGER.info("    VMD script: {0}".format(script_file))
     LOGGER.info("View the result with: vmd -e {0}".format(script_file.name))
 
-    return str(result_file), str(protein_file), str(script_file)
+    return str(pqr_file), str(protein_file), str(script_file)
     
     
 def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
