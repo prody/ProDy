@@ -1635,8 +1635,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         residues of every channel in one file, with keys joining them, which is
         what the PQR and the residue text files cannot express between them.
         Chamber links go into the same file under
-        ``_sb_ncbr_channel.type`` ``Path``, a directory takes ``channels.cif``,
-        and no viewer script is written, that being a PQR arrangement.
+        ``_sb_ncbr_channel.type`` ``Path``, and a directory takes
+        ``channels.cif``.
     :type output_format: str
 
     :arg start_point: Optional starting point for channel search. This can be
@@ -2757,25 +2757,19 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                         sealed, '' if sealed == 1 else 's', bottleneck))
 
     if output_path and not (channels or links):
-        # Nothing found, so nothing is written - no file, and no viewer for a
-        # file that is not there. An empty file would say only that a run
-        # happened, which the count reported above already says, and it cannot
-        # be told apart from a run that failed while writing. What an earlier run
-        # left behind is worth a word, though: it survives now, and goes on
-        # looking like this run's output.
+        # Nothing found, so nothing is written. An empty file would say only
+        # that a run happened, which the count reported above already says, and
+        # it cannot be told apart from a run that failed while writing. What an
+        # earlier run left behind is worth a word, though: it survives now, and
+        # goes on looking like this run's output.
         _warnStaleOutputs(output_path, output_format, separate)
 
     elif output_path and _isMmcifFormat(output_format, separate):
-        written = writeChannelsCIF(output_path, channels, atoms, links=links,
-                                   auto=start_point is None)
-        # As on the PQR path: only for a run told a directory. Told a file, the
-        # parent is usually the working directory, and a run has no business
-        # leaving a script there.
-        if written and Path(output_path).is_dir():
-            _writeVisScript(Path(written).parent, Path(written).name)
+        writeChannelsCIF(output_path, channels, atoms, links=links,
+                         auto=start_point is None)
 
     elif output_path:
-        output_path, links_path, into_directory, separate_stem = \
+        output_path, links_path, _, separate_stem = \
             _pqrOutputPaths(output_path)
 
         # One line for the whole of what was written, so that the reader sees
@@ -2805,10 +2799,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                                          separate_path=output_path,
                                          separate_stem=separate_stem,
                                          name_sites=name_sites)
-        # Only for a run told a directory. Told a file, the parent is usually
-        # the working directory, and a run has no business leaving a script there.
-        if into_directory:
-            _writeVisScript(output_path.parent)
     else:
         LOGGER.info("No output path given.")
 
@@ -3055,21 +3045,15 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         # A directory takes pores.cif rather than channels.cif, for the same
         # reason the PQR path names them apart: a run writing both into one
         # folder would otherwise have the second overwrite the first.
-        written = writeChannelsCIF(_poreCifPath(output_path), pores, atoms,
-                                   object_type='pore')
-        # As on the PQR path and in calcChannels: a viewer only for a run told a
-        # directory. The one script reads either format, so the hint names the
-        # file rather than a glob.
-        if written and Path(output_path).is_dir():
-            _writeVisScript(Path(written).parent, Path(written).name)
+        writeChannelsCIF(_poreCifPath(output_path), pores, atoms,
+                         object_type='pore')
 
     elif output_path:
         output_path = Path(output_path)
         # As in calcChannels: a directory names no run, so its placeholder file
         # name is kept out of the per-pore ones.
         separate_stem = None
-        into_directory = output_path.is_dir()
-        if into_directory:
+        if output_path.is_dir():
             output_path = output_path / "pores.pqr"
             separate_stem = ''
         elif output_path.suffix not in (".pdb", ".pqr"):
@@ -3083,9 +3067,6 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         calculator.saveChannelsToPdb(pores, output_path, separate=separate,
                                      tag='pore', label='pore',
                                      separate_stem=separate_stem)
-        # as in calcChannels, and globbing the pores rather than the channels
-        if into_directory:
-            _writeVisScript(output_path.parent, 'pore*.pqr')
 
     return pores
 
@@ -10829,9 +10810,10 @@ def caverColour(rank):
                                 for rank, rgb in enumerate(_PALETTE)))
 
 
-#: Source of the PyMOL viewer that :func:`_writeVisScript` leaves beside the
-#: PQR output. Held inline so that this module carries everything it writes,
-#: and raw so the rank patterns keep their backslashes.
+#: Source of the PyMOL viewer that :func:`_writeVisScript` leaves beside what
+#: :func:`writePyMolCaviTracerScript` writes. Held inline so that this module
+#: carries everything it writes, and raw so the rank patterns keep their
+#: backslashes.
 _VIS_CHANNELS_SCRIPT = r'''import glob
 import os
 import re
@@ -11136,10 +11118,11 @@ else:
 def _writeVisScript(directory, pattern='chl*.pqr'):
     """Leave ``vis_channels.py`` in ``directory`` unless it is already there.
 
-    A run drops a viewer beside its output, as CAVER leaves ``view.py`` beside its
-    clusters, so the output can be opened without hunting for a script. An
-    existing file is never overwritten: edits made to one run's copy survive a
-    rerun, and so does a newer script left by an earlier one.
+    :func:`writePyMolCaviTracerScript` leaves the viewer beside what it writes, as
+    CAVER leaves ``view.py`` beside its clusters; a channel run itself writes no
+    script, that being what the viewer-script functions are for. An existing file
+    is never overwritten: edits made to one copy survive a rerun, and so does a
+    newer script left by an earlier one.
 
     One script serves both output formats. *pattern* is what the log tells the
     reader to pass, a glob for a PQR run and the file itself for an mmCIF one;
