@@ -41,7 +41,8 @@ __all__ =['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'scanSurfaceCavityParameters', 'connectChannelsToSurfaceCavities',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues',
            'writeChannelsCIF', 'writeVmdCaviTracerScript', 'writePyMolCaviTracerScript',
-           'writeChimeraXCaviTracerScript', 'mergeFramesPQR']
+           'writeChimeraXCaviTracerScript', 'mergeFramesPQR',
+           'writeChimeraXMultiModelScript']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -12104,8 +12105,40 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
             objects, surface, result_file, separate=False,
             num_samples=num_samples)
 
-    protein_path = protein_file.resolve().as_posix().replace('"', '\\"')
-    result_path = result_file.resolve().as_posix().replace('"', '\\"')
+    _writeChimeraXScript(script_file, protein_file, result_file, object_type)
+
+    LOGGER.info("CaviTracer ChimeraX files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    ChimeraX script: {0}".format(script_file))
+    LOGGER.info("View the result with: chimerax {0}".format(script_file.name))
+
+    return str(result_file), str(protein_file), str(script_file)
+
+
+def _writeChimeraXScript(script_file, protein_file, result_file, object_type):
+    """Write the ChimeraX command file drawing the PQR *result_file* over the
+    structure *protein_file*.
+
+    What it colours is read from the PQR itself, the residues on each of its
+    chains, so a file written by :func:`writeChimeraXCaviTracerScript` and one
+    already on disk open alike. So do a single structure and a multi-model file
+    from :func:`mergeFramesPQR`: ChimeraX opens the latter as one submodel per
+    ``MODEL``, the colours reach every one of them, and the script names each
+    for its frame and shows the first, with a slider to step through the rest."""
+
+    from pathlib import Path
+
+    residues, frames = {}, []
+    with open(str(result_file)) as handle:
+        for line in handle:
+            if line.startswith('MODEL'):
+                frames.append(line[5:].strip())
+            elif line.startswith(('ATOM', 'HETATM')):
+                residues.setdefault(line[21], set()).add(int(line[22:26]))
+
+    protein_path = Path(protein_file).resolve().as_posix().replace('"', '\\"')
+    result_path = Path(result_file).resolve().as_posix().replace('"', '\\"')
 
     lines = [
         '# CaviTracer visualization for ChimeraX',
@@ -12154,51 +12187,50 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
             ''])
 
         # The palette of the PyMOL and VMD scripts, so that a channel is the
-        # same colour whichever of them shows it.
-        for index in range(len(objects)):
-            color = _hexColour(index)
-            resid = index + 1
+        # same colour whichever of them shows it. An object's residue number is
+        # its rank plus one, in every frame.
+        for resid in sorted(residues.get('T', ())):
             lines.append('color #2/T:{0} {1} target a'.format(
-                resid, color))
+                resid, _hexColour(resid - 1)))
 
     elif object_type == 'surface_cavities':
 
         lines.extend(['hide #2 atoms,bonds', ''])
 
-        for index in range(len(drawn)):
-            color = _hexColour(index)
-            resid = index + 1
-
+        for resid in sorted(residues.get('T', ())):
             lines.append('surface #2/T:{0}'.format(resid))
-            lines.append('color #2/T:{0} {1} target s'.format(resid, color))
+            lines.append('color #2/T:{0} {1} target s'.format(
+                resid, _hexColour(resid - 1)))
 
     else:
         lines.extend(['hide #2 atoms,bonds', 'show #2/H atoms', 'style #2/H sphere', ''])
 
-        cavity_indices = sorted(set(
-            int(result['cavity_index']) for result in objects))
-        channel_indices = sorted(set(
-            int(result['channel_index']) for result in objects))
+        # Cavities on chain C, channels on chain H, numbered by their own
+        # indices; coloured in turn, the channels after the cavities.
+        cavity_resids = sorted(residues.get('C', ()))
+        channel_resids = sorted(residues.get('H', ()))
 
         lines.append('# Connected surface cavities.')
 
-        for i, cavity_index in enumerate(cavity_indices):
-            color = _hexColour(i)
-            resid = cavity_index + 1
-
+        for i, resid in enumerate(cavity_resids):
             lines.append('surface #2/C:{0}'.format(resid))
-            lines.append('color #2/C:{0} {1} target s'.format(resid, color))
+            lines.append('color #2/C:{0} {1} target s'.format(resid, _hexColour(i)))
 
         lines.append('')
         lines.append('# Connected channels.')
 
-        offset = len(cavity_indices)
+        offset = len(cavity_resids)
 
-        for i, channel_index in enumerate(channel_indices):
-            color = _hexColour(i + offset)
-            resid = channel_index + 1
+        for i, resid in enumerate(channel_resids):
+            lines.append('color #2/H:{0} {1} target a'.format(
+                resid, _hexColour(i + offset)))
 
-            lines.append('color #2/H:{0} {1} target a'.format(resid, color))
+    if len(frames) > 1:
+        lines.extend(['', '# One submodel per frame: each named for its frame, the '
+                      'first shown and a slider to step through the rest.'])
+        for number, frame in enumerate(frames, start=1):
+            lines.append('rename #2.{0} "frame {1}"'.format(number, frame))
+        lines.extend(['hide #2.2-{0} models'.format(len(frames)), 'mseries slider #2'])
 
     lines.extend(['', '# Fit the complete system to the window.',
         'view', '', 'log text CaviTracer visualization ready.'])
@@ -12206,11 +12238,88 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
     with open(str(script_file), 'w') as handle:
         handle.write('\n'.join(lines) + '\n')
 
+
+def writeChimeraXMultiModelScript(pqr_file, atoms, object_type='channels',
+                                  output_path='.'):
+    """Write a ChimeraX command file for a PQR already on disk, such as the
+    multi-model one :func:`mergeFramesPQR` writes.
+
+    ChimeraX opens a multi-model PQR as one submodel per frame. The script names
+    each for its frame, shows the first and adds a slider to step through the
+    rest, and colours every object by its rank in its own frame, as
+    :func:`writeChimeraXCaviTracerScript` does for one structure. A PQR of one
+    structure opens just as that function would have drawn it.
+
+    Rank is all that ties an object to its namesakes in other frames: channel 3
+    of one frame and channel 3 of the next are the fourth cheapest of each, not
+    one channel followed through the trajectory.
+
+    :arg pqr_file: the PQR to draw, one structure or several frames.
+    :type pqr_file: str
+
+    :arg atoms: structure to draw the objects against. Its active coordinate
+        set is written, a single backdrop for every frame.
+    :type atoms: :class:`.Atomic`
+
+    :arg object_type: what the PQR holds: ``'channels'`` (the default),
+        ``'pores'``, ``'links'``, ``'surface_cavities'`` or
+        ``'connected_cavities_channels'``, as in
+        :func:`writeChimeraXCaviTracerScript`.
+    :type object_type: str
+
+    :arg output_path: directory the structure and the script are written to.
+        The script opens the PQR where it is. Default is the current directory.
+    :type output_path: str
+
+    :returns: paths to the PQR, the structure PDB and the ChimeraX script
+    :rtype: tuple
+
+    Usage:
+    mergeFramesPQR('frames', 'channels_frames.pqr')
+    writeChimeraXMultiModelScript('channels_frames.pqr', atoms)
+
+    Next (bash console):
+    $ chimerax vis_channels_frames.cxc"""
+
+    from pathlib import Path
+
+    _requireCoords(atoms)
+
+    object_types = ('channels', 'pores', 'links', 'surface_cavities',
+                    'connected_cavities_channels')
+    if object_type not in object_types:
+        raise ValueError('object_type must be one of {0}'.format(
+            ', '.join(repr(name) for name in object_types)))
+
+    pqr_file = Path(pqr_file)
+    if not pqr_file.is_file():
+        raise ValueError('no PQR at {0}'.format(pqr_file))
+
+    output_path = Path(output_path)
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    number = 0
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+        protein_file = output_path / ('protein' + suffix + '.pdb')
+        script_file = output_path / ('vis_' + pqr_file.stem + suffix + '.cxc')
+        if not (protein_file.exists() or script_file.exists()):
+            break
+        number += 1
+
+    # The active frame only: written whole, a trajectory's structure would come
+    # out as a model per frame, all of them drawn at once behind the channels.
+    writePDB(str(protein_file), atoms, csets=atoms.getACSIndex())
+    _writeChimeraXScript(script_file, protein_file, pqr_file, object_type)
+
     LOGGER.info("CaviTracer ChimeraX files written:")
     LOGGER.info("    protein: {0}".format(protein_file))
-    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    results: {0}".format(pqr_file))
     LOGGER.info("    ChimeraX script: {0}".format(script_file))
     LOGGER.info("View the result with: chimerax {0}".format(script_file.name))
-    
-    return str(result_file), str(protein_file), str(script_file)
+
+    return str(pqr_file), str(protein_file), str(script_file)
     
