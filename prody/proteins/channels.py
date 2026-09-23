@@ -12484,8 +12484,13 @@ def _writeChimeraXScript(script_file, protein_file, result_file, object_type):
         'graphics bgColor white',
         'camera ortho',
         '',
+        # coordsets: a structure of several models, such as a trajectory's
+        # frames, is read as one structure with a coordinate set per model.
+        # ChimeraX otherwise opens a submodel per model and draws them all at
+        # once, one on top of another.
         '# Protein.',
-        'open "{0}" id #1 name Protein autoStyle false'.format(protein_path),
+        'open "{0}" id #1 name Protein autoStyle false coordsets true'.format(
+            protein_path),
         'hide #1 atoms,bonds',
         'show #1 cartoons',
         'color #1 lightgray target c',
