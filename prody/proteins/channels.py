@@ -11883,21 +11883,6 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         _saveConnectedCavityChannels(
             objects, surface, result_file, separate=False,
             num_samples=num_samples)
-            
-    cavitracer_radii = []
-    with open(str(result_file), 'r') as handle:
-        for line in handle:
-            if not line.startswith(('ATOM', 'HETATM')):
-                continue
-
-            fields = line.split()
-            try:
-                serial = int(fields[1])
-                radius = float(fields[-1])
-            except (ValueError, IndexError):
-                continue
-
-            cavitracer_radii.append((serial, radius))
 
     protein_path = protein_file.resolve().as_posix().replace('"', '\\"')
     result_path = result_file.resolve().as_posix().replace('"', '\\"')
@@ -11923,17 +11908,23 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         'color #1 lightgray target s',
         'transparency #1 65 target s',
         '',
+        # combineSymAtoms: by default ChimeraX merges atoms of one name that sit
+        # at nearly one position, as on a symmetry axis. Every sphere here is a
+        # hydrogen of its channel's residue, so it would merge spheres that
+        # merely lie close, and the copies of a cavity written once per channel.
         '# CaviTracer result.',
-        'open "{0}" id #2 name "CaviTracer {1}" autoStyle false atomic false'.format(
+        'open "{0}" id #2 name "CaviTracer {1}" autoStyle false atomic false '
+        'combineSymAtoms false'.format(
             result_path, object_type.replace('_', ' '))]
 
-    lines.extend(['', '# Set the CaviTracer radii explicitly.'])
-
-    for serial, radius in cavitracer_radii:
-        lines.append(
-            'size #2@@serial_number={0} atomRadius {1:.4f}'.format(
-                serial, radius))
-    lines.append('')
+    # ChimeraX has no PQR reader of its own: the PDB reader takes the file, and
+    # the radius column is where a PDB keeps the B-factor. One command maps that
+    # onto the atom radius, as the line through 0.01:0.01 and 1000:1000 is the
+    # identity (a waypoint must be above zero). One size command per sphere did
+    # the same a command at a time, which took over a minute once there were
+    # thousands of spheres.
+    lines.extend(['', '# Set the CaviTracer radii, read into the B-factor.',
+                  'size byattribute bfactor #2 0.01:0.01 1000:1000', ''])
 
     if object_type in ('channels', 'pores', 'links'):
         lines.extend([
