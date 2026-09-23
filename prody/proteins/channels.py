@@ -10823,6 +10823,7 @@ import sys
 # --- Parse command-line args ---
 # Invoke as:  pymol vis_channels.py -- protein.pdb "por*chl*.pqr"
 #         or: pymol vis_channels.py -- protein.pdb channels.cif
+#         or: pymol vis_channels.py -- protein.pdb channels.pqr  (every channel)
 #         or: pymol vis_channels.py -- channels.cif        (structure inside)
 # The regex MUST be quoted so the shell doesn't glob-expand it before PyMOL sees it.
 #
@@ -10830,8 +10831,16 @@ import sys
 # spheres and are coloured off the same 0-based rank, so a channel is the same
 # colour whichever way the run was written, and a directory holding both opens
 # with either in view.
+def holdsChannels(path):
+    """Whether *path* is a PQR of channels rather than a structure: every
+    sphere this module writes is a FIL residue, which no structure holds."""
+    with open(path) as handle:
+        return any(line.startswith(("ATOM", "HETATM")) and line[17:20] == "FIL"
+                   for line in handle)
+
 protein_file = None
 cif_file = None
+pqr_files = []
 channel_regex = None
 for arg in sys.argv[1:]:
     # Without a "--" PyMOL leaves its own flags and this script in argv, and the
@@ -10844,6 +10853,10 @@ for arg in sys.argv[1:]:
         if arg.lower().endswith(".cif"):
             if cif_file is None:
                 cif_file = arg
+        # A PQR named outright is a file of channels, split below, unless it
+        # holds none: a structure can be a PQR as well.
+        elif arg.lower().endswith(".pqr") and holdsChannels(arg):
+            pqr_files.append(arg)
         elif protein_file is None:
             protein_file = arg
     elif channel_regex is None:
@@ -10854,7 +10867,7 @@ if channel_regex is None:
 
 # Nothing named and no PQRs about: an mmCIF run leaves a single file, so look
 # for one before giving up.
-if cif_file is None and not glob.glob(channel_regex):
+if cif_file is None and not pqr_files and not glob.glob(channel_regex):
     found = sorted(glob.glob("*.cif"))
     if found:
         cif_file = found[0]
@@ -10862,6 +10875,8 @@ if cif_file is None and not glob.glob(channel_regex):
 print(f"Using channel regex: {channel_regex}")
 if cif_file:
     print(f"Using mmCIF: {cif_file}")
+for path in pqr_files:
+    print(f"Using PQR: {path}")
 
 ''' + _VIS_PALETTE + r'''
 def cifLoops(path):
@@ -11060,6 +11075,59 @@ def loadCifChannels(path):
 
     return groups
 
+# The label each object's REMARK carries in a PQR, in the schema's words, so
+# that a PQR's objects are grouped exactly as an mmCIF's are.
+PQR_KINDS = {"channel": "Tunnel", "pore": "Pore", "link": "Path"}
+
+def loadPqrChannels(path):
+    """Draw every object in a PQR holding several, one PyMOL object each.
+
+    The file keeps them apart by residue number alone, so PyMOL loads it whole
+    as a single object whose channels cannot be hidden or coloured apart. Split
+    here the way loadCifChannels splits an mmCIF, with the same names, colours
+    and groups, so a run opens the same way whichever format it was written in.
+    """
+    samples, kinds, label = {}, {}, "channel"
+    with open(path) as handle:
+        for line in handle:
+            if line.startswith("REMARK"):
+                words = line.split()
+                if len(words) > 2 and words[1] in PQR_KINDS:
+                    label = words[1]
+            elif line.startswith(("ATOM", "HETATM")) and line[17:20] == "FIL":
+                # Fixed columns for the coordinates: three %8.3f values run
+                # together without a space once one of them reaches -100.
+                index = int(line[22:26]) - 1
+                kinds.setdefault(index, label)
+                samples.setdefault(index, []).append(
+                    (float(line[30:38]), float(line[38:46]),
+                     float(line[46:54]), float(line.split()[-1])))
+
+    groups = {}
+    for index in sorted(samples):
+        spheres = samples[index]
+        colour = caverColour(index)
+
+        text = "".join(
+            "ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+            % (i + 1, i + 1, x, y, z, 1.00, radius)
+            for i, (x, y, z, radius) in enumerate(spheres))
+
+        obj = freeName(f"{kinds[index]}{index}")
+        cmd.read_pdbstr(text, obj)
+        radii_list = [radius for _, _, _, radius in spheres]
+        cmd.alter(obj, "vdw = radii_list.pop(0)",
+                  space={'radii_list': radii_list})
+        cmd.hide("everything", obj)
+        cmd.show("spheres", obj)
+        cmd.color(colour, obj)
+
+        kind = PQR_KINDS[kinds[index]]
+        groups.setdefault(kind, []).append(obj)
+        print(f"  {obj:<20s} {colour}  ({kind}, {len(spheres)} spheres)")
+
+    return groups
+
 # both sets read their rank off the same 0-based scale, so the first channel of
 # either program is blue and the two stay comparable side by side
 sets = [("chnl_grp", sorted(glob.glob(channel_regex), key=natural_sort_key), False),
@@ -11067,9 +11135,12 @@ sets = [("chnl_grp", sorted(glob.glob(channel_regex), key=natural_sort_key), Fal
 
 CIF_GROUPS = {"Tunnel": "chnl_grp", "Pore": "pore_grp", "Path": "link_grp"}
 
-if cif_file:
-    cif_groups = loadCifChannels(cif_file)
-    for kind, objects in sorted(cif_groups.items()):
+if cif_file or pqr_files:
+    groups = loadCifChannels(cif_file) if cif_file else {}
+    for path in pqr_files:
+        for kind, objects in loadPqrChannels(path).items():
+            groups.setdefault(kind, []).extend(objects)
+    for kind, objects in sorted(groups.items()):
         group = CIF_GROUPS.get(kind, kind.lower() + "_grp")
         cmd.group(freeName(group), " ".join(objects))
     cmd.rebuild()
@@ -11077,8 +11148,8 @@ if cif_file:
     cmd.set("sphere_quality", 2)
     cmd.bg_color("white")
     cmd.zoom()
-    print(f"Success: {sum(len(o) for o in cif_groups.values())} object(s) "
-          f"loaded from {cif_file}.")
+    print(f"Success: {sum(len(o) for o in groups.values())} object(s) "
+          f"loaded from {', '.join(([cif_file] if cif_file else []) + pqr_files)}.")
 elif not any(files for _, files, _ in sets):
     print("Error: No channel files found. Check your working directory (pwd).")
 else:
@@ -11561,15 +11632,18 @@ puts "Result:  __RESULT_FILE__"
     
     
 def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
-                               output_path='.', num_samples=5):
+                               output_path='.', num_samples=5,
+                               output_format='mmcif'):
     """Prepare CaviTracer results for visualization in PyMOL.
 
-    This function writes CaviTracer objects in the tunnels-schema mmCIF format,
-    saves the supplied molecular structure as a PDB file, and creates the
-    existing CaviTracer PyMOL visualization script.
+    This function writes CaviTracer objects in the tunnels-schema mmCIF format
+    or as a PQR, saves the supplied molecular structure as a PDB file, and
+    creates the CaviTracer PyMOL visualization script, which reads either.
 
-    The function uses the same mmCIF writer and PyMOL viewer as
-    :func:`calcChannels` and :func:`calcPoresFromChannels`.
+    The mmCIF is the one :func:`writeChannelsCIF` writes, and the PQR holds the
+    same records as the one :func:`writeVmdCaviTracerScript` and
+    :func:`writeChimeraXCaviTracerScript` write: every object in one file, told
+    apart by its residue number, which the viewer splits it by.
 
     :arg objects: CaviTracer channels, pores, or chamber links to visualize.
     :type objects: list or Channel
@@ -11583,29 +11657,37 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
         Default is ``'channels'``.
     :type object_type: str
 
-    :arg output_path: Directory in which the mmCIF, PDB and PyMOL viewer are
-        saved. Default is the current directory.
+    :arg output_path: Directory in which the mmCIF or PQR, the PDB and the
+        PyMOL viewer are saved. Default is the current directory.
     :type output_path: str or pathlib.Path
 
     :arg num_samples: Number of samples per tetrahedron used for the channel,
         pore, or link profile. Default is 5.
     :type num_samples: int
 
-    :returns: Paths to the mmCIF file, protein PDB file and PyMOL script.
-    :rtype: tuple 
-    
+    :arg output_format: ``'mmcif'`` (the default) or ``'pqr'``, what the
+        objects are written as.
+    :type output_format: str
+
+    :returns: Paths to the mmCIF or PQR file, protein PDB file and PyMOL script.
+    :rtype: tuple
+
     Usage:
     atoms = parsePDB('1tqn').select("protein")
     channels, surface = calcChannels(atoms)
-    
+
     For channels:
     writePyMolCaviTracerScript(channels, protein)
-    
+
     For pores:
-    writePyMolCaviTracerScript(pores, protein, object_type='pores') 
-    
-    Next (bash console): 
-    $ pymol vis_channels.py -- protein.pdb channels.cif   """
+    writePyMolCaviTracerScript(pores, protein, object_type='pores')
+
+    As a PQR:
+    writePyMolCaviTracerScript(channels, protein, output_format='pqr')
+
+    Next (bash console):
+    $ pymol vis_channels.py -- protein.pdb channels.cif
+    $ pymol vis_channels.py -- protein.pdb channels.pqr   """
 
     if PY3K:
         from pathlib import Path
@@ -11626,6 +11708,9 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
 
     if object_type is None:
         raise ValueError("object_type must be 'channels', 'pores' or 'links'")
+
+    # Raises on anything but mmCIF or PQR, before a file is written.
+    mmcif = _isMmcifFormat(output_format)
 
     if objects is None:
         raise ValueError("objects cannot be None")
@@ -11652,7 +11737,7 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
         suffix = '' if number == 0 else '-{0}'.format(number)
 
         result_file = output_path / (
-            result_stem + suffix + '.cif')
+            result_stem + suffix + ('.cif' if mmcif else '.pqr'))
         protein_file = output_path / (
             'protein' + suffix + '.pdb')
 
@@ -11663,8 +11748,27 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
 
     writePDB(str(protein_file), atoms)
 
-    if object_type == 'channels':
-        written = writeChannelsCIF(result_file, objects, 
+    if not mmcif:
+        # The records the VMD and ChimeraX writers write: every object in one
+        # file, told apart by its residue number, which the viewer splits by.
+        label = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}[object_type]
+
+        with open(str(result_file), 'w') as handle:
+            atom_index = 1
+
+            for object_index, obj in enumerate(objects):
+                lines, count = ChannelCalculator._channelRecords(
+                    object_index, obj, atom_index, num_samples,
+                    label=label, name_sites=True)
+
+                handle.writelines(lines)
+                handle.write("\n")
+                atom_index += count
+
+        written = result_file
+
+    elif object_type == 'channels':
+        written = writeChannelsCIF(result_file, objects,
                             atoms=atoms, num_samples=num_samples)
 
     elif object_type == 'pores':
