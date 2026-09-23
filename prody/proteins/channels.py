@@ -10514,11 +10514,325 @@ class ChannelCalculator:
                 if cavity.tetrahedra_depths.get(tetra, np.inf) <= max_depth])
 
 
+#: Colour of each rank - the 0-based position of an object among those a viewer
+#: script draws. One table for every PyMOL, VMD and ChimeraX script this module
+#: writes, so that a channel is the same colour in all of them; it is
+#: CaviTracerMD's viewer palette, unchanged.
+#:
+#: Ranks 0-5 are CAVER 3's first six colours, from its out/pymol/modules/rgb.py
+#: in the order its view.py hands them to tunnel clusters. They are what makes a
+#: CAVER figure recognisable, so they are kept verbatim.
+_CAVER_PRIMARIES = [(0.0, 0.0, 1.0),    # blue
+                    (0.0, 1.0, 0.0),    # green
+                    (1.0, 0.0, 0.0),    # red
+                    (0.0, 1.0, 1.0),    # cyan
+                    (1.0, 1.0, 0.0),    # yellow
+                    (1.0, 0.0, 1.0)]    # magenta
+
+# Ranks 6-199 are a table, not generated: the rule below searches many thousands
+# of candidates, which a viewer should not be doing before it draws.
+#
+# Taken farthest-first: each rank is the candidate farthest from every colour
+# before it and from the reserved greys, so the closest pair among the first n
+# colours falls as slowly as the candidates allow and the worst pairs come last.
+# Distance is OKLab x100 between versions of each colour dimmed in linear light
+# to ten levels from 0.55 to 1, the closest pair of versions counting: a sphere
+# runs from lit to shadowed, so two colours are distinct only if no shade of one
+# matches a shade of the other. Candidates are HSV at every degree of hue, with
+# saturation 0.45-1 and value 0.60-1 in five steps each, less those within 7 of
+# either reserved grey - 0.45, and the grey80 a protein is drawn in. The value
+# floor keeps out colours that turn near-black in shadow, which the distance
+# alone would rank highly for being far from everything light. Regenerate on
+# those terms or not at all.
+_PALETTE = _CAVER_PRIMARIES + [
+    (0.430, 0.000, 0.600),  # 6
+    (0.000, 0.533, 1.000),  # 7
+    (0.782, 0.550, 1.000),  # 8
+    (1.000, 0.580, 0.100),  # 9
+    (0.000, 0.600, 0.260),  # 10
+    (0.700, 0.000, 0.432),  # 11
+    (1.000, 0.550, 0.670),  # 12
+    (0.150, 0.255, 0.600),  # 13
+    (0.600, 0.300, 0.000),  # 14
+    (0.550, 1.000, 0.617),  # 15
+    (0.400, 0.100, 1.000),  # 16
+    (0.600, 0.560, 0.000),  # 17
+    (0.550, 0.715, 1.000),  # 18
+    (0.688, 0.250, 1.000),  # 19
+    (0.479, 0.330, 0.600),  # 20
+    (1.000, 0.400, 0.850),  # 21
+    (0.000, 0.642, 0.700),  # 22
+    (0.600, 0.000, 0.100),  # 23
+    (1.000, 0.880, 0.550),  # 24
+    (0.470, 0.400, 1.000),  # 25
+    (0.230, 0.000, 0.600),  # 26
+    (0.600, 0.330, 0.406),  # 27
+    (1.000, 0.250, 0.462),  # 28
+    (0.240, 0.414, 0.600),  # 29
+    (0.683, 1.000, 0.000),  # 30
+    (1.000, 0.400, 0.250),  # 31
+    (1.000, 0.670, 0.550),  # 32
+    (0.000, 0.333, 1.000),  # 33
+    (0.000, 0.000, 0.600),  # 34
+    (0.330, 0.600, 0.456),  # 35
+    (0.870, 0.400, 1.000),  # 36
+    (0.600, 0.150, 0.585),  # 37
+    (0.550, 0.887, 1.000),  # 38
+    (1.000, 0.100, 0.760),  # 39
+    (0.000, 0.700, 1.000),  # 40
+    (1.000, 0.767, 0.000),  # 41
+    (0.550, 0.565, 1.000),  # 42
+    (0.785, 0.900, 0.495),  # 43
+    (0.000, 0.900, 0.450),  # 44
+    (0.550, 1.000, 0.843),  # 45
+    (0.600, 0.456, 0.240),  # 46
+    (0.567, 0.000, 1.000),  # 47
+    (1.000, 0.550, 0.865),  # 48
+    (1.000, 0.400, 0.660),  # 49
+    (0.490, 0.700, 0.175),  # 50
+    (0.600, 0.240, 0.474),  # 51
+    (0.336, 0.240, 0.600),  # 52
+    (0.817, 0.000, 1.000),  # 53
+    (0.000, 1.000, 0.767),  # 54
+    (0.650, 0.400, 1.000),  # 55
+    (0.250, 0.100, 1.000),  # 56
+    (0.600, 0.150, 0.292),  # 57
+    (0.250, 0.425, 1.000),  # 58
+    (0.700, 0.448, 0.385),  # 59
+    (0.700, 0.245, 0.175),  # 60
+    (1.000, 0.400, 0.460),  # 61
+    (1.000, 0.720, 0.400),  # 62
+    (0.581, 0.280, 0.700),  # 63
+    (0.400, 0.200, 0.800),  # 64
+    (1.000, 0.250, 0.662),  # 65
+    (0.505, 0.600, 0.330),  # 66
+    (0.330, 0.339, 0.600),  # 67
+    (0.955, 0.550, 1.000),  # 68
+    (0.000, 0.170, 0.600),  # 69
+    (0.760, 1.000, 0.400),  # 70
+    (0.400, 0.620, 1.000),  # 71
+    (0.320, 0.632, 0.800),  # 72
+    (1.000, 0.940, 0.400),  # 73
+    (1.000, 0.250, 0.912),  # 74
+    (0.400, 0.500, 1.000),  # 75
+    (1.000, 0.000, 0.517),  # 76
+    (1.000, 0.000, 0.300),  # 77
+    (0.000, 0.700, 0.478),  # 78
+    (0.385, 0.700, 0.674),  # 79
+    (0.000, 0.340, 0.600),  # 80
+    (0.250, 0.200, 0.800),  # 81
+    (1.000, 0.520, 0.400),  # 82
+    (0.887, 0.250, 1.000),  # 83
+    (0.550, 1.000, 0.985),  # 84
+    (0.000, 0.700, 0.618),  # 85
+    (0.390, 0.700, 0.385),  # 86
+    (0.394, 0.900, 0.225),  # 87
+    (1.000, 0.467, 0.000),  # 88
+    (0.700, 0.385, 0.679),  # 89
+    (0.330, 0.000, 0.600),  # 90
+    (0.250, 0.887, 1.000),  # 91
+    (0.683, 0.000, 1.000),  # 92
+    (1.000, 0.250, 0.275),  # 93
+    (0.700, 0.000, 0.548),  # 94
+    (0.446, 0.175, 0.700),  # 95
+    (0.000, 0.700, 0.000),  # 96
+    (0.700, 0.280, 0.329),  # 97
+    (0.700, 0.350, 0.280),  # 98
+    (0.569, 0.175, 0.700),  # 99
+    (1.000, 0.400, 0.980),  # 100
+    (0.580, 1.000, 0.400),  # 101
+    (0.000, 0.195, 0.900),  # 102
+    (1.000, 0.267, 0.000),  # 103
+    (0.163, 0.000, 0.700),  # 104
+    (0.850, 1.000, 0.000),  # 105
+    (0.700, 0.537, 0.000),  # 106
+    (1.000, 0.550, 0.550),  # 107
+    (0.250, 1.000, 0.875),  # 108
+    (0.250, 1.000, 0.637),  # 109
+    (0.550, 0.000, 0.600),  # 110
+    (0.700, 0.280, 0.665),  # 111
+    (0.700, 0.647, 0.385),  # 112
+    (0.000, 0.617, 1.000),  # 113
+    (0.000, 0.460, 0.600),  # 114
+    (0.700, 0.280, 0.441),  # 115
+    (1.000, 0.667, 0.000),  # 116
+    (0.294, 0.600, 0.060),  # 117
+    (0.000, 0.800, 1.000),  # 118
+    (0.700, 0.443, 0.000),  # 119
+    (1.000, 0.000, 0.633),  # 120
+    (1.000, 0.883, 0.000),  # 121
+    (0.700, 0.175, 0.525),  # 122
+    (0.662, 0.550, 1.000),  # 123
+    (0.550, 0.640, 1.000),  # 124
+    (1.000, 0.610, 0.400),  # 125
+    (0.700, 0.385, 0.574),  # 126
+    (0.483, 0.000, 1.000),  # 127
+    (0.280, 0.350, 0.700),  # 128
+    (0.700, 0.000, 0.257),  # 129
+    (1.000, 0.000, 0.883),  # 130
+    (1.000, 0.752, 0.550),  # 131
+    (0.700, 0.175, 0.236),  # 132
+    (0.630, 0.700, 0.000),  # 133
+    (1.000, 0.000, 0.417),  # 134
+    (0.940, 1.000, 0.400),  # 135
+    (1.000, 0.250, 0.562),  # 136
+    (0.250, 0.337, 1.000),  # 137
+    (0.294, 0.280, 0.700),  # 138
+    (0.700, 1.000, 0.550),  # 139
+    (0.495, 0.900, 0.657),  # 140
+    (1.000, 0.550, 0.767),  # 141
+    (0.400, 0.690, 1.000),  # 142
+    (1.000, 0.800, 0.400),  # 143
+    (0.700, 0.140, 0.000),  # 144
+    (0.788, 0.250, 1.000),  # 145
+    (0.000, 1.000, 0.350),  # 146
+    (0.700, 0.455, 0.280),  # 147
+    (1.000, 0.400, 0.560),  # 148
+    (0.280, 0.413, 0.700),  # 149
+    (0.700, 0.175, 0.438),  # 150
+    (0.413, 0.250, 1.000),  # 151
+    (0.483, 0.280, 0.700),  # 152
+    (0.600, 0.250, 1.000),  # 153
+    (0.750, 0.400, 1.000),  # 154
+    (1.000, 0.400, 0.750),  # 155
+    (0.000, 0.467, 1.000),  # 156
+    (0.600, 0.230, 0.000),  # 157
+    (1.000, 0.970, 0.550),  # 158
+    (0.700, 0.665, 0.280),  # 159
+    (1.000, 0.250, 0.750),  # 160
+    (0.988, 0.250, 1.000),  # 161
+    (0.070, 0.469, 0.700),  # 162
+    (0.700, 0.000, 0.350),  # 163
+    (0.900, 0.484, 0.225),  # 164
+    (0.385, 0.458, 0.700),  # 165
+    (0.400, 1.000, 0.530),  # 166
+    (0.175, 0.236, 0.700),  # 167
+    (1.000, 0.440, 0.400),  # 168
+    (0.550, 0.782, 1.000),  # 169
+    (0.700, 0.000, 0.665),  # 170
+    (0.350, 0.700, 0.280),  # 171
+    (0.000, 0.360, 0.900),  # 172
+    (0.333, 0.000, 1.000),  # 173
+    (0.560, 0.400, 1.000),  # 174
+    (0.400, 1.000, 0.940),  # 175
+    (0.560, 0.700, 0.280),  # 176
+    (0.895, 0.100, 1.000),  # 177
+    (0.700, 0.385, 0.385),  # 178
+    (0.248, 0.150, 0.600),  # 179
+    (0.225, 0.439, 0.900),  # 180
+    (0.280, 0.616, 0.700),  # 181
+    (0.400, 0.560, 1.000),  # 182
+    (0.400, 1.000, 0.790),  # 183
+    (0.250, 0.575, 1.000),  # 184
+    (0.469, 0.385, 0.700),  # 185
+    (0.400, 1.000, 0.700),  # 186
+    (1.000, 0.325, 0.250),  # 187
+    (0.400, 0.440, 1.000),  # 188
+    (0.000, 0.230, 0.600),  # 189
+    (1.000, 0.367, 0.000),  # 190
+    (0.145, 0.100, 1.000),  # 191
+    (1.000, 0.250, 0.375),  # 192
+    (0.400, 0.960, 1.000),  # 193
+    (1.000, 0.738, 0.250),  # 194
+    (1.000, 0.610, 0.550),  # 195
+    (1.000, 0.650, 0.250),  # 196
+    (0.060, 0.096, 0.600),  # 197
+    (1.000, 0.250, 0.825),  # 198
+    (0.800, 0.370, 0.200),  # 199
+]
+
+
+def _paletteIndex(rank):
+    """Row of :data:`_PALETTE` holding the colour of the 0-based *rank*.
+
+    Past rank 199 the ranks cycle through 6-199 and the primaries never repeat.
+    That far out no palette keeps every pair apart, so colour stops identifying
+    an object there and its name has to."""
+
+    first = len(_CAVER_PRIMARIES)
+    if rank < len(_PALETTE):
+        return rank
+    return first + (rank - first) % (len(_PALETTE) - first)
+
+
+def _hexColour(rank):
+    """*rank*'s colour as ``#rrggbb``, the form a ChimeraX script gives it in."""
+
+    return '#%02x%02x%02x' % tuple(int(round(255 * value))
+                                   for value in _PALETTE[_paletteIndex(rank)])
+
+
+#: The VMD colour IDs ranks 0-29 take, in order: every fixed ID from 0 to 32 but
+#: 2 (gray), 8 (white) and 16 (black), which the protein, the background and the
+#: labels keep. Their RGB is redefined to the palette's, and the first six were
+#: already VMD's nearest to the CAVER primaries. Later ranks take the IDs from 33
+#: on, VMD's colour-scale slots: the whole palette fits there, but VMD regenerates
+#: them whenever its colour scale is changed, which it never does to a fixed ID.
+_VMD_COLOR_IDS = (0, 7, 1, 10, 4, 11, 3, 9, 12, 13, 14, 15, 5, 6, 17, 18, 19,
+                  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32)
+
+
+def _vmdColorID(rank):
+    """The VMD colour ID carrying *rank*'s colour (see :data:`_VMD_COLOR_IDS`)."""
+
+    index = _paletteIndex(rank)
+    if index < len(_VMD_COLOR_IDS):
+        return _VMD_COLOR_IDS[index]
+    return 33 + index - len(_VMD_COLOR_IDS)
+
+
+def _vmdPalette(count):
+    """Tcl giving ranks ``0 .. count-1`` their palette colours, and listing the
+    IDs that carry them, rank by rank, as ``cavitracer_colors``."""
+
+    lines = ['# The CaviTracer palette, the same as in the PyMOL and ChimeraX',
+             '# scripts. Ranks 0-29 redefine fixed colour IDs; later ranks use the',
+             '# colour-scale IDs from 33 on, which VMD regenerates if the colour',
+             '# scale is changed.']
+    ids, defined = [], set()
+    for rank in range(count):
+        color_id = _vmdColorID(rank)
+        if color_id not in defined:
+            defined.add(color_id)
+            lines.append('color change rgb %d %.3f %.3f %.3f'
+                         % ((color_id,) + tuple(_PALETTE[_paletteIndex(rank)])))
+        ids.append(str(color_id))
+    lines.append('set cavitracer_colors {%s}' % ' '.join(ids))
+    return '\n'.join(lines)
+
+
+#: The palette as a PyMOL script carries it: the table, and ``caverColour`` to
+#: register a rank's colour on first use.
+_VIS_PALETTE = r'''# --- Palette ---
+# The CaviTracer palette, the same as in the VMD and ChimeraX scripts, so that a
+# channel is the same colour in all three. Ranks 0-5 are CAVER 3's first six
+# colours; ranks 6-199 were taken farthest-first for how they read on shaded
+# spheres. Past rank 199 the ranks cycle through 6-199 and the primaries never
+# repeat.
+PALETTE = [
+__ROWS__]
+CAVER_PRIMARIES = PALETTE[:6]
+
+def caverColour(rank):
+    """Name of the colour for a 0-based rank, registered on first use.
+
+    A lookup and nothing else: a rank is the same colour in every structure,
+    every run and every viewer, whatever was loaded beside it."""
+    first = len(CAVER_PRIMARIES)
+    if rank >= len(PALETTE):
+        rank = first + (rank - first) % (len(PALETTE) - first)
+    name = "caver%d" % (rank + 1) if rank < first else "gen%d" % rank
+    cmd.set_color(name, list(PALETTE[rank]))
+    return name
+# --- End of palette ---
+'''.replace('__ROWS__', ''.join('    (%.3f, %.3f, %.3f),  # %d\n' % (rgb + (rank,))
+                                for rank, rgb in enumerate(_PALETTE)))
+
+
 #: Source of the PyMOL viewer that :func:`_writeVisScript` leaves beside the
 #: PQR output. Held inline so that this module carries everything it writes,
 #: and raw so the rank patterns keep their backslashes.
-_VIS_CHANNELS_SCRIPT = r'''import colorsys
-import glob
+_VIS_CHANNELS_SCRIPT = r'''import glob
 import os
 import re
 import shlex
@@ -10567,59 +10881,7 @@ print(f"Using channel regex: {channel_regex}")
 if cif_file:
     print(f"Using mmCIF: {cif_file}")
 
-# --- Palette ---
-# CAVER 3's first six colours, from its out/pymol/modules/rgb.py in the order
-# its view.py hands them to tunnel clusters. They are what makes a CAVER figure
-# recognisable, so they are kept verbatim. Its remaining 1000 are a long table
-# of pastels that the generator below beats on separation, so they are not.
-CAVER_PRIMARIES = [(0.0, 0.0, 1.0),    # blue
-                   (0.0, 1.0, 0.0),    # green
-                   (1.0, 0.0, 0.0),    # red
-                   (0.0, 1.0, 1.0),    # cyan
-                   (1.0, 1.0, 0.0),    # yellow
-                   (1.0, 0.0, 1.0)]    # magenta
-
-# Past the six, colours are generated rather than tabulated. The hue steps by
-# the golden angle -- an irrational fraction of the circle, so it never returns
-# to a hue it has used and consecutive steps land as far apart as the circle
-# allows -- while saturation and value cycle on 3, so neighbours differ in more
-# than hue alone.
-#
-# The offset and the cycle are chosen for how the colours read on shaded
-# spheres, not as flat swatches. A sphere runs from lit to shadowed, so the
-# shadowed side of a bright colour can match the lit side of a dark one: two
-# colours count as distinct only if no version of one, dimmed to as little as
-# 0.55 of its light, matches such a version of the other. Distance is OKLab,
-# taken against the six primaries as well as among the generated colours, and
-# the worst pair is maximised across 8 to 24 channels, where most runs sit.
-#
-# Re-tune on those terms or not at all. Flat CIE-Lab rated the previous choice
-# near 15 where OKLab found 4.1, with rank 6 the same cyan as rank 3, and a
-# cycle tuned on flat OKLab alone collapsed its greens into one another once
-# shaded. Past a dozen channels no palette keeps every pair apart, so colour
-# stops identifying a channel there and the object names have to.
-GOLDEN_ANGLE = (3.0 - 5.0 ** 0.5) / 2.0
-HUE_OFFSET = 0.796
-SATURATION_VALUE = ((0.95, 0.55), (0.65, 0.65), (0.65, 0.95))
-
-def caverColour(rank):
-    """Name of the colour for a 0-based channel rank, registered on first use.
-
-    A pure function of the rank, with no table to run off the end of: a rank is
-    the same colour in every structure and every run, whatever was loaded
-    beside it and however many channels the case turned out to have.
-    """
-    if rank < len(CAVER_PRIMARIES):
-        name, rgb = "caver%d" % (rank + 1), CAVER_PRIMARIES[rank]
-    else:
-        step = rank - len(CAVER_PRIMARIES)
-        saturation, value = SATURATION_VALUE[step % len(SATURATION_VALUE)]
-        name = "gen%d" % rank
-        rgb = colorsys.hsv_to_rgb(
-            (HUE_OFFSET + (step + 1) * GOLDEN_ANGLE) % 1.0, saturation, value)
-    cmd.set_color(name, list(rgb))
-    return name
-
+''' + _VIS_PALETTE + r'''
 def cifLoops(path):
     """category -> (columns, rows-as-token-lists). Enough CIF for what we write.
 
@@ -11199,13 +11461,7 @@ set_cavitracer_radii $result_mol $result_file
 mol delrep 0 $result_mol
 
 # VMD ColorIDs used for consecutive CaviTracer objects.
-set cavitracer_colors {
-    0 7 1 10 4 11
-    3 9 12 13 14 15
-    5 6 17 18 19 20
-    21 22 23 24 25 26
-    27 28 29 30 31 32
-}
+__PALETTE__
 
 set ncolors [llength $cavitracer_colors]
 
@@ -11304,6 +11560,10 @@ puts "Result:  __RESULT_FILE__"
     tcl = tcl.replace('__PROTEIN_FILE__', protein_file.name)
     tcl = tcl.replace('__RESULT_FILE__', result_file.name)
     tcl = tcl.replace('__OBJECT_TYPE__', object_type)
+    # A colour for every rank drawn, from the palette of the PyMOL and ChimeraX
+    # scripts, so that a channel is the same colour whichever of them shows it.
+    tcl = tcl.replace('__PALETTE__', _vmdPalette(
+        len(drawn) if object_type == 'surface_cavities' else len(objects)))
 
     with open(str(script_file), 'w') as handle:
         handle.write(tcl)
@@ -11659,9 +11919,6 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
     protein_path = protein_file.resolve().as_posix().replace('"', '\\"')
     result_path = result_file.resolve().as_posix().replace('"', '\\"')
 
-    colors = ['blue', 'green', 'red', 'cyan', 'yellow', 'magenta',
-        'orange', 'purple', 'lime', 'pink', 'gold', 'tan']
-
     lines = [
         '# CaviTracer visualization for ChimeraX',
         '#',
@@ -11702,8 +11959,10 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
             'style #2 sphere',
             ''])
 
+        # The palette of the PyMOL and VMD scripts, so that a channel is the
+        # same colour whichever of them shows it.
         for index in range(len(objects)):
-            color = colors[index % len(colors)]
+            color = _hexColour(index)
             resid = index + 1
             lines.append('color #2/T:{0} {1} target a'.format(
                 resid, color))
@@ -11713,7 +11972,7 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         lines.extend(['hide #2 atoms,bonds', ''])
 
         for index in range(len(drawn)):
-            color = colors[index % len(colors)]
+            color = _hexColour(index)
             resid = index + 1
 
             lines.append('surface #2/T:{0}'.format(resid))
@@ -11730,7 +11989,7 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         lines.append('# Connected surface cavities.')
 
         for i, cavity_index in enumerate(cavity_indices):
-            color = colors[i % len(colors)]
+            color = _hexColour(i)
             resid = cavity_index + 1
 
             lines.append('surface #2/C:{0}'.format(resid))
@@ -11742,7 +12001,7 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         offset = len(cavity_indices)
 
         for i, channel_index in enumerate(channel_indices):
-            color = colors[(i + offset) % len(colors)]
+            color = _hexColour(i + offset)
             resid = channel_index + 1
 
             lines.append('color #2/H:{0} {1} target a'.format(resid, color))
