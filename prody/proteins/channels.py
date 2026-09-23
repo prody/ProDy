@@ -42,7 +42,7 @@ __all__ =['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues',
            'writeChannelsCIF', 'writeVmdCaviTracerScript', 'writePyMolCaviTracerScript',
            'writeChimeraXCaviTracerScript', 'mergeFramesPQR',
-           'writeChimeraXMultiModelScript']
+           'writeChimeraXMultiModelScript', 'writePyMolMultiModelScript']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -10941,6 +10941,7 @@ import sys
 # Invoke as:  pymol vis_channels.py -- protein.pdb "por*chl*.pqr"
 #         or: pymol vis_channels.py -- protein.pdb channels.cif
 #         or: pymol vis_channels.py -- protein.pdb channels.pqr  (every channel)
+#         or: pymol vis_channels.py -- protein.pdb frames.pqr    (a state per frame)
 #         or: pymol vis_channels.py -- channels.cif        (structure inside)
 # The regex MUST be quoted so the shell doesn't glob-expand it before PyMOL sees it.
 #
@@ -11203,45 +11204,72 @@ def loadPqrChannels(path):
     as a single object whose channels cannot be hidden or coloured apart. Split
     here the way loadCifChannels splits an mmCIF, with the same names, colours
     and groups, so a run opens the same way whichever format it was written in.
+
+    A multi-model PQR, a MODEL per frame as mergeFramesPQR writes it, gives
+    every object a state per frame, titled with the frame's number: the object
+    of rank n holds the n-th channel of each frame, and stepping through the
+    states steps through the frames. In a frame with fewer channels than that
+    the object has nothing to show.
     """
-    samples, kinds, label = {}, {}, "channel"
+    # (MODEL number, {index: spheres}) per frame; a file without MODEL records
+    # is a single frame, numbered None.
+    models, kinds, label = [], {}, "channel"
     with open(path) as handle:
         for line in handle:
-            if line.startswith("REMARK"):
+            if line.startswith("MODEL"):
+                models.append((line[5:].strip(), {}))
+            elif line.startswith("REMARK"):
                 words = line.split()
                 if len(words) > 2 and words[1] in PQR_KINDS:
                     label = words[1]
             elif line.startswith(("ATOM", "HETATM")) and line[17:20] == "FIL":
+                if not models:
+                    models.append((None, {}))
                 # Fixed columns for the coordinates: three %8.3f values run
                 # together without a space once one of them reaches -100.
                 index = int(line[22:26]) - 1
                 kinds.setdefault(index, label)
-                samples.setdefault(index, []).append(
+                models[-1][1].setdefault(index, []).append(
                     (float(line[30:38]), float(line[38:46]),
                      float(line[46:54]), float(line.split()[-1])))
 
     groups = {}
-    for index in sorted(samples):
-        spheres = samples[index]
+    for index in sorted(kinds):
         colour = caverColour(index)
-
-        text = "".join(
-            "ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
-            % (i + 1, i + 1, x, y, z, 1.00, radius)
-            for i, (x, y, z, radius) in enumerate(spheres))
-
         obj = freeName(f"{kinds[index]}{index}")
-        cmd.read_pdbstr(text, obj)
-        radii_list = [radius for _, _, _, radius in spheres]
-        cmd.alter(obj, "vdw = radii_list.pop(0)",
-                  space={'radii_list': radii_list})
+        count = frames = 0
+
+        for state, (number, samples) in enumerate(models, start=1):
+            spheres = samples.get(index)
+            if not spheres:
+                continue
+            text = "".join(
+                "ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+                % (i + 1, i + 1, x, y, z, 1.00, radius)
+                for i, (x, y, z, radius) in enumerate(spheres))
+            # Discrete, so that each state keeps atoms of its own: the channel
+            # of one frame is as long as it is, not as the first frame's.
+            cmd.read_pdbstr(text, obj, state=state, discrete=1)
+            if number is not None:
+                cmd.set_title(obj, state, f"frame {number}")
+            count += len(spheres)
+            frames += 1
+
+        # Read as PDB text, which keeps the radius column as the B-factor in
+        # every state (unlike PyMOL's PQR reader, see loadSpheres).
+        cmd.alter(obj, "vdw = b")
         cmd.hide("everything", obj)
         cmd.show("spheres", obj)
         cmd.color(colour, obj)
 
         kind = PQR_KINDS[kinds[index]]
         groups.setdefault(kind, []).append(obj)
-        print(f"  {obj:<20s} {colour}  ({kind}, {len(spheres)} spheres)")
+        note = f" in {frames} of {len(models)} frames" if len(models) > 1 else ""
+        print(f"  {obj:<20s} {colour}  ({kind}, {count} spheres{note})")
+
+    if len(models) > 1:
+        print(f"  {len(models)} frames, a state each: step through them with the "
+              f"arrow keys or the movie controls.")
 
     return groups
 
@@ -11916,6 +11944,91 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     return str(written), str(protein_file), str(script_file)
     
     
+def writePyMolMultiModelScript(pqr_file, atoms, output_path='.'):
+    """Write the PyMOL viewer for a PQR already on disk, such as the
+    multi-model one :func:`mergeFramesPQR` writes.
+
+    The viewer is the one :func:`writePyMolCaviTracerScript` leaves. It opens a
+    multi-model PQR as one object per channel rank with a state per frame, each
+    titled with its frame's number, so that PyMOL's state controls step through
+    the frames, and colours every object by its rank, as for one structure. A
+    PQR of one structure opens just as :func:`writePyMolCaviTracerScript`'s own.
+
+    Rank is all that ties an object to its namesakes in other frames: channel 3
+    of one frame and channel 3 of the next are the fourth cheapest of each, not
+    one channel followed through the trajectory.
+
+    :arg pqr_file: the PQR to draw, one structure or several frames.
+    :type pqr_file: str
+
+    :arg atoms: structure to draw the objects against. Its active coordinate
+        set is written, a single backdrop for every frame.
+    :type atoms: :class:`.Atomic`
+
+    :arg output_path: directory the structure and the viewer are written to.
+        The viewer is named after the PQR and is given the PQR on the command
+        line, as the log says. Default is the current directory.
+    :type output_path: str
+
+    :returns: paths to the PQR, the structure PDB and the PyMOL script
+    :rtype: tuple
+
+    Usage:
+    mergeFramesPQR('frames', 'channels_frames.pqr')
+    writePyMolMultiModelScript('channels_frames.pqr', atoms)
+
+    Next (bash console):
+    $ pymol vis_channels_frames.py -- protein.pdb channels_frames.pqr"""
+
+    import os
+    from pathlib import Path
+
+    _requireCoords(atoms)
+
+    pqr_file = Path(pqr_file)
+    if not pqr_file.is_file():
+        raise ValueError('no PQR at {0}'.format(pqr_file))
+
+    output_path = Path(output_path)
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    # Named after the PQR and never written over, rather than left as
+    # vis_channels.py: _writeVisScript keeps a copy already there, which may be
+    # one from before the viewer could read frames.
+    number = 0
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+        protein_file = output_path / ('protein' + suffix + '.pdb')
+        script_file = output_path / ('vis_' + pqr_file.stem + suffix + '.py')
+        if not (protein_file.exists() or script_file.exists()):
+            break
+        number += 1
+
+    # The active frame only: written whole, a trajectory's structure would come
+    # out as a model per frame, all of them drawn at once behind the channels.
+    writePDB(str(protein_file), atoms, csets=atoms.getACSIndex())
+    with open(str(script_file), 'w') as handle:
+        handle.write(_VIS_CHANNELS_SCRIPT)
+
+    # The viewer is run from its own directory, so the PQR is named from there.
+    try:
+        named = os.path.relpath(str(pqr_file), str(output_path))
+    except ValueError:
+        named = str(pqr_file.resolve())    # on another drive
+
+    LOGGER.info("CaviTracer PyMOL files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(pqr_file))
+    LOGGER.info("    PyMOL script: {0}".format(script_file))
+    LOGGER.info("View the result from {0} with: pymol {1} -- {2} {3}".format(
+        output_path, script_file.name, protein_file.name, named))
+
+    return str(pqr_file), str(protein_file), str(script_file)
+
+
 def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
                                   surface=None, output_path='.', num_samples=5):
     """Write CaviTracer results and a ChimeraX command script.
