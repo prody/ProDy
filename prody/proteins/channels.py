@@ -11920,8 +11920,8 @@ puts "Result:  __RESULT_FILE__"
         handle.write(tcl)
 
 
-def writeVmdMultiModelScript(pqr_file, atoms, object_type='channels',
-                             output_path='.'):
+def writeVmdMultiModelScript(pqr_file, atoms, output_path='.',
+                             object_type='channels'):
     """Write a VMD script for a PQR already on disk, such as the multi-model
     one :func:`mergeFramesPQR` writes.
 
@@ -11941,15 +11941,15 @@ def writeVmdMultiModelScript(pqr_file, atoms, object_type='channels',
         set is written, a single backdrop for every frame.
     :type atoms: :class:`.Atomic`
 
+    :arg output_path: directory the structure and the script are written to.
+        The script finds the PQR where it is. Default is the current directory.
+    :type output_path: str
+
     :arg object_type: what the PQR holds: ``'channels'`` (the default),
         ``'pores'``, ``'links'``, ``'surface_cavities'`` or
         ``'connected_cavities_channels'``, as in
         :func:`writeVmdCaviTracerScript`.
     :type object_type: str
-
-    :arg output_path: directory the structure and the script are written to.
-        The script finds the PQR where it is. Default is the current directory.
-    :type output_path: str
 
     :returns: paths to the PQR, the structure PDB and the VMD script
     :rtype: tuple
@@ -12585,8 +12585,8 @@ def _writeChimeraXScript(script_file, protein_file, result_file, object_type):
         handle.write('\n'.join(lines) + '\n')
 
 
-def writeChimeraXMultiModelScript(pqr_file, atoms, object_type='channels',
-                                  output_path='.'):
+def writeChimeraXMultiModelScript(pqr_file, atoms, output_path='.',
+                                  object_type='channels'):
     """Write a ChimeraX command file for a PQR already on disk, such as the
     multi-model one :func:`mergeFramesPQR` writes.
 
@@ -12607,15 +12607,15 @@ def writeChimeraXMultiModelScript(pqr_file, atoms, object_type='channels',
         set is written, a single backdrop for every frame.
     :type atoms: :class:`.Atomic`
 
+    :arg output_path: directory the structure and the script are written to.
+        The script opens the PQR where it is. Default is the current directory.
+    :type output_path: str
+
     :arg object_type: what the PQR holds: ``'channels'`` (the default),
         ``'pores'``, ``'links'``, ``'surface_cavities'`` or
         ``'connected_cavities_channels'``, as in
         :func:`writeChimeraXCaviTracerScript`.
     :type object_type: str
-
-    :arg output_path: directory the structure and the script are written to.
-        The script opens the PQR where it is. Default is the current directory.
-    :type output_path: str
 
     :returns: paths to the PQR, the structure PDB and the ChimeraX script
     :rtype: tuple
