@@ -14,7 +14,7 @@ from contextlib import contextmanager
 
 import numpy as np
 from prody import LOGGER, PY3K
-from prody.atomic import Atomic, Chain
+from prody.atomic import Atomic, Chain, AtomGroup
 from prody.utilities import getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
 from prody.proteins.compare import mapChainOntoChain
@@ -3822,23 +3822,24 @@ def calcChannelSurfaceOverlaps(**kwargs):
             surface = _surfaceFromPqrWorker((pqr_file, resolution))
             merged_surface.update(surface)
 
-    with open(output_file_name, 'w') as out:
-        atom_id = 1
+    n_voxels = len(merged_surface)
+    coords = np.zeros((n_voxels, 3), float)
+    occupancies = np.zeros(n_voxels, float)
 
-        for (ix, iy, iz), count in merged_surface.items():
-            x = ix * resolution
-            y = iy * resolution
-            z = iz * resolution
+    for i, ((ix, iy, iz), count) in enumerate(merged_surface.items()):
+        coords[i] = (ix * resolution, iy * resolution, iz * resolution)
+        occupancies[i] = float(count) / float(len(pqr_files))
 
-            norm_count = float(count) / float(len(pqr_files))
+    ag = AtomGroup(output_file_name)
+    ag.setCoords(coords)
+    ag.setNames(['H'] * n_voxels)
+    ag.setResnames(['FIL'] * n_voxels)
+    ag.setResnums([1] * n_voxels)
+    ag.setChids(['T'] * n_voxels)
+    ag.setOccupancies(occupancies)
+    ag.setBetas([1.0] * n_voxels)
 
-            # PDB serials are a fixed 5-column field; wrap past 99999 rather than
-            # overflow the column and corrupt every field after it (atom_id is
-            # never used to identify a FIL voxel downstream).
-            out.write("ATOM  {:5d}  H   FIL T   1    {:8.3f}{:8.3f}{:8.3f}{:6.2f}  1.00\n"
-                .format(atom_id % 100000, x, y, z, norm_count))
-
-            atom_id += 1
+    writePDB(output_file_name, ag, hybrid36=True)
 
     LOGGER.info("Overlap written to: {0}".format(output_file_name))
     LOGGER.info("Number of occupied overlap voxels: {0}".format(len(merged_surface)))
@@ -4569,10 +4570,42 @@ def showFrequentObjectResidues(counts_by_chain, top=50):
 def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                           threshold, distA, kwargs, kind,
                           detect_records_fn, overlap_fn,
-                          dali_filter_kwargs=None, msa_fasta=None):
+                          dali_filter_kwargs=None, msa_fasta=None,
+                          msa_ref_label=None):
     """Shared alignment/thresholding pipeline behind :func:`calcSignatureCavities`
     and :func:`calcSignatureChannels`. The two public functions differ only in
-    which detection family they dispatch to.
+    which detection family they dispatch to. See those functions for the full
+    description of *structures*, *ref_structure*, *output_path*, *voxel_res*,
+    *threshold*, *distA*, *dali_filter_kwargs*, *msa_fasta* and *msa_ref_label*
+    -- documented here only where this shared layer adds meaning beyond what's
+    written there.
+
+    :arg structures: See :func:`calcSignatureCavities`.
+    :type structures: list of str or None
+
+    :arg ref_structure: See :func:`calcSignatureCavities`.
+    :type ref_structure: str or None
+
+    :arg output_path: See :func:`calcSignatureCavities`.
+    :type output_path: str
+
+    :arg voxel_res: Voxel resolution in Å for the consensus map, passed to
+        *overlap_fn* as ``resolution``. See :func:`calcSignatureCavities`.
+    :type voxel_res: float
+
+    :arg threshold: Minimum occupancy (integer percent, 0-100) for a voxel to
+        be retained in the signature cavity/channel. See
+        :func:`calcSignatureCavities`.
+    :type threshold: int
+
+    :arg distA: Distance cutoff in Å for identifying reference residues near
+        signature voxels. See :func:`calcSignatureCavities`.
+    :type distA: float
+
+    :arg kwargs: Extra keyword arguments forwarded to the family's own
+        detection function (:func:`calcSurfaceCavities` or
+        :func:`calcChannels`) via *detect_records_fn*.
+    :type kwargs: dict
 
     :arg kind: ``'cavity'`` or ``'channel'`` -- selects output file naming
         (``signature_<kind>_pt{threshold}.pdb``, ``aligned_<kind>_params.csv``,
@@ -4589,6 +4622,15 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
     :arg overlap_fn: :func:`calcSurfaceCavityOverlaps` or
         :func:`calcChannelSurfaceOverlaps`.
     :type overlap_fn: callable
+
+    :arg dali_filter_kwargs: See :func:`calcSignatureCavities`.
+    :type dali_filter_kwargs: dict or None
+
+    :arg msa_fasta: See :func:`calcSignatureCavities`.
+    :type msa_fasta: str or None
+
+    :arg msa_ref_label: See :func:`calcSignatureCavities`.
+    :type msa_ref_label: str or None
     """
     import pandas as pd
     import re
@@ -4685,7 +4727,21 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
     if ref_pdb_id is None:
         ref_pdb_id, ref_chain, ref_label = entries[0]
 
-    _ag_ref = parsePDB(ref_pdb_id, chain=ref_chain, folder=str(unaligned_dir))
+    # ── batch-parse the reference plus every input structure in one call ──────
+    # parsePDB accepts a list of 'PDBID'+'ChainID' strings (e.g. '1tqnA') and
+    # resolves each entry's chain from the trailing character itself, so a
+    # single call replaces one parsePDB() round-trip per structure.
+    entry_labels = [label for _, _, label in entries]
+    batch_labels = list(entry_labels)
+    if ref_label not in batch_labels:
+        batch_labels = [ref_label] + batch_labels
+
+    parsed = parsePDB(batch_labels, folder=str(unaligned_dir))
+    if not isinstance(parsed, list):
+        parsed = [parsed]
+    label_to_ag = dict(zip(batch_labels, parsed))
+
+    _ag_ref = label_to_ag[ref_label]
     if _ag_ref is None:
         raise ValueError("Could not parse reference: {0} chain {1}".format(ref_pdb_id, ref_chain))
     _ag_ref_prot = _ag_ref.select('protein')
@@ -4706,7 +4762,7 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                           .format(ref_chain, ref_pdb_id))
 
     for pdb_id, chain, label in entries:
-        ag = parsePDB(pdb_id, chain=chain, folder=str(unaligned_dir))
+        ag = label_to_ag[label]
         if ag is None:
             _warn('No atoms parsed for {0}'.format(label))
             continue
@@ -4782,25 +4838,169 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
     msa_fasta_path = None
 
     if msa_fasta:
-        # User-supplied MSA replaces the auto-generated MSA from the ensemble of aligned structures. 
-        from Bio import SeqIO
+        # User-supplied MSA replaces the auto-generated MSA from the ensemble
+        # of aligned structures. The reference's row within it is identified
+        # -- in order of preference -- by an explicit msa_ref_label, an
+        # exact ref_label match, the reference's own UniProt idcode or
+        # accession (read from the PDB's DBREF records, since a family MSA
+        # such as one fetched from Pfam is built around UniProt entries and
+        # very often already contains the reference's own -- a Pfam 'full'
+        # Stockholm alignment labels rows by idcode/range, e.g.
+        # 'CP3A4_HUMAN/38-493'), or, only as a last resort and only for
+        # small MSAs, a bounded best-identity search. This avoids
+        # pairwise-aligning the reference against every row of what may be
+        # a many-thousand-row "full" family alignment just to locate the
+        # one row that DBREF already names for free.
+        from prody.sequence.msafile import parseMSA
 
-        user_labels = []
-        user_seqs = []
-        with open(str(msa_fasta)) as f:
-            for rec in SeqIO.parse(f, 'fasta'):
-                user_labels.append(rec.id)
-                user_seqs.append(str(rec.seq))
+        try:
+            # ProDy's compiled FASTA parser is used when possible (fast,
+            # matters for many-thousand-row "full" family alignments); it
+            # chokes on a handful of edge cases (e.g. a file holding exactly
+            # one sequence, or -- observed on a real 362k-row Pfam 'full'
+            # alignment written out of a Stockholm file -- silently parsing
+            # every sequence as zero residues and raising ValueError from
+            # the MSA constructor), which the slower pure-Python parser
+            # handles fine, so fall back to that on any parse failure.
+            user_msa = parseMSA(str(msa_fasta))
+        except (OSError, IOError, ValueError):
+            user_msa = parseMSA(str(msa_fasta), filter=lambda label, seq: True)
+        if user_msa is None:
+            raise ValueError(
+                "msa_fasta: no sequences could be parsed from {0!r}."
+                .format(msa_fasta))
+        user_labels = user_msa.getLabels(full=True)
 
         ref_ca_for_msa = _ag_ref_prot.select('protein and name CA')
         ref_seq = ref_ca_for_msa.getSequence() if ref_ca_for_msa is not None else ''
 
         col_to_resnum = {}
+        anchor_idx = None
+        anchor_positional = False
+        anchor_source = None
 
-        if ref_label in user_labels:
+        if msa_ref_label is not None:
+            if msa_ref_label not in user_labels:
+                raise ValueError(
+                    "msa_ref_label {0!r} was not found among the {1} row "
+                    "labels of msa_fasta."
+                    .format(msa_ref_label, len(user_labels)))
+            anchor_idx = user_labels.index(msa_ref_label)
+            anchor_source = 'explicit'
+        elif ref_label in user_labels:
             # Exact label match: assumed to correspond 1:1 to the
-            # reference's own residues,
-            ref_row_seq = user_seqs[user_labels.index(ref_label)]
+            # reference's own residues.
+            anchor_idx = user_labels.index(ref_label)
+            anchor_positional = True
+        else:
+            # Resolve the reference's own UniProt idcode (mnemonic, e.g.
+            # 'CP3A4_HUMAN') and accession (e.g. 'P08684') from the PDB's
+            # DBREF records and use them to find the matching row that a
+            # family MSA (e.g. from Pfam) very likely already contains.
+            # idcode is tried first: a Pfam 'full' alignment (Stockholm)
+            # labels its rows by mnemonic with a /range suffix (e.g.
+            # 'CP3A4_HUMAN/38-493') -- the accession appears only in a
+            # per-row '#=GS ... AC' annotation that ProDy's MSA does not
+            # index -- so accession alone fails to match on a real Pfam
+            # download; :func:`.refineMSA` resolves labels via
+            # DBREF the same way, idcode before accession.
+            idcode = None
+            accession = None
+            try:
+                from prody.proteins import fetchPDB
+                from prody.proteins.header import parsePDBHeader
+                # Resolve via the same local folder parsePDB already used
+                # for the reference above, so this never triggers a
+                # network fetch when the structure was already available
+                # locally (and falls back to one only when it genuinely
+                # wasn't, exactly like the earlier parsePDB call did).
+                ref_pdb_file = fetchPDB(ref_pdb_id, folder=str(unaligned_dir))
+                header_source = ref_pdb_file if ref_pdb_file else ref_pdb_id
+                for poly in parsePDBHeader(header_source, 'polymers'):
+                    if ref_chain and poly.chid != ref_chain:
+                        continue
+                    for dbref in poly.dbrefs:
+                        if dbref.database == 'UniProt':
+                            if dbref.idcode and not idcode:
+                                idcode = dbref.idcode
+                            if dbref.accession and not accession:
+                                accession = dbref.accession
+                    if idcode or accession:
+                        break
+            except Exception:
+                idcode = None
+                accession = None
+
+            for candidate, source in ((idcode, 'idcode'), (accession, 'accession')):
+                if not candidate:
+                    continue
+                idx = user_msa.getIndex(candidate)
+                if isinstance(idx, list):
+                    idx = idx[0] if idx else None
+                if idx is not None:
+                    anchor_idx = idx
+                    anchor_source = 'accession'
+                    LOGGER.info(
+                        "msa_fasta: row {0!r} matched via UniProt {1} {2} "
+                        "from {3} chain {4}'s own DBREF; using it to anchor "
+                        "entropy for the reference."
+                        .format(user_labels[idx], source, candidate,
+                                ref_pdb_id, ref_chain))
+                    break
+
+            if anchor_idx is None:
+                # Last resort: a bounded best-identity search. Deliberately
+                # capped -- pairwise-aligning the reference against every
+                # row of a many-thousand-sequence "full" family alignment is
+                # not practical, and this branch should only ever be
+                # reached when neither an exact label, an explicit
+                # msa_ref_label, nor a DBREF-derived idcode/accession could
+                # locate the reference's own row.
+                max_scan = 500
+                if len(user_labels) > max_scan:
+                    raise ValueError(
+                        "msa_fasta: no row labeled {0!r}, no msa_ref_label "
+                        "given, and no UniProt idcode/accession match "
+                        "against {1} chain {2}'s own DBREF; the supplied "
+                        "MSA has {3} rows, too many to search by pairwise "
+                        "alignment. "
+                        "Pass msa_ref_label to name the anchor row "
+                        "explicitly, or supply a smaller MSA (e.g. Pfam's "
+                        "'seed' alignment instead of 'full')."
+                        .format(ref_label, ref_pdb_id, ref_chain, len(user_labels)))
+
+                from prody.utilities.seqtools import alignBioPairwise
+
+                best_idx = None
+                best_matches = -1
+                for idx in range(len(user_labels)):
+                    seq = str(user_msa[idx])
+                    ungapped = seq.replace('-', '').replace('.', '')
+                    if not ungapped:
+                        continue
+                    alns = alignBioPairwise(ref_seq, ungapped)
+                    if not alns:
+                        continue
+                    aligned_ref, aligned_row = alns[0][0], alns[0][1]
+                    matches = sum(1 for a, b in zip(aligned_ref, aligned_row)
+                                  if a == b and a not in ('-', '.'))
+                    if matches > best_matches:
+                        best_matches = matches
+                        best_idx = idx
+
+                if best_idx is None:
+                    raise ValueError(
+                        "msa_fasta: no row in the supplied MSA could be "
+                        "aligned to the reference structure {0!r}. Review "
+                        "or supply an MSA that includes or aligns to the "
+                        "reference structure."
+                        .format(ref_label))
+
+                anchor_idx = best_idx
+                anchor_source = 'fallback'
+
+        if anchor_positional:
+            ref_row_seq = str(user_msa[anchor_idx])
             ref_idx = 0
             for col, ch in enumerate(ref_row_seq):
                 if ch not in ('-', '.'):
@@ -4808,59 +5008,48 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                         col_to_resnum[col] = ref_resnums[ref_idx]
                     ref_idx += 1
         else:
-            # No exact label: pairwise-align the reference's own sequence
-            # against every row, pick the highest-identity match, to
-            # recover a ref_resnum -> column-index mapping.
+            # Map the anchor row onto the reference's own residue numbers
+            # with one pairwise alignment -- needed regardless of how
+            # confidently the row was identified, since a family MSA row is
+            # rarely numbered like the crystal structure (expression tags,
+            # unresolved loops, and numbering offsets are the norm).
             from prody.utilities.seqtools import alignBioPairwise
 
-            best_idx = None
-            best_aln = None
-            best_matches = -1
-            for idx, seq in enumerate(user_seqs):
-                ungapped = seq.replace('-', '').replace('.', '')
-                if not ungapped:
-                    continue
-                alns = alignBioPairwise(ref_seq, ungapped)
-                if not alns:
-                    continue
-                aligned_ref, aligned_row = alns[0][0], alns[0][1]
-                matches = sum(1 for a, b in zip(aligned_ref, aligned_row)
-                              if a == b and a not in ('-', '.'))
-                if matches > best_matches:
-                    best_matches = matches
-                    best_idx = idx
-                    best_aln = (aligned_ref, aligned_row)
-
-            if best_idx is None:
+            anchor_seq = str(user_msa[anchor_idx])
+            ungapped_anchor = anchor_seq.replace('-', '').replace('.', '')
+            alns = alignBioPairwise(ref_seq, ungapped_anchor)
+            if not alns:
                 raise ValueError(
-                    "msa_fasta: no row in the supplied MSA could be aligned "
-                    "to the reference structure {0!r}. Review or supply an "
-                    "MSA that includes or aligns to the reference structure."
-                    .format(ref_label))
+                    "msa_fasta: row {0!r} could not be aligned to the "
+                    "reference structure {1!r}."
+                    .format(user_labels[anchor_idx], ref_label))
+            aligned_ref, aligned_row = alns[0][0], alns[0][1]
 
-            mismatches = len(ref_seq) - best_matches
+            matches = sum(1 for a, b in zip(aligned_ref, aligned_row)
+                          if a == b and a not in ('-', '.'))
+            mismatches = len(ref_seq) - matches
             mismatch_pct = 100.0 * mismatches / max(len(ref_seq), 1)
             if mismatch_pct > 30.0:
                 raise ValueError(
-                    "msa_fasta: best-matching row {0!r} for reference {1!r} "
-                    "has {2:.1f}% mismatch (> 30%). Review or supply an MSA "
-                    "that includes or aligns to the reference structure."
-                    .format(user_labels[best_idx], ref_label, mismatch_pct))
+                    "msa_fasta: row {0!r} for reference {1!r} has {2:.1f}% "
+                    "mismatch (> 30%). Review or supply an MSA that "
+                    "includes or aligns to the reference structure, or a "
+                    "correct msa_ref_label."
+                    .format(user_labels[anchor_idx], ref_label, mismatch_pct))
 
-            _warn("msa_fasta: no row labeled {0!r}; using best-matching row "
-                  "{1!r} instead ({2:.1f}% mismatch)."
-                  .format(ref_label, user_labels[best_idx], mismatch_pct))
+            if anchor_source == 'fallback':
+                _warn("msa_fasta: no row labeled {0!r} and no UniProt "
+                      "idcode/accession match; using best-matching row "
+                      "{1!r} instead ({2:.1f}% mismatch)."
+                      .format(ref_label, user_labels[anchor_idx], mismatch_pct))
 
-            # Map ungapped-position -> column-index within the best-matching
-            # row's own entry in the user's MSA.
             row_col_map = {}
             upos = 0
-            for col, ch in enumerate(user_seqs[best_idx]):
+            for col, ch in enumerate(anchor_seq):
                 if ch not in ('-', '.'):
                     row_col_map[upos] = col
                     upos += 1
 
-            aligned_ref, aligned_row = best_aln
             ref_idx = 0
             row_upos = 0
             for a, b in zip(aligned_ref, aligned_row):
@@ -4875,16 +5064,7 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                 if not is_row_gap:
                     row_upos += 1
 
-        n_cols = max(len(seq) for seq in user_seqs) if user_seqs else 0
-        msa_labels = user_labels
-        msa_array = np.full((len(msa_labels), n_cols), b'-', dtype='S1')
-        for i, seq in enumerate(user_seqs):
-            for col, ch in enumerate(seq[:n_cols]):
-                msa_array[i, col] = ch.encode()
-
-        ensemble_msa = MSA(msa_array, title='signature_{0}_msa'.format(kind),
-                            labels=msa_labels)
-        entropy = calcShannonEntropy(ensemble_msa, omitgaps=True)
+        entropy = calcShannonEntropy(user_msa, omitgaps=True)
         entropy_by_resnum = {}
         for col, e in enumerate(entropy):
             rn = col_to_resnum.get(col)
@@ -5085,7 +5265,8 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
 def calcSignatureCavities(structures=None, ref_structure=None,
                          output_path='output',
                          voxel_res=0.5, threshold=20, distA=4.5,
-                         dali_filter_kwargs=None, msa_fasta=None, **kwargs):
+                         dali_filter_kwargs=None, msa_fasta=None,
+                         msa_ref_label=None, **kwargs):
     """Calculate surface cavities for an ensemble of homologous protein structures.
 
     Structures are superposed onto a reference using ProDy's own CE-align
@@ -5133,16 +5314,37 @@ def calcSignatureCavities(structures=None, ref_structure=None,
         otherwise. default is ``None``
     :type dali_filter_kwargs: dict or None
 
-    :arg msa_fasta: Path to a user-supplied FASTA-format MSA. When given, it
-        replaces the auto-built MSA as the Shannon entropy source. A row anchoring 
-        to *ref_structure* is required: an exact label match is used if present, 
-        otherwise the best-matching row by sequence identity against the reference
-        structure is used, with a warning. If the best match still has
-        more than 30% mismatch against the reference (or no row aligns at
-        all), :exc:`ValueError` is raised. Structural superposition and
-        mapping (CE-align, ``msa_mappings``) are unaffected either way.
-        default is ``None``
+    :arg msa_fasta: Path to a user-supplied FASTA-format MSA (e.g. one
+        fetched from Pfam via :func:`.fetchPfamMSA` and written with
+        :func:`.writeMSA`). When given, it replaces the auto-built MSA as
+        the Shannon entropy source. The row anchoring to *ref_structure* is
+        resolved in order of preference: *msa_ref_label* if given; an exact
+        ``ref_structure`` label match; the reference's own UniProt idcode
+        (mnemonic, e.g. ``'CP3A4_HUMAN'``) or accession (e.g.
+        ``'P08684'``), read from the PDB's DBREF records and matched
+        against the MSA's row labels -- idcode is tried first since a Pfam
+        ``'full'`` alignment labels its rows by idcode and range (e.g.
+        ``'CP3A4_HUMAN/38-493'``), with the accession appearing only in a
+        Stockholm ``#=GS ... AC`` annotation that isn't indexed by row
+        label; and, only as a last resort and only when the MSA has 500
+        rows or fewer, the best-identity row
+        found by pairwise alignment against every row. In every case except
+        the exact-label match, the identified row is itself pairwise-aligned
+        against the reference once to build the residue mapping, and
+        :exc:`ValueError` is raised if that alignment has more than 30%
+        mismatch (or if no row could be identified/aligned at all).
+        Structural superposition and mapping (CE-align, ``msa_mappings``)
+        are unaffected either way. default is ``None``
     :type msa_fasta: str or None
+
+    :arg msa_ref_label: Row label within *msa_fasta* to use as the
+        reference's anchor row, bypassing automatic identification (exact
+        label / UniProt accession / best-identity search) entirely. Useful
+        when the accession is already known (e.g. from a prior
+        :func:`.searchPfam` call) or when automatic identification would be
+        ambiguous. :exc:`ValueError` is raised if the label is not found.
+        Ignored unless *msa_fasta* is given. default is ``None``
+    :type msa_ref_label: str or None
 
     :arg distA: Distance cutoff in Å for identifying reference residues near
         signature voxels. default is ``4.5``
@@ -5207,13 +5409,15 @@ def calcSignatureCavities(structures=None, ref_structure=None,
                                    'cavity', _detectRecords,
                                    calcSurfaceCavityOverlaps,
                                    dali_filter_kwargs=dali_filter_kwargs,
-                                   msa_fasta=msa_fasta)
+                                   msa_fasta=msa_fasta,
+                                   msa_ref_label=msa_ref_label)
 
 
 def calcSignatureChannels(structures=None, ref_structure=None,
                          output_path='output',
                          voxel_res=0.5, threshold=20, distA=4.5,
-                         dali_filter_kwargs=None, msa_fasta=None, **kwargs):
+                         dali_filter_kwargs=None, msa_fasta=None,
+                         msa_ref_label=None, **kwargs):
     """Calculate channels for an ensemble of homologous protein structures.
 
     Identical pipeline to :func:`calcSignatureCavities` -- structures are
@@ -5249,6 +5453,9 @@ def calcSignatureChannels(structures=None, ref_structure=None,
 
     :arg msa_fasta: See :func:`calcSignatureCavities`.
     :type msa_fasta: str or None
+
+    :arg msa_ref_label: See :func:`calcSignatureCavities`.
+    :type msa_ref_label: str or None
 
     :arg distA: Distance cutoff in Å for identifying reference residues near
         signature voxels. default is ``4.5``
@@ -5312,7 +5519,8 @@ def calcSignatureChannels(structures=None, ref_structure=None,
                                    'channel', _detectRecords,
                                    calcChannelSurfaceOverlaps,
                                    dali_filter_kwargs=dali_filter_kwargs,
-                                   msa_fasta=msa_fasta)
+                                   msa_fasta=msa_fasta,
+                                   msa_ref_label=msa_ref_label)
 
 
 class Channel:

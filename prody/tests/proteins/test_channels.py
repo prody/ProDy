@@ -435,6 +435,95 @@ class TestCalcSignatureCavitiesUserSuppliedMsa(unittest.TestCase):
 
         self.assertIn('mismatch', str(ctx.exception))
 
+    @patch('prody.proteins.channels._warn')
+    def testUniProtAccessionMatchAnchorsSuppliedMsa(self, mock_warn):
+        """A Pfam-style row labeled by UniProt accession (not by
+        ref_structure) must still anchor entropy directly, resolved via the
+        reference PDB's own DBREF record (1UBI chain A -> P62988) -- this is
+        the real-world Pfam case, where the label is never a pdbid+chain
+        string, and no exact-label branch can ever fire. No best-effort
+        warning should be emitted, since the match isn't a guess."""
+
+        ref_seq = self._refSequence()
+        msa_path = os.path.join(self.out_dir, 'user.fasta')
+        with open(msa_path, 'w') as f:
+            f.write('>P62988.1/1-76\n{0}\n'.format(ref_seq))
+            f.write('>UBIQ_UNRELATED/1-76\n{0}\n'.format(ref_seq))
+
+        result = calcSignatureCavities(
+            structures=['1ubjA'], ref_structure='1ubiA',
+            output_path=self.out_dir, msa_fasta=msa_path)
+
+        self.assertIsNotNone(result)
+        self.assertFalse(mock_warn.called)
+
+        ref_written = parsePDB(os.path.join(self.out_dir, 'aligned', 'ref.pdb'))
+        betas = ref_written.select('protein and name CA').getBetas()
+        self.assertTrue((betas < 1e-6).all())
+
+    def testMsaRefLabelExplicitOverrideAnchorsSuppliedMsa(self):
+        """msa_ref_label lets the caller name the anchor row directly,
+        bypassing exact-label/accession/best-effort search entirely --
+        useful when the caller already resolved the right row themselves
+        (e.g. via a prior searchPfam call)."""
+
+        ref_seq = self._refSequence()
+        msa_path = os.path.join(self.out_dir, 'user.fasta')
+        with open(msa_path, 'w') as f:
+            f.write('>totally_unrelated_label/1-76\n{0}\n'.format(ref_seq))
+            f.write('>filler/1-76\n{0}\n'.format(ref_seq))
+
+        result = calcSignatureCavities(
+            structures=['1ubjA'], ref_structure='1ubiA',
+            output_path=self.out_dir, msa_fasta=msa_path,
+            msa_ref_label='totally_unrelated_label/1-76')
+
+        self.assertIsNotNone(result)
+
+        ref_written = parsePDB(os.path.join(self.out_dir, 'aligned', 'ref.pdb'))
+        betas = ref_written.select('protein and name CA').getBetas()
+        self.assertTrue((betas < 1e-6).all())
+
+    def testMsaRefLabelNotFoundRaises(self):
+        """An msa_ref_label that names no row in msa_fasta must raise
+        ValueError rather than silently falling through to another
+        matching strategy."""
+
+        ref_seq = self._refSequence()
+        msa_path = os.path.join(self.out_dir, 'user.fasta')
+        with open(msa_path, 'w') as f:
+            f.write('>some_label/1-76\n{0}\n'.format(ref_seq))
+            f.write('>filler/1-76\n{0}\n'.format(ref_seq))
+
+        with self.assertRaises(ValueError) as ctx:
+            calcSignatureCavities(
+                structures=['1ubjA'], ref_structure='1ubiA',
+                output_path=self.out_dir, msa_fasta=msa_path,
+                msa_ref_label='does_not_exist')
+
+        self.assertIn('msa_ref_label', str(ctx.exception))
+
+    def testOversizedUnmatchedMsaRaisesInsteadOfScanningEveryRow(self):
+        """When no row is labeled ref_structure, no msa_ref_label is given,
+        and no UniProt accession match is found, calcSignatureCavities must
+        refuse to pairwise-align the reference against every row once the
+        MSA is too large to search exhaustively (500+ rows) -- this is the
+        scaling failure a real 'full' Pfam family alignment would otherwise
+        hit, so it must fail fast with a clear message instead of hanging."""
+
+        ref_seq = self._refSequence()
+        msa_path = os.path.join(self.out_dir, 'user.fasta')
+        with open(msa_path, 'w') as f:
+            for i in range(501):
+                f.write('>UNRELATED{0}_SPECIES/1-76\n{1}\n'.format(i, ref_seq))
+
+        with self.assertRaises(ValueError) as ctx:
+            calcSignatureCavities(
+                structures=['1ubjA'], ref_structure='1ubiA',
+                output_path=self.out_dir, msa_fasta=msa_path)
+
+        self.assertIn('too many to search', str(ctx.exception))
+
 
 if __name__ == '__main__':
     unittest.main()
