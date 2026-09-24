@@ -4652,8 +4652,9 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
     def _getMappingResnums(pdb_file, chain=None):
         """Return ordered Cα residue numbers for a single chain in a PDB file.
 
-        :arg chain: Chain ID string (``'A'``), or ``None`` to use all protein
-            chains.
+        :arg chain: Single-letter chain identifier of a structure label
+            (4-letter PDB id + 1-letter chain id, e.g. the ``'A'`` in
+            ``'1tqnA'``), or ``None`` to use all protein chains. 
         """
         ag = parsePDB(str(pdb_file))
         if ag is None:
@@ -4669,7 +4670,6 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
         if resname in ('HSD', 'HSP'):
             return AAMAP.get('HIS', resname[0])
         return AAMAP.get(resname, resname[0] if resname else '?')
-
 
     # ── 1. Resolve reference structure string, if given ────────────────────────
     ref_pdb_id = ref_chain = ref_label = None
@@ -4710,29 +4710,23 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
         raise ValueError("structures must be a list of 'pdbid'+'chain' strings, "
                           "e.g. ['2srcA', '1bbhA'].")
 
-    entries = []
-    for item in structures:
-        item_str = str(item)
+    if not structures:
+        raise ValueError("No structures found in the provided input.")
+
+    structures = [str(item) for item in structures]
+    for item_str in structures:
         if len(item_str) < 5:
             raise ValueError(
                 "Each element of structures must be a 4-character PDB code "
                 "followed by a chain identifier (e.g. '2srcA'); got {0!r}."
                 .format(item_str))
-        pdb_id, chain = item_str[:4], item_str[4:]
-        entries.append((pdb_id, chain, item_str))
-
-    if not entries:
-        raise ValueError("No structures found in the provided input.")
 
     if ref_pdb_id is None:
-        ref_pdb_id, ref_chain, ref_label = entries[0]
+        ref_label = structures[0]
+        ref_pdb_id, ref_chain = ref_label[:4], ref_label[4:]
 
     # ── batch-parse the reference plus every input structure in one call ──────
-    # parsePDB accepts a list of 'PDBID'+'ChainID' strings (e.g. '1tqnA') and
-    # resolves each entry's chain from the trailing character itself, so a
-    # single call replaces one parsePDB() round-trip per structure.
-    entry_labels = [label for _, _, label in entries]
-    batch_labels = list(entry_labels)
+    batch_labels = list(structures)
     if ref_label not in batch_labels:
         batch_labels = [ref_label] + batch_labels
 
@@ -4756,12 +4750,15 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
     report_rows  = []
     msa_mappings = {}
 
-    ref_chain_obj = _ag_ref_prot.getHierView()[ref_chain]
+    # parsePDB already restricted _ag_ref_prot to ref_chain, so its hierview
+    # holds exactly one chain -- take it directly instead of indexing by the
+    # chain letter again.
+    ref_chain_obj = next(iter(_ag_ref_prot.getHierView()), None)
     if not isinstance(ref_chain_obj, Chain):
         raise ValueError("Chain {0} not found in reference: {1}"
                           .format(ref_chain, ref_pdb_id))
 
-    for pdb_id, chain, label in entries:
+    for label in structures:
         ag = label_to_ag[label]
         if ag is None:
             _warn('No atoms parsed for {0}'.format(label))
@@ -4769,12 +4766,13 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
 
         ag_chain = ag.select('protein')
         if ag_chain is None:
-            _warn('No protein atoms in chain {0} of {1}'.format(chain, pdb_id))
+            _warn('No protein atoms in {0}'.format(label))
             continue
 
-        mobile_chain_obj = ag_chain.getHierView()[chain]
+        # Likewise already restricted to its own chain by parsePDB.
+        mobile_chain_obj = next(iter(ag_chain.getHierView()), None)
         if not isinstance(mobile_chain_obj, Chain):
-            _warn('Chain {0} not found in {1}.'.format(chain, pdb_id))
+            _warn('Chain not found in {0}.'.format(label))
             continue
 
         mapping = mapChainOntoChain(mobile_chain_obj, ref_chain_obj,
@@ -4839,29 +4837,10 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
 
     if msa_fasta:
         # User-supplied MSA replaces the auto-generated MSA from the ensemble
-        # of aligned structures. The reference's row within it is identified
-        # -- in order of preference -- by an explicit msa_ref_label, an
-        # exact ref_label match, the reference's own UniProt idcode or
-        # accession (read from the PDB's DBREF records, since a family MSA
-        # such as one fetched from Pfam is built around UniProt entries and
-        # very often already contains the reference's own -- a Pfam 'full'
-        # Stockholm alignment labels rows by idcode/range, e.g.
-        # 'CP3A4_HUMAN/38-493'), or, only as a last resort and only for
-        # small MSAs, a bounded best-identity search. This avoids
-        # pairwise-aligning the reference against every row of what may be
-        # a many-thousand-row "full" family alignment just to locate the
-        # one row that DBREF already names for free.
+        # of aligned structures. 
         from prody.sequence.msafile import parseMSA
 
         try:
-            # ProDy's compiled FASTA parser is used when possible (fast,
-            # matters for many-thousand-row "full" family alignments); it
-            # chokes on a handful of edge cases (e.g. a file holding exactly
-            # one sequence, or -- observed on a real 362k-row Pfam 'full'
-            # alignment written out of a Stockholm file -- silently parsing
-            # every sequence as zero residues and raising ValueError from
-            # the MSA constructor), which the slower pure-Python parser
-            # handles fine, so fall back to that on any parse failure.
             user_msa = parseMSA(str(msa_fasta))
         except (OSError, IOError, ValueError):
             user_msa = parseMSA(str(msa_fasta), filter=lambda label, seq: True)
@@ -4893,27 +4872,11 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
             anchor_idx = user_labels.index(ref_label)
             anchor_positional = True
         else:
-            # Resolve the reference's own UniProt idcode (mnemonic, e.g.
-            # 'CP3A4_HUMAN') and accession (e.g. 'P08684') from the PDB's
-            # DBREF records and use them to find the matching row that a
-            # family MSA (e.g. from Pfam) very likely already contains.
-            # idcode is tried first: a Pfam 'full' alignment (Stockholm)
-            # labels its rows by mnemonic with a /range suffix (e.g.
-            # 'CP3A4_HUMAN/38-493') -- the accession appears only in a
-            # per-row '#=GS ... AC' annotation that ProDy's MSA does not
-            # index -- so accession alone fails to match on a real Pfam
-            # download; :func:`.refineMSA` resolves labels via
-            # DBREF the same way, idcode before accession.
             idcode = None
             accession = None
             try:
                 from prody.proteins import fetchPDB
                 from prody.proteins.header import parsePDBHeader
-                # Resolve via the same local folder parsePDB already used
-                # for the reference above, so this never triggers a
-                # network fetch when the structure was already available
-                # locally (and falls back to one only when it genuinely
-                # wasn't, exactly like the earlier parsePDB call did).
                 ref_pdb_file = fetchPDB(ref_pdb_id, folder=str(unaligned_dir))
                 header_source = ref_pdb_file if ref_pdb_file else ref_pdb_id
                 for poly in parsePDBHeader(header_source, 'polymers'):
@@ -4949,11 +4912,7 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                     break
 
             if anchor_idx is None:
-                # Last resort: a bounded best-identity search. Deliberately
-                # capped -- pairwise-aligning the reference against every
-                # row of a many-thousand-sequence "full" family alignment is
-                # not practical, and this branch should only ever be
-                # reached when neither an exact label, an explicit
+                # Bounded best-identity search when neither an exact label, an explicit
                 # msa_ref_label, nor a DBREF-derived idcode/accession could
                 # locate the reference's own row.
                 max_scan = 500
@@ -5008,11 +4967,6 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                         col_to_resnum[col] = ref_resnums[ref_idx]
                     ref_idx += 1
         else:
-            # Map the anchor row onto the reference's own residue numbers
-            # with one pairwise alignment -- needed regardless of how
-            # confidently the row was identified, since a family MSA row is
-            # rarely numbered like the crystal structure (expression tags,
-            # unresolved loops, and numbering offsets are the norm).
             from prody.utilities.seqtools import alignBioPairwise
 
             anchor_seq = str(user_msa[anchor_idx])
@@ -5279,10 +5233,7 @@ def calcSignatureCavities(structures=None, ref_structure=None,
         :func:`.parsePDB`; *chain* is a single chain identifier. Each string
         is used directly as its structure's label. If ``None``, *ref_structure*
         must be given, and homologues are discovered automatically via
-        :func:`.searchDali` (``cutoff_len=0.5, cutoff_rmsd=2.0, cutoff_Z=8,
-        stringency=True``, overridable via *dali_filter_kwargs*); DALI's own
-        residue mapping is not used, every homologue is realigned with
-        CE-align regardless of how it was found.
+        :func:`.searchDali` .
     :type structures: list of str or None
 
     :arg ref_structure: ``'pdbid'+'chain'`` string for the reference
@@ -5320,30 +5271,16 @@ def calcSignatureCavities(structures=None, ref_structure=None,
         the Shannon entropy source. The row anchoring to *ref_structure* is
         resolved in order of preference: *msa_ref_label* if given; an exact
         ``ref_structure`` label match; the reference's own UniProt idcode
-        (mnemonic, e.g. ``'CP3A4_HUMAN'``) or accession (e.g.
-        ``'P08684'``), read from the PDB's DBREF records and matched
-        against the MSA's row labels -- idcode is tried first since a Pfam
-        ``'full'`` alignment labels its rows by idcode and range (e.g.
-        ``'CP3A4_HUMAN/38-493'``), with the accession appearing only in a
-        Stockholm ``#=GS ... AC`` annotation that isn't indexed by row
-        label; and, only as a last resort and only when the MSA has 500
-        rows or fewer, the best-identity row
-        found by pairwise alignment against every row. In every case except
-        the exact-label match, the identified row is itself pairwise-aligned
-        against the reference once to build the residue mapping, and
-        :exc:`ValueError` is raised if that alignment has more than 30%
-        mismatch (or if no row could be identified/aligned at all).
-        Structural superposition and mapping (CE-align, ``msa_mappings``)
-        are unaffected either way. default is ``None``
+        (mnemonic, e.g. ``'CP3A4_HUMAN'``) or accession ; and, 
+        only as a last resort and only when the MSA has 500
+        rows or fewer, the best-identity row is found by pairwise alignment 
+        against every row. default is ``None``
     :type msa_fasta: str or None
 
     :arg msa_ref_label: Row label within *msa_fasta* to use as the
         reference's anchor row, bypassing automatic identification (exact
-        label / UniProt accession / best-identity search) entirely. Useful
-        when the accession is already known (e.g. from a prior
-        :func:`.searchPfam` call) or when automatic identification would be
-        ambiguous. :exc:`ValueError` is raised if the label is not found.
-        Ignored unless *msa_fasta* is given. default is ``None``
+        label / UniProt accession / best-identity search). Useful
+        when the accession is already known. default is ``None``
     :type msa_ref_label: str or None
 
     :arg distA: Distance cutoff in Å for identifying reference residues near
