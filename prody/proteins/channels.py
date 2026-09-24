@@ -3800,7 +3800,7 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
     return pores_all
 
 
-def mergeFramesPQR(inputs, filename, prefix=None, stride=1):
+def mergeFramesPQR(inputs, filename, prefix=None, frames=None, links=False):
     """Merge the per-frame PQR files of a multi-frame run into one multi-model
     PQR, a ``MODEL`` block per frame.
 
@@ -3811,8 +3811,16 @@ def mergeFramesPQR(inputs, filename, prefix=None, stride=1):
 
     The ``MODEL`` number is the frame number rather than a count, so a frame
     keeps its number whatever else was merged, and the files of two frame
-    ranges concatenate without renumbering. A frame that found nothing left no
-    file, so it has no block either.
+    ranges concatenate without renumbering.
+
+    A frame that found nothing left no file, but still gets its ``MODEL``, so
+    that every frame keeps its place in a viewer that steps through the models
+    in order rather than by their numbers. The block holds a ``REMARK`` saying
+    so and a single ``NIL`` atom of radius 0 at the previous frame's first
+    sphere: an empty ``MODEL`` is dropped altogether by ChimeraX, and ``NIL``,
+    unlike the ``FIL`` of every sphere, is never read as a channel. Such frames
+    are found between the first and the last file; an empty first or last
+    frame leaves no trace in the files, so *frames* names them.
 
     Each frame's records are copied as they stand, blank lines aside. Its serial
     numbers start from 1 as they did in its own file, which keeps them within
@@ -3832,9 +3840,17 @@ def mergeFramesPQR(inputs, filename, prefix=None, stride=1):
         ``channels12.pqr``. Default is the one prefix all the names share.
     :type prefix: str
 
-    :arg stride: keep only the frames whose number is a multiple of *stride*.
-        Default is 1, every frame.
-    :type stride: int
+    :arg frames: every frame of the run, such as ``range(len(channels_all))``
+        for one over a whole trajectory. Those with no file are written with
+        a placeholder, first and last included; a file of a frame not listed
+        is still merged. Default is the frames between the first and the last
+        file found.
+    :type frames: list or range
+
+    :arg links: merge the chamber links a run writes beside each frame's
+        channels, ``<prefix><frame>_links.pqr``, rather than the channels
+        themselves, into a multi-model file of their own. Default is **False**.
+    :type links: bool
 
     :returns: the filename written
     :rtype: str
@@ -3842,16 +3858,14 @@ def mergeFramesPQR(inputs, filename, prefix=None, stride=1):
     Usage:
     channels_all, surfaces_all = calcChannelsMultipleFrames(atoms,
         trajectory=dcd, output_path='frames')
-    mergeFramesPQR('frames', 'channels_frames.pqr')
-    mergeFramesPQR('frames/channels*.pqr', 'every10th.pqr', stride=10)"""
+    mergeFramesPQR('frames', 'channels_frames.pqr',
+                   frames=range(len(channels_all)))
+    mergeFramesPQR('frames', 'links_frames.pqr',
+                   frames=range(len(channels_all)), links=True)"""
 
     import glob
     import os
     import re
-
-    stride = int(stride)
-    if stride < 1:
-        raise ValueError('stride must be a positive integer, not {0}'.format(stride))
 
     if isinstance(inputs, (list, tuple)):
         paths = [str(path) for path in inputs]
@@ -3860,12 +3874,14 @@ def mergeFramesPQR(inputs, filename, prefix=None, stride=1):
     else:
         paths = glob.glob(str(inputs))
 
-    # The frame is the number ending the name, and what comes before it says
-    # what kind of file it is. A name ending in no number is no frame's file -
-    # the links beside a frame's channels, <name>12_links.pqr - and is passed
-    # over; one of another kind, a separate channel's <name>12_chl3.pqr, would
-    # be read as frame 3 and is refused below instead.
-    pattern = re.compile(r'^(.*?)(\d+)\.pqr$')
+    # The frame is the number ending the name - or ending it before _links, for
+    # the links written beside a frame's channels - and what comes before it
+    # says what kind of file it is. A name ending otherwise is no frame's file
+    # and is passed over, as the links are when the channels are merged; one of
+    # another kind, a separate channel's <name>12_chl3.pqr, would be read as
+    # frame 3 and is refused below instead.
+    tail = '_links.pqr' if links else '.pqr'
+    pattern = re.compile(r'^(.*?)(\d+)' + re.escape(tail) + '$')
     found = {}
     for path in paths:
         match = pattern.match(os.path.basename(path))
@@ -3875,44 +3891,63 @@ def mergeFramesPQR(inputs, filename, prefix=None, stride=1):
             int(match.group(2)), []).append(path)
 
     if not found:
-        raise ValueError('no per-frame PQR files found in {0!r}{1}'.format(
-            inputs, '' if prefix is None else ' named {0}<frame>.pqr'.format(prefix)))
+        raise ValueError('no per-frame PQR files found in {0!r} named {1}<frame>'
+                         '{2}'.format(inputs, prefix or '<prefix>', tail))
     if len(found) > 1:
         # Shortest first, which puts the frames' own files ahead of the
         # per-channel ones, of which there are as many kinds as frames.
         named = sorted(found, key=lambda name: (len(name), name))
         raise ValueError('the files are of more than one kind, named {0}{1}; '
                          'choose the one to merge with prefix='.format(
-                             ', '.join(name + '<frame>.pqr' for name in named[:4]),
+                             ', '.join(name + '<frame>' + tail for name in named[:4]),
                              ', ...' if len(named) > 4 else ''))
 
-    (stem, frames), = found.items()
-    for frame, given in sorted(frames.items()):
+    (stem, files), = found.items()
+    for frame, given in sorted(files.items()):
         if len(given) > 1:
             raise ValueError('frame {0} is given more than once: {1}'.format(
                 frame, ', '.join(given)))
-    frames = dict((frame, given[0]) for frame, given in frames.items())
+    files = dict((frame, given[0]) for frame, given in files.items())
 
-    kept = sorted(frame for frame in frames if frame % stride == 0)
-    if not kept:
-        raise ValueError('stride={0} keeps none of the {1} frames found, {2} to '
-                         '{3}'.format(stride, len(frames), min(frames), max(frames)))
+    if frames is None:
+        numbers = list(range(min(files), max(files) + 1))
+    else:
+        numbers = sorted(set(int(frame) for frame in frames) | set(files))
+    empty = [frame for frame in numbers if frame not in files]
+
+    # Where a placeholder sits: the first sphere of the frame before it, or of
+    # the first frame with a file for frames that come before any.
+    with open(files[min(files)]) as handle:
+        anchor = next((line[30:54] for line in handle
+                       if line.startswith(('ATOM', 'HETATM'))), None)
 
     with open(str(filename), 'w') as out:
-        out.write('REMARK   {0} frames of {1}<frame>.pqr, one MODEL each\n'.format(
-            len(kept), stem))
+        out.write('REMARK   {0} frames of {1}<frame>{2}, one MODEL each\n'.format(
+            len(numbers), stem, tail))
         out.write('REMARK   MODEL numbers are frame numbers\n')
-        for frame in kept:
+        if empty:
+            out.write('REMARK   {0} frame{1} found nothing: a NIL atom of radius 0 '
+                      'holds each place\n'.format(
+                          len(empty), '' if len(empty) == 1 else 's'))
+        for frame in numbers:
             out.write('MODEL%9d\n' % frame)
-            with open(frames[frame]) as handle:
-                out.writelines(line for line in handle
-                               if line.strip() and line.split()[0] != 'END')
+            if frame in files:
+                with open(files[frame]) as handle:
+                    lines = [line for line in handle
+                             if line.strip() and line.split()[0] != 'END']
+                out.writelines(lines)
+                anchor = next((line[30:54] for line in lines
+                               if line.startswith(('ATOM', 'HETATM'))), anchor)
+            else:
+                out.write('REMARK   frame {0} found nothing\n'.format(frame))
+                out.write('HETATM    1  H   NIL X   1    {0}  1.00  0.00\n'.format(
+                    anchor or '%8.3f%8.3f%8.3f' % (0, 0, 0)))
             out.write('ENDMDL\n')
         out.write('END\n')
 
     LOGGER.info('{0} frames merged into {1}{2}.'.format(
-        len(kept), filename,
-        '' if stride == 1 else ' (every frame numbered a multiple of {0})'.format(stride)))
+        len(numbers), filename,
+        '' if not empty else ', {0} of them empty'.format(len(empty))))
     return str(filename)
 
 
