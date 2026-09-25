@@ -41,7 +41,9 @@ __all__ =['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'scanSurfaceCavityParameters', 'connectChannelsToSurfaceCavities',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues',
            'writeChannelsCIF', 'writeVmdCaviTracerScript', 'writePyMolCaviTracerScript',
-           'writeChimeraXCaviTracerScript']
+           'writeChimeraXCaviTracerScript', 'mergeFramesPQR',
+           'writeChimeraXMultiModelScript', 'writePyMolMultiModelScript',
+           'writeVmdMultiModelScript']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -529,8 +531,13 @@ def _calcChannelsMultipleFramesWorker(args):
     atoms_copy = atoms.copy()
     atoms_copy.setCoords(frame_coords)
 
-    return calcChannels(atoms_copy, output_path=frame_output_path, separate=separate,
-                        start_point=start_point, return_details=return_details, **kwargs)
+    result = calcChannels(atoms_copy, output_path=frame_output_path, separate=separate,
+                          start_point=start_point, return_details=return_details, **kwargs)
+    if return_details:
+        # The frame travels with its details, so that the pores built from them
+        # later are named by the frame and not by their place in the list.
+        result[2]['frame'] = frame_nr
+    return result
 
 
 def _calcSurfaceCavitiesMultipleFramesWorker(args):
@@ -1635,8 +1642,8 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         residues of every channel in one file, with keys joining them, which is
         what the PQR and the residue text files cannot express between them.
         Chamber links go into the same file under
-        ``_sb_ncbr_channel.type`` ``Path``, a directory takes ``channels.cif``,
-        and no viewer script is written, that being a PQR arrangement.
+        ``_sb_ncbr_channel.type`` ``Path``, and a directory takes
+        ``channels.cif``.
     :type output_format: str
 
     :arg start_point: Optional starting point for channel search. This can be
@@ -1668,7 +1675,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         it stays in the void the point sits in rather than crossing a wall). The seed
         may therefore sit a little shallower than ``start_point`` itself, which is
         usually placed on a ligand or a catalytic residue and often lies deeper than
-        the widest part of the pocket around it.
+        the widest part of the pocket around it. The nearest tetrahedron is kept,
+        whatever its own depth, unless a wider one qualifies, so the seed is never
+        narrower than the tetrahedron at the point.
 
         It is a requirement and not only a search budget: the search must begin
         within this distance of the point, and if no cavity has a tetrahedron that
@@ -2757,25 +2766,19 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                         sealed, '' if sealed == 1 else 's', bottleneck))
 
     if output_path and not (channels or links):
-        # Nothing found, so nothing is written - no file, and no viewer for a
-        # file that is not there. An empty file would say only that a run
-        # happened, which the count reported above already says, and it cannot
-        # be told apart from a run that failed while writing. What an earlier run
-        # left behind is worth a word, though: it survives now, and goes on
-        # looking like this run's output.
+        # Nothing found, so nothing is written. An empty file would say only
+        # that a run happened, which the count reported above already says, and
+        # it cannot be told apart from a run that failed while writing. What an
+        # earlier run left behind is worth a word, though: it survives now, and
+        # goes on looking like this run's output.
         _warnStaleOutputs(output_path, output_format, separate)
 
     elif output_path and _isMmcifFormat(output_format, separate):
-        written = writeChannelsCIF(output_path, channels, atoms, links=links,
-                                   auto=start_point is None)
-        # As on the PQR path: only for a run told a directory. Told a file, the
-        # parent is usually the working directory, and a run has no business
-        # leaving a script there.
-        if written and Path(output_path).is_dir():
-            _writeVisScript(Path(written).parent, Path(written).name)
+        writeChannelsCIF(output_path, channels, atoms, links=links,
+                         auto=start_point is None)
 
     elif output_path:
-        output_path, links_path, into_directory, separate_stem = \
+        output_path, links_path, _, separate_stem = \
             _pqrOutputPaths(output_path)
 
         # One line for the whole of what was written, so that the reader sees
@@ -2805,10 +2808,6 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
                                          separate_path=output_path,
                                          separate_stem=separate_stem,
                                          name_sites=name_sites)
-        # Only for a run told a directory. Told a file, the parent is usually
-        # the working directory, and a run has no business leaving a script there.
-        if into_directory:
-            _writeVisScript(output_path.parent)
     else:
         LOGGER.info("No output path given.")
 
@@ -3055,21 +3054,15 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         # A directory takes pores.cif rather than channels.cif, for the same
         # reason the PQR path names them apart: a run writing both into one
         # folder would otherwise have the second overwrite the first.
-        written = writeChannelsCIF(_poreCifPath(output_path), pores, atoms,
-                                   object_type='pore')
-        # As on the PQR path and in calcChannels: a viewer only for a run told a
-        # directory. The one script reads either format, so the hint names the
-        # file rather than a glob.
-        if written and Path(output_path).is_dir():
-            _writeVisScript(Path(written).parent, Path(written).name)
+        writeChannelsCIF(_poreCifPath(output_path), pores, atoms,
+                         object_type='pore')
 
     elif output_path:
         output_path = Path(output_path)
         # As in calcChannels: a directory names no run, so its placeholder file
         # name is kept out of the per-pore ones.
         separate_stem = None
-        into_directory = output_path.is_dir()
-        if into_directory:
+        if output_path.is_dir():
             output_path = output_path / "pores.pqr"
             separate_stem = ''
         elif output_path.suffix not in (".pdb", ".pqr"):
@@ -3083,9 +3076,6 @@ def calcPoresFromChannels(channels, details, min_end_to_end=None, max_end_to_end
         calculator.saveChannelsToPdb(pores, output_path, separate=separate,
                                      tag='pore', label='pore',
                                      separate_stem=separate_stem)
-        # as in calcChannels, and globbing the pores rather than the channels
-        if into_directory:
-            _writeVisScript(output_path.parent, 'pore*.pqr')
 
     return pores
 
@@ -3777,7 +3767,11 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
             output_path = output_path.with_suffix(frame_suffix)
 
     tasks = []
-    for frame_nr, (channels, details) in enumerate(zip(channels_all, details_all)):
+    for position, (channels, details) in enumerate(zip(channels_all, details_all)):
+        # The frame the channels came from, as calcChannelsMultipleFrames records
+        # it, so that a run started past frame 0 keeps its numbers; details put
+        # together otherwise are numbered by position, as they always were.
+        frame_nr = details.get('frame', position)
         if into_directory:
             frame_output_path = _frameOutputPath(output_path, frame_nr, "pores",
                                                  frame_suffix)
@@ -3804,10 +3798,161 @@ def calcPoresFromChannelsMultipleFrames(channels_all, details_all, output_path=N
         
         with ctx.Pool(processes=max_proc) as pool:
             pores_all = pool.map(_calcPoresFromChannelsWorker, tasks)
-    
-    return pores_all    
-    
-    
+
+    return pores_all
+
+
+def mergeFramesPQR(inputs, filename, prefix=None, frames=None, links=False):
+    """Merge the per-frame PQR files of a multi-frame run into one multi-model
+    PQR, a ``MODEL`` block per frame.
+
+    :func:`calcChannelsMultipleFrames` and the other multi-frame functions write
+    a file per frame, the frame number ending its name: ``channels12.pqr`` in a
+    directory, ``<output_path>12.pqr`` otherwise. This gathers them after the
+    run into the one file the multi-model viewer scripts read.
+
+    The ``MODEL`` number is the frame number rather than a count, so a frame
+    keeps its number whatever else was merged, and the files of two frame
+    ranges concatenate without renumbering.
+
+    A frame that found nothing left no file, but still gets its ``MODEL``, so
+    that every frame keeps its place in a viewer that steps through the models
+    in order rather than by their numbers. The block holds a ``REMARK`` saying
+    so and a single ``NIL`` atom of radius 0 at the previous frame's first
+    sphere: an empty ``MODEL`` is dropped altogether by ChimeraX, and ``NIL``,
+    unlike the ``FIL`` of every sphere, is never read as a channel. Such frames
+    are found between the first and the last file; an empty first or last
+    frame leaves no trace in the files, so *frames* names them.
+
+    Each frame's records are copied as they stand, blank lines aside. Its serial
+    numbers start from 1 as they did in its own file, which keeps them within
+    the five columns a PQR serial has, however many frames there are.
+
+    :arg inputs: the per-frame files: a directory, a glob pattern, or a list
+        of paths.
+    :type inputs: str or list
+
+    :arg filename: the multi-model PQR to write.
+    :type filename: str
+
+    :arg prefix: the part of the names before the frame number, such as
+        ``'channels'``. Only files named ``<prefix><frame>.pqr`` are taken. Needed
+        only where the files given are of more than one kind, as in a directory
+        written with ``separate=True``, which holds ``channels12_chl3.pqr`` beside
+        ``channels12.pqr``. Default is the one prefix all the names share.
+    :type prefix: str
+
+    :arg frames: every frame of the run, such as ``range(len(channels_all))``
+        for one over a whole trajectory. Those with no file are written with
+        a placeholder, first and last included; a file of a frame not listed
+        is still merged. Default is the frames between the first and the last
+        file found.
+    :type frames: list or range
+
+    :arg links: merge the chamber links a run writes beside each frame's
+        channels, ``<prefix><frame>_links.pqr``, rather than the channels
+        themselves, into a multi-model file of their own. Default is **False**.
+    :type links: bool
+
+    :returns: the filename written
+    :rtype: str
+
+    Usage:
+    channels_all, surfaces_all = calcChannelsMultipleFrames(atoms,
+        trajectory=dcd, output_path='frames')
+    mergeFramesPQR('frames', 'channels_frames.pqr',
+                   frames=range(len(channels_all)))
+    mergeFramesPQR('frames', 'links_frames.pqr',
+                   frames=range(len(channels_all)), links=True)"""
+
+    import glob
+    import os
+    import re
+
+    if isinstance(inputs, (list, tuple)):
+        paths = [str(path) for path in inputs]
+    elif os.path.isdir(str(inputs)):
+        paths = glob.glob(os.path.join(str(inputs), '*.pqr'))
+    else:
+        paths = glob.glob(str(inputs))
+
+    # The frame is the number ending the name - or ending it before _links, for
+    # the links written beside a frame's channels - and what comes before it
+    # says what kind of file it is. A name ending otherwise is no frame's file
+    # and is passed over, as the links are when the channels are merged; one of
+    # another kind, a separate channel's <name>12_chl3.pqr, would be read as
+    # frame 3 and is refused below instead.
+    tail = '_links.pqr' if links else '.pqr'
+    pattern = re.compile(r'^(.*?)(\d+)' + re.escape(tail) + '$')
+    found = {}
+    for path in paths:
+        match = pattern.match(os.path.basename(path))
+        if match is None or (prefix is not None and match.group(1) != prefix):
+            continue
+        found.setdefault(match.group(1), {}).setdefault(
+            int(match.group(2)), []).append(path)
+
+    if not found:
+        raise ValueError('no per-frame PQR files found in {0!r} named {1}<frame>'
+                         '{2}'.format(inputs, prefix or '<prefix>', tail))
+    if len(found) > 1:
+        # Shortest first, which puts the frames' own files ahead of the
+        # per-channel ones, of which there are as many kinds as frames.
+        named = sorted(found, key=lambda name: (len(name), name))
+        raise ValueError('the files are of more than one kind, named {0}{1}; '
+                         'choose the one to merge with prefix='.format(
+                             ', '.join(name + '<frame>' + tail for name in named[:4]),
+                             ', ...' if len(named) > 4 else ''))
+
+    (stem, files), = found.items()
+    for frame, given in sorted(files.items()):
+        if len(given) > 1:
+            raise ValueError('frame {0} is given more than once: {1}'.format(
+                frame, ', '.join(given)))
+    files = dict((frame, given[0]) for frame, given in files.items())
+
+    if frames is None:
+        numbers = list(range(min(files), max(files) + 1))
+    else:
+        numbers = sorted(set(int(frame) for frame in frames) | set(files))
+    empty = [frame for frame in numbers if frame not in files]
+
+    # Where a placeholder sits: the first sphere of the frame before it, or of
+    # the first frame with a file for frames that come before any.
+    with open(files[min(files)]) as handle:
+        anchor = next((line[30:54] for line in handle
+                       if line.startswith(('ATOM', 'HETATM'))), None)
+
+    with open(str(filename), 'w') as out:
+        out.write('REMARK   {0} frames of {1}<frame>{2}, one MODEL each\n'.format(
+            len(numbers), stem, tail))
+        out.write('REMARK   MODEL numbers are frame numbers\n')
+        if empty:
+            out.write('REMARK   {0} frame{1} found nothing: a NIL atom of radius 0 '
+                      'holds each place\n'.format(
+                          len(empty), '' if len(empty) == 1 else 's'))
+        for frame in numbers:
+            out.write('MODEL%9d\n' % frame)
+            if frame in files:
+                with open(files[frame]) as handle:
+                    lines = [line for line in handle
+                             if line.strip() and line.split()[0] != 'END']
+                out.writelines(lines)
+                anchor = next((line[30:54] for line in lines
+                               if line.startswith(('ATOM', 'HETATM'))), anchor)
+            else:
+                out.write('REMARK   frame {0} found nothing\n'.format(frame))
+                out.write('HETATM    1  H   NIL X   1    {0}  1.00  0.00\n'.format(
+                    anchor or '%8.3f%8.3f%8.3f' % (0, 0, 0)))
+            out.write('ENDMDL\n')
+        out.write('END\n')
+
+    LOGGER.info('{0} frames merged into {1}{2}.'.format(
+        len(numbers), filename,
+        '' if not empty else ', {0} of them empty'.format(len(empty))))
+    return str(filename)
+
+
 def parseParameters(channels, **kwargs):
     """Extracts and returns the lengths, bottlenecks, and volumes of each
     channel in a given list of channels.
@@ -10114,6 +10259,16 @@ class ChannelCalculator:
         for a site lying wholly under a wide opening, and failing that the anchor's own
         depth, which always leaves at least the anchor itself.
 
+        The anchor itself competes whatever its depth: the floor bounds where the seed
+        may move to, not whether the tetrahedron at the point counts, so the seed is
+        only ever moved to a tetrahedron wider than the anchor. Held to the floor, an
+        anchor lying just under it would drop out and be traded for the widest
+        tetrahedron clearing it, however much narrower that one is. And the anchor's
+        depth moves with the probe: a smaller `inner_radius` opens mouths nearer the
+        point, so the anchor crosses the floor as the probe shrinks, the seed jumps
+        with it, and a site could read as sealed at one `inner_radius` and open at
+        the next.
+
         `search_radius` <= 0 restores the plain nearest-vertex seed.
 
         :returns: dict of the seed and anchor properties (`seed`, `anchor`, and their
@@ -10189,8 +10344,12 @@ class ChannelCalculator:
             if len(eligible):
                 break
 
-        # The anchor comes first (BFS order), so a tie goes to it where it qualifies.
-        best = int(reach[eligible[int(np.argmax(radii[eligible]))]])
+        # The anchor competes whatever its depth (see above), so the seed only ever
+        # moves to a wider tetrahedron; `eligible` still counts only what cleared
+        # the floor, which is what the report states. The anchor comes first (BFS
+        # order), so a tie goes to it.
+        candidates = eligible if eligible[0] == 0 else np.concatenate(([0], eligible))
+        best = int(reach[candidates[int(np.argmax(radii[candidates]))]])
 
         return report(best, len(reachable), len(eligible), floor)
 
@@ -10499,10 +10658,17 @@ class ChannelCalculator:
                         info['anchor_depth'], info['eligible'], info['floor'],
                         info['searched'], float(search_radius)))
         elif search_radius and search_radius > 0:
-            LOGGER.info("    already the widest of the {0} tetrahedra at least {1:.1f} Å "
-                "deep among the {2} reachable within {3:.1f} Å."
-                .format(info['eligible'], info['floor'], info['searched'],
-                        float(search_radius)))
+            if info['anchor_depth'] < info['floor']:
+                LOGGER.info("    kept although shallower than {0:.1f} Å: already as wide "
+                    "as any of the {1} tetrahedra at least that deep among the {2} "
+                    "reachable within {3:.1f} Å."
+                    .format(info['floor'], info['eligible'], info['searched'],
+                            float(search_radius)))
+            else:
+                LOGGER.info("    already the widest of the {0} tetrahedra at least {1:.1f} Å "
+                    "deep among the {2} reachable within {3:.1f} Å."
+                    .format(info['eligible'], info['floor'], info['searched'],
+                            float(search_radius)))
 
 
     def trimCavitiesByDepth(self, cavities, max_depth):
@@ -10514,11 +10680,326 @@ class ChannelCalculator:
                 if cavity.tetrahedra_depths.get(tetra, np.inf) <= max_depth])
 
 
-#: Source of the PyMOL viewer that :func:`_writeVisScript` leaves beside the
-#: PQR output. Held inline so that this module carries everything it writes,
-#: and raw so the rank patterns keep their backslashes.
-_VIS_CHANNELS_SCRIPT = r'''import colorsys
-import glob
+#: Colour of each rank - the 0-based position of an object among those a viewer
+#: script draws. One table for every PyMOL, VMD and ChimeraX script this module
+#: writes, so that a channel is the same colour in all of them; it is
+#: CaviTracerMD's viewer palette, unchanged.
+#:
+#: Ranks 0-5 are CAVER 3's first six colours, from its out/pymol/modules/rgb.py
+#: in the order its view.py hands them to tunnel clusters. They are what makes a
+#: CAVER figure recognisable, so they are kept verbatim.
+_CAVER_PRIMARIES = [(0.0, 0.0, 1.0),    # blue
+                    (0.0, 1.0, 0.0),    # green
+                    (1.0, 0.0, 0.0),    # red
+                    (0.0, 1.0, 1.0),    # cyan
+                    (1.0, 1.0, 0.0),    # yellow
+                    (1.0, 0.0, 1.0)]    # magenta
+
+# Ranks 6-199 are a table, not generated: the rule below searches many thousands
+# of candidates, which a viewer should not be doing before it draws.
+#
+# Taken farthest-first: each rank is the candidate farthest from every colour
+# before it and from the reserved greys, so the closest pair among the first n
+# colours falls as slowly as the candidates allow and the worst pairs come last.
+# Distance is OKLab x100 between versions of each colour dimmed in linear light
+# to ten levels from 0.55 to 1, the closest pair of versions counting: a sphere
+# runs from lit to shadowed, so two colours are distinct only if no shade of one
+# matches a shade of the other. Candidates are HSV at every degree of hue, with
+# saturation 0.45-1 and value 0.60-1 in five steps each, less those within 7 of
+# either reserved grey - 0.45, and the grey80 a protein is drawn in. The value
+# floor keeps out colours that turn near-black in shadow, which the distance
+# alone would rank highly for being far from everything light. Regenerate on
+# those terms or not at all.
+_PALETTE = _CAVER_PRIMARIES + [
+    (0.430, 0.000, 0.600),  # 6
+    (0.000, 0.533, 1.000),  # 7
+    (0.782, 0.550, 1.000),  # 8
+    (1.000, 0.580, 0.100),  # 9
+    (0.000, 0.600, 0.260),  # 10
+    (0.700, 0.000, 0.432),  # 11
+    (1.000, 0.550, 0.670),  # 12
+    (0.150, 0.255, 0.600),  # 13
+    (0.600, 0.300, 0.000),  # 14
+    (0.550, 1.000, 0.617),  # 15
+    (0.400, 0.100, 1.000),  # 16
+    (0.600, 0.560, 0.000),  # 17
+    (0.550, 0.715, 1.000),  # 18
+    (0.688, 0.250, 1.000),  # 19
+    (0.479, 0.330, 0.600),  # 20
+    (1.000, 0.400, 0.850),  # 21
+    (0.000, 0.642, 0.700),  # 22
+    (0.600, 0.000, 0.100),  # 23
+    (1.000, 0.880, 0.550),  # 24
+    (0.470, 0.400, 1.000),  # 25
+    (0.230, 0.000, 0.600),  # 26
+    (0.600, 0.330, 0.406),  # 27
+    (1.000, 0.250, 0.462),  # 28
+    (0.240, 0.414, 0.600),  # 29
+    (0.683, 1.000, 0.000),  # 30
+    (1.000, 0.400, 0.250),  # 31
+    (1.000, 0.670, 0.550),  # 32
+    (0.000, 0.333, 1.000),  # 33
+    (0.000, 0.000, 0.600),  # 34
+    (0.330, 0.600, 0.456),  # 35
+    (0.870, 0.400, 1.000),  # 36
+    (0.600, 0.150, 0.585),  # 37
+    (0.550, 0.887, 1.000),  # 38
+    (1.000, 0.100, 0.760),  # 39
+    (0.000, 0.700, 1.000),  # 40
+    (1.000, 0.767, 0.000),  # 41
+    (0.550, 0.565, 1.000),  # 42
+    (0.785, 0.900, 0.495),  # 43
+    (0.000, 0.900, 0.450),  # 44
+    (0.550, 1.000, 0.843),  # 45
+    (0.600, 0.456, 0.240),  # 46
+    (0.567, 0.000, 1.000),  # 47
+    (1.000, 0.550, 0.865),  # 48
+    (1.000, 0.400, 0.660),  # 49
+    (0.490, 0.700, 0.175),  # 50
+    (0.600, 0.240, 0.474),  # 51
+    (0.336, 0.240, 0.600),  # 52
+    (0.817, 0.000, 1.000),  # 53
+    (0.000, 1.000, 0.767),  # 54
+    (0.650, 0.400, 1.000),  # 55
+    (0.250, 0.100, 1.000),  # 56
+    (0.600, 0.150, 0.292),  # 57
+    (0.250, 0.425, 1.000),  # 58
+    (0.700, 0.448, 0.385),  # 59
+    (0.700, 0.245, 0.175),  # 60
+    (1.000, 0.400, 0.460),  # 61
+    (1.000, 0.720, 0.400),  # 62
+    (0.581, 0.280, 0.700),  # 63
+    (0.400, 0.200, 0.800),  # 64
+    (1.000, 0.250, 0.662),  # 65
+    (0.505, 0.600, 0.330),  # 66
+    (0.330, 0.339, 0.600),  # 67
+    (0.955, 0.550, 1.000),  # 68
+    (0.000, 0.170, 0.600),  # 69
+    (0.760, 1.000, 0.400),  # 70
+    (0.400, 0.620, 1.000),  # 71
+    (0.320, 0.632, 0.800),  # 72
+    (1.000, 0.940, 0.400),  # 73
+    (1.000, 0.250, 0.912),  # 74
+    (0.400, 0.500, 1.000),  # 75
+    (1.000, 0.000, 0.517),  # 76
+    (1.000, 0.000, 0.300),  # 77
+    (0.000, 0.700, 0.478),  # 78
+    (0.385, 0.700, 0.674),  # 79
+    (0.000, 0.340, 0.600),  # 80
+    (0.250, 0.200, 0.800),  # 81
+    (1.000, 0.520, 0.400),  # 82
+    (0.887, 0.250, 1.000),  # 83
+    (0.550, 1.000, 0.985),  # 84
+    (0.000, 0.700, 0.618),  # 85
+    (0.390, 0.700, 0.385),  # 86
+    (0.394, 0.900, 0.225),  # 87
+    (1.000, 0.467, 0.000),  # 88
+    (0.700, 0.385, 0.679),  # 89
+    (0.330, 0.000, 0.600),  # 90
+    (0.250, 0.887, 1.000),  # 91
+    (0.683, 0.000, 1.000),  # 92
+    (1.000, 0.250, 0.275),  # 93
+    (0.700, 0.000, 0.548),  # 94
+    (0.446, 0.175, 0.700),  # 95
+    (0.000, 0.700, 0.000),  # 96
+    (0.700, 0.280, 0.329),  # 97
+    (0.700, 0.350, 0.280),  # 98
+    (0.569, 0.175, 0.700),  # 99
+    (1.000, 0.400, 0.980),  # 100
+    (0.580, 1.000, 0.400),  # 101
+    (0.000, 0.195, 0.900),  # 102
+    (1.000, 0.267, 0.000),  # 103
+    (0.163, 0.000, 0.700),  # 104
+    (0.850, 1.000, 0.000),  # 105
+    (0.700, 0.537, 0.000),  # 106
+    (1.000, 0.550, 0.550),  # 107
+    (0.250, 1.000, 0.875),  # 108
+    (0.250, 1.000, 0.637),  # 109
+    (0.550, 0.000, 0.600),  # 110
+    (0.700, 0.280, 0.665),  # 111
+    (0.700, 0.647, 0.385),  # 112
+    (0.000, 0.617, 1.000),  # 113
+    (0.000, 0.460, 0.600),  # 114
+    (0.700, 0.280, 0.441),  # 115
+    (1.000, 0.667, 0.000),  # 116
+    (0.294, 0.600, 0.060),  # 117
+    (0.000, 0.800, 1.000),  # 118
+    (0.700, 0.443, 0.000),  # 119
+    (1.000, 0.000, 0.633),  # 120
+    (1.000, 0.883, 0.000),  # 121
+    (0.700, 0.175, 0.525),  # 122
+    (0.662, 0.550, 1.000),  # 123
+    (0.550, 0.640, 1.000),  # 124
+    (1.000, 0.610, 0.400),  # 125
+    (0.700, 0.385, 0.574),  # 126
+    (0.483, 0.000, 1.000),  # 127
+    (0.280, 0.350, 0.700),  # 128
+    (0.700, 0.000, 0.257),  # 129
+    (1.000, 0.000, 0.883),  # 130
+    (1.000, 0.752, 0.550),  # 131
+    (0.700, 0.175, 0.236),  # 132
+    (0.630, 0.700, 0.000),  # 133
+    (1.000, 0.000, 0.417),  # 134
+    (0.940, 1.000, 0.400),  # 135
+    (1.000, 0.250, 0.562),  # 136
+    (0.250, 0.337, 1.000),  # 137
+    (0.294, 0.280, 0.700),  # 138
+    (0.700, 1.000, 0.550),  # 139
+    (0.495, 0.900, 0.657),  # 140
+    (1.000, 0.550, 0.767),  # 141
+    (0.400, 0.690, 1.000),  # 142
+    (1.000, 0.800, 0.400),  # 143
+    (0.700, 0.140, 0.000),  # 144
+    (0.788, 0.250, 1.000),  # 145
+    (0.000, 1.000, 0.350),  # 146
+    (0.700, 0.455, 0.280),  # 147
+    (1.000, 0.400, 0.560),  # 148
+    (0.280, 0.413, 0.700),  # 149
+    (0.700, 0.175, 0.438),  # 150
+    (0.413, 0.250, 1.000),  # 151
+    (0.483, 0.280, 0.700),  # 152
+    (0.600, 0.250, 1.000),  # 153
+    (0.750, 0.400, 1.000),  # 154
+    (1.000, 0.400, 0.750),  # 155
+    (0.000, 0.467, 1.000),  # 156
+    (0.600, 0.230, 0.000),  # 157
+    (1.000, 0.970, 0.550),  # 158
+    (0.700, 0.665, 0.280),  # 159
+    (1.000, 0.250, 0.750),  # 160
+    (0.988, 0.250, 1.000),  # 161
+    (0.070, 0.469, 0.700),  # 162
+    (0.700, 0.000, 0.350),  # 163
+    (0.900, 0.484, 0.225),  # 164
+    (0.385, 0.458, 0.700),  # 165
+    (0.400, 1.000, 0.530),  # 166
+    (0.175, 0.236, 0.700),  # 167
+    (1.000, 0.440, 0.400),  # 168
+    (0.550, 0.782, 1.000),  # 169
+    (0.700, 0.000, 0.665),  # 170
+    (0.350, 0.700, 0.280),  # 171
+    (0.000, 0.360, 0.900),  # 172
+    (0.333, 0.000, 1.000),  # 173
+    (0.560, 0.400, 1.000),  # 174
+    (0.400, 1.000, 0.940),  # 175
+    (0.560, 0.700, 0.280),  # 176
+    (0.895, 0.100, 1.000),  # 177
+    (0.700, 0.385, 0.385),  # 178
+    (0.248, 0.150, 0.600),  # 179
+    (0.225, 0.439, 0.900),  # 180
+    (0.280, 0.616, 0.700),  # 181
+    (0.400, 0.560, 1.000),  # 182
+    (0.400, 1.000, 0.790),  # 183
+    (0.250, 0.575, 1.000),  # 184
+    (0.469, 0.385, 0.700),  # 185
+    (0.400, 1.000, 0.700),  # 186
+    (1.000, 0.325, 0.250),  # 187
+    (0.400, 0.440, 1.000),  # 188
+    (0.000, 0.230, 0.600),  # 189
+    (1.000, 0.367, 0.000),  # 190
+    (0.145, 0.100, 1.000),  # 191
+    (1.000, 0.250, 0.375),  # 192
+    (0.400, 0.960, 1.000),  # 193
+    (1.000, 0.738, 0.250),  # 194
+    (1.000, 0.610, 0.550),  # 195
+    (1.000, 0.650, 0.250),  # 196
+    (0.060, 0.096, 0.600),  # 197
+    (1.000, 0.250, 0.825),  # 198
+    (0.800, 0.370, 0.200),  # 199
+]
+
+
+def _paletteIndex(rank):
+    """Row of :data:`_PALETTE` holding the colour of the 0-based *rank*.
+
+    Past rank 199 the ranks cycle through 6-199 and the primaries never repeat.
+    That far out no palette keeps every pair apart, so colour stops identifying
+    an object there and its name has to."""
+
+    first = len(_CAVER_PRIMARIES)
+    if rank < len(_PALETTE):
+        return rank
+    return first + (rank - first) % (len(_PALETTE) - first)
+
+
+def _hexColour(rank):
+    """*rank*'s colour as ``#rrggbb``, the form a ChimeraX script gives it in."""
+
+    return '#%02x%02x%02x' % tuple(int(round(255 * value))
+                                   for value in _PALETTE[_paletteIndex(rank)])
+
+
+#: The VMD colour IDs ranks 0-29 take, in order: every fixed ID from 0 to 32 but
+#: 2 (gray), 8 (white) and 16 (black), which the protein, the background and the
+#: labels keep. Their RGB is redefined to the palette's, and the first six were
+#: already VMD's nearest to the CAVER primaries. Later ranks take the IDs from 33
+#: on, VMD's colour-scale slots: the whole palette fits there, but VMD regenerates
+#: them whenever its colour scale is changed, which it never does to a fixed ID.
+_VMD_COLOR_IDS = (0, 7, 1, 10, 4, 11, 3, 9, 12, 13, 14, 15, 5, 6, 17, 18, 19,
+                  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32)
+
+
+def _vmdColorID(rank):
+    """The VMD colour ID carrying *rank*'s colour (see :data:`_VMD_COLOR_IDS`)."""
+
+    index = _paletteIndex(rank)
+    if index < len(_VMD_COLOR_IDS):
+        return _VMD_COLOR_IDS[index]
+    return 33 + index - len(_VMD_COLOR_IDS)
+
+
+def _vmdPalette(count):
+    """Tcl giving ranks ``0 .. count-1`` their palette colours, and listing the
+    IDs that carry them, rank by rank, as ``cavitracer_colors``."""
+
+    lines = ['# The CaviTracer palette, the same as in the PyMOL and ChimeraX',
+             '# scripts. Ranks 0-29 redefine fixed colour IDs; later ranks use the',
+             '# colour-scale IDs from 33 on, which VMD regenerates if the colour',
+             '# scale is changed.']
+    ids, defined = [], set()
+    for rank in range(count):
+        color_id = _vmdColorID(rank)
+        if color_id not in defined:
+            defined.add(color_id)
+            lines.append('color change rgb %d %.3f %.3f %.3f'
+                         % ((color_id,) + tuple(_PALETTE[_paletteIndex(rank)])))
+        ids.append(str(color_id))
+    lines.append('set cavitracer_colors {%s}' % ' '.join(ids))
+    return '\n'.join(lines)
+
+
+#: The palette as a PyMOL script carries it: the table, and ``caverColour`` to
+#: register a rank's colour on first use.
+_VIS_PALETTE = r'''# --- Palette ---
+# The CaviTracer palette, the same as in the VMD and ChimeraX scripts, so that a
+# channel is the same colour in all three. Ranks 0-5 are CAVER 3's first six
+# colours; ranks 6-199 were taken farthest-first for how they read on shaded
+# spheres. Past rank 199 the ranks cycle through 6-199 and the primaries never
+# repeat.
+PALETTE = [
+__ROWS__]
+CAVER_PRIMARIES = PALETTE[:6]
+
+def caverColour(rank):
+    """Name of the colour for a 0-based rank, registered on first use.
+
+    A lookup and nothing else: a rank is the same colour in every structure,
+    every run and every viewer, whatever was loaded beside it."""
+    first = len(CAVER_PRIMARIES)
+    if rank >= len(PALETTE):
+        rank = first + (rank - first) % (len(PALETTE) - first)
+    name = "caver%d" % (rank + 1) if rank < first else "gen%d" % rank
+    cmd.set_color(name, list(PALETTE[rank]))
+    return name
+# --- End of palette ---
+'''.replace('__ROWS__', ''.join('    (%.3f, %.3f, %.3f),  # %d\n' % (rgb + (rank,))
+                                for rank, rgb in enumerate(_PALETTE)))
+
+
+#: Source of the PyMOL viewer that :func:`_writeVisScript` leaves beside what
+#: :func:`writePyMolCaviTracerScript` writes. Held inline so that this module
+#: carries everything it writes, and raw so the rank patterns keep their
+#: backslashes.
+_VIS_CHANNELS_SCRIPT = r'''import glob
 import os
 import re
 import shlex
@@ -10527,6 +11008,8 @@ import sys
 # --- Parse command-line args ---
 # Invoke as:  pymol vis_channels.py -- protein.pdb "por*chl*.pqr"
 #         or: pymol vis_channels.py -- protein.pdb channels.cif
+#         or: pymol vis_channels.py -- protein.pdb channels.pqr  (every channel)
+#         or: pymol vis_channels.py -- protein.pdb frames.pqr    (a state per frame)
 #         or: pymol vis_channels.py -- channels.cif        (structure inside)
 # The regex MUST be quoted so the shell doesn't glob-expand it before PyMOL sees it.
 #
@@ -10534,8 +11017,16 @@ import sys
 # spheres and are coloured off the same 0-based rank, so a channel is the same
 # colour whichever way the run was written, and a directory holding both opens
 # with either in view.
+def holdsChannels(path):
+    """Whether *path* is a PQR of channels rather than a structure: every
+    sphere this module writes is a FIL residue, which no structure holds."""
+    with open(path) as handle:
+        return any(line.startswith(("ATOM", "HETATM")) and line[17:20] == "FIL"
+                   for line in handle)
+
 protein_file = None
 cif_file = None
+pqr_files = []
 channel_regex = None
 for arg in sys.argv[1:]:
     # Without a "--" PyMOL leaves its own flags and this script in argv, and the
@@ -10548,6 +11039,10 @@ for arg in sys.argv[1:]:
         if arg.lower().endswith(".cif"):
             if cif_file is None:
                 cif_file = arg
+        # A PQR named outright is a file of channels, split below, unless it
+        # holds none: a structure can be a PQR as well.
+        elif arg.lower().endswith(".pqr") and holdsChannels(arg):
+            pqr_files.append(arg)
         elif protein_file is None:
             protein_file = arg
     elif channel_regex is None:
@@ -10558,7 +11053,7 @@ if channel_regex is None:
 
 # Nothing named and no PQRs about: an mmCIF run leaves a single file, so look
 # for one before giving up.
-if cif_file is None and not glob.glob(channel_regex):
+if cif_file is None and not pqr_files and not glob.glob(channel_regex):
     found = sorted(glob.glob("*.cif"))
     if found:
         cif_file = found[0]
@@ -10566,60 +11061,10 @@ if cif_file is None and not glob.glob(channel_regex):
 print(f"Using channel regex: {channel_regex}")
 if cif_file:
     print(f"Using mmCIF: {cif_file}")
+for path in pqr_files:
+    print(f"Using PQR: {path}")
 
-# --- Palette ---
-# CAVER 3's first six colours, from its out/pymol/modules/rgb.py in the order
-# its view.py hands them to tunnel clusters. They are what makes a CAVER figure
-# recognisable, so they are kept verbatim. Its remaining 1000 are a long table
-# of pastels that the generator below beats on separation, so they are not.
-CAVER_PRIMARIES = [(0.0, 0.0, 1.0),    # blue
-                   (0.0, 1.0, 0.0),    # green
-                   (1.0, 0.0, 0.0),    # red
-                   (0.0, 1.0, 1.0),    # cyan
-                   (1.0, 1.0, 0.0),    # yellow
-                   (1.0, 0.0, 1.0)]    # magenta
-
-# Past the six, colours are generated rather than tabulated. The hue steps by
-# the golden angle -- an irrational fraction of the circle, so it never returns
-# to a hue it has used and consecutive steps land as far apart as the circle
-# allows -- while saturation and value cycle on 3, so neighbours differ in more
-# than hue alone.
-#
-# The offset and the cycle are chosen for how the colours read on shaded
-# spheres, not as flat swatches. A sphere runs from lit to shadowed, so the
-# shadowed side of a bright colour can match the lit side of a dark one: two
-# colours count as distinct only if no version of one, dimmed to as little as
-# 0.55 of its light, matches such a version of the other. Distance is OKLab,
-# taken against the six primaries as well as among the generated colours, and
-# the worst pair is maximised across 8 to 24 channels, where most runs sit.
-#
-# Re-tune on those terms or not at all. Flat CIE-Lab rated the previous choice
-# near 15 where OKLab found 4.1, with rank 6 the same cyan as rank 3, and a
-# cycle tuned on flat OKLab alone collapsed its greens into one another once
-# shaded. Past a dozen channels no palette keeps every pair apart, so colour
-# stops identifying a channel there and the object names have to.
-GOLDEN_ANGLE = (3.0 - 5.0 ** 0.5) / 2.0
-HUE_OFFSET = 0.796
-SATURATION_VALUE = ((0.95, 0.55), (0.65, 0.65), (0.65, 0.95))
-
-def caverColour(rank):
-    """Name of the colour for a 0-based channel rank, registered on first use.
-
-    A pure function of the rank, with no table to run off the end of: a rank is
-    the same colour in every structure and every run, whatever was loaded
-    beside it and however many channels the case turned out to have.
-    """
-    if rank < len(CAVER_PRIMARIES):
-        name, rgb = "caver%d" % (rank + 1), CAVER_PRIMARIES[rank]
-    else:
-        step = rank - len(CAVER_PRIMARIES)
-        saturation, value = SATURATION_VALUE[step % len(SATURATION_VALUE)]
-        name = "gen%d" % rank
-        rgb = colorsys.hsv_to_rgb(
-            (HUE_OFFSET + (step + 1) * GOLDEN_ANGLE) % 1.0, saturation, value)
-    cmd.set_color(name, list(rgb))
-    return name
-
+''' + _VIS_PALETTE + r'''
 def cifLoops(path):
     """category -> (columns, rows-as-token-lists). Enough CIF for what we write.
 
@@ -10816,16 +11261,144 @@ def loadCifChannels(path):
 
     return groups
 
+# The label each object's REMARK carries in a PQR, in the schema's words where
+# it has them, so that a PQR's objects are grouped exactly as an mmCIF's are.
+PQR_KINDS = {"channel": "Tunnel", "pore": "Pore", "link": "Path",
+             "cavity": "Cavity"}
+
+def loadPqrChannels(path):
+    """Draw every object in a PQR holding several, one PyMOL object each.
+
+    The file keeps them apart by residue number alone, so PyMOL loads it whole
+    as a single object whose channels cannot be hidden or coloured apart. Split
+    here the way loadCifChannels splits an mmCIF, with the same names, colours
+    and groups, so a run opens the same way whichever format it was written in.
+
+    A multi-model PQR, a MODEL per frame as mergeFramesPQR writes it, gives
+    every object a state per frame, titled with the frame's number: the object
+    of rank n holds the n-th channel of each frame, and stepping through the
+    states steps through the frames. In a frame with fewer channels than that
+    the object has nothing to show.
+
+    Surface cavities are drawn as the surface around their markers, as the VMD
+    and ChimeraX scripts draw them. A file of connected cavities and channels
+    holds the cavities on chain C and the channels on chain H, each numbered
+    from 1, so the chain is part of what tells one object from another.
+    """
+    # (MODEL number, {(chain, index): spheres}) per frame; a file without MODEL
+    # records is a single frame, numbered None. placeholders: state -> the NIL
+    # atom mergeFramesPQR puts in a frame that found nothing.
+    models, kinds, label, placeholders = [], {}, "channel", {}
+    with open(path) as handle:
+        for line in handle:
+            if line.startswith("MODEL"):
+                models.append((line[5:].strip(), {}))
+            elif line.startswith("REMARK"):
+                words = line.split()
+                if len(words) > 2 and words[1] in PQR_KINDS:
+                    label = words[1]
+            elif line.startswith(("ATOM", "HETATM")) and line[17:20] == "NIL":
+                if not models:
+                    models.append((None, {}))
+                placeholders[len(models)] = line
+            elif line.startswith(("ATOM", "HETATM")) and line[17:20] == "FIL":
+                if not models:
+                    models.append((None, {}))
+                # Fixed columns for the coordinates: three %8.3f values run
+                # together without a space once one of them reaches -100.
+                key = (line[21], int(line[22:26]) - 1)
+                kinds.setdefault(key, "cavity" if key[0] == "C" else label)
+                models[-1][1].setdefault(key, []).append(
+                    (float(line[30:38]), float(line[38:46]),
+                     float(line[46:54]), float(line.split()[-1])))
+
+    # Colours by rank, as in the VMD and ChimeraX scripts: a file holding both
+    # cavities and channels colours the cavities in turn and the channels after
+    # them, so that the two are not given the same colours.
+    cavities = sorted(key for key in kinds if kinds[key] == "cavity")
+    others = sorted(key for key in kinds if kinds[key] != "cavity")
+    if cavities and others:
+        colours = dict((key, caverColour(position))
+                       for position, key in enumerate(cavities + others))
+    else:
+        colours = dict((key, caverColour(key[1])) for key in kinds)
+
+    groups = {}
+    for key in cavities + others:
+        index = key[1]
+        colour = colours[key]
+        obj = freeName(f"{kinds[key]}{index}")
+        count = frames = 0
+
+        for state, (number, samples) in enumerate(models, start=1):
+            spheres = samples.get(key)
+            if not spheres:
+                continue
+            text = "".join(
+                "ATOM  %5d  H   FIL T%4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n"
+                % (i + 1, i + 1, x, y, z, 1.00, radius)
+                for i, (x, y, z, radius) in enumerate(spheres))
+            # Discrete, so that each state keeps atoms of its own: the channel
+            # of one frame is as long as it is, not as the first frame's.
+            cmd.read_pdbstr(text, obj, state=state, discrete=1)
+            if number is not None:
+                cmd.set_title(obj, state, f"frame {number}")
+            count += len(spheres)
+            frames += 1
+
+        # Read as PDB text, which keeps the radius column as the B-factor in
+        # every state (unlike PyMOL's PQR reader, see loadSpheres).
+        cmd.alter(obj, "vdw = b")
+        cmd.hide("everything", obj)
+        if kinds[key] == "cavity":
+            # A cavity is a cloud of markers of one size, not a route of probe
+            # spheres, so it is drawn as the surface around them. Every marker
+            # is a hydrogen, which a surface leaves out unless told otherwise.
+            cmd.set("surface_mode", 1, obj)
+            cmd.show("surface", obj)
+        else:
+            cmd.show("spheres", obj)
+        cmd.color(colour, obj)
+
+        kind = PQR_KINDS[kinds[key]]
+        groups.setdefault(kind, []).append(obj)
+        note = f" in {frames} of {len(models)} frames" if len(models) > 1 else ""
+        print(f"  {obj:<20s} {colour}  ({kind}, {count} spheres{note})")
+
+    # A frame that found nothing holds only its placeholder, which goes into an
+    # object of its own, drawn as nothing. The frame then keeps its state even
+    # where no object has anything in it - an empty last frame would otherwise
+    # leave PyMOL counting one frame fewer than the file holds.
+    if placeholders:
+        empty = freeName("empty_frames")
+        for state, line in sorted(placeholders.items()):
+            cmd.read_pdbstr(line, empty, state=state, discrete=1)
+            number = models[state - 1][0]
+            if number is not None:
+                cmd.set_title(empty, state, f"frame {number}, nothing found")
+        cmd.hide("everything", empty)
+        print(f"  {empty:<20s} {len(placeholders)} frame(s) that found nothing")
+
+    if len(models) > 1:
+        print(f"  {len(models)} frames, a state each: step through them with the "
+              f"arrow keys or the movie controls.")
+
+    return groups
+
 # both sets read their rank off the same 0-based scale, so the first channel of
 # either program is blue and the two stay comparable side by side
 sets = [("chnl_grp", sorted(glob.glob(channel_regex), key=natural_sort_key), False),
         ("tun_grp", sorted(glob.glob("tun_*"), key=natural_sort_key), True)]
 
-CIF_GROUPS = {"Tunnel": "chnl_grp", "Pore": "pore_grp", "Path": "link_grp"}
+CIF_GROUPS = {"Tunnel": "chnl_grp", "Pore": "pore_grp", "Path": "link_grp",
+              "Cavity": "cav_grp"}
 
-if cif_file:
-    cif_groups = loadCifChannels(cif_file)
-    for kind, objects in sorted(cif_groups.items()):
+if cif_file or pqr_files:
+    groups = loadCifChannels(cif_file) if cif_file else {}
+    for path in pqr_files:
+        for kind, objects in loadPqrChannels(path).items():
+            groups.setdefault(kind, []).extend(objects)
+    for kind, objects in sorted(groups.items()):
         group = CIF_GROUPS.get(kind, kind.lower() + "_grp")
         cmd.group(freeName(group), " ".join(objects))
     cmd.rebuild()
@@ -10833,8 +11406,8 @@ if cif_file:
     cmd.set("sphere_quality", 2)
     cmd.bg_color("white")
     cmd.zoom()
-    print(f"Success: {sum(len(o) for o in cif_groups.values())} object(s) "
-          f"loaded from {cif_file}.")
+    print(f"Success: {sum(len(o) for o in groups.values())} object(s) "
+          f"loaded from {', '.join(([cif_file] if cif_file else []) + pqr_files)}.")
 elif not any(files for _, files, _ in sets):
     print("Error: No channel files found. Check your working directory (pwd).")
 else:
@@ -10874,10 +11447,11 @@ else:
 def _writeVisScript(directory, pattern='chl*.pqr'):
     """Leave ``vis_channels.py`` in ``directory`` unless it is already there.
 
-    A run drops a viewer beside its output, as CAVER leaves ``view.py`` beside its
-    clusters, so the output can be opened without hunting for a script. An
-    existing file is never overwritten: edits made to one run's copy survive a
-    rerun, and so does a newer script left by an earlier one.
+    :func:`writePyMolCaviTracerScript` leaves the viewer beside what it writes, as
+    CAVER leaves ``view.py`` beside its clusters; a channel run itself writes no
+    script, that being what the viewer-script functions are for. An existing file
+    is never overwritten: edits made to one copy survive a rerun, and so does a
+    newer script left by an earlier one.
 
     One script serves both output formats. *pattern* is what the log tells the
     reader to pass, a glob for a PQR run and the file itself for an mmCIF one;
@@ -10906,6 +11480,63 @@ def _writeVisScript(directory, pattern='chl*.pqr'):
     else:
         LOGGER.info('Wrote the PyMOL viewer {0}. View the output with '
                     '{1}.'.format(path, usage))
+
+
+def _writeViewerPQR(result_file, objects, object_type, surface, num_samples):
+    """Write *objects* to the PQR a viewer script draws: channels, pores or links
+    as their spheres, surface cavities as their markers, and connected results as
+    both, the cavities on chain C and the channels on chain H.
+
+    One writer for the VMD, PyMOL and ChimeraX functions, which all draw these
+    same records. *surface* is what :func:`calcSurfaceCavities` returned, needed
+    only for the two cavity types."""
+
+    if object_type in ('channels', 'pores', 'links'):
+
+        labels = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}
+        label = labels[object_type]
+
+        with open(str(result_file), 'w') as handle:
+            atom_index = 1
+
+            for object_index, obj in enumerate(objects):
+                lines, written = ChannelCalculator._channelRecords(
+                    object_index, obj, atom_index, num_samples,
+                    label=label, name_sites=True)
+
+                handle.writelines(lines)
+                handle.write("\n")
+                atom_index += written
+
+    elif object_type == 'surface_cavities':
+
+        vertices = np.asarray(surface[4])
+        atom_index = 1
+        drawn = []
+
+        for cavity in objects:
+            tetrahedra = cavity.tetrahedra
+
+            if tetrahedra is None or len(tetrahedra) == 0:
+                continue
+
+            drawn.append((len(drawn), cavity,
+                          vertices[np.asarray(tetrahedra, dtype=np.intp)]))
+
+        if not drawn:
+            raise ValueError("No surface cavity contains points that can be visualized")
+
+        with open(str(result_file), 'w') as handle:
+            for cavity_index, cavity, centers in drawn:
+                lines, written = ChannelCalculator._cavityRecords(
+                    cavity_index, cavity, centers, atom_index)
+
+                handle.writelines(lines)
+                atom_index += written
+
+    else:
+        _saveConnectedCavityChannels(objects, surface, result_file, separate=False,
+                                    num_samples=num_samples)
 
 
 def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
@@ -11058,53 +11689,54 @@ def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
         number += 1
 
     writePDB(str(protein_file), atoms)
+    _writeViewerPQR(result_file, objects, object_type, surface, num_samples)
 
-    if object_type in ('channels', 'pores', 'links'):
+    _writeVmdScript(script_file, protein_file, result_file, object_type)
 
-        labels = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}
-        label = labels[object_type]
+    LOGGER.info("CaviTracer VMD files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    VMD script: {0}".format(script_file))
+    LOGGER.info("View the result with: vmd -e {0}".format(script_file.name))
 
-        with open(str(result_file), 'w') as handle:
-            atom_index = 1
+    return str(result_file), str(protein_file), str(script_file)
 
-            for object_index, obj in enumerate(objects):
-                lines, written = ChannelCalculator._channelRecords(
-                    object_index, obj, atom_index, num_samples,
-                    label=label, name_sites=True)
 
-                handle.writelines(lines)
-                handle.write("\n")
-                atom_index += written
+def _writeVmdScript(script_file, protein_file, result_file, object_type):
+    """Write the VMD script drawing the PQR *result_file* over the structure
+    *protein_file*.
 
-    elif object_type == 'surface_cavities':
+    The script reads the PQR itself rather than through VMD's reader, which
+    takes only the first ``MODEL`` of a file whose models differ in size, as
+    the frames of a :func:`mergeFramesPQR` file do. Each ``MODEL`` becomes a
+    molecule, a file of one structure a single one, all drawn alike and
+    coloured by rank; with several, VMD's animation slider shows one frame's
+    molecule at a time. The number of ranks to colour is read from the file
+    too, so a file written by :func:`writeVmdCaviTracerScript` and one already
+    on disk open alike."""
 
-        vertices = np.asarray(surface[4])
-        atom_index = 1
-        drawn = []
+    import os
+    from pathlib import Path
 
-        for cavity in objects:
-            tetrahedra = cavity.tetrahedra
+    script_dir = str(Path(script_file).parent)
 
-            if tetrahedra is None or len(tetrahedra) == 0:
-                continue
+    # The most residues any one frame holds on any one chain: the ranks the
+    # script colours, each chain's objects taking the palette from rank 0.
+    residues, frame = {}, None
+    with open(str(result_file)) as handle:
+        for line in handle:
+            if line.startswith('MODEL'):
+                frame = line[5:].strip()
+            elif line.startswith(('ATOM', 'HETATM')):
+                residues.setdefault((frame, line[21]), set()).add(line[22:26])
+    ranks = max(len(resids) for resids in residues.values()) if residues else 0
 
-            drawn.append((len(drawn), cavity,
-                          vertices[np.asarray(tetrahedra, dtype=np.intp)]))
-
-        if not drawn:
-            raise ValueError("No surface cavity contains points that can be visualized")
-
-        with open(str(result_file), 'w') as handle:
-            for cavity_index, cavity, centers in drawn:
-                lines, written = ChannelCalculator._cavityRecords(
-                    cavity_index, cavity, centers, atom_index)
-
-                handle.writelines(lines)
-                atom_index += written
-
-    else:
-        _saveConnectedCavityChannels(objects, surface, result_file, separate=False,
-                                    num_samples=num_samples)
+    def named(path):
+        """*path* as the script finds it: from its own directory."""
+        try:
+            return os.path.relpath(str(path), script_dir)
+        except ValueError:
+            return str(Path(path).resolve())    # on another drive
 
     # ------------------------------------------------------------------
     # VMD script
@@ -11156,56 +11788,81 @@ mol addrep $protein_mol
 # CaviTracer object
 # ----------------------------------------------------------------------
 
-mol new $result_file type pqr waitfor all
-set result_mol [molinfo top]
+# The PQR is read here rather than by VMD's PQR reader, which takes only the
+# first MODEL of a file whose models differ in size, as the frames of a
+# multi-model file do. Each MODEL becomes a molecule of its own, and a file
+# of one structure a single one. CaviTracer stores the sphere radius in the
+# final PQR field.
 
-# CaviTracer stores the sphere radius in the final PQR field. Set the
-# VMD atomic radius explicitly rather than depending on the PQR reader.
+proc load_cavitracer_frames {filename} {
 
-proc set_cavitracer_radii {molid filename} {
-
-    set radii {}
+    set frames {}
+    set number ""
+    set records {}
     set handle [open $filename r]
 
     while {[gets $handle line] >= 0} {
 
-        if {[string match "ATOM*" $line] ||
-            [string match "HETATM*" $line]} {
+        set record [string range $line 0 5]
 
-            set fields [regexp -all -inline {\S+} $line]
-
-            if {[llength $fields] > 0} {
-                lappend radii [lindex $fields end]
-            }
+        if {$record eq "MODEL "} {
+            set number [string trim [string range $line 5 end]]
+        } elseif {$record eq "ATOM  " || $record eq "HETATM"} {
+            lappend records $line
+        } elseif {$record eq "ENDMDL"} {
+            lappend frames [list $number $records]
+            set records {}
         }
     }
 
     close $handle
 
-    set sel [atomselect $molid "all"]
-
-    if {[$sel num] == [llength $radii]} {
-        $sel set radius $radii
-    } else {
-        puts "WARNING: Number of CaviTracer radii does not match number of atoms."
-        puts "         atoms = [$sel num], radii = [llength $radii]"
+    if {[llength $records] > 0} {
+        lappend frames [list $number $records]
     }
 
-    $sel delete
+    set molecules {}
+
+    foreach frame $frames {
+
+        lassign $frame number records
+
+        set xyz {}
+        set radii {}
+        set resids {}
+        set chains {}
+
+        foreach line $records {
+            lappend xyz [list [string trim [string range $line 30 37]] \
+                              [string trim [string range $line 38 45]] \
+                              [string trim [string range $line 46 53]]]
+            lappend radii [lindex [regexp -all -inline {\S+} $line] end]
+            lappend resids [string trim [string range $line 22 25]]
+            lappend chains [string index $line 21]
+        }
+
+        set molid [mol new atoms [llength $records]]
+        animate dup $molid
+
+        set sel [atomselect $molid "all"]
+        $sel set {x y z} $xyz
+        $sel set radius $radii
+        $sel set resid $resids
+        $sel set chain $chains
+        $sel set resname FIL
+        $sel set name H
+        $sel delete
+
+        lappend molecules [list $molid $number]
+    }
+
+    return $molecules
 }
 
-set_cavitracer_radii $result_mol $result_file
-
-mol delrep 0 $result_mol
+set result_mols [load_cavitracer_frames $result_file]
 
 # VMD ColorIDs used for consecutive CaviTracer objects.
-set cavitracer_colors {
-    0 7 1 10 4 11
-    3 9 12 13 14 15
-    5 6 17 18 19 20
-    21 22 23 24 25 26
-    27 28 29 30 31 32
-}
+__PALETTE__
 
 set ncolors [llength $cavitracer_colors]
 
@@ -11253,45 +11910,110 @@ proc add_quicksurf_objects {molid selection_prefix colors ncolors} {
     }
 }
 
-if {$object_type == "channels"} {
+# Every molecule is drawn alike: the one of a single structure, or each
+# frame's.
+foreach entry $result_mols {
 
-    mol rename $result_mol "CaviTracer channels"
-    add_vdw_objects $result_mol "resname FIL" \
-        $cavitracer_colors $ncolors
+    set result_mol [lindex $entry 0]
 
-} elseif {$object_type == "pores"} {
+    if {$object_type == "channels"} {
 
-    mol rename $result_mol "CaviTracer pores"
-    add_vdw_objects $result_mol "resname FIL" \
-        $cavitracer_colors $ncolors
+        mol rename $result_mol "CaviTracer channels"
+        add_vdw_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
 
-} elseif {$object_type == "links"} {
+    } elseif {$object_type == "pores"} {
 
-    mol rename $result_mol "CaviTracer links"
-    add_vdw_objects $result_mol "resname FIL" \
-        $cavitracer_colors $ncolors
+        mol rename $result_mol "CaviTracer pores"
+        add_vdw_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
 
-} elseif {$object_type == "surface_cavities"} {
+    } elseif {$object_type == "links"} {
 
-    mol rename $result_mol "CaviTracer surface cavities"
-    add_quicksurf_objects $result_mol "resname FIL" \
-        $cavitracer_colors $ncolors
+        mol rename $result_mol "CaviTracer links"
+        add_vdw_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
 
-} elseif {$object_type == "connected_cavities_channels"} {
+    } elseif {$object_type == "surface_cavities"} {
 
-    mol rename $result_mol "CaviTracer connected cavities and channels"
+        mol rename $result_mol "CaviTracer surface cavities"
+        add_quicksurf_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
 
-    # _saveConnectedCavityChannels writes cavity markers in chain C
-    # and channel spheres in chain H.
-    add_quicksurf_objects $result_mol "resname FIL and chain C" \
-        $cavitracer_colors $ncolors
+    } elseif {$object_type == "connected_cavities_channels"} {
 
-    add_vdw_objects $result_mol "resname FIL and chain H" \
-        $cavitracer_colors $ncolors
+        mol rename $result_mol "CaviTracer connected cavities and channels"
+
+        # _saveConnectedCavityChannels writes cavity markers in chain C
+        # and channel spheres in chain H.
+        add_quicksurf_objects $result_mol "resname FIL and chain C" \
+            $cavitracer_colors $ncolors
+
+        add_vdw_objects $result_mol "resname FIL and chain H" \
+            $cavitracer_colors $ncolors
+    }
 }
 
-# Keep the protein as the top molecule and centre the complete view.
-mol top $protein_mol
+# The protein is the top molecule, unless there are frames to step through.
+set top_mol $protein_mol
+
+# Several frames: each molecule is named for its frame, and a molecule of one
+# atom and a frame per frame of the file drives them. VMD's animation slider
+# moves it, and each move shows that frame's molecule alone.
+if {[llength $result_mols] > 1} {
+
+    foreach entry $result_mols {
+        mol rename [lindex $entry 0] "frame [lindex $entry 1]"
+    }
+
+    # The atom sits on the first sphere, where it cannot pull the view away.
+    set first [atomselect [lindex [lindex $result_mols 0] 0] "index 0"]
+    set frame_driver [mol new atoms 1]
+    mol rename $frame_driver "CaviTracer frames"
+    animate dup $frame_driver
+    set atom [atomselect $frame_driver "all"]
+    $atom set {x y z} [$first get {x y z}]
+    $atom delete
+    $first delete
+
+    for {set i 1} {$i < [llength $result_mols]} {incr i} {
+        animate dup $frame_driver
+    }
+
+    proc show_cavitracer_frame {args} {
+
+        global frame_driver result_mols
+
+        set current [molinfo $frame_driver get frame]
+        set index 0
+
+        foreach entry $result_mols {
+            if {$index == $current} {
+                mol on [lindex $entry 0]
+            } else {
+                mol off [lindex $entry 0]
+            }
+            incr index
+        }
+    }
+
+    trace add variable ::vmd_frame($frame_driver) write show_cavitracer_frame
+    set top_mol $frame_driver
+
+    # Only the driver follows the animation. VMD rebuilds the representations
+    # of every active molecule at each change of frame, and the protein's
+    # surface alone took seconds a step, though it has a single frame.
+    mol inactive $protein_mol
+    foreach entry $result_mols {
+        mol inactive [lindex $entry 0]
+    }
+
+    molinfo $frame_driver set frame 0
+    show_cavitracer_frame
+}
+
+# Centre the complete view.
+mol top $top_mol
 display resetview
 
 puts ""
@@ -11300,69 +12022,172 @@ puts "Protein: __PROTEIN_FILE__"
 puts "Result:  __RESULT_FILE__"
 '''
 
-    tcl = tcl.replace('__SCRIPT_NAME__', script_file.name)
-    tcl = tcl.replace('__PROTEIN_FILE__', protein_file.name)
-    tcl = tcl.replace('__RESULT_FILE__', result_file.name)
+    tcl = tcl.replace('__SCRIPT_NAME__', Path(script_file).name)
+    tcl = tcl.replace('__PROTEIN_FILE__', named(protein_file))
+    tcl = tcl.replace('__RESULT_FILE__', named(result_file))
     tcl = tcl.replace('__OBJECT_TYPE__', object_type)
+    # A colour for every rank drawn, from the palette of the PyMOL and ChimeraX
+    # scripts, so that a channel is the same colour whichever of them shows it.
+    tcl = tcl.replace('__PALETTE__', _vmdPalette(ranks))
 
     with open(str(script_file), 'w') as handle:
         handle.write(tcl)
 
+
+def writeVmdMultiModelScript(pqr_file, atoms, output_path='.',
+                             object_type='channels'):
+    """Write a VMD script for a PQR already on disk, such as the multi-model
+    one :func:`mergeFramesPQR` writes.
+
+    The script reads the PQR itself, one molecule per frame, each named for its
+    frame and coloured by rank as :func:`writeVmdCaviTracerScript` colours one
+    structure, and VMD's animation slider shows one frame at a time. A PQR of
+    one structure opens just as that function's own would.
+
+    Rank is all that ties an object to its namesakes in other frames: channel 3
+    of one frame and channel 3 of the next are the fourth cheapest of each, not
+    one channel followed through the trajectory.
+
+    :arg pqr_file: the PQR to draw, one structure or several frames.
+    :type pqr_file: str
+
+    :arg atoms: structure to draw the objects against. Its active coordinate
+        set is written, a single backdrop for every frame.
+    :type atoms: :class:`.Atomic`
+
+    :arg output_path: directory the structure and the script are written to.
+        The script finds the PQR where it is. Default is the current directory.
+    :type output_path: str
+
+    :arg object_type: what the PQR holds: ``'channels'`` (the default),
+        ``'pores'``, ``'links'``, ``'surface_cavities'`` or
+        ``'connected_cavities_channels'``, as in
+        :func:`writeVmdCaviTracerScript`.
+    :type object_type: str
+
+    :returns: paths to the PQR, the structure PDB and the VMD script
+    :rtype: tuple
+
+    Usage:
+    mergeFramesPQR('frames', 'channels_frames.pqr')
+    writeVmdMultiModelScript('channels_frames.pqr', atoms)
+
+    Next (bash console):
+    $ vmd -e vis_channels_frames.tcl"""
+
+    from pathlib import Path
+
+    _requireCoords(atoms)
+
+    object_types = ('channels', 'pores', 'links', 'surface_cavities',
+                    'connected_cavities_channels')
+    if object_type not in object_types:
+        raise ValueError('object_type must be one of {0}'.format(
+            ', '.join(repr(name) for name in object_types)))
+
+    pqr_file = Path(pqr_file)
+    if not pqr_file.is_file():
+        raise ValueError('no PQR at {0}'.format(pqr_file))
+
+    output_path = Path(output_path)
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    number = 0
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+        protein_file = output_path / ('protein' + suffix + '.pdb')
+        script_file = output_path / ('vis_' + pqr_file.stem + suffix + '.tcl')
+        if not (protein_file.exists() or script_file.exists()):
+            break
+        number += 1
+
+    # The active frame only: written whole, a trajectory's structure would come
+    # out as a model per frame, all of them drawn at once behind the channels.
+    writePDB(str(protein_file), atoms, csets=atoms.getACSIndex())
+    _writeVmdScript(script_file, protein_file, pqr_file, object_type)
+
     LOGGER.info("CaviTracer VMD files written:")
     LOGGER.info("    protein: {0}".format(protein_file))
-    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    results: {0}".format(pqr_file))
     LOGGER.info("    VMD script: {0}".format(script_file))
     LOGGER.info("View the result with: vmd -e {0}".format(script_file.name))
 
-    return str(result_file), str(protein_file), str(script_file)
+    return str(pqr_file), str(protein_file), str(script_file)
     
     
 def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
-                               output_path='.', num_samples=5):
+                               output_path='.', num_samples=5,
+                               output_format=None, surface=None):
     """Prepare CaviTracer results for visualization in PyMOL.
 
-    This function writes CaviTracer objects in the tunnels-schema mmCIF format,
-    saves the supplied molecular structure as a PDB file, and creates the
-    existing CaviTracer PyMOL visualization script.
+    This function writes CaviTracer objects in the tunnels-schema mmCIF format
+    or as a PQR, saves the supplied molecular structure as a PDB file, and
+    creates the CaviTracer PyMOL visualization script, which reads either.
 
-    The function uses the same mmCIF writer and PyMOL viewer as
-    :func:`calcChannels` and :func:`calcPoresFromChannels`.
+    The mmCIF is the one :func:`writeChannelsCIF` writes, and the PQR holds the
+    same records as the one :func:`writeVmdCaviTracerScript` and
+    :func:`writeChimeraXCaviTracerScript` write: every object in one file, told
+    apart by its residue number, which the viewer splits it by. Surface cavities
+    are drawn as the surface around their markers, as in those two.
 
-    :arg objects: CaviTracer channels, pores, or chamber links to visualize.
-    :type objects: list or Channel
+    :arg objects: CaviTracer objects to visualize: channels, pores, links,
+        surface cavities, or connected cavity-channel results.
+    :type objects: list or CaviTracer object
 
     :arg atoms: Molecular structure to display together with the CaviTracer
         results.
     :type atoms: :class:`.Atomic`
 
-    :arg object_type: Type of CaviTracer objects. Accepted values are
-        ``'channels'``, ``'pores'`` and ``'links'``.
+    :arg object_type: Type of CaviTracer result. Accepted values are
+        ``'channels'``, ``'pores'``, ``'links'``,
+        ``'surface_cavities'`` and ``'connected_cavities_channels'``.
         Default is ``'channels'``.
     :type object_type: str
 
-    :arg output_path: Directory in which the mmCIF, PDB and PyMOL viewer are
-        saved. Default is the current directory.
+    :arg output_path: Directory in which the mmCIF or PQR, the PDB and the
+        PyMOL viewer are saved. Default is the current directory.
     :type output_path: str or pathlib.Path
 
     :arg num_samples: Number of samples per tetrahedron used for the channel,
         pore, or link profile. Default is 5.
     :type num_samples: int
 
-    :returns: Paths to the mmCIF file, protein PDB file and PyMOL script.
-    :rtype: tuple 
-    
+    :arg output_format: ``'mmcif'`` or ``'pqr'``, what the objects are written
+        as. Default is mmCIF for channels, pores and links, and PQR for surface
+        cavities and connected results, which have no mmCIF form.
+    :type output_format: str
+
+    :arg surface: Surface information returned by :func:`calcSurfaceCavities`.
+        Required for ``'surface_cavities'`` and ``'connected_cavities_channels'``.
+        Ignored for channels, pores and links.
+    :type surface: list or None
+
+    :returns: Paths to the mmCIF or PQR file, protein PDB file and PyMOL script.
+    :rtype: tuple
+
     Usage:
     atoms = parsePDB('1tqn').select("protein")
     channels, surface = calcChannels(atoms)
-    
+
     For channels:
     writePyMolCaviTracerScript(channels, protein)
-    
+
     For pores:
-    writePyMolCaviTracerScript(pores, protein, object_type='pores') 
-    
-    Next (bash console): 
-    $ pymol vis_channels.py -- protein.pdb channels.cif   """
+    writePyMolCaviTracerScript(pores, protein, object_type='pores')
+
+    As a PQR:
+    writePyMolCaviTracerScript(channels, protein, output_format='pqr')
+
+    Surface cavities:
+    writePyMolCaviTracerScript(cavities, protein, object_type='surface_cavities',
+                               surface=cavity_surface)
+
+    Next (bash console):
+    $ pymol vis_channels.py -- protein.pdb channels.cif
+    $ pymol vis_channels.py -- protein.pdb channels.pqr   """
 
     if PY3K:
         from pathlib import Path
@@ -11377,12 +12202,34 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
         'pore': 'pores',
         'pores': 'pores',
         'link': 'links',
-        'links': 'links'}
+        'links': 'links',
+        'cavity': 'surface_cavities',
+        'cavities': 'surface_cavities',
+        'surface_cavity': 'surface_cavities',
+        'surface_cavities': 'surface_cavities',
+        'connected': 'connected_cavities_channels',
+        'connected_cavity_channel': 'connected_cavities_channels',
+        'connected_cavities_channels': 'connected_cavities_channels'}
 
     object_type = aliases.get(str(object_type).lower())
 
     if object_type is None:
-        raise ValueError("object_type must be 'channels', 'pores' or 'links'")
+        raise ValueError("object_type must be 'channels', 'pores', 'links', "
+                         "'surface_cavities' or 'connected_cavities_channels'")
+
+    cavity_types = ('surface_cavities', 'connected_cavities_channels')
+    if object_type in cavity_types:
+        if surface is None or len(surface) < 5:
+            raise ValueError("surface returned by calcSurfaceCavities() must be "
+                             "provided for object_type='{0}'.".format(object_type))
+
+    # Raises on anything but mmCIF or PQR, before a file is written.
+    if output_format is None:
+        output_format = 'pqr' if object_type in cavity_types else 'mmcif'
+    mmcif = _isMmcifFormat(output_format)
+    if mmcif and object_type in cavity_types:
+        raise ValueError("object_type='{0}' has no mmCIF form; leave output_format "
+                         "unset, or pass 'pqr'.".format(object_type))
 
     if objects is None:
         raise ValueError("objects cannot be None")
@@ -11401,7 +12248,9 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     if not output_path.is_dir():
         raise ValueError("output_path must be a directory")
 
-    result_stems = {'channels': 'channels', 'pores': 'pores', 'links': 'links'}
+    result_stems = {'channels': 'channels', 'pores': 'pores', 'links': 'links',
+                    'surface_cavities': 'cavities',
+                    'connected_cavities_channels': 'connected_cavities_channels'}
     result_stem = result_stems[object_type]
     number = 0
 
@@ -11409,7 +12258,7 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
         suffix = '' if number == 0 else '-{0}'.format(number)
 
         result_file = output_path / (
-            result_stem + suffix + '.cif')
+            result_stem + suffix + ('.cif' if mmcif else '.pqr'))
         protein_file = output_path / (
             'protein' + suffix + '.pdb')
 
@@ -11420,8 +12269,14 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
 
     writePDB(str(protein_file), atoms)
 
-    if object_type == 'channels':
-        written = writeChannelsCIF(result_file, objects, 
+    if not mmcif:
+        # The records the VMD and ChimeraX writers write: every object in one
+        # file, told apart by its residue number, which the viewer splits by.
+        _writeViewerPQR(result_file, objects, object_type, surface, num_samples)
+        written = result_file
+
+    elif object_type == 'channels':
+        written = writeChannelsCIF(result_file, objects,
                             atoms=atoms, num_samples=num_samples)
 
     elif object_type == 'pores':
@@ -11452,6 +12307,107 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     return str(written), str(protein_file), str(script_file)
     
     
+def writePyMolMultiModelScript(pqr_file, atoms, output_path='.',
+                               object_type='channels'):
+    """Write the PyMOL viewer for a PQR already on disk, such as the
+    multi-model one :func:`mergeFramesPQR` writes.
+
+    The viewer is the one :func:`writePyMolCaviTracerScript` leaves. It opens a
+    multi-model PQR as one object per channel rank with a state per frame, each
+    titled with its frame's number, so that PyMOL's state controls step through
+    the frames, and colours every object by its rank, as for one structure. A
+    PQR of one structure opens just as :func:`writePyMolCaviTracerScript`'s own.
+
+    Rank is all that ties an object to its namesakes in other frames: channel 3
+    of one frame and channel 3 of the next are the fourth cheapest of each, not
+    one channel followed through the trajectory.
+
+    :arg pqr_file: the PQR to draw, one structure or several frames.
+    :type pqr_file: str
+
+    :arg atoms: structure to draw the objects against. Its active coordinate
+        set is written, a single backdrop for every frame.
+    :type atoms: :class:`.Atomic`
+
+    :arg output_path: directory the structure and the viewer are written to.
+        The viewer is named after the PQR and is given the PQR on the command
+        line, as the log says. Default is the current directory.
+    :type output_path: str
+
+    :arg object_type: what the PQR holds, as for
+        :func:`writeVmdMultiModelScript` and
+        :func:`writeChimeraXMultiModelScript`: ``'channels'`` (the default),
+        ``'pores'``, ``'links'``, ``'surface_cavities'`` or
+        ``'connected_cavities_channels'``. It is checked only: the viewer reads
+        each object's kind from the file itself, and draws cavities as surfaces
+        and everything else as spheres.
+    :type object_type: str
+
+    :returns: paths to the PQR, the structure PDB and the PyMOL script
+    :rtype: tuple
+
+    Usage:
+    mergeFramesPQR('frames', 'channels_frames.pqr')
+    writePyMolMultiModelScript('channels_frames.pqr', atoms)
+
+    Next (bash console):
+    $ pymol vis_channels_frames.py -- protein.pdb channels_frames.pqr"""
+
+    import os
+    from pathlib import Path
+
+    _requireCoords(atoms)
+
+    object_types = ('channels', 'pores', 'links', 'surface_cavities',
+                    'connected_cavities_channels')
+    if object_type not in object_types:
+        raise ValueError('object_type must be one of {0}'.format(
+            ', '.join(repr(name) for name in object_types)))
+
+    pqr_file = Path(pqr_file)
+    if not pqr_file.is_file():
+        raise ValueError('no PQR at {0}'.format(pqr_file))
+
+    output_path = Path(output_path)
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    # Named after the PQR and never written over, rather than left as
+    # vis_channels.py: _writeVisScript keeps a copy already there, which may be
+    # one from before the viewer could read frames.
+    number = 0
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+        protein_file = output_path / ('protein' + suffix + '.pdb')
+        script_file = output_path / ('vis_' + pqr_file.stem + suffix + '.py')
+        if not (protein_file.exists() or script_file.exists()):
+            break
+        number += 1
+
+    # The active frame only: written whole, a trajectory's structure would come
+    # out as a model per frame, all of them drawn at once behind the channels.
+    writePDB(str(protein_file), atoms, csets=atoms.getACSIndex())
+    with open(str(script_file), 'w') as handle:
+        handle.write(_VIS_CHANNELS_SCRIPT)
+
+    # The viewer is run from its own directory, so the PQR is named from there.
+    try:
+        named = os.path.relpath(str(pqr_file), str(output_path))
+    except ValueError:
+        named = str(pqr_file.resolve())    # on another drive
+
+    LOGGER.info("CaviTracer PyMOL files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(pqr_file))
+    LOGGER.info("    PyMOL script: {0}".format(script_file))
+    LOGGER.info("View the result from {0} with: pymol {1} -- {2} {3}".format(
+        output_path, script_file.name, protein_file.name, named))
+
+    return str(pqr_file), str(protein_file), str(script_file)
+
+
 def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
                                   surface=None, output_path='.', num_samples=5):
     """Write CaviTracer results and a ChimeraX command script.
@@ -11592,75 +12548,42 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         number += 1
 
     writePDB(str(protein_file), atoms)
+    _writeViewerPQR(result_file, objects, object_type, surface, num_samples)
 
-    if object_type in ('channels', 'pores', 'links'):
+    _writeChimeraXScript(script_file, protein_file, result_file, object_type)
 
-        labels = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}
-        label = labels[object_type]
+    LOGGER.info("CaviTracer ChimeraX files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    ChimeraX script: {0}".format(script_file))
+    LOGGER.info("View the result with: chimerax {0}".format(script_file.name))
 
-        with open(str(result_file), 'w') as handle:
-            atom_index = 1
+    return str(result_file), str(protein_file), str(script_file)
 
-            for object_index, obj in enumerate(objects):
-                lines, written = ChannelCalculator._channelRecords(
-                    object_index, obj, atom_index, num_samples,
-                    label=label, name_sites=True)
 
-                handle.writelines(lines)
-                handle.write("\n")
-                atom_index += written
+def _writeChimeraXScript(script_file, protein_file, result_file, object_type):
+    """Write the ChimeraX command file drawing the PQR *result_file* over the
+    structure *protein_file*.
 
-    elif object_type == 'surface_cavities':
+    What it colours is read from the PQR itself, the residues on each of its
+    chains, so a file written by :func:`writeChimeraXCaviTracerScript` and one
+    already on disk open alike. So do a single structure and a multi-model file
+    from :func:`mergeFramesPQR`: ChimeraX opens the latter as one submodel per
+    ``MODEL``, the colours reach every one of them, and the script names each
+    for its frame and shows the first, with a slider to step through the rest."""
 
-        vertices = np.asarray(surface[4])
-        atom_index = 1
-        drawn = []
+    from pathlib import Path
 
-        for cavity in objects:
-            tetrahedra = cavity.tetrahedra
-
-            if tetrahedra is None or len(tetrahedra) == 0:
-                continue
-
-            drawn.append((len(drawn),cavity,
-                vertices[np.asarray(tetrahedra, dtype=np.intp)]))
-
-        if not drawn:
-            raise ValueError("No surface cavity contains points that can be visualized")
-
-        with open(str(result_file), 'w') as handle:
-            for cavity_index, cavity, centers in drawn:
-                lines, written = ChannelCalculator._cavityRecords(
-                    cavity_index, cavity, centers, atom_index)
-
-                handle.writelines(lines)
-                atom_index += written
-
-    else:
-        _saveConnectedCavityChannels(
-            objects, surface, result_file, separate=False,
-            num_samples=num_samples)
-            
-    cavitracer_radii = []
-    with open(str(result_file), 'r') as handle:
+    residues, frames = {}, []
+    with open(str(result_file)) as handle:
         for line in handle:
-            if not line.startswith(('ATOM', 'HETATM')):
-                continue
+            if line.startswith('MODEL'):
+                frames.append(line[5:].strip())
+            elif line.startswith(('ATOM', 'HETATM')):
+                residues.setdefault(line[21], set()).add(int(line[22:26]))
 
-            fields = line.split()
-            try:
-                serial = int(fields[1])
-                radius = float(fields[-1])
-            except (ValueError, IndexError):
-                continue
-
-            cavitracer_radii.append((serial, radius))
-
-    protein_path = protein_file.resolve().as_posix().replace('"', '\\"')
-    result_path = result_file.resolve().as_posix().replace('"', '\\"')
-
-    colors = ['blue', 'green', 'red', 'cyan', 'yellow', 'magenta',
-        'orange', 'purple', 'lime', 'pink', 'gold', 'tan']
+    protein_path = Path(protein_file).resolve().as_posix().replace('"', '\\"')
+    result_path = Path(result_file).resolve().as_posix().replace('"', '\\"')
 
     lines = [
         '# CaviTracer visualization for ChimeraX',
@@ -11674,8 +12597,13 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         'graphics bgColor white',
         'camera ortho',
         '',
+        # coordsets: a structure of several models, such as a trajectory's
+        # frames, is read as one structure with a coordinate set per model.
+        # ChimeraX otherwise opens a submodel per model and draws them all at
+        # once, one on top of another.
         '# Protein.',
-        'open "{0}" id #1 name Protein autoStyle false'.format(protein_path),
+        'open "{0}" id #1 name Protein autoStyle false coordsets true'.format(
+            protein_path),
         'hide #1 atoms,bonds',
         'show #1 cartoons',
         'color #1 lightgray target c',
@@ -11683,17 +12611,23 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         'color #1 lightgray target s',
         'transparency #1 65 target s',
         '',
+        # combineSymAtoms: by default ChimeraX merges atoms of one name that sit
+        # at nearly one position, as on a symmetry axis. Every sphere here is a
+        # hydrogen of its channel's residue, so it would merge spheres that
+        # merely lie close, and the copies of a cavity written once per channel.
         '# CaviTracer result.',
-        'open "{0}" id #2 name "CaviTracer {1}" autoStyle false atomic false'.format(
+        'open "{0}" id #2 name "CaviTracer {1}" autoStyle false atomic false '
+        'combineSymAtoms false'.format(
             result_path, object_type.replace('_', ' '))]
 
-    lines.extend(['', '# Set the CaviTracer radii explicitly.'])
-
-    for serial, radius in cavitracer_radii:
-        lines.append(
-            'size #2@@serial_number={0} atomRadius {1:.4f}'.format(
-                serial, radius))
-    lines.append('')
+    # ChimeraX has no PQR reader of its own: the PDB reader takes the file, and
+    # the radius column is where a PDB keeps the B-factor. One command maps that
+    # onto the atom radius, as the line through 0.01:0.01 and 1000:1000 is the
+    # identity (a waypoint must be above zero). One size command per sphere did
+    # the same a command at a time, which took over a minute once there were
+    # thousands of spheres.
+    lines.extend(['', '# Set the CaviTracer radii, read into the B-factor.',
+                  'size byattribute bfactor #2 0.01:0.01 1000:1000', ''])
 
     if object_type in ('channels', 'pores', 'links'):
         lines.extend([
@@ -11702,50 +12636,51 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
             'style #2 sphere',
             ''])
 
-        for index in range(len(objects)):
-            color = colors[index % len(colors)]
-            resid = index + 1
+        # The palette of the PyMOL and VMD scripts, so that a channel is the
+        # same colour whichever of them shows it. An object's residue number is
+        # its rank plus one, in every frame.
+        for resid in sorted(residues.get('T', ())):
             lines.append('color #2/T:{0} {1} target a'.format(
-                resid, color))
+                resid, _hexColour(resid - 1)))
 
     elif object_type == 'surface_cavities':
 
         lines.extend(['hide #2 atoms,bonds', ''])
 
-        for index in range(len(drawn)):
-            color = colors[index % len(colors)]
-            resid = index + 1
-
+        for resid in sorted(residues.get('T', ())):
             lines.append('surface #2/T:{0}'.format(resid))
-            lines.append('color #2/T:{0} {1} target s'.format(resid, color))
+            lines.append('color #2/T:{0} {1} target s'.format(
+                resid, _hexColour(resid - 1)))
 
     else:
         lines.extend(['hide #2 atoms,bonds', 'show #2/H atoms', 'style #2/H sphere', ''])
 
-        cavity_indices = sorted(set(
-            int(result['cavity_index']) for result in objects))
-        channel_indices = sorted(set(
-            int(result['channel_index']) for result in objects))
+        # Cavities on chain C, channels on chain H, numbered by their own
+        # indices; coloured in turn, the channels after the cavities.
+        cavity_resids = sorted(residues.get('C', ()))
+        channel_resids = sorted(residues.get('H', ()))
 
         lines.append('# Connected surface cavities.')
 
-        for i, cavity_index in enumerate(cavity_indices):
-            color = colors[i % len(colors)]
-            resid = cavity_index + 1
-
+        for i, resid in enumerate(cavity_resids):
             lines.append('surface #2/C:{0}'.format(resid))
-            lines.append('color #2/C:{0} {1} target s'.format(resid, color))
+            lines.append('color #2/C:{0} {1} target s'.format(resid, _hexColour(i)))
 
         lines.append('')
         lines.append('# Connected channels.')
 
-        offset = len(cavity_indices)
+        offset = len(cavity_resids)
 
-        for i, channel_index in enumerate(channel_indices):
-            color = colors[(i + offset) % len(colors)]
-            resid = channel_index + 1
+        for i, resid in enumerate(channel_resids):
+            lines.append('color #2/H:{0} {1} target a'.format(
+                resid, _hexColour(i + offset)))
 
-            lines.append('color #2/H:{0} {1} target a'.format(resid, color))
+    if len(frames) > 1:
+        lines.extend(['', '# One submodel per frame: each named for its frame, the '
+                      'first shown and a slider to step through the rest.'])
+        for number, frame in enumerate(frames, start=1):
+            lines.append('rename #2.{0} "frame {1}"'.format(number, frame))
+        lines.extend(['hide #2.2-{0} models'.format(len(frames)), 'mseries slider #2'])
 
     lines.extend(['', '# Fit the complete system to the window.',
         'view', '', 'log text CaviTracer visualization ready.'])
@@ -11753,11 +12688,88 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
     with open(str(script_file), 'w') as handle:
         handle.write('\n'.join(lines) + '\n')
 
+
+def writeChimeraXMultiModelScript(pqr_file, atoms, output_path='.',
+                                  object_type='channels'):
+    """Write a ChimeraX command file for a PQR already on disk, such as the
+    multi-model one :func:`mergeFramesPQR` writes.
+
+    ChimeraX opens a multi-model PQR as one submodel per frame. The script names
+    each for its frame, shows the first and adds a slider to step through the
+    rest, and colours every object by its rank in its own frame, as
+    :func:`writeChimeraXCaviTracerScript` does for one structure. A PQR of one
+    structure opens just as that function would have drawn it.
+
+    Rank is all that ties an object to its namesakes in other frames: channel 3
+    of one frame and channel 3 of the next are the fourth cheapest of each, not
+    one channel followed through the trajectory.
+
+    :arg pqr_file: the PQR to draw, one structure or several frames.
+    :type pqr_file: str
+
+    :arg atoms: structure to draw the objects against. Its active coordinate
+        set is written, a single backdrop for every frame.
+    :type atoms: :class:`.Atomic`
+
+    :arg output_path: directory the structure and the script are written to.
+        The script opens the PQR where it is. Default is the current directory.
+    :type output_path: str
+
+    :arg object_type: what the PQR holds: ``'channels'`` (the default),
+        ``'pores'``, ``'links'``, ``'surface_cavities'`` or
+        ``'connected_cavities_channels'``, as in
+        :func:`writeChimeraXCaviTracerScript`.
+    :type object_type: str
+
+    :returns: paths to the PQR, the structure PDB and the ChimeraX script
+    :rtype: tuple
+
+    Usage:
+    mergeFramesPQR('frames', 'channels_frames.pqr')
+    writeChimeraXMultiModelScript('channels_frames.pqr', atoms)
+
+    Next (bash console):
+    $ chimerax vis_channels_frames.cxc"""
+
+    from pathlib import Path
+
+    _requireCoords(atoms)
+
+    object_types = ('channels', 'pores', 'links', 'surface_cavities',
+                    'connected_cavities_channels')
+    if object_type not in object_types:
+        raise ValueError('object_type must be one of {0}'.format(
+            ', '.join(repr(name) for name in object_types)))
+
+    pqr_file = Path(pqr_file)
+    if not pqr_file.is_file():
+        raise ValueError('no PQR at {0}'.format(pqr_file))
+
+    output_path = Path(output_path)
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    number = 0
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+        protein_file = output_path / ('protein' + suffix + '.pdb')
+        script_file = output_path / ('vis_' + pqr_file.stem + suffix + '.cxc')
+        if not (protein_file.exists() or script_file.exists()):
+            break
+        number += 1
+
+    # The active frame only: written whole, a trajectory's structure would come
+    # out as a model per frame, all of them drawn at once behind the channels.
+    writePDB(str(protein_file), atoms, csets=atoms.getACSIndex())
+    _writeChimeraXScript(script_file, protein_file, pqr_file, object_type)
+
     LOGGER.info("CaviTracer ChimeraX files written:")
     LOGGER.info("    protein: {0}".format(protein_file))
-    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    results: {0}".format(pqr_file))
     LOGGER.info("    ChimeraX script: {0}".format(script_file))
     LOGGER.info("View the result with: chimerax {0}".format(script_file.name))
-    
-    return str(result_file), str(protein_file), str(script_file)
+
+    return str(pqr_file), str(protein_file), str(script_file)
     
