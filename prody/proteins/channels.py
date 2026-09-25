@@ -11238,9 +11238,10 @@ def loadCifChannels(path):
 
     return groups
 
-# The label each object's REMARK carries in a PQR, in the schema's words, so
-# that a PQR's objects are grouped exactly as an mmCIF's are.
-PQR_KINDS = {"channel": "Tunnel", "pore": "Pore", "link": "Path"}
+# The label each object's REMARK carries in a PQR, in the schema's words where
+# it has them, so that a PQR's objects are grouped exactly as an mmCIF's are.
+PQR_KINDS = {"channel": "Tunnel", "pore": "Pore", "link": "Path",
+             "cavity": "Cavity"}
 
 def loadPqrChannels(path):
     """Draw every object in a PQR holding several, one PyMOL object each.
@@ -11255,10 +11256,16 @@ def loadPqrChannels(path):
     of rank n holds the n-th channel of each frame, and stepping through the
     states steps through the frames. In a frame with fewer channels than that
     the object has nothing to show.
+
+    Surface cavities are drawn as the surface around their markers, as the VMD
+    and ChimeraX scripts draw them. A file of connected cavities and channels
+    holds the cavities on chain C and the channels on chain H, each numbered
+    from 1, so the chain is part of what tells one object from another.
     """
-    # (MODEL number, {index: spheres}) per frame; a file without MODEL records
-    # is a single frame, numbered None.
-    models, kinds, label = [], {}, "channel"
+    # (MODEL number, {(chain, index): spheres}) per frame; a file without MODEL
+    # records is a single frame, numbered None. placeholders: state -> the NIL
+    # atom mergeFramesPQR puts in a frame that found nothing.
+    models, kinds, label, placeholders = [], {}, "channel", {}
     with open(path) as handle:
         for line in handle:
             if line.startswith("MODEL"):
@@ -11267,25 +11274,41 @@ def loadPqrChannels(path):
                 words = line.split()
                 if len(words) > 2 and words[1] in PQR_KINDS:
                     label = words[1]
+            elif line.startswith(("ATOM", "HETATM")) and line[17:20] == "NIL":
+                if not models:
+                    models.append((None, {}))
+                placeholders[len(models)] = line
             elif line.startswith(("ATOM", "HETATM")) and line[17:20] == "FIL":
                 if not models:
                     models.append((None, {}))
                 # Fixed columns for the coordinates: three %8.3f values run
                 # together without a space once one of them reaches -100.
-                index = int(line[22:26]) - 1
-                kinds.setdefault(index, label)
-                models[-1][1].setdefault(index, []).append(
+                key = (line[21], int(line[22:26]) - 1)
+                kinds.setdefault(key, "cavity" if key[0] == "C" else label)
+                models[-1][1].setdefault(key, []).append(
                     (float(line[30:38]), float(line[38:46]),
                      float(line[46:54]), float(line.split()[-1])))
 
+    # Colours by rank, as in the VMD and ChimeraX scripts: a file holding both
+    # cavities and channels colours the cavities in turn and the channels after
+    # them, so that the two are not given the same colours.
+    cavities = sorted(key for key in kinds if kinds[key] == "cavity")
+    others = sorted(key for key in kinds if kinds[key] != "cavity")
+    if cavities and others:
+        colours = dict((key, caverColour(position))
+                       for position, key in enumerate(cavities + others))
+    else:
+        colours = dict((key, caverColour(key[1])) for key in kinds)
+
     groups = {}
-    for index in sorted(kinds):
-        colour = caverColour(index)
-        obj = freeName(f"{kinds[index]}{index}")
+    for key in cavities + others:
+        index = key[1]
+        colour = colours[key]
+        obj = freeName(f"{kinds[key]}{index}")
         count = frames = 0
 
         for state, (number, samples) in enumerate(models, start=1):
-            spheres = samples.get(index)
+            spheres = samples.get(key)
             if not spheres:
                 continue
             text = "".join(
@@ -11304,13 +11327,34 @@ def loadPqrChannels(path):
         # every state (unlike PyMOL's PQR reader, see loadSpheres).
         cmd.alter(obj, "vdw = b")
         cmd.hide("everything", obj)
-        cmd.show("spheres", obj)
+        if kinds[key] == "cavity":
+            # A cavity is a cloud of markers of one size, not a route of probe
+            # spheres, so it is drawn as the surface around them. Every marker
+            # is a hydrogen, which a surface leaves out unless told otherwise.
+            cmd.set("surface_mode", 1, obj)
+            cmd.show("surface", obj)
+        else:
+            cmd.show("spheres", obj)
         cmd.color(colour, obj)
 
-        kind = PQR_KINDS[kinds[index]]
+        kind = PQR_KINDS[kinds[key]]
         groups.setdefault(kind, []).append(obj)
         note = f" in {frames} of {len(models)} frames" if len(models) > 1 else ""
         print(f"  {obj:<20s} {colour}  ({kind}, {count} spheres{note})")
+
+    # A frame that found nothing holds only its placeholder, which goes into an
+    # object of its own, drawn as nothing. The frame then keeps its state even
+    # where no object has anything in it - an empty last frame would otherwise
+    # leave PyMOL counting one frame fewer than the file holds.
+    if placeholders:
+        empty = freeName("empty_frames")
+        for state, line in sorted(placeholders.items()):
+            cmd.read_pdbstr(line, empty, state=state, discrete=1)
+            number = models[state - 1][0]
+            if number is not None:
+                cmd.set_title(empty, state, f"frame {number}, nothing found")
+        cmd.hide("everything", empty)
+        print(f"  {empty:<20s} {len(placeholders)} frame(s) that found nothing")
 
     if len(models) > 1:
         print(f"  {len(models)} frames, a state each: step through them with the "
@@ -11323,7 +11367,8 @@ def loadPqrChannels(path):
 sets = [("chnl_grp", sorted(glob.glob(channel_regex), key=natural_sort_key), False),
         ("tun_grp", sorted(glob.glob("tun_*"), key=natural_sort_key), True)]
 
-CIF_GROUPS = {"Tunnel": "chnl_grp", "Pore": "pore_grp", "Path": "link_grp"}
+CIF_GROUPS = {"Tunnel": "chnl_grp", "Pore": "pore_grp", "Path": "link_grp",
+              "Cavity": "cav_grp"}
 
 if cif_file or pqr_files:
     groups = loadCifChannels(cif_file) if cif_file else {}
@@ -11412,6 +11457,63 @@ def _writeVisScript(directory, pattern='chl*.pqr'):
     else:
         LOGGER.info('Wrote the PyMOL viewer {0}. View the output with '
                     '{1}.'.format(path, usage))
+
+
+def _writeViewerPQR(result_file, objects, object_type, surface, num_samples):
+    """Write *objects* to the PQR a viewer script draws: channels, pores or links
+    as their spheres, surface cavities as their markers, and connected results as
+    both, the cavities on chain C and the channels on chain H.
+
+    One writer for the VMD, PyMOL and ChimeraX functions, which all draw these
+    same records. *surface* is what :func:`calcSurfaceCavities` returned, needed
+    only for the two cavity types."""
+
+    if object_type in ('channels', 'pores', 'links'):
+
+        labels = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}
+        label = labels[object_type]
+
+        with open(str(result_file), 'w') as handle:
+            atom_index = 1
+
+            for object_index, obj in enumerate(objects):
+                lines, written = ChannelCalculator._channelRecords(
+                    object_index, obj, atom_index, num_samples,
+                    label=label, name_sites=True)
+
+                handle.writelines(lines)
+                handle.write("\n")
+                atom_index += written
+
+    elif object_type == 'surface_cavities':
+
+        vertices = np.asarray(surface[4])
+        atom_index = 1
+        drawn = []
+
+        for cavity in objects:
+            tetrahedra = cavity.tetrahedra
+
+            if tetrahedra is None or len(tetrahedra) == 0:
+                continue
+
+            drawn.append((len(drawn), cavity,
+                          vertices[np.asarray(tetrahedra, dtype=np.intp)]))
+
+        if not drawn:
+            raise ValueError("No surface cavity contains points that can be visualized")
+
+        with open(str(result_file), 'w') as handle:
+            for cavity_index, cavity, centers in drawn:
+                lines, written = ChannelCalculator._cavityRecords(
+                    cavity_index, cavity, centers, atom_index)
+
+                handle.writelines(lines)
+                atom_index += written
+
+    else:
+        _saveConnectedCavityChannels(objects, surface, result_file, separate=False,
+                                    num_samples=num_samples)
 
 
 def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
@@ -11564,53 +11666,7 @@ def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
         number += 1
 
     writePDB(str(protein_file), atoms)
-
-    if object_type in ('channels', 'pores', 'links'):
-
-        labels = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}
-        label = labels[object_type]
-
-        with open(str(result_file), 'w') as handle:
-            atom_index = 1
-
-            for object_index, obj in enumerate(objects):
-                lines, written = ChannelCalculator._channelRecords(
-                    object_index, obj, atom_index, num_samples,
-                    label=label, name_sites=True)
-
-                handle.writelines(lines)
-                handle.write("\n")
-                atom_index += written
-
-    elif object_type == 'surface_cavities':
-
-        vertices = np.asarray(surface[4])
-        atom_index = 1
-        drawn = []
-
-        for cavity in objects:
-            tetrahedra = cavity.tetrahedra
-
-            if tetrahedra is None or len(tetrahedra) == 0:
-                continue
-
-            drawn.append((len(drawn), cavity,
-                          vertices[np.asarray(tetrahedra, dtype=np.intp)]))
-
-        if not drawn:
-            raise ValueError("No surface cavity contains points that can be visualized")
-
-        with open(str(result_file), 'w') as handle:
-            for cavity_index, cavity, centers in drawn:
-                lines, written = ChannelCalculator._cavityRecords(
-                    cavity_index, cavity, centers, atom_index)
-
-                handle.writelines(lines)
-                atom_index += written
-
-    else:
-        _saveConnectedCavityChannels(objects, surface, result_file, separate=False,
-                                    num_samples=num_samples)
+    _writeViewerPQR(result_file, objects, object_type, surface, num_samples)
 
     _writeVmdScript(script_file, protein_file, result_file, object_type)
 
@@ -12041,7 +12097,7 @@ def writeVmdMultiModelScript(pqr_file, atoms, output_path='.',
     
 def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
                                output_path='.', num_samples=5,
-                               output_format='mmcif'):
+                               output_format=None, surface=None):
     """Prepare CaviTracer results for visualization in PyMOL.
 
     This function writes CaviTracer objects in the tunnels-schema mmCIF format
@@ -12051,17 +12107,20 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     The mmCIF is the one :func:`writeChannelsCIF` writes, and the PQR holds the
     same records as the one :func:`writeVmdCaviTracerScript` and
     :func:`writeChimeraXCaviTracerScript` write: every object in one file, told
-    apart by its residue number, which the viewer splits it by.
+    apart by its residue number, which the viewer splits it by. Surface cavities
+    are drawn as the surface around their markers, as in those two.
 
-    :arg objects: CaviTracer channels, pores, or chamber links to visualize.
-    :type objects: list or Channel
+    :arg objects: CaviTracer objects to visualize: channels, pores, links,
+        surface cavities, or connected cavity-channel results.
+    :type objects: list or CaviTracer object
 
     :arg atoms: Molecular structure to display together with the CaviTracer
         results.
     :type atoms: :class:`.Atomic`
 
-    :arg object_type: Type of CaviTracer objects. Accepted values are
-        ``'channels'``, ``'pores'`` and ``'links'``.
+    :arg object_type: Type of CaviTracer result. Accepted values are
+        ``'channels'``, ``'pores'``, ``'links'``,
+        ``'surface_cavities'`` and ``'connected_cavities_channels'``.
         Default is ``'channels'``.
     :type object_type: str
 
@@ -12073,9 +12132,15 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
         pore, or link profile. Default is 5.
     :type num_samples: int
 
-    :arg output_format: ``'mmcif'`` (the default) or ``'pqr'``, what the
-        objects are written as.
+    :arg output_format: ``'mmcif'`` or ``'pqr'``, what the objects are written
+        as. Default is mmCIF for channels, pores and links, and PQR for surface
+        cavities and connected results, which have no mmCIF form.
     :type output_format: str
+
+    :arg surface: Surface information returned by :func:`calcSurfaceCavities`.
+        Required for ``'surface_cavities'`` and ``'connected_cavities_channels'``.
+        Ignored for channels, pores and links.
+    :type surface: list or None
 
     :returns: Paths to the mmCIF or PQR file, protein PDB file and PyMOL script.
     :rtype: tuple
@@ -12092,6 +12157,10 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
 
     As a PQR:
     writePyMolCaviTracerScript(channels, protein, output_format='pqr')
+
+    Surface cavities:
+    writePyMolCaviTracerScript(cavities, protein, object_type='surface_cavities',
+                               surface=cavity_surface)
 
     Next (bash console):
     $ pymol vis_channels.py -- protein.pdb channels.cif
@@ -12110,15 +12179,34 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
         'pore': 'pores',
         'pores': 'pores',
         'link': 'links',
-        'links': 'links'}
+        'links': 'links',
+        'cavity': 'surface_cavities',
+        'cavities': 'surface_cavities',
+        'surface_cavity': 'surface_cavities',
+        'surface_cavities': 'surface_cavities',
+        'connected': 'connected_cavities_channels',
+        'connected_cavity_channel': 'connected_cavities_channels',
+        'connected_cavities_channels': 'connected_cavities_channels'}
 
     object_type = aliases.get(str(object_type).lower())
 
     if object_type is None:
-        raise ValueError("object_type must be 'channels', 'pores' or 'links'")
+        raise ValueError("object_type must be 'channels', 'pores', 'links', "
+                         "'surface_cavities' or 'connected_cavities_channels'")
+
+    cavity_types = ('surface_cavities', 'connected_cavities_channels')
+    if object_type in cavity_types:
+        if surface is None or len(surface) < 5:
+            raise ValueError("surface returned by calcSurfaceCavities() must be "
+                             "provided for object_type='{0}'.".format(object_type))
 
     # Raises on anything but mmCIF or PQR, before a file is written.
+    if output_format is None:
+        output_format = 'pqr' if object_type in cavity_types else 'mmcif'
     mmcif = _isMmcifFormat(output_format)
+    if mmcif and object_type in cavity_types:
+        raise ValueError("object_type='{0}' has no mmCIF form; leave output_format "
+                         "unset, or pass 'pqr'.".format(object_type))
 
     if objects is None:
         raise ValueError("objects cannot be None")
@@ -12137,7 +12225,9 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     if not output_path.is_dir():
         raise ValueError("output_path must be a directory")
 
-    result_stems = {'channels': 'channels', 'pores': 'pores', 'links': 'links'}
+    result_stems = {'channels': 'channels', 'pores': 'pores', 'links': 'links',
+                    'surface_cavities': 'cavities',
+                    'connected_cavities_channels': 'connected_cavities_channels'}
     result_stem = result_stems[object_type]
     number = 0
 
@@ -12159,20 +12249,7 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     if not mmcif:
         # The records the VMD and ChimeraX writers write: every object in one
         # file, told apart by its residue number, which the viewer splits by.
-        label = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}[object_type]
-
-        with open(str(result_file), 'w') as handle:
-            atom_index = 1
-
-            for object_index, obj in enumerate(objects):
-                lines, count = ChannelCalculator._channelRecords(
-                    object_index, obj, atom_index, num_samples,
-                    label=label, name_sites=True)
-
-                handle.writelines(lines)
-                handle.write("\n")
-                atom_index += count
-
+        _writeViewerPQR(result_file, objects, object_type, surface, num_samples)
         written = result_file
 
     elif object_type == 'channels':
@@ -12207,7 +12284,8 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     return str(written), str(protein_file), str(script_file)
     
     
-def writePyMolMultiModelScript(pqr_file, atoms, output_path='.'):
+def writePyMolMultiModelScript(pqr_file, atoms, output_path='.',
+                               object_type='channels'):
     """Write the PyMOL viewer for a PQR already on disk, such as the
     multi-model one :func:`mergeFramesPQR` writes.
 
@@ -12233,6 +12311,15 @@ def writePyMolMultiModelScript(pqr_file, atoms, output_path='.'):
         line, as the log says. Default is the current directory.
     :type output_path: str
 
+    :arg object_type: what the PQR holds, as for
+        :func:`writeVmdMultiModelScript` and
+        :func:`writeChimeraXMultiModelScript`: ``'channels'`` (the default),
+        ``'pores'``, ``'links'``, ``'surface_cavities'`` or
+        ``'connected_cavities_channels'``. It is checked only: the viewer reads
+        each object's kind from the file itself, and draws cavities as surfaces
+        and everything else as spheres.
+    :type object_type: str
+
     :returns: paths to the PQR, the structure PDB and the PyMOL script
     :rtype: tuple
 
@@ -12247,6 +12334,12 @@ def writePyMolMultiModelScript(pqr_file, atoms, output_path='.'):
     from pathlib import Path
 
     _requireCoords(atoms)
+
+    object_types = ('channels', 'pores', 'links', 'surface_cavities',
+                    'connected_cavities_channels')
+    if object_type not in object_types:
+        raise ValueError('object_type must be one of {0}'.format(
+            ', '.join(repr(name) for name in object_types)))
 
     pqr_file = Path(pqr_file)
     if not pqr_file.is_file():
@@ -12432,54 +12525,7 @@ def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
         number += 1
 
     writePDB(str(protein_file), atoms)
-
-    if object_type in ('channels', 'pores', 'links'):
-
-        labels = {'channels': 'channel', 'pores': 'pore', 'links': 'link'}
-        label = labels[object_type]
-
-        with open(str(result_file), 'w') as handle:
-            atom_index = 1
-
-            for object_index, obj in enumerate(objects):
-                lines, written = ChannelCalculator._channelRecords(
-                    object_index, obj, atom_index, num_samples,
-                    label=label, name_sites=True)
-
-                handle.writelines(lines)
-                handle.write("\n")
-                atom_index += written
-
-    elif object_type == 'surface_cavities':
-
-        vertices = np.asarray(surface[4])
-        atom_index = 1
-        drawn = []
-
-        for cavity in objects:
-            tetrahedra = cavity.tetrahedra
-
-            if tetrahedra is None or len(tetrahedra) == 0:
-                continue
-
-            drawn.append((len(drawn),cavity,
-                vertices[np.asarray(tetrahedra, dtype=np.intp)]))
-
-        if not drawn:
-            raise ValueError("No surface cavity contains points that can be visualized")
-
-        with open(str(result_file), 'w') as handle:
-            for cavity_index, cavity, centers in drawn:
-                lines, written = ChannelCalculator._cavityRecords(
-                    cavity_index, cavity, centers, atom_index)
-
-                handle.writelines(lines)
-                atom_index += written
-
-    else:
-        _saveConnectedCavityChannels(
-            objects, surface, result_file, separate=False,
-            num_samples=num_samples)
+    _writeViewerPQR(result_file, objects, object_type, surface, num_samples)
 
     _writeChimeraXScript(script_file, protein_file, result_file, object_type)
 
