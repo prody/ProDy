@@ -8,7 +8,7 @@
 
 import os.path
 
-from numpy import fromstring, zeros, ones, array, add
+from numpy import fromstring, zeros, ones, array, add, arange
 
 from prody import PY2K
 from prody.atomic import ATOMIC_FIELDS, AtomGroup
@@ -197,10 +197,12 @@ def parsePSF(filename, title=None, ag=None):
         raise IOError('number of acceptors expected and parsed do not match')
 
     lines = []
+    stop = b''
     for i, line in enumerate(psf):
         if line.strip() == b'':
             continue
         if b'!' in line:
+            stop = line
             break
         lines.append(line.decode(encoding='UTF-8'))
     
@@ -209,20 +211,31 @@ def parsePSF(filename, title=None, ag=None):
     if len(nbe_array) != n_exclusions*2:
         raise IOError('number of nonbonded exclusions expected and parsed do not match')
 
+    # The loop above has already consumed the header of whatever section follows
+    # the exclusions.  CHARMM puts !NGRP and !NUMLP there, but a file may go
+    # straight to !NCRTERM -- in which case that header is the line just read,
+    # and scanning further would skip the section and silently drop every
+    # cross-term.
     n_crossterms = 0
-    for i, line in enumerate(psf):
-        if b'!NCRTERM' in line:
-            items = line.split()
-            n_crossterms = int(items[0])
-            break
+    if b'!NCRTERM' in stop:
+        n_crossterms = int(stop.split()[0])
+    else:
+        for i, line in enumerate(psf):
+            if b'!NCRTERM' in line:
+                items = line.split()
+                n_crossterms = int(items[0])
+                break
 
     lines = []
     for i, line in enumerate(psf):
         lines.append(line.decode(encoding='UTF-8'))
     
     lines = ''.join(lines)
-    c_array = fromstring(lines, count=n_crossterms*4, dtype=int, sep=' ')
-    if len(c_array) != n_crossterms*4:
+    # A CHARMM !NCRTERM record holds EIGHT atom indices per cross-term -- the two
+    # coupled dihedrals of a CMAP term -- not four.  Reading four consumed only half
+    # of the section and split each record into two unrelated 4-tuples.
+    c_array = fromstring(lines, count=n_crossterms*8, dtype=int, sep=' ')
+    if len(c_array) != n_crossterms*8:
         raise IOError('number of crossterms expected and parsed do not match')
 
     psf.close()
@@ -265,7 +278,7 @@ def parsePSF(filename, title=None, ag=None):
 
     if n_crossterms > 0:
         c_array = add(c_array, -1, c_array)
-        ag.setCrossterms(c_array.reshape((n_crossterms, 4)))
+        ag.setCrossterms(c_array.reshape((n_crossterms, 8)))
 
     return ag
 
@@ -274,8 +287,22 @@ PSFLINE = ('%8d %-4s %-4d %-4s %-4s %-4s %10.6f %13.4f %11d\n')
 
 def writePSF(filename, atoms):
     """Write atoms in X-PLOR format PSF file with name *filename* and return
-    *filename*.  This function will write available atom and bond information
-    only."""
+    *filename*.
+
+    All topology sections that are set on *atoms* are written: ``!NATOM``,
+    ``!NBOND``, ``!NTHETA`` (angles), ``!NPHI`` (dihedrals), ``!NIMPHI``
+    (impropers), ``!NDON`` (donors), ``!NACC`` (acceptors), ``!NNB``
+    (non-bonded exclusions) and ``!NCRTERM`` (cross-terms, i.e. CMAP).  A
+    section whose data is not set on *atoms* is written with a count of zero,
+    so a file parsed with :func:`.parsePSF` round-trips its topology.
+
+    Atom records carry segment name, residue number and name, atom name and
+    type, charge and mass.  The header is ``PSF NAMD`` when any atom type is
+    longer than four characters, since the X-PLOR column layout cannot hold
+    those; note that fields wider than their format specifier (long atom types,
+    or residue numbers above 9999) widen the record rather than being truncated,
+    which readers that split on whitespace tolerate but strictly
+    column-oriented readers may not."""
 
     if not filename.lower().endswith('.psf'):
         filename = filename + '.psf'
@@ -327,11 +354,28 @@ def writePSF(filename, atoms):
         write(PSFLINE % (i + 1, segments[i], rnums[i], rnames[i], names[i],
                         types[i], charges[i], masses[i], 0))
 
+    # The topology arrays hold indices into the AtomGroup.  For a selection those are
+    # not the positions the atom records above were just written in -- they run up to
+    # the size of the PARENT group -- so every term has to be renumbered onto the
+    # 1-based position of its atom in this file.  Writing them unmapped produced a PSF
+    # whose bonds pointed past its own !NATOM count.
+    try:
+        parent = atoms.getAtomGroup()
+    except AttributeError:
+        def renumber(terms):
+            return array(terms, int) + 1
+    else:
+        lookup = zeros(parent.numAtoms(), int)
+        lookup[atoms.getIndices()] = arange(1, n_atoms + 1)
+
+        def renumber(terms):
+            return lookup[array(terms, int)]
+
     bonds = list(atoms._iterBonds())
     write('\n')
     write('{0:8d} !NBOND: bonds\n'.format(len(bonds)))
     if len(bonds) > 0:
-        bonds = array(bonds, int) + 1
+        bonds = renumber(bonds)
         for i, bond in enumerate(bonds):
             write('%8s%8s' % (bond[0], bond[1]))
             if i % 4 == 3:
@@ -345,7 +389,7 @@ def writePSF(filename, atoms):
     write('\n')
     write('{0:8d} !NTHETA: angles\n'.format(len(angles)))
     if len(angles) > 0:
-        angles = array(angles, int) + 1
+        angles = renumber(angles)
         for i, angle in enumerate(angles):
             write('%8s%8s%8s' % (angle[0], angle[1], angle[2]))
             if i % 3 == 2:
@@ -359,7 +403,7 @@ def writePSF(filename, atoms):
     write('\n')
     write('{0:8d} !NPHI: dihedrals\n'.format(len(dihedrals)))
     if len(dihedrals) > 0:
-        dihedrals = array(dihedrals, int) + 1
+        dihedrals = renumber(dihedrals)
         for i, dihedral in enumerate(dihedrals):
             write('%8s%8s%8s%8s' % (dihedral[0], dihedral[1], dihedral[2], dihedral[3]))
             if i % 4 == 3:
@@ -373,7 +417,7 @@ def writePSF(filename, atoms):
     write('\n')
     write('{0:8d} !NIMPHI: impropers\n'.format(len(impropers)))
     if len(impropers) > 0:
-        impropers = array(impropers, int) + 1
+        impropers = renumber(impropers)
         for i, improper in enumerate(impropers):
             write('%8s%8s%8s%8s' % (improper[0], improper[1], improper[2], improper[3]))
             if i % 2 == 1:
@@ -387,7 +431,7 @@ def writePSF(filename, atoms):
     write('\n')
     write('{0:8d} !NDON: donors\n'.format(len(donors)))
     if len(donors) > 0:
-        donors = array(donors, int) + 1
+        donors = renumber(donors)
         for i, donor in enumerate(donors):
             write('%8s%8s' % (donor[0], donor[1]))
             if i % 4 == 3:
@@ -401,7 +445,7 @@ def writePSF(filename, atoms):
     write('\n')
     write('{0:8d} !NACC: acceptors\n'.format(len(acceptors)))
     if len(acceptors) > 0:
-        acceptors = array(acceptors, int) + 1
+        acceptors = renumber(acceptors)
         for i, acceptor in enumerate(acceptors):
             write('%8s%8s' % (acceptor[0], acceptor[1]))
             if i % 4 == 3:
@@ -415,7 +459,7 @@ def writePSF(filename, atoms):
     write('\n')
     write('{0:8d} !NNB\n'.format(len(nbexclusions)))
     if len(nbexclusions) > 0:
-        nbexclusions = array(nbexclusions, int) + 1
+        nbexclusions = renumber(nbexclusions)
         for i, nbexclusion in enumerate(nbexclusions):
             write('%8s%8s' % (nbexclusion[0], nbexclusion[1]))
             if i % 4 == 3:
@@ -429,13 +473,10 @@ def writePSF(filename, atoms):
     write('\n')
     write('{0:8d} !NCRTERM: crossterms\n'.format(len(crossterms)))
     if len(crossterms) > 0:
-        crossterms = array(crossterms, int) + 1
-        for i, crossterm in enumerate(crossterms):
-            write('%8s%8s%8s%8s' % (crossterm[0], crossterm[1], crossterm[2], crossterm[3]))
-            if i % 2 == 1:
-                write('\n')
-        if i % 2 != 1:
-            write('\n')
+        crossterms = renumber(crossterms)
+        for crossterm in crossterms:
+            # one cross-term per line: both coupled dihedrals, eight indices
+            write(('%8s' * 8 + '\n') % tuple(crossterm[:8]))
 
     write('\n')
     out.close()

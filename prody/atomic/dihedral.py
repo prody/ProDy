@@ -140,7 +140,8 @@ def evalDihedrals(dihedrals, n_atoms):
     """Returns an array mapping atoms to their dihedrald neighbors and an array
     that stores number of dihedrals made by each atom."""
 
-    numdihedrals = np.bincount(dihedrals.reshape((dihedrals.shape[0] * 4)))
+    numdihedrals = np.bincount(dihedrals.reshape((dihedrals.shape[0] * 4)),
+                               minlength=n_atoms)
     dmap = np.zeros((n_atoms, numdihedrals.max(), 3), int)
     dmap.fill(-1)
     index = np.zeros(n_atoms, int)

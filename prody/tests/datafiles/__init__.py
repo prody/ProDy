@@ -134,6 +134,17 @@ DATA_FILES = {
         'atoms': 167,
         'models': 3
     },
+    'topology_psf': {
+        'file': 'topology.psf',
+        'atoms': 10,
+        'bonds': 5,
+        'angles': 4,
+        'dihedrals': 3,
+        'impropers': 1,
+        'donors': 1,
+        'acceptors': 1,
+        'crossterms': 1,
+    },
     'anm1ubi_hessian': {
         'file': 'anm1ubi_hessian.coo',
     },

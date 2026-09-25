@@ -132,7 +132,8 @@ def evalImpropers(impropers, n_atoms):
     """Returns an array mapping atoms to their improperd neighbors and an array
     that stores number of impropers made by each atom."""
 
-    numimpropers = np.bincount(impropers.reshape((impropers.shape[0] * 4)))
+    numimpropers = np.bincount(impropers.reshape((impropers.shape[0] * 4)),
+                               minlength=n_atoms)
     imap = np.zeros((n_atoms, numimpropers.max(), 3), int)
     imap.fill(-1)
     index = np.zeros(n_atoms, int)

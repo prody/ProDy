@@ -110,7 +110,7 @@ def evalNBExclusions(exclusions, n_atoms):
     that stores number of nonbonded exclusions made by each atom."""
 
     numexclusions = np.bincount(
-        exclusions.reshape((exclusions.shape[0] * 2)))
+        exclusions.reshape((exclusions.shape[0] * 2)), minlength=n_atoms)
     nbemap = np.zeros((n_atoms, numexclusions.max()), int)
     nbemap.fill(-1)
     index = np.zeros(n_atoms, int)

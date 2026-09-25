@@ -290,7 +290,10 @@ class AtomPointer(Atomic):
         if self._ag._bonds is not None:
             iset = set(self._getIndices())
             acsi = self._acsi
-            return array([Bond(self, bond, acsi) for bond in self._ag._bonds
+            # the Bond must be built on the parent AtomGroup, as iterBonds does:
+            # a Bond reads _bondOrders, which only an AtomGroup has, so passing the
+            # pointer made getBonds and numBonds raise AttributeError on any selection
+            return array([Bond(self._ag, bond, acsi) for bond in self._ag._bonds
                           if bond[0] in iset and bond[1] in iset])
         return None
 
@@ -330,25 +333,22 @@ class AtomPointer(Atomic):
             yield Bond(ag, bond, acsi)
 
     def _iterAngles(self):
-        """Yield triplets of indices for angled atoms that are within the pointer.
-        Use :meth:`setAngles` for setting angles."""
+        """Yield the atom indices of each angle wholly within the pointer, in the
+        order the term was set.  Use :meth:`setAngles` for setting angles."""
 
         if self._ag._angles is None:
             LOGGER.warning('angles are not set, use `AtomGroup.setAngles`')
+            return
 
-        indices = self._getIndices()
-        iset = set(indices)
-        if len(self._ag) / 3 >= len(self):
-            for a, b, c in self._ag._iterAngles():
-                if a in iset and b in iset and c in iset:
-                    yield a, b, c
-        else:
-            if any(self._ag._angmap):
-                for a, amap in zip(indices, self._ag._angmap[indices]):
-                    for b, c in amap:
-                        if b > -1 and b in iset and c > -1 and c in iset:
-                            yield a, b, c
-                    iset.remove(a)
+        # NOTE: filter the terms themselves rather than rebuilding them from the
+        # neighbour map.  The map records which atoms share a term, not where in it
+        # they sit, so a rebuilt term came out pivot-atom-first -- an angle 2-1-3
+        # reached here as 1-2-3, naming the wrong vertex.  These terms are ORDERED,
+        # so the only faithful source is the array as set.
+        iset = set(self._getIndices())
+        for term in self._ag._iterAngles():
+            if iset.issuperset(term):
+                yield term
 
     def iterAngles(self):
         """Yield angles formed by the atom.  Use :meth:`setAngles` for setting
@@ -360,26 +360,22 @@ class AtomPointer(Atomic):
             yield Angle(ag, angle, acsi)
 
     def _iterDihedrals(self):
-        """Yield quadruples of indices for dihedraled atoms that are within the pointer.
-        Use :meth:`setDihedrals` for setting dihedrals."""
+        """Yield the atom indices of each dihedral wholly within the pointer, in the
+        order the term was set.  Use :meth:`setDihedrals` for setting dihedrals."""
 
         if self._ag._dihedrals is None:
             LOGGER.warning('dihedrals are not set, use `AtomGroup.setDihedrals`')
+            return
 
-        indices = self._getIndices()
-        iset = set(indices)
-        if len(self._ag) / 4 >= len(self):
-            for a, b, c, d in self._ag._iterDihedrals():
-                if a in iset and b in iset and c in iset and d in iset:
-                    yield a, b, c, d
-        else:
-            if any(self._ag._dmap):
-                for a, dmap in zip(indices, self._ag._dmap[indices]):
-                    for b, c, d in dmap:
-                        if b > -1 and b in iset and c > -1 and c in iset \
-                        and d > -1 and d in iset:
-                            yield a, b, c, d
-                    iset.remove(a)
+        # NOTE: filter the terms themselves rather than rebuilding them from the
+        # neighbour map.  The map records which atoms share a term, not where in it
+        # they sit, so a rebuilt term came out pivot-atom-first -- an angle 2-1-3
+        # reached here as 1-2-3, naming the wrong vertex.  These terms are ORDERED,
+        # so the only faithful source is the array as set.
+        iset = set(self._getIndices())
+        for term in self._ag._iterDihedrals():
+            if iset.issuperset(term):
+                yield term
 
     def iterDihedrals(self):
         """Yield dihedrals formed by the atom.  Use :meth:`setDihedrals` for setting
@@ -391,26 +387,22 @@ class AtomPointer(Atomic):
             yield Dihedral(ag, dihedral, acsi) 
 
     def _iterImpropers(self):
-        """Yield quadruplet of indices for impropered atoms that are within the pointer.
-        Use :meth:`setImpropers` for setting impropers."""
+        """Yield the atom indices of each improper wholly within the pointer, in the
+        order the term was set.  Use :meth:`setImpropers` for setting impropers."""
 
         if self._ag._impropers is None:
             LOGGER.warning('impropers are not set, use `AtomGroup.setImpropers`')
+            return
 
-        indices = self._getIndices()
-        iset = set(indices)
-        if len(self._ag) / 4 >= len(self):
-            for a, b, c, d in self._ag._iterImpropers():
-                if a in iset and b in iset and c in iset and d in iset:
-                    yield a, b, c, d
-        else:
-            if any(self._ag._imap):
-                for a, imap in zip(indices, self._ag._imap[indices]):
-                    for b, c, d in imap:
-                        if b > -1 and b in iset and c > -1 and c in iset \
-                        and d > -1 and d in iset:
-                            yield a, b, c, d
-                    iset.remove(a)
+        # NOTE: filter the terms themselves rather than rebuilding them from the
+        # neighbour map.  The map records which atoms share a term, not where in it
+        # they sit, so a rebuilt term came out pivot-atom-first -- an angle 2-1-3
+        # reached here as 1-2-3, naming the wrong vertex.  These terms are ORDERED,
+        # so the only faithful source is the array as set.
+        iset = set(self._getIndices())
+        for term in self._ag._iterImpropers():
+            if iset.issuperset(term):
+                yield term
 
     def iterImpropers(self):
         """Yield impropers formed by the atom.  Use :meth:`setImpropers` for setting
@@ -422,26 +414,22 @@ class AtomPointer(Atomic):
             yield Improper(ag, improper, acsi) 
 
     def _iterCrossterms(self):
-        """Yield quadruplet of indices for crosstermed atoms that are within the pointer.
-        Use :meth:`setCrossterms` for setting crossterms."""
+        """Yield the atom indices of each cross-term wholly within the pointer, in the
+        order the term was set.  Use :meth:`setCrossterms` for setting crossterms."""
 
         if self._ag._crossterms is None:
             LOGGER.warning('crossterms are not set, use `AtomGroup.setCrossterms`')
+            return
 
-        indices = self._getIndices()
-        iset = set(indices)
-        if len(self._ag) / 4 >= len(self):
-            for a, b, c, d in self._ag._iterCrossterms():
-                if a in iset and b in iset and c in iset and d in iset:
-                    yield a, b, c, d
-        else:
-            if any(self._ag._cmap):
-                for a, cmap in zip(indices, self._ag._cmap[indices]):
-                    for b, c, d in cmap:
-                        if b > -1 and b in iset and c > -1 and c in iset \
-                        and d > -1 and d in iset:
-                            yield a, b, c, d
-                    iset.remove(a)
+        # NOTE: filter the terms themselves rather than rebuilding them from the
+        # neighbour map.  The map records which atoms share a term, not where in it
+        # they sit, so a rebuilt term came out pivot-atom-first -- an angle 2-1-3
+        # reached here as 1-2-3, naming the wrong vertex.  These terms are ORDERED,
+        # so the only faithful source is the array as set.
+        iset = set(self._getIndices())
+        for term in self._ag._iterCrossterms():
+            if iset.issuperset(term):
+                yield term
 
     def iterCrossterms(self):
         """Yield crossterms formed by the atom.  Use :meth:`setCrossterms` for setting
@@ -453,25 +441,22 @@ class AtomPointer(Atomic):
             yield Crossterm(ag, crossterm, acsi) 
 
     def _iterDonors(self):
-        """Yield pairs of indices for donored atoms that are within the pointer.
-        Use :meth:`setDonors` for setting donors."""
+        """Yield the atom indices of each donor wholly within the pointer, in the
+        order the term was set.  Use :meth:`setDonors` for setting donors."""
 
         if self._ag._donors is None:
             LOGGER.warning('donors are not set, use `AtomGroup.setDonors`')
+            return
 
-        indices = self._getIndices()
-        iset = set(indices)
-        if len(self._ag) / 2 >= len(self):
-            for a, b in self._ag._iterDonors():
-                if a in iset and b in iset:
-                    yield a, b
-        else:
-            if any(self._ag._domap):
-                for a, dmap in zip(indices, self._ag._domap[indices]):
-                    for b in dmap:
-                        if b > -1 and b in iset:
-                            yield a, b
-                    iset.remove(a)
+        # NOTE: filter the terms themselves rather than rebuilding them from the
+        # neighbour map.  The map records which atoms share a term, not where in it
+        # they sit, so a rebuilt term came out pivot-atom-first -- an angle 2-1-3
+        # reached here as 1-2-3, naming the wrong vertex.  These terms are ORDERED,
+        # so the only faithful source is the array as set.
+        iset = set(self._getIndices())
+        for term in self._ag._iterDonors():
+            if iset.issuperset(term):
+                yield term
 
     def iterDonors(self):
         """Yield donors formed by the atom.  Use :meth:`setDonors` for setting
@@ -483,25 +468,22 @@ class AtomPointer(Atomic):
             yield Donor(ag, donor, acsi)
 
     def _iterAcceptors(self):
-        """Yield pairs of indices for acceptored atoms that are within the pointer.
-        Use :meth:`setAcceptors` for setting acceptors."""
+        """Yield the atom indices of each acceptor wholly within the pointer, in the
+        order the term was set.  Use :meth:`setAcceptors` for setting acceptors."""
 
         if self._ag._acceptors is None:
             LOGGER.warning('acceptors are not set, use `AtomGroup.setAcceptors`')
+            return
 
-        indices = self._getIndices()
-        iset = set(indices)
-        if len(self._ag) / 2 >= len(self):
-            for a, b in self._ag._iterAcceptors():
-                if a in iset and b in iset:
-                    yield a, b
-        else:
-            if any(self._ag._acmap):
-                for a, amap in zip(indices, self._ag._acmap[indices]):
-                    for b in amap:
-                        if b > -1 and b in iset:
-                            yield a, b
-                    iset.remove(a)
+        # NOTE: filter the terms themselves rather than rebuilding them from the
+        # neighbour map.  The map records which atoms share a term, not where in it
+        # they sit, so a rebuilt term came out pivot-atom-first -- an angle 2-1-3
+        # reached here as 1-2-3, naming the wrong vertex.  These terms are ORDERED,
+        # so the only faithful source is the array as set.
+        iset = set(self._getIndices())
+        for term in self._ag._iterAcceptors():
+            if iset.issuperset(term):
+                yield term
 
     def iterAcceptors(self):
         """Yield acceptors formed by the atom.  Use :meth:`setAcceptors` for setting
