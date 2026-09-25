@@ -372,6 +372,88 @@ class TestGNMCalcModes(unittest.TestCase):
     def setUp(self):
         pass
 
+class TestRTBBlocks(unittest.TestCase):
+    """Tests of the blocks given to :meth:`.RTB.buildHessian`, which imANM
+    inherits. These need no force field, so they are checked here rather than
+    through ClustRTB and ClustImANM, which cannot reach them without first
+    fixing a structure."""
+
+    BLOCK_CLASSES = (RTB, imANM)
+
+    def testBlocksWrongLength(self):
+        """Test response to blocks that do not cover every atom."""
+        for cls in self.BLOCK_CLASSES:
+            blocks = np.zeros(ATOMS2.numAtoms() - 5, dtype=int)
+            with self.assertRaisesRegex(
+                    ValueError, 'must match number of atoms',
+                    msg='%s given too few blocks failed to say so'
+                        % cls.__name__):
+                cls().buildHessian(ATOMS2, blocks)
+
+    def testBlocksAllOneValue(self):
+        """Test response to blocks that are all the same value.
+
+        One block makes the whole structure a single rigid body, which has no
+        internal degrees of freedom, so this has to be rejected here rather
+        than left to fail in the eigendecomposition downstream."""
+        for cls in self.BLOCK_CLASSES:
+            blocks = np.zeros(ATOMS2.numAtoms(), dtype=int)
+            with self.assertRaisesRegex(
+                    ValueError, 'degrees of freedom of a rigid body',
+                    msg='%s given a single block failed to say so'
+                        % cls.__name__):
+                cls().buildHessian(ATOMS2, blocks)
+
+    def testBlocksOfOneNode(self):
+        """Test response to blocks that each hold a single atom.
+
+        Such a block has only 3 degrees of freedom, having nothing to rotate,
+        so two of them are no better than one block of everything."""
+        for cls in self.BLOCK_CLASSES:
+            with self.assertRaisesRegex(
+                    ValueError, 'degrees of freedom of a rigid body',
+                    msg='%s given two blocks of one atom failed to say so'
+                        % cls.__name__):
+                cls().buildHessian(ATOMS2[:2], np.arange(2))
+
+    def testBlocksNotNumbers(self):
+        """Test that block identifiers do not have to be numbers"""
+        for cls in self.BLOCK_CLASSES:
+            n = ATOMS2.numAtoms()
+            enm = cls()
+            enm.buildHessian(ATOMS2, ['a' if i < n // 2 else 'b'
+                                      for i in range(n)])
+            assert_equal(enm._dof, 12,
+                         '%s with two named blocks failed to give the degrees '
+                         'of freedom of two blocks' % cls.__name__)
+
+    def testBlocksMixedTypes(self):
+        """Test response to block identifiers of more than one type."""
+        for cls in self.BLOCK_CLASSES:
+            n = ATOMS2.numAtoms()
+            blocks = [0 if i < n // 2 else 'b' for i in range(n)]
+            with self.assertRaises(
+                    TypeError,
+                    msg='%s given blocks of mixed types failed to raise a '
+                        'TypeError' % cls.__name__):
+                cls().buildHessian(ATOMS2, blocks)
+
+    def testBlocksTwoValues(self):
+        """Test that two blocks give a projection to sample along"""
+        for cls in self.BLOCK_CLASSES:
+            n = ATOMS2.numAtoms()
+            enm = cls()
+            enm.buildHessian(ATOMS2, np.arange(n) // (n // 2))
+
+            projection = enm._getProjection()
+            assert_equal(projection.shape[0], n * 3,
+                         '%s with two blocks failed to project every degree '
+                         'of freedom' % cls.__name__)
+            self.assertGreater(projection.shape[1], 0,
+                               '%s with two blocks failed to leave any block '
+                               'degrees of freedom' % cls.__name__)
+
+
 class TestRTB(unittest.TestCase):
 
     def testHessian(self):
