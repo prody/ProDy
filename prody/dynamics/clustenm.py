@@ -25,7 +25,7 @@ __credits__ = ['Pemra Doruker', 'She Zhang']
 __email__ = ['burak.kaynak@pitt.edu', 'doruker@pitt.edu', 'shz66@pitt.edu']
 
 from itertools import product
-from multiprocessing import cpu_count, Pool
+from multiprocessing import cpu_count, get_context, Pool
 from collections import OrderedDict
 from os import chdir, mkdir
 from os.path import isdir
@@ -53,6 +53,27 @@ la = importLA()
 norm = la.norm
 
 __all__ = ['ClustENM', 'ClustRTB', 'ClustImANM', 'ClustExANM']
+
+# Physical device index this parallel-simulation worker is pinned to (None = no pinning). Set in the
+# spawned worker by _worker_sim_init and read by _prep_sim when it builds the OpenMM Context, so each
+# worker's Context lands on a distinct GPU. A module global (not an attribute) because it must persist
+# in the worker process across tasks -- self is re-pickled per task, this is set once per worker.
+_WORKER_DEVICE_INDEX = None
+
+
+def _worker_sim_init(devices):
+    '''Pool initializer for parallel simulation: pin this worker to one device from *devices*
+    (round-robin by worker rank). *devices* is a list of physical device indices, or None/empty for
+    no pinning.'''
+    global _WORKER_DEVICE_INDEX
+    if devices:
+        from multiprocessing import current_process
+        try:
+            rank = int(current_process().name.rsplit('-', 1)[-1]) - 1
+        except Exception:
+            rank = 0
+        _WORKER_DEVICE_INDEX = devices[rank % len(devices)]
+
 
 class ClustENM(Ensemble):
 
@@ -98,8 +119,10 @@ class ClustENM(Ensemble):
         self._outlier = True
         self._mzscore = 3.5
         self._v1 = False
-        self._platform = None 
+        self._platform = None
         self._parallel = False
+        self._parallel_sim = False
+        self._sim_devices = None
 
         self._topology = None
         self._positions = None
@@ -136,16 +159,47 @@ class ClustENM(Ensemble):
 
         return self._confs is not None
 
-    def setAtoms(self, atoms, pH=7.0):
+    def setAtoms(self, atoms, pH=7.0, fix=True):
 
         '''
         Sets atoms.
-        
-        :arg atoms: *atoms* parsed by parsePDB
+
+        :arg atoms: a single AtomGroup parsed by parsePDB, OR a list/tuple of AtomGroups to seed a
+            MULTI-START run. In the multi-start case the topology is built from the first structure and a
+            matching coordinate set is collected from each; they become the generation-0 initial
+            population (each is minimised), so a run can start from a *set* of structures rather than one.
+            The members must be the same molecule (identical atom count after preparation).
 
         :arg pH: pH based on which to select protonation states for adding missing hydrogens, default is 7.0.
         :type pH: float
+
+        :arg fix: run PDBFixer (replace nonstandard residues, add missing atoms + hydrogens) via _fix.
+            Default True. Set False to SKIP PDBFixer and build the OpenMM topology directly from *atoms*
+            as-is -- only valid when *atoms* is already complete AND protonated; the forcefield build will
+            fail otherwise (e.g. heavy-atom-only inputs must keep fix=True).
+        :type fix: bool
         '''
+
+        # Multi-start: a list/tuple of AtomGroups -> set up the topology from the first, then collect one
+        # topology-matching coordset from each (the gen-0 initial population).
+        if isinstance(atoms, (list, tuple)):
+            ags = list(atoms)
+            if len(ags) == 0:
+                raise ValueError('setAtoms received an empty list of structures')
+            self.setAtoms(ags[0], pH=pH, fix=fix)          # single-structure setup -> topology + self._atoms
+            coordsets = [self._atoms.getCoords()]
+            for ag in ags[1:]:
+                c = self._fix_multi(ag, pH, fix)
+                if c.shape[0] != self._n_atoms:
+                    raise ValueError('multi-start member %r has %d atoms after preparation; expected %d '
+                                     '(all members must be the same molecule)'
+                                     % (ag.getTitle(), c.shape[0], self._n_atoms))
+                coordsets.append(c)
+            self._start_coordsets = coordsets
+            LOGGER.info('Multi-start: %d initial structures set.' % len(coordsets))
+            return
+
+        self._start_coordsets = None
 
         atoms = atoms.select('not hetatm')
 
@@ -167,12 +221,16 @@ class ClustENM(Ensemble):
         if self._isBuilt():
             super(ClustENM, self).setAtoms(atoms)
         else:
-            LOGGER.info('Fixing the structure ...')
-            LOGGER.timeit('_clustenm_fix')
             self._ph = pH
-            self._fix(atoms)
-            LOGGER.report('The structure was fixed in %.2fs.',
-                          label='_clustenm_fix')
+            if fix:
+                LOGGER.info('Fixing the structure ...')
+                LOGGER.timeit('_clustenm_fix')
+                self._fix(atoms)
+                LOGGER.report('The structure was fixed in %.2fs.',
+                              label='_clustenm_fix')
+            else:
+                LOGGER.info('Skipping PDBFixer (fix=False); building topology from atoms as-is ...')
+                self._nofix(atoms)
 
             if self._nuc is None:
                 self._idx_cg = self._atoms.ca.getIndices()
@@ -245,6 +303,64 @@ class ClustENM(Ensemble):
         self._topology = fixed.topology
         self._positions = fixed.positions
 
+    def _nofix(self, atoms):
+
+        # Build the OpenMM topology/positions directly from atoms, SKIPPING PDBFixer. Requires atoms to be
+        # already complete AND protonated (the forcefield build fails otherwise). Mirrors _fix's tail only.
+
+        try:
+            from openmm.app import PDBFile
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
+
+        title = atoms.getTitle()
+        stream = createStringIO()
+        writePDBStream(stream, atoms)
+        stream.seek(0)
+        pdb = PDBFile(stream)
+        stream.close()
+
+        self._atoms = atoms.copy()
+        self._atoms.setTitle(title)
+        self._topology = pdb.topology
+        self._positions = pdb.positions
+
+    def _fix_multi(self, atoms, pH, fix):
+
+        # Return coords of `atoms` after the SAME (optional) PDBFixer processing as _fix, so they match the
+        # topology built from the reference structure -- used to collect a multi-start population.
+
+        atoms = atoms.select('not hetatm')
+        if not fix:
+            return atoms.getCoords()
+
+        try:
+            from pdbfixer import PDBFixer
+            from openmm.app import PDBFile
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
+
+        stream = createStringIO()
+        writePDBStream(stream, atoms)
+        stream.seek(0)
+        fixed = PDBFixer(pdbfile=stream)
+        stream.close()
+
+        fixed.missingResidues = {}
+        fixed.findNonstandardResidues()
+        fixed.replaceNonstandardResidues()
+        fixed.removeHeterogens(False)
+        fixed.findMissingAtoms()
+        fixed.addMissingAtoms()
+        fixed.addMissingHydrogens(pH)
+
+        out = createStringIO()
+        PDBFile.writeFile(fixed.topology, fixed.positions, out, keepIds=True)
+        out.seek(0)
+        ag = parsePDBStream(out)
+        out.close()
+        return ag.getCoords()
+
     def _prep_sim(self, coords, external_forces=[]):
 
         try:
@@ -299,6 +415,11 @@ class ClustENM(Ensemble):
             properties = {'Precision': 'single'}
         elif self._platform in ['CUDA', 'OpenCL']:
             properties = {'Precision': 'single'}
+            # pin this Context to the device assigned to this parallel-sim worker (read at build time,
+            # so it is immune to the CUDA_VISIBLE_DEVICES-vs-import timing race)
+            if _WORKER_DEVICE_INDEX is not None:
+                key = 'DeviceIndex' if self._platform == 'CUDA' else 'OpenCLDeviceIndex'
+                properties[key] = str(_WORKER_DEVICE_INDEX)
         elif self._platform == 'CPU':
             if self._threads == 0:
                 cpus = cpu_count()
@@ -318,12 +439,25 @@ class ClustENM(Ensemble):
         # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
 
         try:
+            from openmm import Vec3
             from openmm.app import StateDataReporter
-            from openmm.unit import kelvin, angstrom, nanometer, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
+            from openmm.unit import kelvin, angstrom, nanometer, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R, Quantity
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
 
-        simulation = self._prep_sim(coords=coords)
+        # Build-once: an implicit-solvent system depends only on the (fixed) topology, so cache the
+        # Simulation and reuse its Context across conformers (setPositions per call) instead of rebuilding
+        # createSystem every call -- speeds up multi-conformer generations and multi-start. Explicit
+        # solvent adds a per-conformer solvent box, so it is NOT cached (rebuilt each call, as before).
+        if self._sol == 'imp' and getattr(self, '_sim_cache', None) is not None:
+            simulation = self._sim_cache
+            simulation.context.setPositions(Quantity([Vec3(*xyz) for xyz in coords], angstrom))
+            if self._sim:
+                simulation.context.setVelocitiesToTemperature(0)   # fresh start for the heating loop
+        else:
+            simulation = self._prep_sim(coords=coords)
+            if self._sol == 'imp':
+                self._sim_cache = simulation
 
         # automatic conversion into nanometer will be carried out.
         # simulation.context.setPositions(coords * angstrom)
@@ -356,6 +490,28 @@ class ClustENM(Ensemble):
             LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
 
             return np.nan, np.full_like(coords, np.nan)
+
+    def _min_sim_batch(self, coords_list):
+
+        # Minimise (+ optional heat/sim) a batch of coordsets. Parallelised across conformers with a
+        # multiprocessing Pool when self._parallel_sim is set (independent of self._parallel, which
+        # parallelises conformer generation), otherwise serial. When self._sim_devices is set, workers
+        # round-robin across those GPUs via _worker_sim_init + the DeviceIndex property in _prep_sim.
+        # Returns a list of (potential, coords) aligned with coords_list.
+
+        coords_list = list(coords_list)
+        if self._parallel_sim and len(coords_list) > 1:
+            repeats = cpu_count() if self._parallel_sim is True else int(self._parallel_sim)
+            # 'spawn', not the default fork: OpenMM loads its CUDA platform plugin (initialising the CUDA
+            # driver) at import in the parent, and that driver state does not survive a fork -- a forked
+            # worker then fails Context creation with CUDA_ERROR_NOT_INITIALIZED. A spawned worker starts a
+            # fresh interpreter and initialises CUDA cleanly on its assigned GPU. self pickles fine.
+            # (spawn re-imports the caller module, so the calling code must guard `if __name__=='__main__'`.)
+            ctx = get_context('spawn')
+            with ctx.Pool(repeats, initializer=_worker_sim_init,
+                          initargs=(self._sim_devices,)) as p:
+                return p.map(self._min_sim, coords_list)
+        return [self._min_sim(c) for c in coords_list]
 
     def _targeted_sim(self, coords0, coords1, tmdk=15., d_steps=100, n_max_steps=10000, ddtol=1e-3, n_conv=5):
 
@@ -1109,6 +1265,22 @@ class ClustENM(Ensemble):
             Setting 0 or True means run as many as there are CPUs on the machine.
         :type parallel: bool
 
+        :arg parallel_sim: Parallelize the per-conformer energy minimisation / MD across worker
+            processes (default False). Independent of *parallel* (which parallelizes conformer
+            generation): use this to speed up the simulation step, most useful for longer MD or large
+            ensembles. True or 0 uses as many workers as CPUs; an int sets the worker count.
+            The worker pool uses the 'spawn' start method (OpenMM+CUDA cannot be forked), so when
+            *parallel_sim* is used the calling code MUST be guarded by ``if __name__ == '__main__':``.
+        :type parallel_sim: bool, int
+
+        :arg sim_devices: How the parallel simulation is distributed over GPUs (default None = no
+            pinning; every worker uses the platform's default device). A list of physical device
+            indices, or an int N meaning ``[0..N-1]``, over which the parallel-sim workers are
+            round-robined (applied via the OpenMM DeviceIndex property at Context creation, so it is
+            not affected by CUDA_VISIBLE_DEVICES import-time ordering). Only meaningful with
+            *parallel_sim* and a CUDA/OpenCL platform.
+        :type sim_devices: list, int, None
+
         :arg threads: Number of threads to use for an individual simulation using the thread setting from OpenMM
             Default of 0 uses all CPUs on the machine.
         :type threads: int
@@ -1155,6 +1327,27 @@ class ClustENM(Ensemble):
         elif not isinstance(self._parallel, bool) and self._parallel == 0:
             # this is a deliberate choice and is documented
             self._parallel = True
+
+        # parallel_sim: parallelise the per-conformer energy minimisation / MD (independent of `parallel`,
+        # which parallelises conformer generation). bool or int worker count; True/0 -> cpu_count.
+        self._parallel_sim = kwargs.pop('parallel_sim', False)
+        if not isinstance(self._parallel_sim, (int, bool)):
+            raise TypeError('parallel_sim should be an int or bool')
+        if not isinstance(self._parallel_sim, bool) and self._parallel_sim == 1:
+            self._parallel_sim = False
+        elif not isinstance(self._parallel_sim, bool) and self._parallel_sim == 0:
+            self._parallel_sim = True
+
+        # sim_devices: how the parallel simulation spreads over GPUs. A list of physical device indices,
+        # or an int N meaning devices [0..N-1], to round-robin the parallel-sim workers across (applied via
+        # the OpenMM DeviceIndex property at Context creation). None = no pinning (all workers default to
+        # the platform's default device). Only meaningful with parallel_sim and a CUDA/OpenCL platform.
+        sim_devices = kwargs.pop('sim_devices', None)
+        if isinstance(sim_devices, int) and not isinstance(sim_devices, bool):
+            sim_devices = list(range(sim_devices))
+        elif sim_devices is not None:
+            sim_devices = [int(d) for d in sim_devices]
+        self._sim_devices = sim_devices
 
         self._threads = kwargs.pop('threads', 0)
         self._targeted = kwargs.pop('targeted', False)
@@ -1255,25 +1448,45 @@ class ClustENM(Ensemble):
                 LOGGER.info('Minimization & heating-up in generation 0 ...')
         else:
             LOGGER.info('Minimization in generation 0 ...')
+        self._sim_cache = None   # build-once OpenMM sim cache (imp solvent); rebuilt fresh each run
         LOGGER.timeit('_clustenm_min')
-        potential, conformer = self._min_sim(self._atoms.getCoords())
-        if np.isnan(potential):
-            raise ValueError('Initial structure could not be minimized. Try again and/or check your structure.')
+        # Multi-start: skip the single-conformer gen-0 and seed directly with the N provided structures
+        # (each minimised) as the initial population; equivalent to gen-0 when there is only one. The
+        # generation loop below then samples normal modes from all of them. (Single-structure default =
+        # the one reference conformer.)
+        starts = self._start_coordsets if getattr(self, '_start_coordsets', None) else [self._atoms.getCoords()]
+        if len(starts) > 1:
+            LOGGER.info('Multi-start: minimising %d initial structures (gen-0 single-conformer step skipped) ...'
+                        % len(starts))
+        pot_conf = self._min_sim_batch(starts)
+        pots0 = [pc[0] for pc in pot_conf]
+        if np.any(np.isnan(pots0)):
+            raise ValueError('An initial structure could not be minimized. Try again and/or check your structure(s).')
 
         LOGGER.report(label='_clustenm_min')
 
         LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
-        self.setCoords(conformer)
+        confs0 = np.array([pc[1] for pc in pot_conf])
+        self.setCoords(confs0[0])
 
-        potentials = [potential]
-        sizes = [1]
-        new_shape = [1]
-        for s in conformer.shape:
-            new_shape.append(s)
-        conf = conformer.reshape(new_shape)
-        conformers = start_confs = conf
-        keys = [(0, 0)]
+        potentials = list(pots0)
+        sizes = [1] * len(pots0)
+        conformers = start_confs = confs0
+        keys = [(0, j) for j in range(len(pots0))]
+
+        if self._fitmap is not None and len(starts) > 1:
+            # multi-start with fitting: the starting CC above was recorded for the first seed only, but
+            # gen-0 now holds one conformer per seed. Record a starting CC for each extra seed too, so
+            # self._cc stays aligned with the gen-0 conformers (labels (0, j)).
+            saved = self._atoms.getCoords()
+            for j in range(1, len(starts)):
+                self._atoms.setCoords(starts[j])
+                sim_map = self._blurrer(self._atoms.toTEMPyStructure(),
+                                        self._fit_resolution, self._fitmap)
+                self._cc.append(float(self._scorer.CCC(self._fitmap, sim_map)))
+            self._atoms.setCoords(saved)
+            self._cc_prev = max(self._cc)
 
         for i in range(1, self._n_gens+1):
             self._cycle += 1
@@ -1288,7 +1501,7 @@ class ClustENM(Ensemble):
                 LOGGER.info('Minimization in generation %d ...' % i)
             LOGGER.timeit('_clustenm_min_sim')
 
-            pot_conf = [self._min_sim(conf) for conf in confs]
+            pot_conf = self._min_sim_batch(confs)
 
             LOGGER.report('Structures were sampled in %.2fs.',
                           label='_clustenm_min_sim')

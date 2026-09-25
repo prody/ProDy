@@ -119,6 +119,28 @@ def parsePDB(*pdb, **kwargs):
     :arg long_resname: whether to parse longer resnames instead of cutting at 3 chars
     :type long_resname: bool
 
+    :arg hexadecimal: force serial numbers and residue numbers to be decoded as
+        HEXADECIMAL, for every record, instead of auto-detecting. Use it for a file
+        whose numbering is ENTIRELY hex-encoded; auto-detection mangles those badly
+        (an uppercase hex serial is misread as hybrid36 and can come back negative).
+        Default **False** = auto-detect: a field containing UPPERCASE letters is read
+        as hybrid36, anything else as hex, and plain-decimal mode is left only once a
+        resnum decrease from a value >= 9999 is observed.
+
+        LIMITATION, inherent rather than an implementation gap: :func:`.writePDB`
+        emits MIXED numbering -- decimal below the field width, hex at or above it --
+        and ``2710`` is a valid decimal string as well as hex for 10000, so no reader
+        can separate the two. With this flag the decimal prefix of such a file decodes
+        wrongly (``9999`` -> 0x9999 = 39321); without it the hex tail does. Prefer
+        ``hybrid36=True`` when WRITING anything that exceeds the field width -- the
+        hybrid36 range always begins with a letter, so it stays unambiguous.
+
+        NB this decodes PLAIN hex, which is what :func:`.writePDB` emits. It does NOT
+        decode OpenMM's SHIFTED hex
+        (``(i - 10**places + 10*16**(places-1)) % 16**places``), a different convention
+        used by ``openmm.app.PDBFile``.
+    :type hexadecimal: bool
+
     :arg long_chid: whether to parse longer chain ids instead of cutting at 2 chars
     :type long_chid: bool
 
@@ -289,6 +311,7 @@ def parsePDBStream(stream, **kwargs):
     get_bonds = kwargs.get('bonds', auto_bonds)
 
     long_resname = kwargs.get('long_resname')
+    hexadecimal = kwargs.get('hexadecimal', False)
     long_chid = kwargs.get('long_chid')
     strip_icodes = kwargs.get('strip_icodes', True)
 
@@ -344,7 +367,8 @@ def parsePDBStream(stream, **kwargs):
             hd, split = getHeaderDict(lines)
         bonds = [] if get_bonds else None
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds, 
-                       long_resname=long_resname, long_chid=long_chid, strip_icodes=strip_icodes)
+                       long_resname=long_resname, long_chid=long_chid, strip_icodes=strip_icodes,
+                       hexadecimal=hexadecimal)
         if bonds:
             try:
                 ag.setBonds(bonds)
@@ -404,6 +428,7 @@ def parsePQR(filename, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     long_resname = kwargs.get('long_resname')
+    hexadecimal = kwargs.get('hexadecimal', False)
     long_chid = kwargs.get('long_chid')
     strip_icodes = kwargs.get('strip_icodes', True)
     if not os.path.isfile(filename):
@@ -444,7 +469,7 @@ def parsePQR(filename, **kwargs):
     LOGGER.timeit()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain,
                         subset=subset, altloc_torf=False, format='pqr', 
-                        long_resname=long_resname, long_chid=long_chid,
+                        long_resname=long_resname, long_chid=long_chid, hexadecimal=hexadecimal,
                         strip_icodes=strip_icodes)
     if ag.numAtoms() > 0:
         LOGGER.report('{0} atoms and {1} coordinate sets were '
@@ -458,7 +483,7 @@ parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                    altloc_torf, format='PDB', bonds=None, 
-                   long_resname=False, long_chid=False, strip_icodes=True):
+                   long_resname=False, long_chid=False, strip_icodes=True, hexadecimal=False):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -551,7 +576,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     END = False
     warned_5_digit = False
     warned_long_chid = False
-    dec = True
+    # `dec` is plain-decimal mode.  hexadecimal=True skips the auto-detection entirely, which is the only
+    # way to read an all-digit hex field (e.g. '3039' = 12345), that being a valid decimal string too.
+    dec = not hexadecimal
     while i < stop:
         line = lines[i]
         startswith = line[0:6].strip()
@@ -643,7 +670,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
 
             serial_str = line[6:11] if isPDB else fields[1]
             try:
-                serials[acount] = int(serial_str)
+                serials[acount] = int(serial_str, 16) if hexadecimal else int(serial_str)
             except ValueError:
                 try:
                     isnumeric = np.all([x.isdigit() for x in serial_str])
@@ -683,18 +710,31 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     else:
                         icodes[acount] = icode
 
-                if dec and acount > 2 and resnums[acount-2] > resnum and resnums[acount-2] >= MAX_N_RES:
+                # acount >= 2 is the loosest bound that keeps resnums[acount-2] a valid index (acount > 2
+                # needlessly waited one extra atom, so a wraparound in a very short file was missed).  This
+                # branch is only for the AMBIGUOUS all-digit case: a field with letters already flips dec via
+                # the int() ValueError above, whatever acount is.  An all-digit hex field such as '3039'
+                # (=12345) is indistinguishable from decimal 3039 on its own, so a decrease from a value
+                # >= MAX_N_RES remains the only available evidence.
+                if dec and acount >= 2 and resnums[acount-2] > resnum and resnums[acount-2] >= MAX_N_RES:
                     dec = False
 
                 if not dec:
                     resnum = resnum_str
+                    if hexadecimal:
+                        # the forced path must also assign the insertion code, which the decimal branch
+                        # above would otherwise have done
+                        icodes[acount] = icode
                     try:
-                        isnumeric = np.all([x.isdigit() or x==' ' for x in resnum_str])
-                        if not isnumeric and resnum_str == resnum_str.upper():
-                            resnum = hybrid36ToDec(resnum_str, resnum=True)
-                        else:
-                            # lower case is found in hexadecimal PDB files
+                        if hexadecimal:
                             resnum = int(resnum_str, 16)
+                        else:
+                            isnumeric = np.all([x.isdigit() or x==' ' for x in resnum_str])
+                            if not isnumeric and resnum_str == resnum_str.upper():
+                                resnum = hybrid36ToDec(resnum_str, resnum=True)
+                            else:
+                                # lower case is found in hexadecimal PDB files
+                                resnum = int(resnum_str, 16)
 
                     except ValueError:
                         if acount > 0:
@@ -1248,6 +1288,36 @@ def parseChainsList(filename):
 
     return ags, headers, chains
 
+def _cryst1(box):
+    """Format a PDB ``CRYST1`` record from *box*: three lengths (a, b, c) in Angstrom, six values
+    (a, b, c, alpha, beta, gamma) with angles in degrees, or a 3x3 array of box vectors in Angstrom
+    whose rows are a, b, c. Space group is written as ``P 1`` with Z = 1."""
+    box = np.asarray(box, dtype=float)
+    if box.shape == (3, 3):
+        lengths = np.linalg.norm(box, axis=1)
+        if not lengths.all():
+            raise ValueError('box vectors must be non-zero')
+        a, b, c = lengths
+        cosines = [box[1].dot(box[2]) / (b * c),      # alpha, between b and c
+                   box[0].dot(box[2]) / (a * c),      # beta,  between a and c
+                   box[0].dot(box[1]) / (a * b)]      # gamma, between a and b
+        alpha, beta, gamma = np.degrees(np.arccos(np.clip(cosines, -1.0, 1.0)))
+    else:
+        box = box.flatten()
+        if box.size == 3:
+            a, b, c = box
+            alpha = beta = gamma = 90.0
+        elif box.size == 6:
+            a, b, c, alpha, beta, gamma = box
+        else:
+            raise ValueError('box must have 3 lengths, 6 cell parameters, or shape (3, 3), '
+                             'got {0} values'.format(box.size))
+        if not (a and b and c):
+            raise ValueError('box lengths must be non-zero')
+    return ('CRYST1{0:9.3f}{1:9.3f}{2:9.3f}{3:7.2f}{4:7.2f}{5:7.2f} P 1           1\n'
+            .format(a, b, c, alpha, beta, gamma))
+
+
 def writePDBStream(stream, atoms, csets=None, **kwargs):
     """Write *atoms* in PDB format to a *stream*.
 
@@ -1274,12 +1344,20 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     :arg write_remarks: whether to write REMARK lines
         Default is **True**
     :type write_remarks: bool
+
+    :arg box: periodic unit cell to write as a ``CRYST1`` record. Accepts three
+        lengths ``(a, b, c)`` in Angstrom (angles then default to 90), six values
+        ``(a, b, c, alpha, beta, gamma)`` with angles in degrees, or a 3x3 array
+        of box VECTORS in Angstrom (rows are a, b, c), from which lengths and
+        angles are computed. Default is **None**, which writes no ``CRYST1``.
+    :type box: tuple, list, :class:`~numpy.ndarray`
     """    
     renumber = kwargs.get('renumber', True)
     full_ter = kwargs.get('full_ter', True)
     increment_ter = kwargs.get('increment_ter', True)
     write_remarks = kwargs.get('write_remarks', True)
     long_resname = kwargs.get('long_resname', False)
+    box = kwargs.get('box', None)
 
     remark = str(atoms)
     try:
@@ -1469,6 +1547,12 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                                 endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
                                 sense=strand_secclasses[0]))
             pass
+
+    # write the periodic unit cell, if one was given.  CRYST1 belongs after the REMARK block and before
+    # the coordinate records.  Note prody writes no header at all by default, so a box has to be passed
+    # explicitly -- an AtomGroup carries no unit cell.
+    if box is not None:
+        stream.write(_cryst1(box))
 
     # write atoms
     multi = len(coordsets) > 1
@@ -1698,6 +1782,12 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
 
     :arg long_resname: whether to write 4-character resnames instead of cutting at 3 chars
     :type long_resname: bool
+
+    :arg box: periodic unit cell written as a ``CRYST1`` record -- three lengths
+        ``(a, b, c)`` in Angstrom, six values ``(a, b, c, alpha, beta, gamma)`` with
+        angles in degrees, or a 3x3 array of box vectors whose rows are a, b, c.
+        Default **None** writes no ``CRYST1``.
+    :type box: tuple, list, :class:`~numpy.ndarray`
     """
 
     if not (filename.lower().endswith('.pdb') or filename.lower().endswith('.pdb.gz') or

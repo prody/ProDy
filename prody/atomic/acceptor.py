@@ -125,7 +125,8 @@ def evalAcceptors(acceptors, n_atoms):
         # remove entries corresponding to missing hydrogens (with 0 in them that became -1)
         acceptors = acceptors[np.argwhere(acceptors == -1)[-1][0]+1:]
 
-    numacceptors = np.bincount(acceptors.reshape((acceptors.shape[0] * 2)))
+    numacceptors = np.bincount(acceptors.reshape((acceptors.shape[0] * 2)),
+                               minlength=n_atoms)
 
     acmap = np.zeros((n_atoms, numacceptors.max()), int)
     index = np.zeros(n_atoms, int)

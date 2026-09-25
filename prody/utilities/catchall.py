@@ -10,7 +10,7 @@ from .logger import LOGGER
 
 __all__ = ['calcTree', 'writeTree', 'parseTree',
            'clusterMatrix',
-           'showLines', 'showMatrix', 'showBars', 
+           'showLines', 'showMatrix', 'showBars', 'showHistogram', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
            'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters', 
@@ -416,6 +416,7 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
     return the sorted matrix, indices used for sorting, sorted labels (if **labels** are passed),  
     and linkage matrix (if **return_linkage** is **True**). 
     
+       
     :arg distance_matrix: an N-by-N matrix containing some measure of distance 
          such as 1. - seqid_matrix (Hamming distance), rmsds, or distances in PCA space
     :type distance_matrix: :class:`~numpy.ndarray`
@@ -438,6 +439,11 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
 
     Other arguments for :func:`~scipy.hierarchy.linkage` and :func:`~scipy.hierarchy.dendrogram`
     can also be provided and will be taken as **kwargs**.
+    
+    
+    .. seealso::
+        :func:`clusterHierarchical`
+            Hierarchical clustering of a distance matrix using SciPy.
     """
 
     import scipy.cluster.hierarchy as sch
@@ -1273,6 +1279,33 @@ calcGromosClusters = calcRMSDclusters
 calcGromacsClusters = calcRMSDclusters
 
 def calcKmedoidClusters(coordsets, nClusters):
+    """
+    Performs K-Medoids clustering directly on coordinate sets using ``scikit-learn-extra``.
+
+    Flattens the input coordinate sets into a 2D matrix and fits a K-Medoids model.
+    Note that this function requires the ``scikit-learn-extra`` package to be installed.
+
+    The returned cluster labels are 0-indexed.
+
+
+    :arg coordsets: coordinate sets of shape ``(n_conformations, n_atoms, 3)`` or any array 
+                    where the first dimension represents individual frames/conformations.
+    :type coordsets: :class:`numpy.ndarray`
+
+    :arg nClusters: prespecified number of clusters to form.
+    :type nClusters: int
+
+    :returns: a tuple of:
+        * a one-dimensional array of shape ``(nClusters,)`` containing the indices of the medoid frames
+        * a one-dimensional array containing the 0-indexed cluster label for each frame
+        * a one-dimensional array containing the number of items in each cluster
+    :rtype: tuple(:class:`numpy.ndarray`, :class:`numpy.ndarray`, :class:`numpy.ndarray`)
+
+
+    .. seealso::
+        :func:`clusterKMedoids`
+            K-Medoids clustering on distance matrices supporting multiple backends and 1-based indexing.
+    """
     try:
         from sklearn_extra.cluster import KMedoids
     except ImportError:
@@ -1283,3 +1316,118 @@ def calcKmedoidClusters(coordsets, nClusters):
     labels = c.labels_
     _, counts = np.unique(labels, return_counts=True)
     return c.medoid_indices_, labels, counts
+
+
+def showHistogram(data, *args, **kwargs):
+    """
+    Plots the distribution of values on the current axis. 
+    The input may be either a one-dimensional array or a symmetric square 2D matrix.
+    
+    Uses Seaborn's :func:`sns.histplot` if available, falling back to 
+    Matplotlib's :meth:`matplotlib.axes.Axes.hist` if Seaborn is not installed.
+    
+    
+    :arg data: 1D array or 2D square symmetric matrix. 
+               If 2D, the upper triangle (excluding diagonal) is automatically extracted.
+    :type data: :class:`numpy.ndarray`
+    
+    :arg *args: positional arguments passed directly to Seaborn's ``histplot`` 
+                or Matplotlib's ``hist`` function.
+    :type *args: tuple
+    
+    :arg title: title of the plot. Default is ``'Distribution'``.
+    :type title: str
+    
+    :arg xlabel: label for the x-axis. Default is ``'Value'``.
+    :type xlabel: str
+    
+    :arg ylabel: label for the y-axis. Default is ``'Frequency'``.
+    :type ylabel: str
+    
+    :arg grid: whether to display horizontal grid lines. Default is ``True``.
+    :type grid: bool
+    
+    :arg ax: axes on which to draw the plot. Default is ``None`` (current axes used).
+    :type ax: :class:`matplotlib.axes.Axes`
+    
+    :arg **kwargs: keyword arguments passed to Seaborn (if installed) or Matplotlib.
+    :type **kwargs: dict
+    
+    :returns: the Matplotlib axes containing the plot.
+    :rtype: :class:`matplotlib.axes.Axes`
+    
+    Example usage:
+    >>> import matplotlib.pyplot as plt
+    >>> distance_matrix = calcPairwiseRMSD(aligned_coords)
+    >>> plt.figure()
+    >>> showHistogram(distance_matrix, xlabel='RMSD [Å]')
+    >>> plt.show() 
+    """
+    
+    import matplotlib.pyplot as plt
+    try:
+        import seaborn as sns
+        has_seaborn = True
+    except ImportError:
+        has_seaborn = False
+
+    data_array = np.asarray(data)
+
+    if data_array.ndim == 2:
+        if data_array.shape[0] != data_array.shape[1]:
+            raise ValueError(f"2D data matrix must be square, but got shape {data_array.shape}")
+        values = data_array[np.triu_indices_from(data_array, k=1)]
+    elif data_array.ndim == 1:
+        values = data_array
+    else:
+        raise ValueError(f"Expected 1D or 2D array, but got shape {data_array.shape}")
+
+    ax = kwargs.pop('ax', None)
+    if ax is None:
+        ax = plt.gca()
+
+    title = kwargs.pop('title', 'Distribution')
+    xlabel = kwargs.pop('xlabel', 'Value')
+    ylabel = kwargs.pop('ylabel', 'Frequency')
+    grid = kwargs.pop('grid', True)
+    label = kwargs.get('label', None)
+
+    if 'lw' in kwargs:
+        kwargs['linewidth'] = kwargs.pop('lw')
+    else:
+        kwargs.setdefault('linewidth', 0.8)
+
+    kwargs.setdefault('bins', 50)
+    kwargs.setdefault('color', 'teal')
+    kwargs.setdefault('alpha', 0.5)
+    kwargs.setdefault('edgecolor', 'black')
+
+    if has_seaborn:
+        kwargs.setdefault('element', 'bars')
+        kwargs.setdefault('stat', 'count')
+        kwargs.setdefault('kde', False)
+
+        sns.histplot(values, *args, ax=ax, **kwargs)
+    else: # matplotlib fallback
+        LOGGER.info("Package 'seaborn' not found; falling back to matplotlib.pyplot.hist().")
+        kde = kwargs.pop('kde', None)
+        kwargs.pop('element', None)
+        kwargs.pop('stat', None)
+        
+        if kde:
+            LOGGER.warning("Kernel density estimation (kde=True) requires 'seaborn' and will be ignored.")
+
+        ax.hist(values, *args, **kwargs)
+
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    if label is not None:
+        ax.legend()
+
+    if grid:
+        ax.grid(axis='y', alpha=0.3)
+
+    return ax
+    

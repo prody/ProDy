@@ -128,7 +128,8 @@ def evalBonds(bonds, n_atoms):
     """Returns an array mapping atoms to their bonded neighbors and an array
     that stores number of bonds made by each atom."""
 
-    numbonds = np.bincount(bonds.reshape((bonds.shape[0] * 2)))
+    numbonds = np.bincount(bonds.reshape((bonds.shape[0] * 2)),
+                           minlength=n_atoms)
     bmap = np.zeros((n_atoms, numbonds.max()), int)
     bmap.fill(-1)
     index = np.zeros(n_atoms, int)
@@ -140,12 +141,24 @@ def evalBonds(bonds, n_atoms):
     return bmap, numbonds
 
 
-def trimBonds(bonds, indices):
-    """Returns bonds between atoms at given indices."""
+def trimTerms(terms, indices):
+    """Returns the *terms* whose atoms all lie at *indices*, renumbered so that the
+    atom at ``indices[i]`` becomes atom ``i``.  Works for any term width -- bonds,
+    angles, dihedrals, impropers, donors, acceptors, exclusions and eight-atom CMAP
+    cross-terms -- and keeps both the order of the terms and the order of the atoms
+    within each one, which for every term but a bond is what identifies it.  A term
+    only partly inside *indices* cannot be renumbered and is dropped."""
 
     iset = set(indices)
-    bonds = [bond for bond in bonds if bond[0] in iset and bond[1] in iset]
-    if bonds:
+    terms = [term for term in terms if iset.issuperset(term)]
+    if terms:
         newindices = np.zeros(indices.max()+1, int)
         newindices[indices] = np.arange(len(indices))
-        return newindices[np.array(bonds)]
+        return newindices[np.array(terms)]
+
+
+def trimBonds(bonds, indices):
+    """Returns bonds between atoms at given indices.  See :func:`.trimTerms`, of
+    which this is the two-atom case."""
+
+    return trimTerms(bonds, indices)

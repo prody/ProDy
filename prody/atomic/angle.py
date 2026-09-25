@@ -129,7 +129,8 @@ def evalAngles(angles, n_atoms):
     """Returns an array mapping atoms to their angled neighbors and an array
     that stores number of angles made by each atom."""
 
-    numangles = np.bincount(angles.reshape((angles.shape[0] * 3)))
+    numangles = np.bincount(angles.reshape((angles.shape[0] * 3)),
+                            minlength=n_atoms)
     angmap = np.zeros((n_atoms, numangles.max(), 2), int)
     angmap.fill(-1)
     index = np.zeros(n_atoms, int)

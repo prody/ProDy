@@ -8,7 +8,7 @@ from prody import LOGGER, __path__
 from prody.utilities import openData
 
 from . import flags
-from .bond import trimBonds
+from .bond import trimBonds, trimTerms
 from .fields import READONLY
 
 __all__ = ['Atomic', 'AAMAP']
@@ -213,25 +213,38 @@ class Atomic(object):
             new._setFlags('dummy', dummy)
             new._setFlags('mapped', mapped)
 
-        bonds = ag._bonds
-        bmap = ag._bmap
-        if bonds is not None and bmap is not None:
-            if indices is None:
-                new._bonds = bonds.copy()
-                new._bmap = bmap.copy()
-                new._data['numbonds'] = ag._data['numbonds'].copy()
-            elif dummies:
-                if dummies:
-                    indices = indices[self._getMapping()]
-                if len(set(indices)) == len(indices):
-                    new.setBonds(trimBonds(bonds, indices))
-                else:
-                    LOGGER.warn('Duplicate atoms in mapping, bonds are '
-                                'not copied.')
+        # every topology section, not bonds alone: a copy that kept only the bonds
+        # silently dropped the angles, dihedrals, impropers, donors, acceptors,
+        # exclusions and CMAP cross-terms of a CHARMM system
+        TOPOLOGY = [('_bonds', '_bmap', 'numbonds', new.setBonds),
+                    ('_angles', '_angmap', 'numangles', new.setAngles),
+                    ('_dihedrals', '_dmap', 'numdihedrals', new.setDihedrals),
+                    ('_impropers', '_imap', 'numimpropers', new.setImpropers),
+                    ('_donors', '_domap', 'numdonors', new.setDonors),
+                    ('_acceptors', '_acmap', 'numacceptors', new.setAcceptors),
+                    ('_nbexclusions', '_nbemap', 'numnbexclusions',
+                     new.setNBExclusions),
+                    ('_crossterms', '_cmap', 'numcrossterms', new.setCrossterms)]
+
+        if dummies and indices is not None:
+            if len(set(indices)) == len(indices):
+                indices = indices[self._getMapping()]
             else:
-                bonds = trimBonds(bonds, indices)
-                if bonds is not None:
-                    new.setBonds(bonds)
+                LOGGER.warn('Duplicate atoms in mapping, topology is not copied.')
+                return new
+
+        for attr, mapattr, numlabel, setter in TOPOLOGY:
+            terms = getattr(ag, attr)
+            if terms is None or getattr(ag, mapattr) is None:
+                continue
+            if indices is None:
+                setattr(new, attr, terms.copy())
+                setattr(new, mapattr, getattr(ag, mapattr).copy())
+                new._data[numlabel] = ag._data[numlabel].copy()
+            else:
+                terms = trimTerms(terms, indices)
+                if terms is not None:
+                    setter(terms)
         return new
 
     __copy__ = copy

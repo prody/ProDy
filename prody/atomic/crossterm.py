@@ -140,16 +140,15 @@ def evalCrossterms(crossterms, n_atoms):
     """Returns an array mapping atoms to their crosstermd neighbors and an array
     that stores number of crossterms made by each atom."""
 
-    numcrossterms = np.bincount(crossterms.reshape((crossterms.shape[0] * 4)))
-    dmap = np.zeros((n_atoms, numcrossterms.max(), 3), int)
+    width = crossterms.shape[1]
+    numcrossterms = np.bincount(crossterms.reshape((crossterms.shape[0] * width)),
+                                minlength=n_atoms)
+    dmap = np.zeros((n_atoms, numcrossterms.max(), width - 1), int)
     dmap.fill(-1)
     index = np.zeros(n_atoms, int)
     for crossterm in crossterms:
-        a, b, c, d = crossterm
-        dmap[a, index[a]] = [b, c, d]
-        dmap[b, index[b]] = [a, c, d]
-        dmap[c, index[c]] = [a, b, d]
-        dmap[d, index[d]] = [a, b, c]
+        for i, a in enumerate(crossterm):
+            dmap[a, index[a]] = np.delete(crossterm, i)
         index[crossterm] += 1
     return dmap, numcrossterms
 

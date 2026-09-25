@@ -1306,9 +1306,15 @@ class AtomGroup(Atomic):
         if bonds.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
 
+        # NOTE: sorting WITHIN each row is load-bearing here, unlike for
+        # angles, dihedrals, impropers and cross-terms, whose atom order
+        # carries meaning and must be preserved.  A bond is symmetric, so
+        # (i, j) and (j, i) are the same bond, and np.unique below only sorts
+        # and de-duplicates whole rows, never their contents.  Sorting each
+        # pair first is what makes the two spellings collapse into one, and it
+        # is also what guarantees i < j in the '%d %d' keys of _bondIndex.
+        # np.unique sorts the rows itself, so no separate row sort is needed.
         bonds.sort(1)
-        bonds = bonds[bonds[:, 1].argsort(), ]
-        bonds = bonds[bonds[:, 0].argsort(), ]
         bonds = np.unique(bonds, axis=0)
 
         d = {}
@@ -1396,10 +1402,11 @@ class AtomGroup(Atomic):
         n_atoms = self._n_atoms
         if angles.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
-        angles.sort(1)
-        angles = angles[angles[:, 2].argsort(), ]
-        angles = angles[angles[:, 1].argsort(), ]
-        angles = angles[angles[:, 0].argsort(), ]
+        # NOTE: the atom order WITHIN a term is meaningful -- it identifies an
+        # angle's vertex, a torsion's sequence and a CMAP term's two coupled
+        # dihedrals -- so it must not be sorted.  The order of the terms
+        # themselves is left as given too, so that a topology read from a file
+        # is written back out unchanged.
 
         self._angmap, self._data['numangles'] = evalAngles(angles, n_atoms)
         self._angles = angles
@@ -1455,11 +1462,11 @@ class AtomGroup(Atomic):
         n_atoms = self._n_atoms
         if dihedrals.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
-        dihedrals.sort(1)
-        dihedrals = dihedrals[dihedrals[:, 3].argsort(), ]
-        dihedrals = dihedrals[dihedrals[:, 2].argsort(), ]
-        dihedrals = dihedrals[dihedrals[:, 1].argsort(), ]
-        dihedrals = dihedrals[dihedrals[:, 0].argsort(), ]
+        # NOTE: the atom order WITHIN a term is meaningful -- it identifies an
+        # angle's vertex, a torsion's sequence and a CMAP term's two coupled
+        # dihedrals -- so it must not be sorted.  The order of the terms
+        # themselves is left as given too, so that a topology read from a file
+        # is written back out unchanged.
 
         self._dmap, self._data['numdihedrals'] = evalDihedrals(
             dihedrals, n_atoms)
@@ -1516,11 +1523,11 @@ class AtomGroup(Atomic):
         n_atoms = self._n_atoms
         if impropers.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
-        impropers.sort(1)
-        impropers = impropers[impropers[:, 3].argsort(), ]
-        impropers = impropers[impropers[:, 2].argsort(), ]
-        impropers = impropers[impropers[:, 1].argsort(), ]
-        impropers = impropers[impropers[:, 0].argsort(), ]
+        # NOTE: the atom order WITHIN a term is meaningful -- it identifies an
+        # angle's vertex, a torsion's sequence and a CMAP term's two coupled
+        # dihedrals -- so it must not be sorted.  The order of the terms
+        # themselves is left as given too, so that a topology read from a file
+        # is written back out unchanged.
 
         self._imap, self._data['numimpropers'] = evalImpropers(
             impropers, n_atoms)
@@ -1584,10 +1591,10 @@ class AtomGroup(Atomic):
         n_atoms = self._n_atoms
         if donors.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
-        donors.sort(1)
-        donors = donors[donors[:, 1].argsort(), ]
-        donors = donors[donors[:, 0].argsort(), ]
-        donors = np.unique(donors, axis=0)
+        # NOTE: a CHARMM !NDON record is an ORDERED pair -- a hydrogen-bond donor's heavy atom and its hydrogen --
+        # so neither the two indices nor the order of the records is sorted, and
+        # duplicates are not collapsed: a topology read from a file is written
+        # back out unchanged.  Contrast setBonds, whose pairs are symmetric.
 
         self._domap, self._data['numdonors'] = evalDonors(donors, n_atoms)
         self._donors = donors
@@ -1650,10 +1657,10 @@ class AtomGroup(Atomic):
         n_atoms = self._n_atoms
         if acceptors.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
-        acceptors.sort(1)
-        acceptors = acceptors[acceptors[:, 1].argsort(), ]
-        acceptors = acceptors[acceptors[:, 0].argsort(), ]
-        acceptors = np.unique(acceptors, axis=0)
+        # NOTE: a CHARMM !NACC record is an ORDERED pair -- an acceptor and its antecedent --
+        # so neither the two indices nor the order of the records is sorted, and
+        # duplicates are not collapsed: a topology read from a file is written
+        # back out unchanged.  Contrast setBonds, whose pairs are symmetric.
 
         self._acmap, self._data['numacceptors'] = evalAcceptors(acceptors, n_atoms)
         self._acceptors = acceptors
@@ -1716,9 +1723,10 @@ class AtomGroup(Atomic):
         n_atoms = self._n_atoms
         if nbexclusions.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
+        # A non-bonded exclusion is symmetric, so -- as in setBonds -- sorting
+        # within each pair is what collapses (i, j) and (j, i), and np.unique
+        # sorts the rows itself.
         nbexclusions.sort(1)
-        nbexclusions = nbexclusions[nbexclusions[:, 1].argsort(), ]
-        nbexclusions = nbexclusions[nbexclusions[:, 0].argsort(), ]
         nbexclusions = np.unique(nbexclusions, axis=0)
 
         self._nbemap, self._data['numnbexclusions'] = evalNBExclusions(
@@ -1757,8 +1765,10 @@ class AtomGroup(Atomic):
                 yield a, b
 
     def setCrossterms(self, crossterms):
-        """Set covalent crossterms between atoms.  *crossterms* must be a list or an
-        array of triplets of indices.  All crossterms must be set at once.  Crossterm
+        """Set CMAP cross-terms between atoms.  *crossterms* must be a list or an
+        array of EIGHT indices per term -- the two coupled dihedrals of a CHARMM CMAP
+        term, in the order they appear in the ``!NCRTERM`` section.  All crossterms
+        must be set at once.  Crossterm
         information can be used to make atom selections, e.g. ``"crossterm to
         index 1"``.  See :mod:`.select` module documentation for details.
         Also, a data array with number of crossterms will be generated and stored
@@ -1769,18 +1779,18 @@ class AtomGroup(Atomic):
             crossterms = np.array(crossterms, int)
         if crossterms.ndim != 2:
             raise ValueError('crossterms.ndim must be 2')
-        if crossterms.shape[1] != 4:
-            raise ValueError('crossterms.shape must be (n_crossterms, 4)')
+        if crossterms.shape[1] != 8:
+            raise ValueError('crossterms.shape must be (n_crossterms, 8)')
         if crossterms.min() < 0:
             raise ValueError('negative atom indices are not valid')
         n_atoms = self._n_atoms
         if crossterms.max() >= n_atoms:
             raise ValueError('atom indices are out of range')
-        crossterms.sort(1)
-        crossterms = crossterms[crossterms[:, 3].argsort(), ]
-        crossterms = crossterms[crossterms[:, 2].argsort(), ]
-        crossterms = crossterms[crossterms[:, 1].argsort(), ]
-        crossterms = crossterms[crossterms[:, 0].argsort(), ]
+        # NOTE: the atom order WITHIN a term is meaningful -- it identifies an
+        # angle's vertex, a torsion's sequence and a CMAP term's two coupled
+        # dihedrals -- so it must not be sorted.  The order of the terms
+        # themselves is left as given too, so that a topology read from a file
+        # is written back out unchanged.
 
         self._cmap, self._data['numcrossterms'] = evalCrossterms(
             crossterms, n_atoms)
@@ -1810,12 +1820,12 @@ class AtomGroup(Atomic):
                 yield Crossterm(self, crossterm, acsi)
 
     def _iterCrossterms(self):
-        """Yield quadruplets of crosstermed atom indices. Use :meth:`setCrossterms` for setting
-        crossterms."""
+        """Yield the atom indices of each CMAP cross-term, eight per term. Use
+        :meth:`setCrossterms` for setting crossterms."""
 
         if self._crossterms is not None:
-            for a, b, c, d in self._crossterms:
-                yield a, b, c, d
+            for crossterm in self._crossterms:
+                yield crossterm
 
     def numFragments(self):
         """Returns number of connected atom subsets."""

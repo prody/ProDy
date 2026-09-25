@@ -1,0 +1,51 @@
+PSF CMAP
+
+       1 !NTITLE
+ REMARKS hand-made topology fixture: two ALA residues, one CMAP cross-term
+
+      10 !NATOM
+       1 P    1    ALA  N    NH1   -0.470000       14.0070           0
+       2 P    1    ALA  HN   H      0.310000        1.0080           0
+       3 P    1    ALA  CA   CT1    0.070000       12.0110           0
+       4 P    1    ALA  HA   HB1    0.090000        1.0080           0
+       5 P    1    ALA  C    C      0.510000       12.0110           0
+       6 P    1    ALA  O    O     -0.510000       15.9990           0
+       7 P    2    ALA  N    NH1   -0.470000       14.0070           0
+       8 P    2    ALA  HN   H      0.310000        1.0080           0
+       9 P    2    ALA  CA   CT1    0.070000       12.0110           0
+      10 P    2    ALA  C    C      0.510000       12.0110           0
+
+       5 !NBOND: bonds
+       2       1       3       1       4       3       5       3
+       6       5
+
+       4 !NTHETA: angles
+       2       1       3       1       3       5       4       3       5
+       3       5       6
+
+       3 !NPHI: dihedrals
+       2       1       3       5       1       3       5       6
+       4       3       5       6
+
+       1 !NIMPHI: impropers
+       5       3       7       6
+
+       1 !NDON: donors
+       1       2
+
+       1 !NACC: acceptors
+       6       5
+
+       0 !NNB
+
+       0       0       0       0       0       0       0       0
+       0       0
+
+       0       0 !NGRP NST2
+       0       0       0
+
+       0       0 !NUMLP NUMLPH
+
+       1 !NCRTERM: cross-terms
+       5       7       9      10       1       3       5       7
+
