@@ -1675,7 +1675,9 @@ def calcChannels(atoms, output_path=None, separate=False, start_point=None,
         it stays in the void the point sits in rather than crossing a wall). The seed
         may therefore sit a little shallower than ``start_point`` itself, which is
         usually placed on a ligand or a catalytic residue and often lies deeper than
-        the widest part of the pocket around it.
+        the widest part of the pocket around it. The nearest tetrahedron is kept,
+        whatever its own depth, unless a wider one qualifies, so the seed is never
+        narrower than the tetrahedron at the point.
 
         It is a requirement and not only a search budget: the search must begin
         within this distance of the point, and if no cavity has a tetrahedron that
@@ -10257,6 +10259,16 @@ class ChannelCalculator:
         for a site lying wholly under a wide opening, and failing that the anchor's own
         depth, which always leaves at least the anchor itself.
 
+        The anchor itself competes whatever its depth: the floor bounds where the seed
+        may move to, not whether the tetrahedron at the point counts, so the seed is
+        only ever moved to a tetrahedron wider than the anchor. Held to the floor, an
+        anchor lying just under it would drop out and be traded for the widest
+        tetrahedron clearing it, however much narrower that one is. And the anchor's
+        depth moves with the probe: a smaller `inner_radius` opens mouths nearer the
+        point, so the anchor crosses the floor as the probe shrinks, the seed jumps
+        with it, and a site could read as sealed at one `inner_radius` and open at
+        the next.
+
         `search_radius` <= 0 restores the plain nearest-vertex seed.
 
         :returns: dict of the seed and anchor properties (`seed`, `anchor`, and their
@@ -10332,8 +10344,12 @@ class ChannelCalculator:
             if len(eligible):
                 break
 
-        # The anchor comes first (BFS order), so a tie goes to it where it qualifies.
-        best = int(reach[eligible[int(np.argmax(radii[eligible]))]])
+        # The anchor competes whatever its depth (see above), so the seed only ever
+        # moves to a wider tetrahedron; `eligible` still counts only what cleared
+        # the floor, which is what the report states. The anchor comes first (BFS
+        # order), so a tie goes to it.
+        candidates = eligible if eligible[0] == 0 else np.concatenate(([0], eligible))
+        best = int(reach[candidates[int(np.argmax(radii[candidates]))]])
 
         return report(best, len(reachable), len(eligible), floor)
 
@@ -10642,10 +10658,17 @@ class ChannelCalculator:
                         info['anchor_depth'], info['eligible'], info['floor'],
                         info['searched'], float(search_radius)))
         elif search_radius and search_radius > 0:
-            LOGGER.info("    already the widest of the {0} tetrahedra at least {1:.1f} Å "
-                "deep among the {2} reachable within {3:.1f} Å."
-                .format(info['eligible'], info['floor'], info['searched'],
-                        float(search_radius)))
+            if info['anchor_depth'] < info['floor']:
+                LOGGER.info("    kept although shallower than {0:.1f} Å: already as wide "
+                    "as any of the {1} tetrahedra at least that deep among the {2} "
+                    "reachable within {3:.1f} Å."
+                    .format(info['floor'], info['eligible'], info['searched'],
+                            float(search_radius)))
+            else:
+                LOGGER.info("    already the widest of the {0} tetrahedra at least {1:.1f} Å "
+                    "deep among the {2} reachable within {3:.1f} Å."
+                    .format(info['eligible'], info['floor'], info['searched'],
+                            float(search_radius)))
 
 
     def trimCavitiesByDepth(self, cavities, max_depth):
