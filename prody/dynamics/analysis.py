@@ -87,7 +87,7 @@ def calcCollectivity(mode, masses=None, is3d=None):
             if len(masses) != n_atoms:
                 raise ValueError('length of masses must be equal to number of atoms')
             u2in = u2in / masses
-        u2in = u2in * (1 / u2in.sum() ** 0.5)
+        u2in = u2in / u2in.sum()
         coll = np.exp(-(u2in * log0(u2in)).sum()) / n_atoms
         colls.append(coll)
     
@@ -685,6 +685,9 @@ def getHinges(v, threshold=15, space=None):
     
     ### Merge overlapping or adjacent regions (separated by space value) ###
             
+    if not regs:
+        return []
+
     regs = sorted(regs, key=lambda x: x[0])
     merged = [regs[0]]
     s = 1 + space if space is not None else 0
@@ -804,12 +807,12 @@ def getGlobalHinges(gnm, n_modes=None, threshold=15, space=None, atoms=None, min
         
         for fst, lst in chains:
             l = lst + 1 - fst
-            h = getHinges(vecs[fst:lst, i], threshold, space)
-            
-        if trim is not False:
-            hinges.extend(x + fst for x in h if trim <= x < l - trim)
-        else:
-            hinges.extend(x + fst for x in h)
+            h = getHinges(vecs[fst:lst + 1, i], threshold, space)
+
+            if trim is not False:
+                hinges.extend(x + fst for x in h if trim <= x < l - trim)
+            else:
+                hinges.extend(x + fst for x in h)
 
         n_hinges.append(sorted(hinges))
 
