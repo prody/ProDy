@@ -7,6 +7,8 @@ Dynamics Models
 The following classes are designed for modeling and analysis of protein dynamics:
 
   * :class:`.ANM` - Anisotropic network model, for coarse-grained NMA
+  * :class:`.genANM` - Generalized ANM, adding virtual bond, angle and dihedral
+    stiffness along the Calpha trace while keeping the six rigid-body zero modes
   * :class:`.GNM` - Gaussian network model, for coarse-grained dynamics
     analysis
   * :class:`.PCA` - Principal component analysis of conformation ensembles
@@ -115,9 +117,11 @@ The following functions can be used to generate conformers along normal modes:
 Adaptive ANM
 ===================
 
-The following class and its functions can be used to generate conformers using adaptive ANM:
+The following functions can be used to generate transitions between conformers using adaptive ANM:
 
-  * :class:`.AdaptiveANM` - generate transitions between two conformers using best overlapping modes 
+  * :func:`.calcAdaptiveANM` - generate transitions between two conformers using best overlapping modes
+  * :func:`.calcNeoAdaptiveANM` - generate physical transitions, soft modes first, with a
+    steric test, geometric correction and contact springs
 
 ENM-MD hybrid methods
 ===================
@@ -301,6 +305,10 @@ from . import generalized_anm
 from .generalized_anm import *
 __all__.extend(generalized_anm.__all__)
 
+from . import generalized_anm
+from .generalized_anm import *
+__all__.extend(generalized_anm.__all__)
+
 from . import rtb
 from .rtb import *
 __all__.extend(rtb.__all__)
@@ -361,9 +369,9 @@ from . import adaptive
 from .adaptive import *
 __all__.extend(adaptive.__all__)
 
-from . import adaptive2
-from .adaptive2 import *
-__all__.extend(adaptive2.__all__)
+from . import neo_adaptive
+from .neo_adaptive import *
+__all__.extend(neo_adaptive.__all__)
 
 from . import clustenm
 from .clustenm import *
