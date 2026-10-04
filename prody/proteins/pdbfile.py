@@ -730,7 +730,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                             resnum = int(resnum_str, 16)
                         else:
                             isnumeric = np.all([x.isdigit() or x==' ' for x in resnum_str])
-                            if not isnumeric and resnum_str == resnum_str.upper():
+                            if isnumeric:
+                                resnum = int(resnum_str)
+                            elif resnum_str == resnum_str.upper():
                                 resnum = hybrid36ToDec(resnum_str, resnum=True)
                             else:
                                 # lower case is found in hexadecimal PDB files
