@@ -195,10 +195,20 @@ static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     int nlines = lenseq / line_length;
     int remainder = lenseq - line_length * nlines;
-    int i, j, k;
-    int count = 0;
+    long i, j, k;
+    long count = 0;
     char *seq = PyArray_DATA(msa);
-    int lenmsa = strlen(seq);
+    /* seq is a fixed-width buffer of numseq*lenseq bytes with no null
+       terminators between sequences (or anywhere), so strlen() on it is
+       both wrong (it stops at the first incidental zero byte, or reads
+       out of bounds if none occurs) and unsafe once that product exceeds
+       INT_MAX, as happens for large "full" family alignments (e.g. a
+       ~362k-row, ~6k-column Pfam alignment is ~2.19 billion characters,
+       just over 2^31): strlen()'s size_t result silently truncated when
+       stored in the old `int lenmsa`, so a real "full" alignment was
+       written out as headers followed by empty sequences with no error.
+       The buffer's true size is simply numseq*lenseq. */
+    long lenmsa = numseq * lenseq;
     #if PY_MAJOR_VERSION >= 3
     PyObject *plabel;
     #endif
