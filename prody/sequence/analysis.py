@@ -742,10 +742,15 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     :type align: bool
 
     :arg method: alignment method, one of either Biopython 'global',
-        Biopython 'local', 'clustalw', 'clustalw2', 'clustal' 
+        Biopython 'local', 'clustalw', 'clustalw2', 'clustal', 'clustalo'
         or another software in your path.
         Default is 'local'
     :type align: str
+
+    :arg outfilename: name of the file to write the alignment to, which
+        clustalw also writes beside as an ``.aln`` file.
+        Default is *title* with a ``.fasta`` extension
+    :type outfilename: str
     """
     
     align = kwargs.get('align', True)

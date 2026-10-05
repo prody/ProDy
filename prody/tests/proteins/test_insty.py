@@ -260,5 +260,9 @@ class TestInteractions(unittest.TestCase):
     def tearDownClass(cls):
         if prody.PY3K:
             import os
-            for filename in ['test_2k39_all.npy', 'test_2k39_sbs.npy', 'test_2k39_disu.npy']:
-                os.remove(filename)
+            for filename in ['test_2k39_all.npy', 'test_2k39_sbs.npy',
+                             'test_2k39_disu.npy', 'test_3o21_disu.npy']:
+                # a test that failed before saving leaves nothing to remove,
+                # and raising here would report this instead of that failure
+                if os.path.isfile(filename):
+                    os.remove(filename)

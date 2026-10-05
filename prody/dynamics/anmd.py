@@ -25,14 +25,11 @@ __author__ = 'Anupam Banerjee'
 __credits__ = ['James Krieger']
 __email__ = ['anupam.banerjee@stonybrook.edu', 'jamesmkrieger@gmail.com']
 
-from numbers import Number
 import os
+from numbers import Number
 
 from prody import LOGGER
 from prody.atomic.atomic import Atomic
-from prody.ensemble.ensemble import Ensemble
-from prody.proteins.pdbfile import parsePDB, writePDB
-
 from prody.dynamics.anm import ANM
 from prody.dynamics.clustenm import ClustENM
 from prody.dynamics.editing import extendModel
@@ -40,7 +37,8 @@ from prody.dynamics.modeset import ModeSet
 from prody.dynamics.nma import NMA
 from prody.dynamics.pca import PCA
 from prody.dynamics.sampling import traverseMode
-
+from prody.ensemble.ensemble import Ensemble
+from prody.proteins.pdbfile import parsePDB, writePDB
 
 __all__ = ['runANMD']
 
@@ -89,15 +87,6 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=5, tolerance=10.0,
             A molecular assessment of the alterations in the spike-host protein 
             interactions. *iScience* **2022** 25(3):103939.
     """
-    try:
-        from simtk.openmm.app import PDBFile, ForceField, \
-            Simulation, HBonds, NoCutoff
-        from simtk.openmm import LangevinIntegrator
-        from simtk.unit import nanometer, kelvin, picosecond, picoseconds, \
-            angstrom, kilojoule, mole
-    except ImportError:
-        raise ImportError('Please install PDBFixer and OpenMM to use ANMD')
-
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms should be an Atomic object')
 
@@ -112,7 +101,6 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=5, tolerance=10.0,
 
     if not isinstance(tolerance, Number):
         raise TypeError('tolerance should be a float')
-    tolerance = tolerance * kilojoule/mole/nanometer
 
     pos = kwargs.get('pos', True)
     if not isinstance(pos, bool):
@@ -134,6 +122,44 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=5, tolerance=10.0,
     if not isinstance(anm, (type(None), NMA, ModeSet)):
         raise TypeError('anm should be an NMA or ModeSet object')
 
+    # OpenMM 7.6 moved these out of the legacy simtk namespace, which is
+    # still shipped as a deprecated shim, so try the modern names first.
+    try:
+        try:
+            from openmm import LangevinIntegrator
+            from openmm.app import ForceField, HBonds, NoCutoff, PDBFile, Simulation
+            from openmm.unit import (
+                angstrom,
+                kelvin,
+                kilojoule,
+                mole,
+                nanometer,
+                picosecond,
+                picoseconds,
+            )
+        except ImportError:
+            from simtk.openmm import LangevinIntegrator
+            from simtk.openmm.app import (
+                ForceField,
+                HBonds,
+                NoCutoff,
+                PDBFile,
+                Simulation,
+            )
+            from simtk.unit import (
+                angstrom,
+                kelvin,
+                kilojoule,
+                mole,
+                nanometer,
+                picosecond,
+                picoseconds,
+            )
+    except ImportError:
+        raise ImportError('Please install PDBFixer and OpenMM to use ANMD')
+
+    tolerance = tolerance * kilojoule/mole/nanometer
+
     pdb_name=atoms.getTitle().replace(' ', '_')
 
     fix_name = pdb_name + '_fixed.pdb'
@@ -142,7 +168,7 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=5, tolerance=10.0,
     else:
         clustenm=ClustENM()
         clustenm.setAtoms(atoms)
-        clustenm.writePDBFixed()
+        fix_name = clustenm.writePDBFixed(fix_name)
     pdb_fix = PDBFile(fix_name)
 
     fixmin_name=pdb_name + '_fixedmin.pdb'
@@ -163,7 +189,8 @@ def runANMD(atoms, num_modes=2, max_rmsd=2., num_steps=5, tolerance=10.0,
         simulation.context.setPositions(pdb_fix.positions)
         simulation.minimizeEnergy(tolerance=tolerance)
         positions = simulation.context.getState(getPositions=True).getPositions()
-        PDBFile.writeFile(simulation.topology, positions, open(fixmin_name, 'w'))
+        with open(fixmin_name, 'w') as stream:
+            PDBFile.writeFile(simulation.topology, positions, stream)
         LOGGER.report('The fixed structure was minimised in %.2fs.\n',
                         label='_anmd_min')
 
