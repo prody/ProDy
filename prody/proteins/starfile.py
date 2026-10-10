@@ -18,7 +18,8 @@ from prody import LOGGER
 
 from .emdfile import parseEMD
 
-__all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR',
+__all__ = ['parseSTAR', 'writeSTAR', 'writeSTARStream',
+           'parseImagesFromSTAR',
            'StarDict', 'StarDataBlock', 'StarLoop', 
            'parseSTARSection']
 
@@ -457,7 +458,8 @@ class StarLoop:
 
 
 def parseSTAR(filename, **kwargs):
-    """Returns a dictionary containing data parsed from a STAR file.
+    """Returns a dictionary of type :class:`.StarDict`
+    containing data parsed from a STAR file.
 
     :arg filename: a filename
         The .star extension can be omitted.
@@ -500,6 +502,32 @@ def parseSTAR(filename, **kwargs):
 
 
 def parseSTARLines(lines, **kwargs):
+    """Returns a dictionary of type :class:`~collections.OrderedDict`
+    containing data parsed from a STAR file along with a program string.
+
+    :arg lines: lines read from a file.
+    :type lines: list
+
+    :arg start: line number for starting
+        Default is **None**, meaning start at the beginning
+    :type start: int, None
+
+    :arg stop: line number for stopping
+        Default is **None**, meaning don't stop.
+    :type stop: int, None
+
+    :arg shlex: whether to use shlex for splitting lines so as to preserve quoted substrings
+        Default is **False**
+    :type shlex: bool
+
+    :arg start_field: field to look for to trigger stopping
+        Default is **None**, meaning don't stop.
+    :type start_field: str, None
+
+    :arg stop_field: field to look for to trigger stopping
+        Default is **None**, meaning don't stop.
+    :type stop_field: str, None
+    """
     start = kwargs.get('start', None)
     if start is None:
         start = 0
@@ -508,8 +536,215 @@ def parseSTARLines(lines, **kwargs):
     if stop is None:
         stop = len(lines)
 
+    start_field = kwargs.get('start_field', None)
+    stop_field = kwargs.get('stop_field', None)
+
     prog = kwargs.get('prog', None)
     shlex = kwargs.get('shlex', False)
+
+    if start_field is not None:
+        finalDictionary = OrderedDict()
+        currentLoop = -1
+        block_fieldCounter = 0
+        loop_fieldCounter = 0
+        active_fieldCounter = 0
+        dataItemsCounter = 0
+        lineNumber = 0
+        inLoop = False
+        inShortBlock = False
+        for line in lines[start:stop]:
+            if line.startswith('data_'):
+                currentDataBlock = line[5:].strip()
+                finalDictionary[currentDataBlock] = OrderedDict()
+                currentLoop = -1
+                inLoop = False
+                inShortBlock = False
+                startingBlock = True
+                block_fieldCounter = 0
+
+            elif line.startswith('loop_'):
+                currentLoop += 1
+                inLoop = True
+                inShortBlock = False
+                finalDictionary[currentDataBlock][currentLoop] = OrderedDict()
+                finalDictionary[currentDataBlock][currentLoop]['fields'] = OrderedDict()
+                finalDictionary[currentDataBlock][currentLoop]['data'] = OrderedDict()
+                loop_fieldCounter = 0
+
+            elif line.startswith('_') or line.startswith(' _'):
+                # This marks a field identifier
+                currentField = split(line.strip(), shlex=shlex)[0]
+                if currentField == start_field:
+                    break
+
+                if inLoop:
+                    # We expect to only have the field identifier and no data until after
+
+                    if (len(split(line.strip(), shlex=shlex)) == 1
+                        or len(split(line.strip(), shlex=shlex)) == 2):
+                        # This is what we expect for a data loop
+                        finalDictionary[currentDataBlock][
+                            currentLoop]['fields'][loop_fieldCounter] = currentField
+                        dataItemsCounter = 0
+                        loop_fieldCounter += 1
+
+                    else:
+                        # This is contrary to that so we leave the loop
+                        inLoop = False
+
+                        # We populate fields and data together, continuing the regular data block
+                        finalDictionary[currentDataBlock][
+                            'fields'][block_fieldCounter] = currentField
+                        finalDictionary[currentDataBlock][
+                            'data'][currentField] = split(line.strip(),
+                                                                                        shlex=shlex)[1]
+                        block_fieldCounter += 1
+
+                else:
+                    # Outside a loop, populate fields and data together in a regular data block
+                    if startingBlock:
+                        # Initialise the data block first
+                        finalDictionary[currentDataBlock]['fields'] = OrderedDict()
+                        finalDictionary[currentDataBlock]['data'] = OrderedDict()
+                        startingBlock = False
+                        block_fieldCounter = 0
+
+                    finalDictionary[currentDataBlock][
+                        'fields'][block_fieldCounter] = currentField
+
+                    if len(split(line.strip(), shlex=shlex)) > 1:
+                        # This is the usual behaviour so we can fill in the data from the rest of the line
+                        finalDictionary[currentDataBlock][
+                            'data'][currentField] = split(line.strip(),
+                                                                                        shlex=shlex)[1]
+                    else:
+                        # In this case, we will look for the data in a short block over the following line(s).
+                        # If a single field takes multiple lines, these lines start and end with a semi-colon.
+                        # We'll handle that in the data section.
+                        finalDictionary[currentDataBlock]['data'][currentField] = ''
+                        inShortBlock = True
+                        startingShortBlock = True
+
+                    block_fieldCounter += 1
+
+            elif line.strip() == '#':
+                inLoop = False
+                inShortBlock = False
+
+            elif line.strip() == '':
+                pass
+
+            elif inLoop:
+                # Here we handle the data part of the loop.
+                # Data outside a loop is handled in line with the fields above or in shortDataBlocks below.
+                if not inShortBlock and len(split(line, shlex=shlex)) == loop_fieldCounter:
+                    # This is the usual case where each entry in the line corresponds to a field
+                    finalDictionary[currentDataBlock][currentLoop][
+                        'data'][dataItemsCounter] = OrderedDict()
+                    active_fieldCounter = 0
+                    for fieldEntry in split(line.strip(), shlex=shlex):
+                        currentField = finalDictionary[currentDataBlock][
+                            currentLoop]['fields'][active_fieldCounter]
+                        if currentField == start_field:
+                            break
+                        finalDictionary[currentDataBlock][currentLoop][
+                            'data'][dataItemsCounter][currentField] = fieldEntry
+                        active_fieldCounter += 1
+                    dataItemsCounter += 1
+                else:
+                    # The data is now being broken across lines.
+                    if not inShortBlock:
+                        inShortBlock = True
+                        finalDictionary[currentDataBlock][currentLoop][
+                            'data'][dataItemsCounter] = OrderedDict()
+                        active_fieldCounter = 0
+                        if not line.startswith(';'):
+                            # Then we haven't got a split field and can treat fields as normal
+                            inSplitField = False
+                            for fieldEntry in split(line.strip(), shlex=shlex):
+                                currentField = finalDictionary[currentDataBlock][
+                                    currentLoop]['fields'][active_fieldCounter]
+                                if currentField == start_field:
+                                    break
+                                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
+                                active_fieldCounter += 1
+                        else:
+                            # We have a single field split over many lines
+                            inSplitField = True
+                            currentField = finalDictionary[currentDataBlock][
+                                currentLoop]['fields'][active_fieldCounter]
+                            if currentField == start_field:
+                                break
+                            finalDictionary[currentDataBlock][currentLoop][
+                                'data'][dataItemsCounter][currentField] = line.strip() + ' '
+                    else:
+                        if not inSplitField:
+                            # check if we are entering one
+                            if line.startswith(';'):
+                                inSplitField = True
+                                currentField = finalDictionary[currentDataBlock][
+                                    currentLoop]['fields'][active_fieldCounter]
+                                if currentField == start_field:
+                                    break
+                                finalDictionary[currentDataBlock][currentLoop][
+                                    'data'][dataItemsCounter][currentField] = line.strip() + ' '
+                            else:
+                                # continue as normal
+                                for fieldEntry in split(line.strip(), shlex=shlex):
+                                    currentField = finalDictionary[currentDataBlock][
+                                        currentLoop]['fields'][active_fieldCounter]
+                                    if currentField == start_field:
+                                        break
+                                    finalDictionary[currentDataBlock][currentLoop][
+                                        'data'][dataItemsCounter][currentField] = fieldEntry
+                                    active_fieldCounter += 1
+                        else:
+                            finalDictionary[currentDataBlock][currentLoop][
+                                'data'][dataItemsCounter][currentField] += line.strip()
+                            if line.strip() == ';':
+                                # This marks the end of the split field
+                                inSplitField = False
+                                active_fieldCounter += 1
+                            else:
+                                # Prepare for the next line
+                                finalDictionary[currentDataBlock][currentLoop][
+                                    'data'][dataItemsCounter][currentField] += ' '
+
+                        if active_fieldCounter == loop_fieldCounter:
+                            inShortBlock = False
+                            dataItemsCounter += 1
+
+            elif inShortBlock:
+                # We can now append the data in the lines here.
+                finalDictionary[currentDataBlock]['data'][currentField] += line.strip()
+                if startingShortBlock:
+                    startingShortBlock = False
+                    if not line.startswith(';'):
+                        # We only expect one line if there's no semi-colon
+                        inShortBlock = False
+                    else:
+                        # Prepare for the next line
+                        finalDictionary[currentDataBlock]['data'][currentField] += ' '
+                else:
+                    if line.strip() == ';':
+                        # This marks the end of the field so we've filled it
+                        inShortBlock = False
+                    else:
+                        # Prepare for the next line
+                        finalDictionary[currentDataBlock]['data'][currentField] += ' '
+
+            elif line.startswith('#'):
+                if line.startswith('# XMIPP'):
+                    prog = 'XMIPP'
+
+            else:
+                raise TypeError('This file does not conform to the STAR file format. '
+                                'There is a problem with line {0}:\n {1}'.format(lineNumber,
+                                                                                line))
+
+            lineNumber += 1
+
+        start = lineNumber - 2
 
     finalDictionary = OrderedDict()
     currentLoop = -1
@@ -520,6 +755,17 @@ def parseSTARLines(lines, **kwargs):
     lineNumber = 0
     inLoop = False
     inShortBlock = False
+
+    for line in lines[:4]:
+        if line.startswith('data_'):
+            currentDataBlock = line[5:].strip()
+            finalDictionary[currentDataBlock] = OrderedDict()
+            currentLoop = -1
+            inLoop = False
+            inShortBlock = False
+            startingBlock = True
+            block_fieldCounter = 0
+
     for line in lines[start:stop]:
         if line.startswith('data_'):
             currentDataBlock = line[5:].strip()
@@ -542,13 +788,17 @@ def parseSTARLines(lines, **kwargs):
         elif line.startswith('_') or line.startswith(' _'):
             # This marks a field identifier
             currentField = split(line.strip(), shlex=shlex)[0]
+            if currentField == stop_field:
+                break
 
             if inLoop:
                 # We expect to only have the field identifier and no data until after
 
-                if len(split(line.strip(), shlex=shlex)) == 1 or len(split(line.strip(), shlex=shlex)) == 2:
+                if (len(split(line.strip(), shlex=shlex)) == 1
+                    or len(split(line.strip(), shlex=shlex)) == 2):
                     # This is what we expect for a data loop
-                    finalDictionary[currentDataBlock][currentLoop]['fields'][loop_fieldCounter] = currentField
+                    finalDictionary[currentDataBlock][
+                        currentLoop]['fields'][loop_fieldCounter] = currentField
                     dataItemsCounter = 0
                     loop_fieldCounter += 1
 
@@ -557,8 +807,10 @@ def parseSTARLines(lines, **kwargs):
                     inLoop = False
 
                     # We populate fields and data together, continuing the regular data block
-                    finalDictionary[currentDataBlock]['fields'][block_fieldCounter] = currentField
-                    finalDictionary[currentDataBlock]['data'][currentField] = split(line.strip(),
+                    finalDictionary[currentDataBlock][
+                        'fields'][block_fieldCounter] = currentField
+                    finalDictionary[currentDataBlock][
+                        'data'][currentField] = split(line.strip(),
                                                                                     shlex=shlex)[1]
                     block_fieldCounter += 1
 
@@ -571,11 +823,13 @@ def parseSTARLines(lines, **kwargs):
                     startingBlock = False
                     block_fieldCounter = 0
 
-                finalDictionary[currentDataBlock]['fields'][block_fieldCounter] = currentField
+                finalDictionary[currentDataBlock][
+                    'fields'][block_fieldCounter] = currentField
 
                 if len(split(line.strip(), shlex=shlex)) > 1:
                     # This is the usual behaviour so we can fill in the data from the rest of the line
-                    finalDictionary[currentDataBlock]['data'][currentField] = split(line.strip(),
+                    finalDictionary[currentDataBlock][
+                        'data'][currentField] = split(line.strip(),
                                                                                     shlex=shlex)[1]
                 else:
                     # In this case, we will look for the data in a short block over the following line(s).
@@ -599,53 +853,77 @@ def parseSTARLines(lines, **kwargs):
             # Data outside a loop is handled in line with the fields above or in shortDataBlocks below.
             if not inShortBlock and len(split(line, shlex=shlex)) == loop_fieldCounter:
                 # This is the usual case where each entry in the line corresponds to a field
-                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = OrderedDict()
+                finalDictionary[currentDataBlock][currentLoop][
+                    'data'][dataItemsCounter] = OrderedDict()
                 active_fieldCounter = 0
                 for fieldEntry in split(line.strip(), shlex=shlex):
-                    currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
-                    finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
+                    currentField = finalDictionary[currentDataBlock][
+                        currentLoop]['fields'][active_fieldCounter]
+                    if currentField == stop_field:
+                        break
+                    finalDictionary[currentDataBlock][currentLoop][
+                        'data'][dataItemsCounter][currentField] = fieldEntry
                     active_fieldCounter += 1
                 dataItemsCounter += 1
             else:
                 # The data is now being broken across lines.
                 if not inShortBlock:
                     inShortBlock = True
-                    finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = OrderedDict()
+                    finalDictionary[currentDataBlock][currentLoop][
+                        'data'][dataItemsCounter] = OrderedDict()
                     active_fieldCounter = 0
                     if not line.startswith(';'):
                         # Then we haven't got a split field and can treat fields as normal
                         inSplitField = False
                         for fieldEntry in split(line.strip(), shlex=shlex):
-                            currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
-                            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
+                            currentField = finalDictionary[currentDataBlock][
+                                currentLoop]['fields'][active_fieldCounter]
+                            if currentField == stop_field:
+                                break
+                            finalDictionary[currentDataBlock][currentLoop][
+                                'data'][dataItemsCounter][currentField] = fieldEntry
                             active_fieldCounter += 1
                     else:
                         # We have a single field split over many lines
                         inSplitField = True
-                        currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
-                        finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = line.strip() + ' '
+                        currentField = finalDictionary[currentDataBlock][
+                            currentLoop]['fields'][active_fieldCounter]
+                        if currentField == stop_field:
+                            break
+                        finalDictionary[currentDataBlock][currentLoop][
+                            'data'][dataItemsCounter][currentField] = line.strip() + ' '
                 else:
                     if not inSplitField:
                         # check if we are entering one
                         if line.startswith(';'):
                             inSplitField = True
-                            currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
-                            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = line.strip() + ' '
+                            currentField = finalDictionary[currentDataBlock][
+                                currentLoop]['fields'][active_fieldCounter]
+                            if currentField == stop_field:
+                                break
+                            finalDictionary[currentDataBlock][currentLoop][
+                                'data'][dataItemsCounter][currentField] = line.strip() + ' '
                         else:
                             # continue as normal
                             for fieldEntry in split(line.strip(), shlex=shlex):
-                                currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
-                                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
+                                currentField = finalDictionary[currentDataBlock][
+                                    currentLoop]['fields'][active_fieldCounter]
+                                if currentField == stop_field:
+                                    break
+                                finalDictionary[currentDataBlock][currentLoop][
+                                    'data'][dataItemsCounter][currentField] = fieldEntry
                                 active_fieldCounter += 1
                     else:
-                        finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] += line.strip()
+                        finalDictionary[currentDataBlock][currentLoop][
+                            'data'][dataItemsCounter][currentField] += line.strip()
                         if line.strip() == ';':
                             # This marks the end of the split field
                             inSplitField = False
                             active_fieldCounter += 1
                         else:
                             # Prepare for the next line
-                            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] += ' '
+                            finalDictionary[currentDataBlock][currentLoop][
+                                'data'][dataItemsCounter][currentField] += ' '
 
                     if active_fieldCounter == loop_fieldCounter:
                         inShortBlock = False
@@ -676,7 +954,8 @@ def parseSTARLines(lines, **kwargs):
 
         else:
             raise TypeError('This file does not conform to the STAR file format. '
-                            'There is a problem with line {0}:\n {1}'.format(lineNumber, line))
+                            'There is a problem with line {0}:\n {1}'.format(lineNumber,
+                                                                             line))
 
         lineNumber += 1
 
@@ -698,28 +977,123 @@ def writeSTAR(filename, starDict, **kwargs):
 
     kwargs can be given including the program style to follow (*prog*)
     """
+    stream = open(filename, 'w')
+    writeSTARStream(stream, starDict, **kwargs)
+    stream.close()
+
+def writeSTARStream(stream, starDict, **kwargs):
+    """Writes a STAR file from a dictionary containing data
+    such as that parsed from a Relion STAR file.
+
+    :arg stream: a stream
+        The .star extension can be omitted.
+    :type stream: str
+
+    :arg starDict: a dictionary in STAR format
+        This should have nested entries starting with data blocks then loops/tables then
+        field names and finally data.
+    :type starDict: dict
+
+    kwargs can be given including the program style to follow (*prog*)
+
+    :arg writeDataBlockTitle: whether to write hashes for empty lines
+        Default is **False**
+    :arg writeDataBlockTitle: bool
+
+    :arg writeHashes: whether to write hashes for empty lines
+        Default is **False** unless *prog* is **'mmcif'**
+    :arg writeHashes: bool
+    """
     prog=kwargs.get('prog', 'XMIPP')
+    writeDataBlockTitle = kwargs.get('writeDataBlockTitle', True)
+    writeHashes = kwargs.get('writeHashes', False)
+    if prog.lower() == 'mmcif':
+        writeHashes = True
 
-    star = open(filename, 'w')
+    for dataBlock in starDict:
+        dataBlockKey = dataBlock.getTitle()
+        if writeDataBlockTitle:
+            stream.write('\ndata_' + dataBlockKey + '\n')
 
-    for dataBlockKey in starDict:
-        star.write('\ndata_' + dataBlockKey + '\n')
-        for loopNumber in starDict[dataBlockKey]:
-            star.write('\nloop_\n')
+        if writeHashes:
+            stream.write('#')
+
+        old_prefix = ''
+        prefix_keys = OrderedDict([])
+        prefixes = []
+        non_loop_data = starDict[dataBlockKey]['data']
+        for key, value in non_loop_data.items():
+            prefix = key.split('.')[0]
+            if prefix != old_prefix:
+                prefixes.append(prefix)
+                old_prefix = prefix
+                prefix_keys[prefix] = []
+            prefix_keys[prefix].append(key)
+
+        for prefix, keys in prefix_keys.items():
+            max_len = max([len(key) for key in keys])
+            if max_len < 31:
+                max_len = 31
+
+            stream.write('\n')
+            if writeHashes:
+                stream.write('#')
+
+            for key in keys:
+                value = non_loop_data[key]
+                if value.startswith(';'):
+                    if 'one_letter_code' in key:
+                        value = '\n'.join(value.split())
+                    stream.write('\n%-45s\n%s\n;' % (key, value[:-2]))
+                else:
+                    stream.write('\n%-45s %s'.replace(
+                        '45', str(max_len)) % (key, value))
+
+        for loop in starDict[dataBlockKey].loops:
+            loopNumber = int(loop.getTitle().split()[-1])
+            if writeHashes:
+                stream.write('#')
+            stream.write('\nloop_\n')
             for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                 if prog == 'XMIPP':
-                    star.write(' ')
-                star.write(starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
+                    stream.write(' ')
+                stream.write(starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
             for dataItemNumber in starDict[dataBlockKey][loopNumber]['data']:
                 if prog == 'XMIPP':
-                    star.write('\t')
+                    stream.write('\t')
                 for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                     currentField = starDict[dataBlockKey][loopNumber]['fields'][fieldNumber]
-                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + '\t')
-                star.write('\n')
+                    data = starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField]
+                    if len(data.split()) > 1:
+                        data = "'" + data + "'"
+                    if prog == 'XMIPP':
+                        sep = '\t'
+                    else:
+                        sep = ' '
+                    if currentField in ['_entity_poly_seq.num',
+                                        '_pdbx_poly_seq_scheme.seq_id',
+                                        '_pdbx_poly_seq_scheme.ndb_seq_num',
+                                        '_pdbx_poly_seq_scheme.pdb_seq_num']:
+                        stream.write('%-4s' % data)
+                    elif currentField in ['_pdbx_poly_seq_scheme.auth_seq_num',
+                                          '_pdbx_poly_seq_scheme.pdb_mon_id',
+                                          '_pdbx_poly_seq_scheme.auth_mon_id',
+                                          '_pdbx_poly_seq_scheme.mon_id']:
+                        stream.write('%-3s' % data)
+                    elif currentField == '_chem_comp.name':
+                        stream.write('%-15s' % data)
+                    elif currentField == '_chem_comp.formula':
+                        stream.write('%-16s' % data)
+                    elif currentField == '_chem_comp.type':
+                        stream.write('%-19s' % data)
+                    elif currentField == '_entity_src_gen.host_org_common_name':
+                        stream.write('\n')
+                        stream.write(data)
+                    else:
+                        stream.write(data)
+                    stream.write(sep)
 
-    star.close()
-    return
+                stream.write('\n')
 
 
 def parseImagesFromSTAR(particlesSTAR, **kwargs):
