@@ -121,7 +121,14 @@ class TestParseMMCIF(unittest.TestCase):
                         self.no_pdb['segment_SX0_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'when segment SX0 is specified')
-        
+
+    def testSkipPDBs(self):
+        """Test outcome of valid and invalid *segment* arguments."""
+
+        pdb = self.altlocs['pdb']
+        _ = parsePDB(pdb)
+        _ = parseMMCIF(pdb)
+
     def testUniteChainsArgument(self):
         """Test outcome of valid and invalid *segment* arguments."""
 
@@ -467,6 +474,11 @@ ATOM 2 C CA . ASP A CA ASP A 1 59 ? 1.1 2.1 3.1 1.00 11.00 1
             'parsePDB failed to parse correct number of atoms for multi-model with altloc "all"')
         self.assertEqual(ag.numCoordsets(), self.multi['models'],
             'parsePDB failed to parse correct number of coordsets ({0}) with altloc "all"'.format(self.multi['models']))
+
+    def testLongSeqFix(self):
+        """Test the outcome of parsing 3o21 from id, which failed previously."""
+
+        _ = parseMMCIF('3o21')
 
     def testStopScipion(self):
         """Test number of coordinate sets and atoms for PyMOL CIF file with altloc='all'."""

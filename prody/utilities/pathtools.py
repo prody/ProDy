@@ -216,6 +216,12 @@ def gunzip(filename, outname=None):
             else:
                 outname = filename
 
+        # Quick gzip magic number check
+        with open(filename, 'rb') as f:
+            magic = f.read(2)
+        if magic != b'\x1f\x8b':
+            raise ValueError(f"File {filename} is not a valid gzip file")
+
         inp = gzip_open(filename, 'rb')
         data = inp.read()
         inp.close()
@@ -224,6 +230,10 @@ def gunzip(filename, outname=None):
         out.close()
         return outname
     else:
+        # filename is a buffer, so check directly without opening
+        if filename[:2] != b'\x1f\x8b':
+            raise ValueError("Buffer is not gzipped or is invalid content")
+
         result = None
         try:
             from StringIO import StringIO
