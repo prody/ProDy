@@ -1,4 +1,5 @@
 #include "Python.h"
+#include <ctype.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #define LENLABEL 100
@@ -16,19 +17,46 @@ static char *intcat(char *msg, int line) {
 }
 
 
+static int labelLength(char *line, int length, int tabs) {
+
+    /* Return the length of the label at the start of *line*, which ends at
+       the first control character, or the first one other than a tab when
+       *tabs* is true.  */
+
+    int i, ch;
+    for (i = 0; i < length; i++) {
+        ch = (unsigned char) line[i];
+        if (ch < 32 && !(tabs && ch == '\t'))
+            break;
+    }
+    return i;
+}
+
+
+static PyObject *decodeLabel(char *line, int length) {
+
+    /* Return a new reference to *line* decoded as a label.  */
+
+    #if PY_MAJOR_VERSION >= 3
+    return PyUnicode_DecodeUTF8(line, length, "replace");
+    #else
+    return PyString_FromStringAndSize(line, length);
+    #endif
+}
+
+
 static int parseLabel(PyObject *labels, PyObject *mapping, char *line,
-                      int length) {
+                      int length, int tabs) {
 
     /* Append label to *labels*, extract identifier, and index label
        position in the list. Return 1 when successful, 0 on failure. */
 
     int i, ch, slash = 0, dash = 0;//, ipipe = 0, pipes[4] = {0, 0, 0, 0};
 
+    length = labelLength(line, length, tabs);
     for (i = 0; i < length; i++) {
         ch = line[i];
-        if (ch < 32 && ch != 20)
-            break;
-        else if (ch == '/' && slash == 0 && dash == 0)
+        if (ch == '/' && slash == 0 && dash == 0)
             slash = i;
         else if (ch == '-' && slash > 0 && dash == 0)
             dash = i;
@@ -37,11 +65,10 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char *line,
     }
 
     PyObject *label, *index;
+    label = decodeLabel(line, i);
     #if PY_MAJOR_VERSION >= 3
-    label = PyUnicode_FromStringAndSize(line, i);
     index = PyLong_FromSsize_t(PyList_Size(labels));
     #else
-    label = PyString_FromStringAndSize(line, i);
     index = PyInt_FromSsize_t(PyList_Size(labels));
     #endif
 
@@ -57,11 +84,7 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char *line,
 
     if (slash > 0 && dash > slash) {
         Py_DECREF(label);
-        #if PY_MAJOR_VERSION >= 3
-        label = PyUnicode_FromStringAndSize(line, slash);
-        #else
-        label = PyString_FromStringAndSize(line, slash);
-        #endif
+        label = decodeLabel(line, slash);
     }
 
     if (PyDict_Contains(mapping, label)) {
@@ -129,7 +152,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
                     seqlen = curlen;
             }
             // `line + 1` is to omit `>` character
-            count += parseLabel(labels, mapping, line + 1, FASTALINELEN);
+            count += parseLabel(labels, mapping, line + 1, FASTALINELEN, 0);
             curlen = 0;
         } else {
             for (i = 0; i < FASTALINELEN; i++) {
@@ -233,10 +256,94 @@ static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
     return Py_BuildValue("s", filename);
 }
 
+static int splitSelexLine(char *line, long *lbeg, long *lend,
+                          long *sbeg, long *send) {
+
+    /* Find the label and the sequence in a SELEX/Stockholm *line*.  The
+       sequence is the last whitespace separated item, and the label is the
+       text before it.  Return 0 for markup lines, -1 for blank lines, 1
+       for sequence lines, and 2 for the // line that ends the alignment. */
+
+    long i;
+
+    if (line[0] == '/' && line[1] == '/') {
+        for (i = 2; line[i] && isspace((unsigned char) line[i]); i++);
+        if (!line[i])
+            return 2;
+    }
+    if (line[0] == '#')
+        return 0;
+
+    i = strlen(line);
+    while (i > 0 && isspace((unsigned char) line[i - 1]))
+        i--;
+    if (i == 0)
+        return -1;
+    *send = i;
+    while (i > 0 && !isspace((unsigned char) line[i - 1]))
+        i--;
+    *sbeg = i;
+    while (i > 0 && isspace((unsigned char) line[i - 1]))
+        i--;
+    *lend = i;
+    for (i = 0; i < *lend && isspace((unsigned char) line[i]); i++);
+    *lbeg = i;
+    return 1;
+}
+
+
+static int readLine(FILE *file, char **line, long *size) {
+
+    /* Read a whole line from *file* into *line*, doubling the size of the
+       buffer until the line fits.  Return 1 when a line is read, 0 at the
+       end of file, and -1 when memory runs out. */
+
+    long length;
+    char *longer;
+
+    if (fgets(*line, *size, file) == NULL)
+        return 0;
+    length = strlen(*line);
+    while (length == *size - 1 && (*line)[length - 1] != '\n') {
+        longer = realloc(*line, 2 * *size * sizeof(char));
+        if (!longer)
+            return -1;
+        *line = longer;
+        *size *= 2;
+        if (fgets(*line + length, *size - length, file) == NULL)
+            break;
+        length += strlen(*line + length);
+    }
+    return 1;
+}
+
+
+static int sameLabel(PyObject *labels, long index, char *label, long length) {
+
+    /* Return 1 if item *index* of *labels* is *label*, 0 otherwise. */
+
+    int same = 0;
+    PyObject *item = PyList_GetItem(labels, (Py_ssize_t) index); /* borrowed */
+    PyObject *other = decodeLabel(label, labelLength(label, length, 1));
+    #if PY_MAJOR_VERSION >= 3
+    if (item && other && PyUnicode_Check(item))
+        same = PyUnicode_Compare(item, other) == 0;
+    #else
+    if (item && other && PyString_Check(item))
+        same = strcmp(PyString_AsString(item), PyString_AsString(other)) == 0;
+    #endif
+    Py_XDECREF(other);
+    PyErr_Clear();
+    return same;
+}
+
+
 static PyObject *parseSelex(PyObject *self, PyObject *args) {
 
     /* Parse sequences from *filename* into the the memory pointed by the
-       Numpy array passed as Python object.  */
+       Numpy array passed as Python object.  An alignment may be split into
+       blocks separated by blank lines, and each block must repeat the labels
+       of the first block in the same order.  */
 
     char *filename;
     PyArrayObject *msa;
@@ -244,8 +351,10 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
         return NULL;
 
-    long i = 0, beg = 0, end = 0;
-    long size = SELEXLINELEN + 1, iline = 0, seqlen = 0;
+    long lbeg = 0, lend = 0, sbeg = 0, send = 0;
+    long size = SELEXLINELEN + 1, iline = 0;
+    long numseq = 0, seqlen = 0, row, column, width = 0, count = 0;
+    int kind, pass, inblock, status;
     char errmsg[LENLABEL] = "failed to parse SELEX/Stockholm file at line ";
 
     PyObject *labels = PyList_New(0), *mapping = PyDict_New();
@@ -255,52 +364,89 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     if (!line)
         return PyErr_NoMemory();
     char *data = (char *) PyArray_DATA(msa);
-    /* figure out where the sequence starts and ends in a line*/
+
     FILE *file = fopen(filename, "rb");
-    while (fgets(line, size, file) != NULL) {
-        iline++;
-        if (line[0] == '#' || line[0] == '/' || line[0] == '%')
-            continue;
-        for (i = 0; i < size; i++)
-            if (line[i] == ' ')
-                break;
-        for (; i < size; i++)
-            if (line[i] != ' ')
-                break;
-        beg = i;
-        for (; i < size; i++)
-            if (line[i] < 32)
-                break;
-        end = i;
-        seqlen = end - beg;
-        break;
+    if (!file) {
+        free(line);
+        Py_DECREF(labels);
+        Py_DECREF(mapping);
+        return PyErr_SetFromErrnoWithFilename(PyExc_IOError, filename);
     }
-    iline--;
-    fseek(file, - strlen(line), SEEK_CUR);
 
-    long index = 0, count = 0;
-
-    int space = beg - 1; /* index of space character before sequence */
-    while (fgets(line, size, file) != NULL) {
-        iline++;
-        if (line[0] == '#' || line[0] == '/' || line[0] == '%')
-            continue;
-
-        if (line[space] != ' ') {
-            free(line);
-            fclose(file);
-            PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
-            return NULL;
-        }
-
-        count += parseLabel(labels, mapping, line, space);
-
-        for (i = beg; i < end; i++)
-            data[index++] = line[i];
+    /* the first pass counts sequences in the first block and adds up the
+       widths of blocks, the second pass copies each block into place */
+    for (pass = 0; pass < 2; pass++) {
+        rewind(file);
+        iline = 0;
+        row = 0;
+        column = 0;
+        inblock = 0;
+        do {
+            status = readLine(file, &line, &size);
+            if (status < 0) {
+                fclose(file);
+                free(line);
+                Py_DECREF(labels);
+                Py_DECREF(mapping);
+                return PyErr_NoMemory();
+            }
+            if (!status)
+                kind = -1;
+            else {
+                iline++;
+                kind = splitSelexLine(line, &lbeg, &lend, &sbeg, &send);
+            }
+            if (kind == 2) {
+                /* nothing after the end of the alignment is read */
+                kind = -1;
+                status = 0;
+            }
+            if (kind == 0)
+                continue;
+            if (kind == -1) {
+                /* a blank line or the end of file ends a block */
+                if (inblock) {
+                    if (!pass && !column)
+                        numseq = row;
+                    else if (row != numseq)
+                        goto fail;
+                    column += width;
+                    row = 0;
+                    inblock = 0;
+                }
+                continue;
+            }
+            if (lend == lbeg || (column && row == numseq))
+                goto fail;
+            if (!inblock) {
+                width = send - sbeg;
+                inblock = 1;
+            } else if (send - sbeg != width)
+                goto fail;
+            if (pass) {
+                if (!column)
+                    count += parseLabel(labels, mapping, line + lbeg,
+                                        lend - lbeg, 1);
+                else if (!sameLabel(labels, row, line + lbeg, lend - lbeg))
+                    goto fail;
+                memcpy(data + row * seqlen + column, line + sbeg, width);
+            }
+            row++;
+        } while (status);
+        seqlen = column;
     }
     fclose(file);
     free(line);
-    npy_intp dims[2] = {index / seqlen, seqlen};
+
+    if (!numseq || !seqlen) {
+        Py_DECREF(labels);
+        Py_DECREF(mapping);
+        PyErr_SetString(PyExc_IOError,
+                        "no sequences found in SELEX/Stockholm file");
+        return NULL;
+    }
+
+    npy_intp dims[2] = {numseq, seqlen};
     PyArray_Dims arr_dims;
     arr_dims.ptr = dims;
     arr_dims.len = 2;
@@ -310,6 +456,14 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     Py_DECREF(mapping);
 
     return result;
+
+  fail:
+    fclose(file);
+    free(line);
+    Py_DECREF(labels);
+    Py_DECREF(mapping);
+    PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
+    return NULL;
 }
 
 
@@ -317,7 +471,9 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     /* Write MSA where inputs are: labels in the form of Python lists
     and sequences in the form of Python numpy array and write them in
-    SELEX (default) or Stockholm format in the specified filename.*/
+    SELEX (default) or Stockholm format in the specified filename.  Labels
+    are padded to *label_length*, and at least one space separates a label
+    from its sequence.*/
 
     char *filename;
     PyObject *labels;
@@ -344,18 +500,14 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
     }
 
     FILE *file = fopen(filename, "wb");
+    if (!file)
+        return PyErr_SetFromErrnoWithFilename(PyExc_IOError, filename);
 
     int i, j;
-    int pos = 0;
+    long pos = 0;
     char *seq = PyArray_DATA(msa);
     if (stockholm)
         fprintf(file, "# STOCKHOLM 1.0\n");
-
-    char *outline = (char *) malloc((label_length + lenseq + 2) *
-                                    sizeof(char));
-
-    outline[label_length + lenseq] = '\n';
-    outline[label_length + lenseq + 1] = '\0';
 
     #if PY_MAJOR_VERSION >= 3
     PyObject *plabel;
@@ -366,28 +518,27 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
                 PyList_GetItem(labels, (Py_ssize_t) i), "utf-8",
                                "label encoding");
         char *label =  PyBytes_AsString(plabel);
-        Py_DECREF(plabel);
         #else
         char *label = PyString_AsString(PyList_GetItem(labels, (Py_ssize_t)i));
         #endif
-        int labelbuffer = label_length - strlen(label);
 
-        strcpy(outline, label);
+        fputs(label, file);
+        j = strlen(label);
+        do
+            fputc(' ', file);
+        while (++j < label_length);
+        fwrite(seq + pos, sizeof(char), lenseq, file);
+        fputc('\n', file);
+        pos += lenseq;
 
-        if (labelbuffer > 0)
-            for(j = strlen(label); j < label_length; j++)
-                outline[j] = ' ';
-
-        for (j = label_length; j < (lenseq + label_length); j++)
-            outline[j] = seq[pos++];
-
-        fprintf(file, "%s", outline);
+        #if PY_MAJOR_VERSION >= 3
+        Py_DECREF(plabel);
+        #endif
     }
 
     if (stockholm)
         fprintf(file, "//\n");
 
-    free(outline);
     fclose(file);
     return Py_BuildValue("s", filename);
 }
