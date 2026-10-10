@@ -48,23 +48,29 @@ MSAEXTMAP = {
     '.ali': PIR,
 }
 
-WSJOIN = ' '.join
 ESJOIN = ''.join
 
 NUMLINES = 1000
 LEN_FASTA_LINE = 60
 LEN_SELEX_LABEL = 31
+LEN_CLUSTAL_LINE = 60
+LEN_CLUSTAL_LABEL = 16
+CLUSTAL_HEADERS = ('CLUSTAL', 'MUSCLE', 'PROBCONS', 'MSAPROBS', 'Kalign',
+                   'Biopython')
+SELEX_MARKUP = '#'
 
 
 class MSAFile(object):
 
-    """Handle MSA files in FASTA, SELEX, CLUSTAL and Stockholm formats."""
+    """Handle MSA files in FASTA, SELEX, Stockholm, CLUSTAL and PIR formats."""
 
     def __init__(self, msa, mode='r', format=None, aligned=True, **kwargs):
         """*msa* may be a filename or a stream.  Multiple sequence alignments
         can be read from or written in FASTA (:file:`.fasta`), Stockholm
-        (:file:`.sth`), CLUSTAL (:file:`.aln`), or SELEX (:file:`.slx`) *format*.  
-        For specified extensions, *format* argument is not needed. If *aligned* is
+        (:file:`.sth`), CLUSTAL (:file:`.aln`), PIR (:file:`.ali`), or SELEX
+        (:file:`.slx`) *format*.  For specified extensions, *format* argument
+        is not needed.  CLUSTAL files interleave sequences in blocks, so they
+        are written when the instance is closed.  If *aligned* is
         **True**, unaligned sequences in the file or stream will cause an
         :exc:`IOError` exception.  *filter*, a function that returns a
         boolean, can be used for filtering sequences, see :meth:`MSAFile.setFilter`
@@ -160,6 +166,8 @@ class MSAFile(object):
                 write('# STOCKHOLM 1.0\n')
             if format.startswith('S'):
                 self._selex_line = '{0:' + str(LEN_SELEX_LABEL) + 's} {1}\n'
+            elif format == CLUSTAL:
+                self._clustal = []
 
         self._mode = mode
 
@@ -227,18 +235,27 @@ class MSAFile(object):
         return lines
 
     def close(self):
-        """Close the file.  This method will not affect a stream."""
+        """Close the file.  A stream is not closed, but the end of the
+        alignment is written into it when writing CLUSTAL or Stockholm
+        format."""
+
+        # __init__ may have failed before setting _closed
+        if getattr(self, '_closed', True):
+            return
+
+        if not self._mode.startswith('r'):
+            try:
+                if self._format == CLUSTAL:
+                    self._write(_formatClustal(self._clustal))
+                elif self._format == STOCKHOLM:
+                    self._write('//\n')
+            except ValueError:
+                LOGGER.info('Failed to write the end of the alignment to '
+                            'closed file.')
 
         if self._filename is None:
             self._closed = True
             return
-
-        if not self._mode.startswith('r') and self._format == STOCKHOLM:
-            try:
-                self._write('//\n')
-            except ValueError:
-                LOGGER.info('Failed to write terminal slash characters to '
-                            'closed file.')
 
         try:
             self._stream.close()
@@ -321,39 +338,53 @@ class MSAFile(object):
             lines = self._readlines(NUMLINES)
         yield ESJOIN(temp), label
 
-    def _iterSelex(self):
-        """Yield sequences from an MSA file in Stockholm/SELEX format."""
+    def _iterLines(self):
+        """Yield lines from the file or stream."""
+
+        lines = self._readlines(NUMLINES)
+        while lines:
+            for line in lines:
+                yield line
+            lines = self._readlines(NUMLINES)
+
+    def _iterChecked(self, items):
+        """Yield sequence and label pairs from *items*, checking that aligned
+        sequences have the same length."""
 
         aligned = self._aligned
         lenseq = self._lenseq
-        readlines = self._readlines
+        for seq, label in items:
+            if not lenseq:
+                self._lenseq = lenseq = len(seq)
+            if aligned and lenseq != len(seq):
+                raise IOError('sequence for {0} does not have '
+                              'expected length {1}'
+                              .format(label, lenseq))
+            yield seq, label
 
-        lines = readlines(NUMLINES)
-        while lines:
-            for line in lines:
-                ch = line[0]
-                if ch == '#' or ch == '/':
-                    continue
-                items = line.split()
-                if len(items) == 2:
-                    label = items[0]
-                    seq = items[1]
-                else:
-                    label = WSJOIN(items[:-1])
-                    seq = items[-1]
-                if not lenseq:
-                    self._lenseq = lenseq = len(seq)
-                if aligned and lenseq != len(seq):
-                    raise IOError('sequence for {0} does not have '
-                                  'expected length {1}'
-                                  .format(label, lenseq))
-                yield seq, label
-            lines = readlines(NUMLINES)
+    def _iterSelex(self):
+        """Yield sequences from an MSA file in Stockholm/SELEX format."""
+
+        return self._iterChecked(_joinBlocks(_selexItems(self._iterLines()),
+                                             self._aligned))
+
+    def _iterClustal(self):
+        """Yield sequences from an MSA file in CLUSTAL format."""
+
+        return self._iterChecked(_joinBlocks(_clustalItems(self._iterLines()),
+                                             self._aligned))
+
+    def _iterPIR(self):
+        """Yield sequences from an MSA file in PIR format."""
+
+        return self._iterChecked(_pirItems(self._iterLines()))
 
     _itermap = {
         FASTA: _iterFasta,
         SELEX: _iterSelex,
         STOCKHOLM: _iterSelex,
+        CLUSTAL: _iterClustal,
+        PIR: _iterPIR,
     }
 
     def getTitle(self):
@@ -473,6 +504,10 @@ class MSAFile(object):
                 write('\n')
                 beg += LEN_FASTA_LINE
                 end += LEN_FASTA_LINE
+        elif self._format == CLUSTAL:
+            self._clustal.append((label, sequence))
+        elif self._format == PIR:
+            write(_formatPIR(label, sequence))
         else:
             write(self._selex_line.format(label, sequence))
 
@@ -618,62 +653,191 @@ def parseMSA(filename, **kwargs):
                       .format(*msaarr.shape), '_parsemsa')
     return msa
 
+def _selexItems(lines):
+    """Yield label and sequence pairs from SELEX or Stockholm format *lines*,
+    and **None** for each blank line, up to the ``//`` line that ends the
+    alignment.  The sequence is the last whitespace separated item of a
+    line, and the label is the text before it."""
+
+    for line in lines:
+        if line.rstrip() == '//':
+            break
+        if line.startswith(SELEX_MARKUP):
+            continue
+        items = line.rsplit(None, 1)
+        if not items:
+            yield None
+        elif len(items) == 1:
+            raise IOError('failed to parse SELEX/Stockholm line {0}, '
+                          'label or sequence is missing'
+                          .format(repr(line.strip())))
+        else:
+            yield items[0].strip(), items[1]
+
+
+def _clustalItems(lines):
+    """Yield label and sequence pairs from CLUSTAL format *lines*, and
+    **None** for each blank or conservation line.  The header line and the
+    residue counts that follow sequences are skipped."""
+
+    header = True
+    for line in lines:
+        if header:
+            if not line.strip():
+                continue
+            header = False
+            if line.startswith(CLUSTAL_HEADERS):
+                continue
+        if not line.strip() or line[0].isspace():
+            yield None
+            continue
+        # the sequence is the last item, unless it is followed by a residue
+        # count, and the label is the text before it
+        items = line.rsplit(None, 1)
+        if (len(items) == 2 and items[1].isdigit() and
+                len(items[0].split()) > 1):
+            items = items[0].rsplit(None, 1)
+        if len(items) != 2:
+            raise IOError('failed to parse CLUSTAL line {0}'
+                          .format(repr(line.strip())))
+        yield items[0].strip(), items[1]
+
+
+def _joinBlocks(items, aligned=True):
+    """Yield sequence and label pairs joined from *items* that come in
+    blocks, e.g. from :func:`_selexItems`.  Each block must repeat the labels
+    of the first block in the same order, and when *aligned* is **True**,
+    sequences in a block must have the same length."""
+
+    labels = []
+    pieces = []
+    first = True
+    row = width = 0
+    for item in items:
+        if item is None:
+            if row:
+                if not first and row != len(labels):
+                    raise IOError('a block has {0} sequences, not {1}'
+                                  .format(row, len(labels)))
+                first = False
+                row = 0
+            continue
+        label, seq = item
+        if not row:
+            width = len(seq)
+        elif aligned and len(seq) != width:
+            raise IOError('sequence for {0} does not have expected length '
+                          '{1} in the block'.format(label, width))
+        if first:
+            labels.append(label)
+            pieces.append([seq])
+        elif row >= len(labels):
+            raise IOError('a block has more than {0} sequences'
+                          .format(len(labels)))
+        elif labels[row] != label:
+            raise IOError('a block has sequence {0} where {1} is expected'
+                          .format(repr(label), repr(labels[row])))
+        else:
+            pieces[row].append(seq)
+        row += 1
+    if row and not first and row != len(labels):
+        raise IOError('a block has {0} sequences, not {1}'
+                      .format(row, len(labels)))
+    for label, seq in zip(labels, pieces):
+        yield ESJOIN(seq), label
+
+
+def _pirItems(lines):
+    """Yield sequence and label pairs from PIR format *lines*, as MODELLER
+    writes them.  The line after each ``>P1;`` line is the description line,
+    and the ``*`` that ends a sequence is not part of it."""
+
+    label = None
+    description = False
+    pieces = []
+    for line in lines:
+        if description:
+            description = False
+        elif line.startswith('>'):
+            if label is not None:
+                yield _stripPIR(pieces), label
+            label = line[1:].strip()
+            if label[2:3] == ';':
+                label = label[3:].strip()
+            description = True
+            pieces = []
+        elif label is not None:
+            pieces.append(ESJOIN(line.split()))
+    if label is not None:
+        yield _stripPIR(pieces), label
+
+
+def _stripPIR(pieces):
+    """Returns PIR sequence joined from *pieces*, without the terminal ``*``."""
+
+    seq = ESJOIN(pieces)
+    if seq.endswith('*'):
+        seq = seq[:-1]
+    return seq
+
+
+def _parseItems(items, msaarr):
+    """Returns array, labels, mapping and label count for sequence and label
+    pairs in *items*, as the C parsers do."""
+
+    labels = []
+    for seq, label in items:
+        if msaarr and len(seq) != len(msaarr[0]):
+            raise IOError('sequence for {0} does not have expected length {1}'
+                          .format(label, len(msaarr[0])))
+        msaarr.append(list(seq))
+        labels.append(label)
+    return array(msaarr), labels, None, len(labels)
+
+
 def parseClustal(filename, msaarr):
     """
     Parses a CLUSTAL format (:file:`.aln`) alignment file.
     """
-    msafile = open(filename,'r')
-    lines = msafile.readlines()
-    msafile.close()
-
-    msa_dict = {}
-    keys = []
-    for line in lines:
-        foundBadItem = False
-        try:
-            key = line.strip().split()[0]
-            seq = line.strip().split()[1]
-        except:
-            continue
-        for badItem in ['*', ' ', ':', 'CLUSTAL', '.']:
-            if badItem in key:
-                foundBadItem = True
-                continue
-        if foundBadItem:
-            continue
-        if not key in keys:
-            keys.append(key)
-            msa_dict[key] = seq
-        else:
-            msa_dict[key] = msa_dict[key] + seq
-
-    for key in keys:
-        msaarr.append(list(msa_dict[key]))
-
-    return array(msaarr), keys, None, len(keys)
+    with open(filename, 'r') as msafile:
+        return _parseItems(_joinBlocks(_clustalItems(msafile)), msaarr)
 
 def parsePIR(filename, msaarr):
-    msafile = open(filename,'r')
-    lines = msafile.readlines()
-    msafile.close()
+    """
+    Parses a PIR format (:file:`.ali`) alignment file.
+    """
+    with open(filename, 'r') as msafile:
+        return _parseItems(_pirItems(msafile), msaarr)
 
-    labels = []
-    i = -1
+def _formatClustal(items):
+    """Returns CLUSTAL format text for *items*, label and sequence pairs.
+    Labels are padded to the same width, leaving at least one space before
+    sequences."""
 
-    for line in lines:
-        if line.startswith('>P1;'):
-            labels.append(line.strip()[len('>P1;'):])
-            i += 1
-            msaarr.append([])
-        elif line.startswith('s') or line.strip() == '':
-            pass
-        else:
-            msaarr[i].append(line.strip())
+    width = max([LEN_CLUSTAL_LABEL] +
+                [len(label) + 1 for label, seq in items])
+    lenseq = max([len(seq) for label, seq in items] + [0])
+    lines = ['CLUSTAL W file written by ProDy\n']
+    for beg in range(0, lenseq, LEN_CLUSTAL_LINE):
+        lines.append('\n')
+        for label, seq in items:
+            lines.append(label.ljust(width))
+            lines.append(seq[beg:beg + LEN_CLUSTAL_LINE])
+            lines.append('\n')
+    return ESJOIN(lines)
 
-    for i in range(len(msaarr)):
-        msaarr[i] = list(''.join(msaarr[i]))
+def _formatPIR(label, sequence, description=None):
+    """Returns PIR format text for a sequence.  By default, the description
+    line has the fields that :func:`writePIR` writes by default."""
 
-    return array(msaarr), labels, None, len(labels)
+    if description is None:
+        description = 'Sequence:' + label + ':FIRST:@:LAST : ::::'
+    lines = ['>P1;' + label + '\n', description + '\n']
+    sequence += '*'
+    for beg in range(0, len(sequence), LEN_FASTA_LINE):
+        lines.append(sequence[beg:beg + LEN_FASTA_LINE] + '\n')
+    lines.append('\n')
+    return ESJOIN(lines)
 
 def writeClustal(filename, msa):
     """A simple writer for CLUSTAL format alignments.
@@ -681,25 +845,10 @@ def writeClustal(filename, msa):
     This lacks the characters showing degree of conservation
     but otherwise conforms to the CLUSTAL format standards."""
 
-    msafile = open(filename, 'w')
-
-    msafile.write('CLUSTALW file written by ProDy\n\n')
-
-    for j in range(msa.numResidues()/60):
-        for i in range(msa.numSequences()):
-            sequence = str(msa[i])
-            msafile.write(msa.getLabel(i) + ' '*(16-len(msa.getLabel(i))))
-            msafile.write(sequence[j*60:(j+1)*60])
-            msafile.write('\n')
-        msafile.write('\n\n')
-
-    for i in range(msa.numSequences()):
-        sequence = str(msa[i])
-        msafile.write(msa.getLabel(i) + ' '*(16-len(msa.getLabel(i))))
-        msafile.write(sequence[(j+1)*60:])
-        msafile.write('\n')
-
-    msafile.close()
+    items = [(msa.getLabel(i, full=True), str(msa[i]))
+             for i in range(msa.numSequences())]
+    with open(filename, 'w') as msafile:
+        msafile.write(_formatClustal(items))
     return
 
 def writePIR(filename, msa, **kwargs):
@@ -783,7 +932,7 @@ def writePIR(filename, msa, **kwargs):
     if labels is None: 
         labels = []
         for sequence in msa:
-            labels.append(sequence.getLabel())
+            labels.append(sequence.getLabel(True))
     elif isListLike(labels) and isinstance(labels[0], basestring):
         if len(labels) != msa.numSequences():
             raise ValueError('There should be an entry in labels list for each sequence in msa')
@@ -864,29 +1013,24 @@ def writePIR(filename, msa, **kwargs):
 
     for i, sequence in enumerate(msa):
         sequence = str(sequence).replace(chain_sep[i],'/')
-        msafile.write('>P1;' + labels[i] + '\n')
-        msafile.write(types[i] + ':' + labels[i] + ':')
-        msafile.write(first_resnums[i] + ':' + first_chains[i] + ':')
-        msafile.write(last_resnums[i] + ':' + last_chains[i] + ':')
-        msafile.write(protein_names[i] + ':' + protein_sources[i] + ':')
-        msafile.write(resolutions[i] + ':' + r_factors[i])
-        msafile.write('\n')
-
-        for j in range(len(sequence)/60):
-            msafile.write(sequence[j*60:(j+1)*60] + '\n')
-        msafile.write(sequence[(j+1)*60:] + '*\n\n')
+        description = ':'.join([types[i], labels[i],
+                                first_resnums[i], first_chains[i],
+                                last_resnums[i], last_chains[i],
+                                protein_names[i], protein_sources[i],
+                                resolutions[i], r_factors[i]])
+        msafile.write(_formatPIR(labels[i], sequence, description))
 
     msafile.close()
     return
 
 def writeMSA(filename, msa, **kwargs):
     """Returns *filename* containing *msa*, a :class:`.MSA` or :class:`.MSAFile`
-    instance, in the specified *format*, which can be *SELEX*, *Stockholm*, or
-    *FASTA*.  If *compressed* is **True** or *filename* ends with :file:`.gz`,
-    a compressed file will be written.  :class:`.MSA` instances will be written
-    using C function into uncompressed files.
-    
-    Can also write *CLUSTAL* or *PIR* format files using Python functions."""
+    instance, in the specified *format*, which can be *SELEX*, *Stockholm*,
+    *FASTA*, *CLUSTAL*, or *PIR*.  If *compressed* is **True** or *filename*
+    ends with :file:`.gz`, a compressed file will be written.  :class:`.MSA`
+    instances will be written using C function into uncompressed SELEX,
+    Stockholm, and FASTA files, and using Python functions into CLUSTAL and
+    PIR files."""
 
     fntemp, ext = splitext(filename)
     ext = ext.lower()

@@ -1,0 +1,8 @@
+# a SELEX alignment in two blocks
+Q9XYZ1                   ACDEFGHIKLMN
+long_label_with.dots_and:colons*star  AC-EFGHIK-MN
+x/1-12                   acdefghiklmn
+
+Q9XYZ1   PQRS
+long_label_with.dots_and:colons*star PQ-S
+x/1-12   pqrs
