@@ -48,6 +48,8 @@ dependencies = [
     "biopython",
     "pyparsing<=3.1.1",
     "scipy",
+    "requests",
+    "requests_cache",
 ]
 
 [project.urls]

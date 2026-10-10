@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Page Not Found{% endblock %}
+{% block body %}
+<div class="jumbotron text-center py-4">
+  <h1>Oops! Looks like the page doesn't exist.</h1>
+  <a href="{{ url_for('index') }}">
+    <p>Return
+  </a> to the Home Page</p>
+</div>
+{% endblock %}

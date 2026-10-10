@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Search results{% endblock %}
+{% block extras %}
+<h3>Results</h3>
+<p>Found {{ data|length }} matches for {{ motif }} motif.</p>
+<p><a href="{{ url_for('download_result', file=filename) }}" class="btn btn-link btn-xs" role="button">Download
+        results</a></p>
+<label class="form-check-label" for="myInput">Filter results:</label>
+<input class="form-control" id="myInput" type="text" placeholder="Search...">
+{% endblock %}
+{% block content %}
+<div class="container" id="myDIV">
+    {% for result in data %}
+    {% for key, value in result.items() %}
+    <div class="row">
+        <div class="col-lg-2 text-end" style="background-color:rgb(200, 200, 200);">{{ key }}</div>
+        <div class="col-lg-10">{{ value }}</div>
+    </div>
+    {% endfor %}
+    <div class="row">
+        <div class="col-lg-12"><br /></div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
