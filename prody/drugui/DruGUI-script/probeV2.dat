@@ -3,6 +3,7 @@
 # default: percentage of the probe component
 # category: one of core, negative, positive, ring5, ring6, polar, hydrophobe
 
+
 IPRO name isopropanol
 IPRO default 16
 IPRO type core
@@ -13,7 +14,7 @@ ACAM default 14
 ACAM type core
 
 ACTT name acetate
-ACTT alias C3 O3 OH2 O4 C2 C2 C1 C1 H11 H11 H12 H12 H13 H13 
+ACTT alias C3 O3 OH2 O4 C2 C2 C1 C1 H11 H11 H12 H12 H13 H13
 ACTT default 14
 ACTT type core
 
@@ -64,13 +65,13 @@ ACEM name acetamide
 ACEM alias C2 C C1 CC H11 HC1 H12 HC2 H13 HC3 OH2 O C3 N H31 HT H32 HC
 ACEM type polar
 
-MEOH name methanol 
-MEOH alias C1 HB1 H11 HB2 H12 HB3 H13 OG   
+MEOH name methanol
+MEOH alias C1 HB1 H11 HB2 H12 HB3 H13 OG
 MEOH type polar
 
 MESH name methanethiol
-MESH alias C1 CM H11 H1 H12 H2 H13 H3 H13 H4 C2 S 
-MESH type polar 
+MESH alias C1 CM H11 H1 H12 H2 H13 H3 H13 H4 C2 S
+MESH type polar
 
 ETOH name ethanol
 ETOH alias C1 H11 H12 C2 H21 H22 H13 H23 HO2 HO1
@@ -81,7 +82,7 @@ ETSH alias C1 CM1 H11 H1 H12 H2 H13 H3 H13 CM2 C2 S3 H31 H5 H32 H6
 ETSH type polar
 
 TBOH name t-butanol
-TBOH alias C1 C2 H11 H21 H12 H22 H13 H23 C2 C1 C3 H31 H32 H33 C2 C OH2 O HO2 HO  
+TBOH alias C1 C2 H11 H21 H12 H22 H13 H23 C2 C1 C3 H31 H32 H33 C2 C OH2 O HO2 HO
 TBOH type polar
 
 AALD name Acetaldehyde
@@ -109,12 +110,12 @@ CO3 alias C2 C1 C1 O1 OH2 O2 C3 O3
 CO3 type negative
 
 METO name methoxide
-METO alias C2 CB H11 HB1 H12 HB2 H13 HB3 OH2 OG 
+METO alias C2 CB H11 HB1 H12 HB2 H13 HB3 OH2 OG
 METO type negative
 
 MES1 name methylthiolate
-MES1 alias C1 H11 H12 H13 HO2 S 
-MES1 type negative 
+MES1 alias C1 H11 H12 H13 HO2 S
+MES1 type negative
 
 ETO name ethoxide
 ETO alias C1 CA C2 CB H11 HB1 H12 HB2 OH2 OG H31 HA1 H32 HA2 H33 HA3
@@ -133,12 +134,12 @@ IMIM alias OH2 HG C2 CG C3 CD2
 IMIM type ring5
 
 MIMI name 4-methylimidazole
-MIMI alias OH2 CB C2 CG C1 ND1 
+MIMI alias OH2 CB C2 CG C1 ND1
 MIMI type ring5
 
 BENZ name benzene
 BENZ alias C2 CG C1 CD1 C3 CD2
-BENZ default 14 
+BENZ default 14
 BENZ type core
 
 EBEN name ethylbenzene
@@ -158,11 +159,11 @@ DFET alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 F22 C3 F23
 DFET type hydrophobe
 
 DCLE name 1,1-dichloroethane
-DCLE alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 CL11 C3 CL12
+DCLE alias C1 C1 H11 H13 H12 H13 H13 H13 C2 C2 H21 H21 OH2 CL11 C3 CL12
 DCLE type hydrophobe
 
 DBRE name 1,1-dibromoethane
-DBRE alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 H21 OH2 BR11 C3 BR12
+DBRE alias C1 C1 H11 H13 H12 H13 H13 H13 C2 C2 H21 H21 OH2 BR11 C3 BR12
 DBRE type hydrophobe
 
 TFET name trifluoroethane
@@ -170,11 +171,11 @@ TFET alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 F21 OH2 F22 C3 F23
 TFET type hydrophobe
 
 TCLE name 1,1,1-trichloroethane
-TCLE alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 CL11 OH2 CL12 C3 CL13
+TCLE alias C1 C1 H11 H22 H12 H22 H13 H22 C2 C2 H21 CL11 OH2 CL12 C3 CL13
 TCLE type hydrophobe
 
 TBRE name 1,1,1-tribromoethane
-TBRE alias C1 C1 H11 H11 H12 H12 H13 H13 C2 C2 H21 BR11 OH2 BR12 C3 BR13
+TBRE alias C1 C1 H11 BR11 H12 BR12 H13 BR13 C2 C2 H21 BR11 OH2 BR12 C3 BR13
 TBRE type hydrophobe
 
 TFE name trifluoroethanol
@@ -183,7 +184,7 @@ TFE type polar
 
 MP_0 name neutral methylphosphate
 MP_0 alias C1 O1 C2 P1 C3 O3 OH2 O2 H21 O4 H31 H3 HO2 H2
-MP_0 type polar 
+MP_0 type polar
 
 NIME name nitromethane
 NIME alias C1 H11 H12 H13 C2 N2 OH2 O21 HO2 O22
@@ -222,7 +223,7 @@ DMEE alias C1 H11 H12 H13 OH2 O2 C3 H31 H32 H33
 DMEE type polar
 
 MSAM name methanesulfonamide
-MSAM alias C2 S1 H21 O11 OH2 O12 C3 C3 H31 H31 H32 H32 H33 H33 C1 N2 H11 H21 H12 H22 
+MSAM alias C2 S1 H21 O11 OH2 O12 C3 C3 H31 H31 H32 H32 H33 H33 C1 N2 H11 H21 H12 H22
 MSAM type polar
 
 MMSM name N-methylmethanesulfonamide
@@ -242,7 +243,7 @@ ESNA alias C1 C2 H11 H21 H12 H22 H13 H23 C2 C1 OH2 H11 H21 H12 C3 S H31 O1 H32 O
 ESNA type negative
 
 DMSN name dimethyl sulfone
-DMSN alias C2 S OH2 O2 H21 O1 C1 C4 H11 H41 H12 H42 H13 H43 C3 C3 H31 H31 H32 H32 H33 H33 
+DMSN alias C2 S OH2 O2 H21 O1 C1 C4 H11 H41 H12 H42 H13 H43 C3 C3 H31 H31 H32 H32 H33 H33
 DMSN type polar
 
 MESN name methyl ethyl sulfone
@@ -250,7 +251,7 @@ MESN alias C2 S OH2 O2 H21 O1 C1 C4 H11 C5 H12 H42 H13 H41 C3 C3 H31 H31 H32 H32
 MESN type polar
 
 DMSO name dimethylsulfoxide
-DMSO alias C2 S2 OH2 O1 C1 C3 H11 H4 H12 H5 H13 H6 C3 C7 H31 H8 H32 H9 H33 H10 
+DMSO alias C2 S2 OH2 O1 C1 C3 H11 H4 H12 H5 H13 H6 C3 C7 H31 H8 H32 H9 H33 H10
 DMSO type polar
 
 ETHE name ethylene
@@ -262,7 +263,7 @@ PRPE alias C1 H11 H12 C2 H21 C3 H31 H32 H33 C3
 PRPE type hydrophobe
 
 PRAL name acrolein
-PRAL alias C1 H11 H12 C2 H21 CG OH2 OD1 H31 H 
+PRAL alias C1 H11 H12 C2 H21 CG OH2 OD1 H31 H
 PRAL type polar
 
 BTE2 name 2-Butene
@@ -446,19 +447,19 @@ FLUB alias C2 C5 C1 C4 C3 C6 C2 F6
 FLUB type ring6
 
 CHLB name chlorobenzene
-CHLB alias C2 C5 C1 C4 C3 C6 C2 CL LP
+CHLB alias C2 C5 C1 C4 C3 C6 C2 CL
 CHLB type ring6
 
 BROB name Bromobenzene
-BROB alias C2 C5 C1 C4 C3 C6 C2 BR LP
+BROB alias C2 C5 C1 C4 C3 C6 C2 BR
 BROB type ring6
 
 IODB name Iodobenzene
-IODB alias C2 C5 C1 C4 C3 C6 C2 I6 LP
+IODB alias C2 C5 C1 C4 C3 C6 C2 I6
 IODB type ring6
 
 DFT name 2,4-difluorotoluene
-DFT alias C1 C2 C3 C3 C4 C4 C5 F2 C5 C6 C6 F4 C2 C5M 
+DFT alias C1 C2 C3 C3 C4 C4 C5 F2 C5 C6 C6 F4 C2 C5M
 DFT type ring6
 
 DFB name 1,3-difluorobenzene
@@ -466,18 +467,18 @@ DFB alias C1 C1 C2 C2 C3 C3 C4 C4 C5 F2 C5 C6 C6 F4
 DFB type ring6
 
 13DCB name 1,3-dichlorobenzene
-13DCB alias C1 C1 C2 C2 C3 C3 C4 C4 C5 CL6 LP6 C5 C6 C6 CL4 LP4
+13DCB alias C1 C1 C2 C2 C3 C3 C4 C4 C5 CL6 C6 C6
 13DCB type ring6
 
 13DBB name 1,3-dibromobenzene
-13DBB alias C1 C1 C2 C2 C3 C3 C4 C4 C5 BR6 LP6 C5 C6 C6 BR4 LP4
+13DBB alias C1 C1 C2 C2 C3 C3 C4 C4 C5 BR6 C6 C6
 13DBB type ring6
 
 TOLU name toluene
-TOLU alias C2 CG C1 CD1 C3 CT H11 H12 H13 CD2 
+TOLU alias C2 CG C1 CD1 C3 CT H11 H12 H13 CD2
 TOLU type ring6
 
-OXYL name o-xylene 
+OXYL name o-xylene
 OXYL alias C2 CG C1 CD1 C3 C1 H11 H12 H13 CD2 H21 H22 C2 H23
 OXYL type ring6
 
@@ -486,7 +487,7 @@ MXYL alias C2 CG C1 CD1 C3 C1 C2 CD2
 MXYL type ring6
 
 PXYL name p-xylene
-PXYL alias C2 CG C2 C1 C3 CD2 C1 CD1 
+PXYL alias C2 CG C2 C1 C3 CD2 C1 CD1
 PXYL type ring6
 
 PNPO name p-nitrophenol
@@ -498,7 +499,7 @@ CHON alias C2 C1 C5 C1 C4 C3 C6 O1
 CHON type ring6
 
 PHEN name phenol
-PHEN alias C2 CG C1 CD1 C3 CD2 OH HH
+PHEN alias C2 CG C1 CD1 C3 CD2
 PHEN type ring6
 
 EPHE name p-ethylphenol
@@ -518,9 +519,10 @@ BALD alias C2 CG C1 CD1 C3 CD2 OH2 O C2 C
 BALD type ring6
 
 BSAT name Benzenesulfonate
-BSAT alias C2 CA2 C1 CA1 C3 CA3 C4 CA4 C2 CA5 C3 CA6 OH2 O1 HO2 O2 OH2 O3 HO2 S 
+BSAT alias C2 CA2 C1 CA1 C3 CA3 C4 CA4 C2 CA5 C3 CA6 OH2 O1 HO2 O2 OH2 O3 HO2 S
 BSAT type ring6
 
 3NAP name nicotinamide
-3NAP alias  C2 CG C1 CD1 C3 CD2 OH2 O C2 C C3 N
+3NAP alias C2 CG C1 CD1 C3 CD2 OH2 O C2 C C3 N
 3NAP type ring6
+
