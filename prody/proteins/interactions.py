@@ -51,7 +51,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
-           'showSminaPerAtomInteractions',
+           'showSminaPerAtomInteractions', 'calcSminaResidueContributions',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
            'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
            'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions']
@@ -3816,6 +3816,310 @@ def showSminaPerAtomInteractions(data, top=10, terms=None,
     if SETTINGS['auto_show']:
         showFigure()
     return ax
+
+
+def calcSminaResidueContributions(atoms, ligand_selection,
+                                  protein_selection='protein', cutoff=8.0,
+                                  scoring_function='vina', max_residues=None,
+                                  output_tsv=None, smina_executable='smina'):
+    """Measure how individual protein residues influence SMINA scoring.
+
+    Calculate the SMINA score of a fixed protein-ligand pose and repeat
+    ``--score_only`` after omitting one protein residue at a time from the
+    receptor. The ligand and all remaining protein atom coordinates are
+    retained. No docking or coordinate minimization is performed.
+
+    Negative values indicate that the presence of the residue
+    favors the interaction according to the SMINA scoring function,
+    whereas positive values indicate an unfavorable contribution
+    in this fixed-pose comparison.
+
+    :arg atoms: Atomic object containing the protein-ligand
+        complex. The structure must contain one coordinate set.
+    :type atoms: :class:`.Atomic`
+
+    :arg ligand_selection: ProDy selection string identifying
+        a single ligand residue whose interactions with the
+        receptor will be analyzed.
+    :type ligand_selection: str
+
+    :arg protein_selection: ProDy selection string defining
+        the receptor used for SMINA scoring.
+        Protein residues included in this selection are
+        considered for individual removal.
+        Default is 'protein'.
+    :type protein_selection: str
+
+    :arg cutoff: Maximum distance between a protein residue
+        and the ligand for including the residue in the analysis.
+
+        The distance is defined as the minimum distance between
+        any heavy atom of the protein residue and any heavy atom
+        of the ligand.
+        Only protein residues with a minimum distance smaller
+        than or equal to cutoff are considered.
+        Default is 8.0 Angstrom.
+    :type cutoff: float
+
+    :arg scoring_function: Name of the SMINA scoring function
+        used for the calculations.
+        The available options depend on the installed SMINA version.
+        Default is 'vina'.
+    :type scoring_function: str
+
+    :arg max_residues: Maximum number of protein residues
+        included in the calculations.
+
+        Residues are selected in ascending order of their
+        minimum heavy-atom distance from the ligand.
+        If None, all protein residues satisfying the cutoff
+        criterion are included.
+        Default is None.
+    :type max_residues: int, None
+
+    :arg output_tsv: Optional output filename for saving the
+        calculated residue contributions as a tab-separated
+        text file.
+
+        If None, results are returned without saving a file.
+        An existing output file is not overwritten.
+        Default is None.
+    :type output_tsv: str, None
+
+    :arg smina_executable: Name or path of the SMINA executable
+        used for scoring calculations.
+        Default is 'smina'.
+    :type smina_executable: str
+
+    :returns: List of dictionaries containing the calculated
+        influence of individual protein residues on SMINA scoring.
+
+        Each dictionary contains:
+            - residue: protein residue identifier.
+            - segment: segment identifier.
+            - chain: chain identifier.
+            - resname: amino acid residue name.
+            - resnum: residue number.
+            - icode: insertion code.
+            - min_distance_A: minimum heavy-atom distance
+              between the residue and ligand in Angstroms.
+            - score_full_kcal_mol: SMINA score for the
+              complete protein-ligand complex.
+            - score_without_kcal_mol: SMINA score obtained
+              after removing the corresponding protein residue.
+            - delta_score_kcal_mol: difference between the
+              complete and residue-deleted receptor scores.
+            - delta_terms: dictionary containing changes
+              in individual weighted scoring function terms.
+
+        The results are sorted by increasing delta_score_kcal_mol.
+        Scoring term names and their number are obtained
+        automatically from the SMINA output.
+    :rtype: list
+
+    The calculated residue contributions represent changes
+    in the empirical SMINA scoring function for a fixed ligand
+    pose. They should not be interpreted as binding free
+    energies or rigorous residue-wise energy decomposition.
+
+    Removing a protein residue can affect the preparation
+    or atom typing of the remaining receptor atoms.
+    Consequently, the calculated contributions may not
+    be strictly additive.
+
+    Individual scoring-term differences are reported separately.
+    Global scoring terms, such as torsional corrections,
+    are not assigned directly to individual protein residues. """
+    
+    import csv
+    import subprocess
+    import tempfile
+    from pathlib import Path
+
+    import numpy as np
+
+    if not hasattr(atoms, 'select') or not hasattr(atoms, 'numCoordsets'):
+        raise TypeError('atoms must be a ProDy Atomic object')
+    if atoms.numCoordsets() != 1:
+        raise ValueError('Exactly one coordinate set is required')
+    if not isinstance(ligand_selection, str) or not ligand_selection.strip():
+        raise ValueError('ligand_selection must identify one ligand residue')
+    if not np.isfinite(cutoff) or cutoff <= 0:
+        raise ValueError('cutoff must be a positive finite distance in Angstrom')
+    if max_residues is not None and (not isinstance(max_residues, int) or max_residues < 1):
+        raise ValueError('max_residues must be a positive integer or None')
+
+    ligand = atoms.select(ligand_selection)
+    receptor = atoms.select(protein_selection)
+    if ligand is None or receptor is None:
+        raise ValueError('ligand_selection or protein_selection returned no atoms')
+    if np.intersect1d(ligand.getIndices(), receptor.getIndices()).size:
+        raise ValueError('Ligand and receptor atom selections must not overlap')
+
+    ligand_insertion_codes = ligand.getIcodes()
+    if ligand_insertion_codes is None:
+        ligand_insertion_codes = [''] * ligand.numAtoms()
+    ligand_keys = set(zip(ligand.getChids(), ligand.getResnums(),
+                          ligand.getResnames(), ligand_insertion_codes))
+    if len(ligand_keys) != 1:
+        raise ValueError('ligand_selection must identify exactly one ligand residue')
+
+    protein = receptor.select('protein')
+    ligand_heavy = ligand.select('noh')
+    if protein is None or ligand_heavy is None:
+        raise ValueError('The receptor has no protein or the ligand has no heavy atoms')
+    protein_heavy = protein.select('noh')
+    if protein_heavy is None:
+        raise ValueError('The receptor contains no protein heavy atoms')
+
+    def optional_strings(values, count):
+        """Return residue annotations, substituting empty strings when missing."""
+        if values is None:
+            return [''] * count
+        return [str(value).strip() for value in values]
+
+    atom_count = protein.numAtoms()
+    segments = optional_strings(protein.getSegnames(), atom_count)
+    chains = optional_strings(protein.getChids(), atom_count)
+    residue_numbers = [int(number) for number in protein.getResnums()]
+    insertion_codes = optional_strings(protein.getIcodes(), atom_count)
+    residue_names = optional_strings(protein.getResnames(), atom_count)
+    atom_indices = [int(index) for index in protein.getIndices()]
+
+    residue_groups = {}
+    for position in range(atom_count):
+        key = (segments[position], chains[position], residue_numbers[position],
+               insertion_codes[position], residue_names[position])
+        residue_groups.setdefault(key, []).append(position)
+
+    heavy_atom_indices = set(map(int, protein_heavy.getIndices()))
+    protein_coordinates = protein.getCoords()
+    ligand_coordinates = ligand_heavy.getCoords()
+    candidates = []
+    for residue_key, residue_positions in residue_groups.items():
+        heavy_positions = [position for position in residue_positions
+                           if atom_indices[position] in heavy_atom_indices]
+        if not heavy_positions:
+            continue
+        displacement = (protein_coordinates[heavy_positions, None, :] -
+                        ligand_coordinates[None, :, :])
+        distance = float(np.sqrt(np.min(np.einsum(
+            'ijk,ijk->ij', displacement, displacement))))
+        if distance <= cutoff:
+            candidates.append((distance, residue_key,
+                               [atom_indices[position] for position in residue_positions]))
+
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    if max_residues is not None:
+        candidates = candidates[:max_residues]
+    if not candidates:
+        raise ValueError('No protein residues were found within cutoff')
+
+    global_term_names = {'num_tors_div', 'num_heavy_atoms_div', 'num_heavy_atoms',
+                        'num_tors_add', 'num_tors_sqr', 'num_tors_sqrt',
+                        'num_hydrophobic_atoms', 'ligand_length'}
+
+    def score_structure(receptor_filename, ligand_filename):
+        """Obtain the SMINA score and weighted terms for one fixed pose."""
+        command = [str(smina_executable), '-r', str(receptor_filename),
+                   '-l', str(ligand_filename), '--score_only',
+                   '--scoring', str(scoring_function)]
+        try:
+            process = subprocess.run(command, capture_output=True,
+                                     text=True, check=True)
+        except FileNotFoundError as error:
+            raise RuntimeError('SMINA executable not found: {}'.format(
+                smina_executable)) from error
+        except subprocess.CalledProcessError as error:
+            raise RuntimeError('SMINA scoring failed (return code {}):\n{}\n{}'.format(
+                error.returncode, error.stderr[-2000:], error.stdout[-2000:])) from error
+
+        parsed = SMINA_extract_data(process.stdout)
+        if 'Affinity' not in parsed or 'Term values, before weighting' not in parsed:
+            raise ValueError('Incomplete SMINA score_only output')
+        excluded_names = {'Affinity', 'Intramolecular energy',
+                          'Term values, before weighting'}
+        weights = {name: float(value) for name, value in parsed.items()
+                   if name not in excluded_names}
+        raw_values = parsed['Term values, before weighting']
+        if len(weights) != len(raw_values):
+            raise ValueError('SMINA scoring-term count differs from its weight count')
+        weighted_terms = {name: weight * float(value)
+                          for (name, weight), value in zip(weights.items(), raw_values)}
+        return float(parsed['Affinity']), weights, weighted_terms
+
+    rows = []
+    with tempfile.TemporaryDirectory(prefix='prody_smina_residues_') as directory:
+        directory = Path(directory)
+        receptor_filename = directory / 'receptor.pdb'
+        ligand_filename = directory / 'ligand.pdb'
+        writePDB(str(ligand_filename), ligand)
+        writePDB(str(receptor_filename), receptor)
+        full_score, full_weights, full_terms = score_structure(
+            receptor_filename, ligand_filename)
+
+        for distance, residue_key, indices_to_remove in candidates:
+            remaining = receptor.select('not (index {})'.format(
+                ' '.join(map(str, indices_to_remove))))
+            if remaining is None or remaining.numAtoms() == 0:
+                raise ValueError('Omitting this residue would empty the receptor')
+
+            writePDB(str(receptor_filename), remaining)
+            omitted_score, omitted_weights, omitted_terms = score_structure(
+                receptor_filename, ligand_filename)
+                
+            full_names = set(full_weights)
+            omitted_names = set(omitted_weights)
+
+            if full_names != omitted_names:
+                missing = sorted(full_names - omitted_names)
+                added = sorted(omitted_names - full_names)
+
+                raise ValueError('SMINA scoring terms changed after omitting residue {}. '
+                    'Missing terms: {}. Additional terms: {}.'.format(
+                                                residue_key, missing, added))
+
+            changed_weights = {
+                name: (full_weights[name], omitted_weights[name])
+                for name in full_weights
+                if abs(full_weights[name] - omitted_weights[name]) > 1e-10}
+
+            if changed_weights:
+                raise ValueError('SMINA scoring weights changed after omitting residue {}. '
+                    'Weights (full, omitted): {}'.format(residue_key, changed_weights))    
+                            
+            delta_terms = {name: round(full_terms[name] - omitted_terms[name], 6)
+                            for name in full_terms if name not in global_term_names}
+            segment, chain, residue_number, insertion_code, residue_name = residue_key
+            rows.append({'residue': '{}:{}{}{}'.format(chain or '_', residue_name,
+                                              residue_number, insertion_code),
+                         'segment': segment,
+                         'chain': chain,
+                         'resname': residue_name,
+                         'resnum': residue_number,
+                         'icode': insertion_code,
+                         'min_distance_A': round(distance, 3),
+                         'score_full_kcal_mol': full_score,
+                         'score_without_kcal_mol': omitted_score,
+                         'delta_score_kcal_mol': round(full_score - omitted_score, 6),
+                         'delta_terms': delta_terms})
+
+    rows.sort(key=lambda row: row['delta_score_kcal_mol'])
+    if output_tsv is not None:
+        path = Path(output_tsv)
+        term_names = list(rows[0]['delta_terms'])
+        fieldnames = ([name for name in rows[0] if name != 'delta_terms'] +
+                      ['delta_term: {}'.format(name) for name in term_names])
+        with path.open('x', newline='', encoding='utf-8') as output_file:
+            writer = csv.DictWriter(output_file, delimiter='\t', fieldnames=fieldnames)
+            writer.writeheader()
+            for row in rows:
+                values = {name: value for name, value in row.items()
+                          if name != 'delta_terms'}
+                values.update({'delta_term: {}'.format(name): row['delta_terms'][name]
+                               for name in term_names})
+                writer.writerow(values)
+    return rows
 
 
 def calcSminaTermValues(data):
