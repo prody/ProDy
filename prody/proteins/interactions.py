@@ -51,6 +51,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcHydrophobicOverlapingAreas',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
+           'showSminaPerAtomInteractions',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
            'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
            'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions']
@@ -3619,6 +3620,202 @@ def calcSminaPerAtomInteractions(atoms, list_terms, detailed=False,
             'atoms': output_rows,
             'totals': totals,
             'qc': quality_control}
+
+
+def showSminaPerAtomInteractions(data, top=10, terms=None,
+                                 sort_by='favorable', ax=None):
+    """Show atom-resolved SMINA scoring contribution.
+
+    The default plot compares the repulsion and hydrogen-bond scoring
+    terms for ligand atoms ranked by the magnitude of their favorable
+    contributions. A favorable contribution is a negative value of an
+    individual scoring term. The ranking uses all available atom-resolved
+    terms, excluding terms classified as global.
+
+    :arg data: Results returned by :func:`.calcSminaPerAtomInteractions`
+        with ``detailed=True``. Only uniquely matched ligand atoms are
+        plotted. Unmatched zero-energy hydrogens are excluded.
+    :type data: dict
+
+    :arg top: Maximum number of ligand atoms shown. If None, show all
+        eligible atoms. Default is 10.
+    :type top: int, None
+
+    :arg terms: Scoring terms to display as separate bar series. If None,
+        use the repulsion and non-directional hydrogen-bond terms when
+        available. Missing default terms are replaced with those having
+        the largest absolute contributions. Scoring term names are read
+        from ``data['terms']``, allowing non-Vina scoring functions.
+        Default is None.
+    :type terms: list, tuple, None
+
+    :arg sort_by: Ranking criterion. ``'favorable'`` (default) sorts by
+        the sum of negative contributions from all atom-resolved terms;
+        ``'net'`` sorts by the sum of all signed contributions;
+        ``'hbond'`` sorts by the most favorable hydrogen-bond contribution.
+        Alternatively, provide an exact term name from ``data['terms']``
+        to sort by its signed value (ascending).
+    :type sort_by: str
+
+    :arg ax: Matplotlib Axes on which to draw the plot. If None, create
+        a new figure and axes. Default is None.
+    :type ax: :class:`matplotlib.axes.Axes`, None
+
+    :returns: Matplotlib Axes containing the bar plot. The associated
+        figure is accessible as ``ax.figure``.
+    :rtype: :class:`matplotlib.axes.Axes`
+
+    A negative contribution to an attractive scoring term is favorable,
+    whereas a positive repulsion contribution is unfavorable. The
+    ranking is a diagnostic ranking of SMINA atom-term contribution. In
+    particular, the favorable-only ranking does not subtract steric
+    penalties.
+
+    The function does not rerun SMINA and does not modify the input
+    data or save any files. Results with unmatched nonzero-energy atom
+    records cannot be plotted reliably and raise ValueError. """
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    if not isinstance(data, dict):
+        raise TypeError('data must be a detailed SMINA per-atom result dictionary')
+
+    term_names = data.get('terms')
+    atom_rows = data.get('atoms')
+    if not isinstance(term_names, (list, tuple)) or not term_names:
+        raise ValueError('data must contain a non-empty list of scoring terms')
+    if not isinstance(atom_rows, list):
+        raise ValueError('data must contain an atoms list')
+    if len(term_names) != len(set(term_names)):
+        raise ValueError('data contains duplicate scoring-term names')
+
+    if top is not None and (isinstance(top, bool) or
+                            not isinstance(top, (int, np.integer)) or top <= 0):
+        raise ValueError('top must be a positive integer or None')
+
+    try:
+        unmatched_energy = float(data.get('qc', {}).get('absolute_unmatched_energy', 0.0))
+    except (ValueError, TypeError, AttributeError) as error:
+        raise ValueError('Invalid unmatched-energy quality-control value') from error
+    if not np.isfinite(unmatched_energy) or unmatched_energy > 1e-9:
+        raise ValueError('Cannot plot: unmapped ligand atoms have nonzero '
+                         'scoring contributions (check data["qc"])')
+
+    global_terms = set(data.get('global_terms', []))
+    atom_terms = [name for name in term_names if name not in global_terms]
+    if not atom_terms:
+        raise ValueError('No atom-resolved scoring terms are available')
+
+    matched_rows = [row for row in atom_rows
+                    if row.get('mapping_status') == 'MATCHED']
+    if not matched_rows:
+        raise ValueError('No uniquely matched ligand atoms are available')
+
+    for row in matched_rows:
+        for name in atom_terms:
+            try:
+                value = float(row[name])
+            except (KeyError, ValueError, TypeError) as error:
+                raise ValueError('Missing/invalid value for scoring term {!r}'.format(
+                    name)) from error
+            if not np.isfinite(value):
+                raise ValueError('Non-finite scoring contribution for {!r}'.format(name))
+
+    if terms is None:
+        repulsion = next((name for name in atom_terms
+                          if name.startswith('repulsion(')), None)
+        hydrogen_bond = next((name for name in atom_terms
+                              if 'h_bond' in name.lower() or
+                              'hbond' in name.lower()), None)
+        selected_terms = [name for name in (repulsion, hydrogen_bond)
+                          if name is not None]
+
+        ranked_terms = sorted(atom_terms, key=lambda name: sum(
+            abs(float(row[name])) for row in matched_rows), reverse=True)
+        for name in ranked_terms:
+            if len(selected_terms) >= 2:
+                break
+            if name not in selected_terms:
+                selected_terms.append(name)
+    else:
+        if not isinstance(terms, (list, tuple)) or not terms:
+            raise TypeError('terms must be a non-empty list/tuple or None')
+        selected_terms = list(terms)
+        if len(selected_terms) != len(set(selected_terms)):
+            raise ValueError('terms contains duplicate term names')
+        invalid = [name for name in selected_terms if name not in atom_terms]
+        if invalid:
+            raise ValueError('Unknown atom-resolved scoring terms: {}'.format(invalid))
+
+    rows = [row for row in matched_rows if any(
+        abs(float(row[name])) > 1e-12 for name in selected_terms)]
+    if not rows:
+        raise ValueError('Selected scoring terms have no nonzero matched contributions')
+
+    if sort_by == 'favorable':
+        key = lambda row: sum(min(0.0, float(row[name])) for name in atom_terms)
+    elif sort_by == 'net':
+        key = lambda row: sum(float(row[name]) for name in atom_terms)
+    elif sort_by == 'hbond':
+        hbond_names = [name for name in atom_terms
+                       if 'h_bond' in name.lower() or 'hbond' in name.lower()]
+        if not hbond_names:
+            raise ValueError("sort_by='hbond' requires a hydrogen-bond scoring term")
+        key = lambda row: sum(float(row[name]) for name in hbond_names)
+    elif sort_by in atom_terms:
+        key = lambda row: float(row[sort_by])
+    else:
+        raise ValueError('sort_by must be favorable, net, hbond, or '
+                         'an exact scoring-term name')
+
+    rows = sorted(rows, key=key)
+    if top is not None:
+        rows = rows[:top]
+
+    labels = [str(row['ligand_atom']) for row in rows]
+
+    if len(labels) != len(set(labels)):
+        labels = ['{}:{}'.format(row['ligand_residue'], row['ligand_atom'])
+                  for row in rows]
+    if len(labels) != len(set(labels)):
+        labels = ['{} (#{})'.format(label, row['smina_row'])
+                  for label, row in zip(labels, rows)]
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(9, max(4, 0.5 * len(rows) + 1.6)))
+        own_figure = True
+    else:
+        fig = ax.figure
+        own_figure = False
+
+    positions = np.arange(len(rows))
+    bar_height = min(0.38, 0.8 / len(selected_terms))
+    for index, name in enumerate(selected_terms):
+        offset = (index - (len(selected_terms) - 1) / 2) * bar_height
+        if name.startswith('repulsion('):
+            display_name = 'Repulsion'
+        elif 'h_bond' in name.lower() or 'hbond' in name.lower():
+            display_name = 'H-bond'
+        else:
+            display_name = name
+        values = [float(row[name]) for row in rows]
+        ax.barh(positions + offset, values, height=bar_height * 0.92,
+                label=display_name)
+
+    ax.set_yticks(positions)
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()
+    ax.axvline(0.0, color='0.5', linewidth=0.8)
+    ax.set_xlabel('SMINA scoring-term contribution [kcal/mol]')
+    ax.set_title('SMINA: ligand-atom contributions (TOP {})'.format(len(rows)))
+    ax.legend()
+    if own_figure:
+        fig.tight_layout()
+
+    if SETTINGS['auto_show']:
+        showFigure()
+    return ax
 
 
 def calcSminaTermValues(data):
