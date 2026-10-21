@@ -52,7 +52,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaPerAtomInteractions', 'calcSminaResidueContributions',
-           'listSminaResidueContributions',
+           'listSminaResidueContributions', 'showSminaResidueContributions',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
            'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
            'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions']
@@ -4296,6 +4296,280 @@ def listSminaResidueContributions(data, top=10, sort_by='favorable'):
         LOGGER.info(line)
 
     return ranked
+
+
+def showSminaResidueContributions(data, top=10, sort_by='favorable',
+                                  terms=None, components=True, figsize=None):
+    """Visualize SMINA residue-omission scoring for a ligand pose.
+
+    Plot the signed difference in the final SMINA score for each selected
+    protein residue, optionally alongside its weighted scoring-term differences.
+
+    The two panels have DIFFERENT scoring conventions: the final score includes
+    normalization/corrections that need not be present in the per-term scores.
+    Consequently, stacked term differences should not be interpreted as a
+    numerical decomposition of the final-score difference.
+
+    :arg data: Results returned by :func:`calcSminaResidueContributions` or
+        :func:`listSminaResidueContributions`, or a path to the TSV file
+        created by ``calcSminaResidueContributions(output_tsv=...)``.
+    :type data: list, str, pathlib.Path
+
+    :arg top: Number of residues to plot; use **None** for all residues.
+        The complete input data are preserved. Default is 10.
+    :type top: int, None
+
+    :arg sort_by: Ranking criterion: ``'favorable'`` (most negative final
+        score change), ``'unfavorable'`` (most positive change),
+        ``'absolute'``, ``'hbond'``, ``'repulsion'``, ``'distance'``, or
+        an exact name of a scoring term present in ``delta_terms``.
+        Default is ``'favorable'``.
+    :type sort_by: str
+
+    :arg terms: Exact names of weighted scoring terms to show in the right
+        panel. If **None**, show all terms with a nonzero contribution among
+        the selected residues. Term names are detected dynamically and are
+        not limited to the Vina scoring function. Default is None.
+    :type terms: list, tuple, None
+
+    :arg components: If **True**, draw a second panel with independently
+        stacked positive and negative weighted term contributions. If
+        **False**, only the signed final-score differences are plotted.
+        Default is True.
+    :type components: bool
+
+    :arg figsize: Optional figure size ``(width, height)`` in inches.
+        If **None**, select a size based on ``top`` and ``components``.
+    :type figsize: tuple, None
+
+    :returns: The Matplotlib Axes with final-score differences. The figure
+        (and, if requested, the component Axes) can be accessed through
+        ``ax.figure`` (and ``ax.figure.axes``).
+    :rtype: :class:`matplotlib.axes.Axes`
+
+    A negative difference is favorable for the SMINA score, while a positive
+    difference is unfavorable. These differences are defined as the score of
+    the complete complex minus the score after omitting one protein residue,
+    at a fixed ligand pose. """
+
+    import builtins as _bi
+    import csv
+    import math
+    from pathlib import Path
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
+
+    if isinstance(data, (str, Path)):
+        source = Path(data)
+        with source.open('r', newline='', encoding='utf-8') as handle:
+            reader = csv.DictReader(handle, delimiter='\t')
+            header = reader.fieldnames or []
+            term_fields = [name for name in header
+                           if name.startswith('delta_term: ')]
+            if not term_fields:
+                raise ValueError('TSV has no delta_term columns: {}'.format(source))
+            missing = {'residue', 'min_distance_A', 'delta_score_kcal_mol'} - set(header)
+            if missing:
+                raise ValueError('TSV is missing columns: {}'.format(sorted(missing)))
+            loaded = []
+            for line_number, item in enumerate(reader, start=2):
+                try:
+                    record = {name: value for name, value in item.items()
+                              if name not in term_fields}
+                    record['delta_terms'] = {
+                        name[len('delta_term: '):]: float(item[name])
+                        for name in term_fields}
+                    for key in ('min_distance_A', 'delta_score_kcal_mol',
+                                'score_full_kcal_mol', 'score_without_kcal_mol'):
+                        if key in record and record[key] not in ('', None):
+                            record[key] = float(record[key])
+                    if 'resnum' in record and record['resnum'] not in ('', None):
+                        record['resnum'] = int(record['resnum'])
+                except (TypeError, ValueError, KeyError) as exc:
+                    raise ValueError('Bad TSV values at line {}'.format(
+                        line_number)) from exc
+                loaded.append(record)
+            data = loaded
+
+    if not isinstance(data, list) or not _bi.all(
+            isinstance(row, dict) for row in data):
+        raise TypeError('data must be a list of residue dictionaries or a TSV path')
+    if not data:
+        raise ValueError('No residue contributions were provided')
+    if top is not None and (isinstance(top, bool) or
+                            not isinstance(top, int) or top < 1):
+        raise ValueError('top must be a positive integer or None')
+    if not isinstance(sort_by, str) or not sort_by.strip():
+        raise ValueError('sort_by must be a non-empty string')
+    if not isinstance(components, bool):
+        raise TypeError('components must be True or False')
+    if figsize is not None:
+        try:
+            valid_size = (len(figsize) == 2 and
+                          _bi.all(math.isfinite(float(x)) and float(x) > 0
+                                  for x in figsize))
+        except (TypeError, ValueError):
+            valid_size = False
+        if not valid_size:
+            raise ValueError('figsize must be two positive finite numbers')
+
+    required = {'residue', 'min_distance_A',
+                'delta_score_kcal_mol', 'delta_terms'}
+    if not isinstance(data[0].get('delta_terms'), dict) or not data[0]['delta_terms']:
+        raise ValueError('No scoring-term data found in the first residue')
+    term_names = list(data[0]['delta_terms'])
+    expected_terms = set(term_names)
+    for index, row in enumerate(data):
+        if required - set(row):
+            raise ValueError('Residue {} is missing: {}'.format(
+                index, sorted(required - set(row))))
+        if not isinstance(row['delta_terms'], dict) or set(row['delta_terms']) != expected_terms:
+            raise ValueError('Inconsistent scoring terms in residue {}'.format(index))
+        try:
+            numbers = ([row['min_distance_A'], row['delta_score_kcal_mol']] +
+                       [row['delta_terms'][name] for name in term_names])
+            if not _bi.all(math.isfinite(float(x)) for x in numbers):
+                raise ValueError('non-finite')
+        except (TypeError, ValueError, KeyError) as exc:
+            raise ValueError('Invalid numeric data in residue {}'.format(index)) from exc
+
+    hbond_terms = [name for name in term_names
+                   if 'h_bond' in name.lower() or 'hbond' in name.lower()]
+    repulsion_terms = [name for name in term_names
+                       if 'repulsion' in name.lower()]
+
+    def subtotal(row, names):
+        return _bi.sum(float(row['delta_terms'][name]) for name in names)
+
+    def residue_name(row):
+        return str(row['residue'])
+
+    if sort_by == 'favorable':
+        key = lambda row: (float(row['delta_score_kcal_mol']), residue_name(row))
+    elif sort_by == 'unfavorable':
+        key = lambda row: (-float(row['delta_score_kcal_mol']), residue_name(row))
+    elif sort_by == 'absolute':
+        key = lambda row: (-abs(float(row['delta_score_kcal_mol'])), residue_name(row))
+    elif sort_by == 'hbond':
+        if not hbond_terms:
+            raise ValueError("sort_by='hbond' requires a hydrogen-bond scoring term")
+        key = lambda row: (subtotal(row, hbond_terms), residue_name(row))
+    elif sort_by == 'repulsion':
+        if not repulsion_terms:
+            raise ValueError("sort_by='repulsion' requires a repulsion scoring term")
+        key = lambda row: (-subtotal(row, repulsion_terms), residue_name(row))
+    elif sort_by == 'distance':
+        key = lambda row: (float(row['min_distance_A']), residue_name(row))
+    elif sort_by in term_names:
+        key = lambda row: (float(row['delta_terms'][sort_by]), residue_name(row))
+    else:
+        raise ValueError('Unknown sort_by={!r}; use favorable, unfavorable, '
+                         'absolute, hbond, repulsion, distance, or one of {}'.format(
+                             sort_by, term_names))
+
+    ranked = sorted(data, key=key)
+    displayed = ranked if top is None else ranked[:top]
+    if terms is None:
+        selected_terms = [name for name in term_names
+                          if _bi.any(abs(float(row['delta_terms'][name])) > 1e-12
+                                     for row in displayed)]
+    else:
+        if not isinstance(terms, (list, tuple)) or not terms:
+            raise TypeError('terms must be a nonempty list/tuple or None')
+        selected_terms = list(terms)
+        if len(selected_terms) != len(set(selected_terms)):
+            raise ValueError('terms contains duplicate scoring terms')
+        unknown = [name for name in selected_terms if name not in expected_terms]
+        if unknown:
+            raise ValueError('Unknown scoring terms: {}'.format(unknown))
+
+    if components and not selected_terms:
+        raise ValueError('Selected residues have no nonzero scoring terms')
+
+    n_rows = len(displayed)
+    if figsize is None:
+        figsize = (13.6 if components else 8.7,
+                   _bi.max(4.5, 0.48 * n_rows + 2.0))
+    if components:
+        fig, (ax, ax_terms) = plt.subplots(
+            ncols=2, figsize=figsize, sharey=True,
+            gridspec_kw={'width_ratios': [1.0, 1.45], 'wspace': 0.08})
+    else:
+        fig, ax = plt.subplots(figsize=figsize)
+        ax_terms = None
+
+    positions = np.arange(n_rows)
+    scores = np.asarray([float(row['delta_score_kcal_mol'])
+                         for row in displayed], dtype=float)
+    bar_colors = ['tab:blue' if score < 0 else 'tab:orange'
+                  if score > 0 else '0.65' for score in scores]
+    ax.barh(positions, scores, color=bar_colors, height=0.68, alpha=0.9)
+    ax.axvline(0, color='0.25', lw=1.0)
+    labels = ['{}  ({:.2f} Å)'.format(row['residue'],
+                                   float(row['min_distance_A']))
+              for row in displayed]
+    ax.set_yticks(positions)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlabel('Δ final SMINA score (kcal/mol)')
+    ax.set_title('Final score difference', fontsize=11)
+    ax.grid(axis='x', alpha=0.18)
+    ax.set_axisbelow(True)
+    left = _bi.min(0, *scores)
+    right = _bi.max(0, *scores)
+    span = _bi.max(0.15, right - left)
+    ax.set_xlim(left - 0.22 * span, right + 0.18 * span)
+    for y, value in enumerate(scores):
+        ax.text(value + (0.025 * span if value >= 0 else -0.025 * span),
+                y, '{:+.3f}'.format(value),
+                ha='left' if value >= 0 else 'right',
+                va='center', fontsize=8)
+
+    if components:
+        colors = plt.get_cmap('tab20')
+        negative_offsets = np.zeros(n_rows)
+        positive_offsets = np.zeros(n_rows)
+        legend_handles = []
+        for term_index, term_name in enumerate(selected_terms):
+            values = np.asarray([float(row['delta_terms'][term_name])
+                                 for row in displayed], dtype=float)
+            negative = np.minimum(values, 0.0)
+            positive = np.maximum(values, 0.0)
+            color = colors(term_index % colors.N)
+            if np.any(negative != 0):
+                ax_terms.barh(positions, negative, left=negative_offsets,
+                              color=color, height=0.68, alpha=0.92)
+            if np.any(positive != 0):
+                ax_terms.barh(positions, positive, left=positive_offsets,
+                              color=color, height=0.68, alpha=0.92)
+            negative_offsets += negative
+            positive_offsets += positive
+            legend_handles.append(Patch(color=color, label=term_name))
+        ax_terms.axvline(0, color='0.25', lw=1.0)
+        ax_terms.tick_params(axis='y', which='both', left=False, labelleft=False)
+        ax_terms.set_xlabel('Δ weighted scoring terms (before global scaling)')
+        ax_terms.set_title('Weighted component differences', fontsize=11)
+        ax_terms.grid(axis='x', alpha=0.18)
+        ax_terms.set_axisbelow(True)
+        comp_left = _bi.min(0, *negative_offsets)
+        comp_right = _bi.max(0, *positive_offsets)
+        comp_span = _bi.max(0.15, comp_right - comp_left)
+        ax_terms.set_xlim(comp_left - 0.08 * comp_span,
+                          comp_right + 0.08 * comp_span)
+
+        fig.legend(handles=legend_handles, loc='lower center',
+            bbox_to_anchor=(0.62, 0.015), frameon=False,
+            ncol=_bi.min(5, len(legend_handles)),
+            fontsize=7, handlelength=0.8,
+            handletextpad=0.25, columnspacing=0.6)
+
+        fig.subplots_adjust(left=0.165, right=0.985, top=0.97, bottom=0.16, wspace=0.16)
+
+    else:
+        fig.subplots_adjust(left=0.235, right=0.965, top=0.97, bottom=0.12)
+
+    return ax
 
 
 def calcSminaTermValues(data):
