@@ -493,8 +493,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         lineidx += 1
         linefields = line.split()
         while len(linefields) <= fieldCounter: #line is wrapped
-            lineidx += 1
             linefields += lines[lineidx].split()
+            lineidx += 1
         
         startswith = linefields[fields['group_PDB']]
 
