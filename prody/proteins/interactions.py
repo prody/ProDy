@@ -52,6 +52,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'Interactions', 'InteractionsTrajectory', 'LigandInteractionsTrajectory',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaPerAtomInteractions', 'calcSminaResidueContributions',
+           'listSminaResidueContributions',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
            'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
            'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions']
@@ -3456,6 +3457,7 @@ def calcSminaPerAtomInteractions(atoms, list_terms, detailed=False,
     import re
     from pathlib import Path
     import numpy as np
+    from builtins import any, sum
 
     if isinstance(list_terms, (str, Path)):
         term_files = [Path(list_terms)]
@@ -3677,6 +3679,7 @@ def showSminaPerAtomInteractions(data, top=10, terms=None,
 
     import numpy as np
     import matplotlib.pyplot as plt
+    from builtins import any, sum, min, max
 
     if not isinstance(data, dict):
         raise TypeError('data must be a detailed SMINA per-atom result dictionary')
@@ -4120,6 +4123,179 @@ def calcSminaResidueContributions(atoms, ligand_selection,
                                for name in term_names})
                 writer.writerow(values)
     return rows
+
+
+def listSminaResidueContributions(data, top=10, sort_by='favorable'):
+    """List and rank previously calculated SMINA residue contributions.
+
+    This function sorts and prints the results obtained with
+    :func:`calcSminaResidueContributions`. All residue records remain 
+    available in the returned list, even when only the first ``top`` 
+    are printed.
+
+    :arg data: Results returned by :func:`calcSminaResidueContributions`,
+        or the path to a TSV file created with its ``output_tsv`` option.
+        Each residue record must contain ``residue``, ``min_distance_A``,
+        ``delta_score_kcal_mol`` and ``delta_terms``.
+    :type data: list, str, pathlib.Path
+
+    :arg top: Maximum number of ranked residues to print. If **None**,
+        print all residues. Default is 10. This parameter does not limit
+        the number of returned records.
+    :type top: int, None
+
+    :arg sort_by: Criterion used to rank the residues. Available options are:
+
+        - ``'favorable'``: most negative total score change (default).
+        - ``'unfavorable'``: most positive total score change.
+        - ``'absolute'``: largest absolute total score change.
+        - ``'hbond'``: most negative combined hydrogen-bond contributions.
+        - ``'repulsion'``: largest positive combined repulsion contributions.
+        - ``'distance'``: shortest minimum heavy-atom distance to the ligand.
+
+        An exact term name in ``delta_terms`` can also be supplied;
+        contributions are then sorted from most negative to most positive.
+        Available terms are detected from the input data, without assuming
+        a particular scoring function or number of terms.
+    :type sort_by: str
+
+    :returns: New list of all residue dictionaries sorted by ``sort_by``.
+        The input list and its dictionaries are not modified.
+    :rtype: list
+
+    The ranking describes changes in the empirical SMINA score upon
+    omission of a residue at a fixed ligand pose. It is not a binding
+    free-energy decomposition. Negative score changes denote favorable
+    contributions to the score. """
+    
+    import csv
+    from pathlib import Path
+    from builtins import any, sum
+
+    if isinstance(data, (str, Path)):
+        with Path(data).open('r', newline='', encoding='utf-8') as input_file:
+            reader = csv.DictReader(input_file, delimiter='\t')
+            fields = reader.fieldnames or []
+            term_fields = [name for name in fields
+                           if name.startswith('delta_term: ')]
+            if not term_fields:
+                raise ValueError('The TSV file has no delta_term columns')
+            loaded = []
+            for index, row in enumerate(reader):
+                record = {name: value for name, value in row.items()
+                          if name not in term_fields}
+                try:
+                    record['delta_terms'] = {
+                        name[len('delta_term: '):]: float(row[name])
+                        for name in term_fields
+                    }
+                    for name in ('min_distance_A', 'score_full_kcal_mol',
+                                 'score_without_kcal_mol', 'delta_score_kcal_mol'):
+                        if name in record:
+                            record[name] = float(record[name])
+                    if 'resnum' in record:
+                        record['resnum'] = int(record['resnum'])
+                except (ValueError, TypeError) as error:
+                    raise ValueError('Invalid TSV values in row {}'.format(
+                        index + 2)) from error
+                loaded.append(record)
+            data = loaded
+
+    if not isinstance(data, list) or any(not isinstance(row, dict) for row in data):
+        raise TypeError('data must be a list of residue dictionaries or a TSV path')
+    if top is not None and (isinstance(top, bool) or
+                            not isinstance(top, int) or top < 1):
+        raise ValueError('top must be a positive integer or None')
+    if not isinstance(sort_by, str) or not sort_by.strip():
+        raise ValueError('sort_by must be a nonempty string')
+    if not data:
+        LOGGER.warn('SMINA residue contributions: no residues to display.')
+        return []
+
+    required = {'residue', 'min_distance_A', 'delta_score_kcal_mol', 'delta_terms'}
+    term_names = list(data[0]['delta_terms']) if isinstance(
+        data[0].get('delta_terms'), dict) else []
+    expected_terms = set(term_names)
+    if not term_names:
+        raise ValueError('No scoring terms were found in delta_terms')
+    for index, row in enumerate(data):
+        missing = required - set(row)
+        if missing:
+            raise ValueError('Residue record {} is missing: {}'.format(
+                index, sorted(missing)))
+        if not isinstance(row['delta_terms'], dict) or set(row['delta_terms']) != expected_terms:
+            raise ValueError('Inconsistent scoring terms in residue record {}'.format(index))
+        try:
+            float(row['min_distance_A'])
+            float(row['delta_score_kcal_mol'])
+            for name in term_names:
+                float(row['delta_terms'][name])
+        except (TypeError, ValueError, KeyError) as error:
+            raise ValueError('Invalid numeric data in residue record {}'.format(index)) from error
+
+    hbond_terms = [name for name in term_names if 'h_bond' in name.lower()
+                   or 'hbond' in name.lower()]
+    repulsion_terms = [name for name in term_names if 'repulsion' in name.lower()]
+
+    def term_total(row, names):
+        return sum(float(row['delta_terms'][name]) for name in names)
+
+    def secondary(row):
+        return str(row['residue'])
+
+    if sort_by == 'favorable':
+        key = lambda row: (float(row['delta_score_kcal_mol']), secondary(row))
+    elif sort_by == 'unfavorable':
+        key = lambda row: (-float(row['delta_score_kcal_mol']), secondary(row))
+    elif sort_by == 'absolute':
+        key = lambda row: (-abs(float(row['delta_score_kcal_mol'])), secondary(row))
+    elif sort_by == 'hbond':
+        if not hbond_terms:
+            raise ValueError('No hydrogen-bond terms are available for sorting')
+        key = lambda row: (term_total(row, hbond_terms), secondary(row))
+    elif sort_by == 'repulsion':
+        if not repulsion_terms:
+            raise ValueError('No repulsion terms are available for sorting')
+        key = lambda row: (-term_total(row, repulsion_terms), secondary(row))
+    elif sort_by == 'distance':
+        key = lambda row: (float(row['min_distance_A']), secondary(row))
+    elif sort_by in term_names:
+        key = lambda row: (float(row['delta_terms'][sort_by]), secondary(row))
+    else:
+        raise ValueError(
+            'Unknown sort_by={!r}. Available options: favorable, unfavorable, '
+            'absolute, hbond, repulsion, distance, or an exact term name: {}'.format(
+                sort_by, term_names))
+
+    ranked = sorted(data, key=key)
+    selected = ranked if top is None else ranked[:top]
+
+    header = '{:<13s}  {:>10s}  {:>14s}'.format('Residue', 'Dist. [A]', 'Delta score')
+    if hbond_terms:
+        header += '  {:>12s}'.format('H-bond')
+    if repulsion_terms:
+        header += '  {:>12s}'.format('Repulsion')
+    if sort_by in term_names and sort_by not in hbond_terms + repulsion_terms:
+        header += '  {:>12s}'.format('Selected term')
+
+    LOGGER.info('\nSMINA residue contributions: TOP {} / {} | sort_by={}'.format(
+        len(selected), len(ranked), sort_by))
+    LOGGER.info(header)
+    LOGGER.info('-' * len(header))
+    
+    for row in selected:
+        line = '{:<13s}  {:>10.2f}  {:>+14.4f}'.format(
+            str(row['residue']), float(row['min_distance_A']),
+            float(row['delta_score_kcal_mol']))
+        if hbond_terms:
+            line += '  {:>+12.4f}'.format(term_total(row, hbond_terms))
+        if repulsion_terms:
+            line += '  {:>+12.4f}'.format(term_total(row, repulsion_terms))
+        if sort_by in term_names and sort_by not in hbond_terms + repulsion_terms:
+            line += '  {:>+12.4f}'.format(float(row['delta_terms'][sort_by]))
+        LOGGER.info(line)
+
+    return ranked
 
 
 def calcSminaTermValues(data):
