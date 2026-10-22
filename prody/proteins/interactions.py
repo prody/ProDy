@@ -53,6 +53,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcSminaBindingAffinity', 'calcSminaPerAtomInteractions', 'calcSminaTermValues',
            'showSminaPerAtomInteractions', 'calcSminaResidueContributions',
            'listSminaResidueContributions', 'showSminaResidueContributions',
+           'showSminaLigandStructure',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
            'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
            'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions']
@@ -4569,6 +4570,1136 @@ def showSminaResidueContributions(data, top=10, sort_by='favorable',
     else:
         fig.subplots_adjust(left=0.235, right=0.965, top=0.97, bottom=0.12)
 
+    return ax
+
+
+def showSminaLigandStructure(atoms, data, ligand_selection,
+                             ligand_file=None,
+                             protein_selection='protein',
+                             residue_data=None, **kwargs):
+    """Show SMINA ligand-atom contributions on a 2D chemical structure.
+
+    Draw a chemical diagram of the selected ligand and highlight its most
+    important atoms using contributions previously calculated by
+    :func:`.calcSminaPerAtomInteractions` with ``detailed=True``. Blue
+    highlights indicate favorable (negative) contributions; orange
+    highlights indicate unfavorable (positive) contributions. Both may
+    be present on the same ligand atom. By default, each ring is split
+    proportionally into favorable and unfavorable sectors: colored ring
+    area is proportional to magnitude, while overall radius represents
+    the sum of absolute weighted scoring terms for that atom. Set
+    ``atom_circle_mode='legacy'`` to reproduce equal-sized color sectors.
+
+    Use ``show_atom_labels=False`` to hide the additional PDB atom-name labels
+    (e.g., O2A, O3B, PA) while keeping RDKit chemical element symbols
+    (O, N, P), the colored highlights and the terminal ranking.
+    ``circle_scale`` changes the radius of the colored circles without
+    changing their scoring values. Placement of the optional name labels
+    accounts for the selected circle radius.
+
+    The optional MOL, SDF or MOL2 input preserves explicitly defined
+    bond orders and should be preferred to PDB coordinates when available.
+    Atom identities are matched to the input ligand using 3D coordinates,
+    not assumed to have the same ordering in different input files.
+
+    The default visualization enables residue contacts and all qualifying
+    residue labels; ``residue_data`` is deliberately not guessed from a file
+    name. With ``residue_data`` set, ``residue_sort_by='auto'`` uses the most
+    favorable Delta S values; without residue scores it ranks by distance
+    and displays neutral boxes. ``protein_selection='protein'`` is kept
+    structure-independent: specify a chain where appropriate. A large
+    number of contacts can produce crowded figures; use a finite
+    ``max_contact_residues`` in that case.
+    
+    RDKit is required and imported only when the function is called.
+    Scoring-term signs are interpreted within the SMINA scoring model. 
+    Negative and positive values for one atom can originate from different 
+    scoring terms, and must not be assigned to specific protein residues.
+
+    Missing ligand atoms with nonzero scoring contributions, duplicate
+    atom-coordinate matches and mismatched chemical structures raise
+    ValueError. Unmatched zero-scoring hydrogens are permitted because
+    the diagram includes only heavy atoms. The input data and structure
+    are not modified and no file is written automatically. 
+
+    Delta S is displayed with TWO decimal places in labels and the contact
+    terminal table; internal selection and coloring still use full precision.
+
+    :arg atoms: ProDy Atomic object containing the protein-ligand complex
+        used to generate the SMINA ``--atom_terms`` output.
+    :type atoms: :class:`.Atomic`
+
+    :arg data: Dictionary returned by :func:`.calcSminaPerAtomInteractions`
+        with ``detailed=True``. Includes the per-atom scoring terms and
+        coordinate-matching quality-control information.
+    :type data: dict
+
+    :arg ligand_selection: ProDy selection string identifying exactly one
+        ligand residue, e.g. ``'resname UNL'``.
+    :type ligand_selection: str
+
+    :arg ligand_file: Optional ligand structure file (``.mol``, ``.sdf``
+        or ``.mol2``) with the same 3D coordinates as the ligand selected
+        from ``atoms``. Bond orders are read from this file. If None,
+        RDKit constructs a molecular graph from the selected ligand PDB
+        coordinates, where connectivity and bond orders may be uncertain.
+        Default is None.
+    :type ligand_file: str, None
+
+    :arg top: Maximum number of ligand heavy atoms highlighted and printed
+        in the ranking. None (default) includes all heavy atoms with nonzero
+        scoring contributions.
+    :type top: int, None
+
+    :arg sort_by: Ranking criterion. ``'favorable'`` (default) ranks by
+        the sum of the magnitudes of all negative scoring-term values;
+        ``'net'`` by the negative of the sum of signed term values;
+        ``'unfavorable'`` by the sum of positive term values;
+        ``'hbond'`` by the magnitude of favorable hydrogen-bond terms.
+        The ranking is used to select atoms; both favorable and
+        unfavorable components remain visible for each selected atom.
+    :type sort_by: str
+
+    :arg match_tolerance: Maximum difference in Angstroms between 3D
+        coordinates for the same ligand atom in the chemical structure
+        and in the ProDy ligand selection. This is not a distance cutoff
+        for protein-ligand interactions. Default is 0.15 Angstrom.
+    :type match_tolerance: float
+
+    :arg ax: Optional Matplotlib Axes for drawing the ligand structure.
+        If None, the function creates a new figure containing just
+        the ligand depiction. Default is None.
+    :type ax: :class:`matplotlib.axes.Axes`, None
+
+    :arg show_atom_labels: If True, show additional small PDB atom-name
+        labels (e.g., O2A, O3B, PA) outside the highlight circles with a
+        white halo. If False (default), hide these additional labels.
+        Standard RDKit chemical element symbols, highlights, legend and
+        terminal ranking remain unchanged.
+    :type show_atom_labels: bool
+
+    :arg circle_scale: Scale factor applied to highlight-circle radii.
+        Default is 1.25 (25% larger than the original 1.0 setting).
+    :type circle_scale: float
+
+    :arg circle_linewidth: Highlight thickness control (1..10). In
+        ``'fractional'`` mode, adjusts the thickness of Matplotlib
+        annular sectors; in ``'legacy'`` mode, adjusts RDKit outlines.
+        Default is 3.
+    :type circle_linewidth: int
+
+    :arg show_residue_contacts: If True (default), label nearby protein
+        residues around the ligand diagram and connect them to their nearest
+        ligand heavy atom. Connections represent 3D geometric proximity,
+        NOT atom-pair SMINA scores. Set False for a ligand-only diagram.
+    :type show_residue_contacts: bool
+
+    :arg protein_selection: ProDy selection string specifying the receptor
+        atoms considered for the contact overlay. Default is 'protein'.
+        For a particular complex, use e.g. 'protein and chain A'.
+    :type protein_selection: str
+
+    :arg contact_cutoff: Maximum heavy-atom protein-ligand distance (Angstrom)
+        for a residue to be included in the contact overlay. Default 4.0.
+        This is INDEPENDENT of match_tolerance and the SMINA scoring cutoff.
+        This filter is applied BEFORE residue_sort_by ranking.
+    :type contact_cutoff: float
+
+    :arg max_contact_residues: Maximum number of selected contact residues.
+        None (default) displays ALL qualifying residues for the selected
+        ranking after applying ``contact_cutoff``; use a positive integer to
+        limit potentially crowded diagrams. A 'favorable' rank excludes
+        non-negative Delta S residues regardless of this value.
+    :type max_contact_residues: int, None
+
+    :arg residue_data: Optional residue contributions previously obtained
+        from calcSminaResidueContributions() or its saved TSV file. When
+        supplied, append the WHOLE-RESIDUE final score difference to the
+        contact label. This score is not assigned to the drawn atom pair.
+        No SMINA calculations are performed here. Default None.
+    :type residue_data: list, str, pathlib.Path, None
+
+    :arg residue_fontsize: Font size of protein-residue labels. Default 16.
+    :type residue_fontsize: int, float
+
+    :arg residue_sort_by: Criterion to select residues within contact_cutoff.
+        'favorable': most negative delta S; 'unfavorable': most positive
+        delta S; 'absolute': largest absolute delta S; 'mixed': balanced
+        favorable/unfavorable selection; 'distance': shortest heavy-atom
+        distances. 'auto' (default): favorable when residue_data is given,
+        otherwise distance. Energy rankings require residue_data.
+    :type residue_sort_by: str
+
+    :arg show_contact_distances: If True, include the nearest 3D heavy-atom
+        contact distance in residue boxes. If False (default), omit distances
+        from boxes, but keep them in the textual terminal contact table.
+    :type show_contact_distances: bool
+
+    :arg show_chain: If True, prefix residue labels with chain ID.
+        If False (default), omit it unless two displayed residues would otherwise
+        have identical labels, in which case chains are added to disambiguate.
+    :type show_chain: bool
+
+    :arg residue_code: 'one' (default) or 'three' for amino-acid names.
+        Nonstandard/unknown residues retain their original names.
+    :type residue_code: str
+
+    :arg color_residue_boxes_by_delta: If True (default), color residue
+        boxes blue (negative delta S) or orange-red (positive delta S) with
+        saturation scaled by absolute magnitude. Requires residue_data to
+        provide delta S; boxes without matching values stay white.
+    :type color_residue_boxes_by_delta: bool
+
+    :arg atom_circle_mode: 'fractional' (default) divides each colored
+        ring by its atom-wise favorable/(favorable+unfavorable) and
+        unfavorable/(favorable+unfavorable) shares, so arc length and
+        colored ring AREA express the relative proportions. Overall ring
+        radius represents total absolute term contribution. For clear
+        proportions, fractional mode uses solid blue and orange hues.
+        'legacy' restores equal-sized RDKit color sectors from v7.
+    :type atom_circle_mode: str
+
+    :arg atom_symbol_glow: If True (default), redraw original RDKit element
+        glyphs (including H prefixes, subscripts and charges) ON TOP of the
+        colored scoring rings, with a white halo. The chemical symbols come
+        from RDKit's own SVG drawing, preserving their original geometry,
+        rather than being approximated by Matplotlib text.
+    :type atom_symbol_glow: bool
+
+    :arg atom_symbol_glow_width: Width of the white outline around chemical
+        element glyphs in image pixels. Default is 2.0.
+    :type atom_symbol_glow_width: float
+
+    :arg residue_text_glow: If True (default), draw a white outline around
+        residue LABEL TEXT inside the blue/red boxes without changing the
+        colored box background or gray contact line.
+    :type residue_text_glow: bool
+
+    :arg residue_text_glow_width: Width of the white text outline in points,
+        default 1.5. Controls visual clarity independently from box color.
+    :type residue_text_glow_width: float
+
+    :arg ligand_render: 'vector' (default) rebuilds RDKit bond strokes and atom
+        symbols as Matplotlib vector paths for resolution-independent SVG/PDF
+        output. 'raster' uses the previous RDKit Cairo image background.
+    :type ligand_render: str
+
+    :arg residue_box_contrast: Positive multiplier of residue box color contrast.
+        1.0 (default) uses the enhanced saturation range; smaller values
+        create lighter boxes, larger values more saturated boxes (capped).
+        Display only: does not alter the underlying Delta S or ordering.
+    :type residue_box_contrast: float
+
+    :returns: Matplotlib Axes showing the annotated chemical structure.
+        The parent figure is accessible as ``ax.figure`` and may be
+        saved with ``ax.figure.savefig(...)``.
+    :rtype: :class:`matplotlib.axes.Axes` """
+    
+    import io
+    import warnings
+    import csv
+    import re
+    import xml.etree.ElementTree as ET
+    from pathlib import Path
+    from builtins import any, min, max, sum
+
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch, Wedge, PathPatch
+    from matplotlib.path import Path as MPLPath
+    import numpy as np
+    from prody import LOGGER
+
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+        from rdkit.Chem.Draw import rdMolDraw2D
+    
+    except ImportError as err:
+        LOGGER.warn(
+            'RDKit is required for showSminaLigandStructure(). '
+            'Please install RDKit using: '
+            'conda install -c conda-forge rdkit')
+        raise ImportError('RDKit is required for showSminaLigandStructure().') from err
+
+    top = kwargs.pop('top', None)
+    sort_by = kwargs.pop('sort_by', 'favorable')
+    match_tolerance = kwargs.pop('match_tolerance', 0.15)
+    ax = kwargs.pop('ax', None)
+    ligand_render = kwargs.pop('ligand_render', 'vector')
+    show_atom_labels = kwargs.pop('show_atom_labels', False)
+    circle_scale = kwargs.pop('circle_scale', 1.25)
+    circle_linewidth = kwargs.pop('circle_linewidth', 3)
+    atom_circle_mode = kwargs.pop('atom_circle_mode', 'fractional')
+    atom_symbol_glow = kwargs.pop('atom_symbol_glow', True)
+    atom_symbol_glow_width = kwargs.pop('atom_symbol_glow_width', 2.0)
+    show_residue_contacts = kwargs.pop('show_residue_contacts', True)
+    contact_cutoff = kwargs.pop('contact_cutoff', 4.0)
+    max_contact_residues = kwargs.pop('max_contact_residues', None)
+    residue_sort_by = kwargs.pop('residue_sort_by', 'auto')
+    residue_fontsize = kwargs.pop('residue_fontsize', 16)
+    show_contact_distances = kwargs.pop('show_contact_distances', False)
+    show_chain = kwargs.pop('show_chain', False)
+    residue_code = kwargs.pop('residue_code', 'one')
+    color_residue_boxes_by_delta = kwargs.pop('color_residue_boxes_by_delta', True)
+    residue_box_contrast = kwargs.pop('residue_box_contrast', 1.0)
+    residue_text_glow = kwargs.pop('residue_text_glow', True)
+    residue_text_glow_width = kwargs.pop('residue_text_glow_width', 1.5)
+
+    if kwargs:
+        raise TypeError(
+            "showSminaLigandStructure() got unexpected keyword "
+            "argument(s): {}".format(', '.join(sorted(kwargs))))
+
+    if not isinstance(data, dict) or not data.get('terms') or not isinstance(data.get('atoms'), list):
+        raise ValueError('data must be a detailed calcSminaPerAtomInteractions() dictionary')
+    if not isinstance(ligand_selection, str) or not ligand_selection:
+        raise ValueError('ligand_selection must select exactly one ligand residue')
+    if not isinstance(show_atom_labels, bool):
+        raise TypeError('show_atom_labels must be True or False')
+    if not isinstance(show_residue_contacts, bool):
+        raise TypeError('show_residue_contacts must be True or False')
+    if not isinstance(show_contact_distances, bool):
+        raise TypeError('show_contact_distances must be True or False')
+    if not isinstance(show_chain, bool):
+        raise TypeError('show_chain must be True or False')
+    if not isinstance(color_residue_boxes_by_delta, bool):
+        raise TypeError('color_residue_boxes_by_delta must be True or False')
+    if not isinstance(atom_symbol_glow, bool):
+        raise TypeError('atom_symbol_glow must be True or False')
+    if not isinstance(residue_text_glow, bool):
+        raise TypeError('residue_text_glow must be True or False')
+    for parameter_name, value in (('atom_symbol_glow_width', atom_symbol_glow_width),
+                                  ('residue_text_glow_width', residue_text_glow_width)):
+        if (isinstance(value, bool) or
+                not isinstance(value, (int, float, np.integer, np.floating)) or
+                not np.isfinite(value) or value < 0.0 or value > 15.0):
+            raise ValueError('{} must be finite and in [0, 15]'.format(parameter_name))
+    if residue_code not in ('three', 'one'):
+        raise ValueError("residue_code must be 'three' or 'one'")
+    if ligand_render not in ('vector', 'raster'):
+        raise ValueError("ligand_render must be 'vector' or 'raster'")
+    if (isinstance(residue_box_contrast, bool) or
+            not isinstance(residue_box_contrast, (int, float, np.integer, np.floating)) or
+            not np.isfinite(residue_box_contrast) or
+            not 0.0 < residue_box_contrast <= 2.0):
+        raise ValueError('residue_box_contrast must be finite and in (0, 2]')
+    if atom_circle_mode not in ('fractional', 'legacy'):
+        raise ValueError("atom_circle_mode must be 'fractional' or 'legacy'")
+    if atom_circle_mode == 'legacy' and ligand_render == 'vector':
+        warnings.warn("Legacy highlight mode uses raster ligand rendering; "
+                      "switch to atom_circle_mode='fractional' for an "
+                      "all-vector ligand figure.", UserWarning, stacklevel=2)
+        ligand_render = 'raster'
+    accepted_residue_ranks = ('auto', 'favorable', 'unfavorable', 'absolute',
+                              'distance', 'mixed')
+    if residue_sort_by not in accepted_residue_ranks:
+        raise ValueError('residue_sort_by must be one of: {}'.format(
+            ', '.join(accepted_residue_ranks)))
+    if not isinstance(protein_selection, str) or not protein_selection.strip():
+        raise ValueError('protein_selection must be a non-empty selection string')
+    if (isinstance(contact_cutoff, bool) or
+            not isinstance(contact_cutoff, (int, float, np.integer, np.floating)) or
+            not np.isfinite(contact_cutoff) or contact_cutoff <= 0):
+        raise ValueError('contact_cutoff must be a positive finite distance in Angstrom')
+    if (max_contact_residues is not None and
+            (isinstance(max_contact_residues, bool) or
+             not isinstance(max_contact_residues, (int, np.integer)) or
+             max_contact_residues < 1)):
+        raise ValueError('max_contact_residues must be a positive integer or None')
+    if (isinstance(residue_fontsize, bool) or
+            not isinstance(residue_fontsize, (int, float, np.integer, np.floating)) or
+            not np.isfinite(residue_fontsize) or residue_fontsize <= 0):
+        raise ValueError('residue_fontsize must be positive')
+
+    if (isinstance(circle_scale, bool) or
+            not isinstance(circle_scale, (int, float, np.integer, np.floating)) or
+            not np.isfinite(circle_scale) or not 0.1 <= circle_scale <= 3.0):
+        raise ValueError('circle_scale must be a finite number between 0.1 and 3.0')
+    if (isinstance(circle_linewidth, bool) or
+            not isinstance(circle_linewidth, (int, np.integer)) or
+            not 1 <= circle_linewidth <= 10):
+        raise ValueError('circle_linewidth must be an integer between 1 and 10')
+    if top is not None and (isinstance(top, bool) or
+                            not isinstance(top, (int, np.integer)) or top <= 0):
+        raise ValueError('top must be a positive integer or None')
+    if not np.isfinite(match_tolerance) or match_tolerance <= 0:
+        raise ValueError('match_tolerance must be a positive finite number in Angstroms')
+    unmatched_energy = float(data.get('qc', {}).get('absolute_unmatched_energy', 0))
+    if not np.isfinite(unmatched_energy) or unmatched_energy > 1e-9:
+        raise ValueError('Unmatched SMINA atom records have nonzero contributions; review mapping')
+
+    ligand = atoms.select(ligand_selection)
+    if ligand is None or ligand.numAtoms() == 0:
+        raise ValueError('ligand_selection does not select any ligand atoms')
+    coords = np.asarray(ligand.getCoords(), dtype=float)
+    if coords.shape != (ligand.numAtoms(), 3) or not np.isfinite(coords).all():
+        raise ValueError('Invalid ligand coordinates')
+    names = [str(n).strip() for n in ligand.getNames()]
+    residue_keys = {(str(c), int(n), str(r)) for c, n, r in zip(
+        ligand.getChids(), ligand.getResnums(), ligand.getResnames())}
+    if len(residue_keys) != 1:
+        raise ValueError('ligand_selection must identify exactly one residue')
+    if len(names) != len(set(names)):
+        raise ValueError('Ligand contains duplicate atom names; select a uniquely named residue')
+
+    ligand_elements = ligand.getElements()
+    if ligand_elements is None:
+        raise ValueError('Ligand element symbols are missing from the PDB; supply an element-annotated PDB')
+    ligand_elements = [str(x).strip().upper() for x in ligand_elements]
+    if any(not element for element in ligand_elements):
+        raise ValueError('Missing element symbol in ligand selection')
+
+    inferred_bonds = ligand_file is None
+    if ligand_file is not None:
+        source_path = Path(ligand_file)
+        if not source_path.is_file():
+            raise FileNotFoundError('Ligand file not found: {}'.format(source_path))
+        extension = source_path.suffix.lower()
+        if extension == '.mol':
+            mol = Chem.MolFromMolFile(str(source_path), removeHs=True, sanitize=True)
+        elif extension == '.sdf':
+            supplier = Chem.SDMolSupplier(str(source_path), removeHs=True, sanitize=True)
+            if len(supplier) != 1:
+                raise ValueError('ligand_file SDF must contain exactly one molecule')
+            mol = supplier[0]
+        elif extension == '.mol2':
+            mol = Chem.MolFromMol2File(str(source_path), removeHs=True, sanitize=True)
+        else:
+            raise ValueError('ligand_file must have .mol, .sdf or .mol2 extension')
+    else:
+        from prody.proteins.pdbfile import writePDBStream
+        pdb_buffer = io.StringIO()
+        writePDBStream(pdb_buffer, ligand)
+        mol = Chem.MolFromPDBBlock(pdb_buffer.getvalue(), sanitize=True,
+                                   removeHs=True, proximityBonding=True)
+        warnings.warn('Ligand 2D topology was inferred from PDB coordinates. '
+                      'Bond orders and aromaticity may be incorrect; use '
+                      'ligand_file with a validated MOL/SDF/MOL2 for '
+                      'chemical interpretation.', UserWarning, stacklevel=2)
+
+    if mol is None:
+        raise ValueError('RDKit could not construct ligand chemistry; '
+                         'provide a validated 3D MOL/SDF/MOL2 file')
+    if mol.GetNumConformers() != 1:
+        raise ValueError('The ligand chemical structure must contain one 3D conformer')
+    conf = mol.GetConformer()
+    if not conf.Is3D():
+        raise ValueError('Ligand chemical structure must contain 3D coordinates '
+                         'consistent with the ProDy input structure')
+
+    heavy_indices = [i for i, elem in enumerate(ligand_elements) if elem not in ('H', 'D')]
+    if mol.GetNumAtoms() != len(heavy_indices):
+        raise ValueError('Different ligand heavy-atom counts: RDKit={} and ProDy={}'.format(
+            mol.GetNumAtoms(), len(heavy_indices)))
+    rdkit_to_prody = {}
+    used_prody = set()
+    for atom in mol.GetAtoms():
+        rd_index = atom.GetIdx()
+        position = conf.GetAtomPosition(rd_index)
+        xyz = np.array([position.x, position.y, position.z])
+        atom_symbol = atom.GetSymbol().upper()
+        candidates = [(j, float(np.linalg.norm(coords[j] - xyz)))
+                      for j in heavy_indices if ligand_elements[j] == atom_symbol]
+        matches = [(j, d) for j, d in candidates if d <= match_tolerance]
+        if len(matches) != 1:
+            raise ValueError('RDKit atom {} ({}) has {} coordinate matches '
+                             'within {:.2f} Angstrom; check ligand_file and '
+                             'ligand_selection'.format(rd_index, atom_symbol,
+                                                       len(matches), match_tolerance))
+        j, _ = matches[0]
+        if j in used_prody:
+            raise ValueError('More than one RDKit atom maps to ligand atom {}'.format(names[j]))
+        used_prody.add(j)
+        rdkit_to_prody[rd_index] = j
+
+    term_names = [term for term in data['terms']
+                  if term not in set(data.get('global_terms', []))]
+    if not term_names:
+        raise ValueError('No atom-resolved scoring terms are available')
+    rows = [row for row in data['atoms'] if row.get('mapping_status') == 'MATCHED']
+    by_name = {}
+    for row in rows:
+        name = str(row.get('ligand_atom', '')).strip()
+        if name in by_name:
+            raise ValueError('Multiple mapped SMINA records for ligand atom {}'.format(name))
+        by_name[name] = row
+    if any(names[j] not in by_name for j in heavy_indices):
+        missing = [names[j] for j in heavy_indices if names[j] not in by_name]
+        raise ValueError('Missing mapped SMINA contributions for heavy ligand atoms: '
+                         + ', '.join(missing))
+
+    scores = []
+    hbond_terms = [term for term in term_names
+                   if 'h_bond' in term.lower() or 'hbond' in term.lower()]
+    if sort_by == 'hbond' and not hbond_terms:
+        raise ValueError("sort_by='hbond' requires a hydrogen-bond scoring term")
+    if sort_by not in ('favorable', 'net', 'unfavorable', 'hbond'):
+        raise ValueError('sort_by must be favorable, net, unfavorable or hbond')
+
+    for rd_index, prody_index in rdkit_to_prody.items():
+        atom_name = names[prody_index]
+        row = by_name[atom_name]
+        values = [float(row[term]) for term in term_names]
+        if not np.isfinite(values).all():
+            raise ValueError('Nonfinite SMINA term for ligand atom {}'.format(atom_name))
+        favorable = -sum(min(0.0, val) for val in values)
+        unfavorable = sum(max(0.0, val) for val in values)
+        hbond = -sum(min(0.0, float(row[term])) for term in hbond_terms)
+        if sort_by == 'favorable':
+            score = favorable
+        elif sort_by == 'net':
+            score = favorable - unfavorable
+        elif sort_by == 'unfavorable':
+            score = unfavorable
+        else:
+            score = hbond
+        scores.append((score, rd_index, atom_name, favorable, unfavorable))
+
+    ranked = sorted((r for r in scores if r[3] > 1e-12 or r[4] > 1e-12),
+                    key=lambda r: (-r[0], r[2]))
+    if not ranked:
+        raise ValueError('All ligand heavy-atom scoring contributions are zero')
+    selected = ranked if top is None else ranked[:top]
+    max_magnitude = max(max(row[3], row[4]) for row in ranked)
+    max_total_magnitude = max(row[3] + row[4] for row in ranked)
+
+    # Construct a new 2D depiction, preserving the original 3D structure.
+    drawing_mol = Chem.Mol(mol)
+    AllChem.Compute2DCoords(drawing_mol)
+    blue = (0.16, 0.41, 0.73)
+    orange = (0.88, 0.34, 0.19)
+
+    def weighted_color(base, magnitude):
+        """Fade smaller contributions so equal-size color sectors cannot
+        misleadingly suggest equal energetic contributions."""
+        opacity = 0.20 + 0.80 * np.sqrt(magnitude / max_magnitude)
+        return tuple(float(1.0 - (1.0 - part) * opacity) for part in base)
+    highlights = {}
+    radii = {}
+    atom_labels = {}
+    for _, idx, name, fav, unfav in selected:
+        colors = []
+        if fav > 1e-12:
+            colors.append(weighted_color(blue, fav))
+        if unfav > 1e-12:
+            colors.append(weighted_color(orange, unfav))
+        highlights[idx] = colors
+        if atom_circle_mode == 'fractional':
+            relative_size = (fav + unfav) / max_total_magnitude
+        else:
+            relative_size = max(fav, unfav) / max_magnitude
+        radii[idx] = float(circle_scale) * (
+            0.18 + 0.22 * np.sqrt(relative_size))
+        atom_labels[idx] = name
+
+    draw_width, draw_height = 1100, 700
+    painter = rdMolDraw2D.MolDraw2DCairo(draw_width, draw_height)
+    options = painter.drawOptions()
+    options.fillHighlights = False
+    options.continuousHighlight = False
+    if atom_circle_mode == 'legacy':
+        painter.DrawMoleculeWithHighlights(
+            drawing_mol, '', highlights, {}, radii,
+            {index: int(circle_linewidth) for index in highlights})
+    else:
+        painter.DrawMolecule(drawing_mol)
+
+    atom_xy = {}
+    for atom in drawing_mol.GetAtoms():
+        p = painter.GetDrawCoords(atom.GetIdx())
+        atom_xy[atom.GetIdx()] = np.asarray((p.x, p.y), dtype=float)
+
+    conf_2d = drawing_mol.GetConformer()
+    scale_samples = []
+    for bond in drawing_mol.GetBonds():
+        i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        a3 = conf_2d.GetAtomPosition(i)
+        b3 = conf_2d.GetAtomPosition(j)
+        molecular_distance = float(np.hypot(a3.x - b3.x, a3.y - b3.y))
+        pixel_distance = float(np.linalg.norm(atom_xy[i] - atom_xy[j]))
+        if molecular_distance > 1e-8:
+            scale_samples.append(pixel_distance / molecular_distance)
+    pixels_per_unit = float(np.median(scale_samples)) if scale_samples else 45.0
+    circle_radii_pixels = {index: radius * pixels_per_unit for index, radius in radii.items()}
+
+    painter.FinishDrawing()
+    from PIL import Image
+    picture = Image.open(io.BytesIO(painter.GetDrawingText())).convert('RGB')
+
+    glyph_paths = []
+    chemical_paths = []
+
+    if atom_symbol_glow or ligand_render == 'vector':
+        vector_painter = rdMolDraw2D.MolDraw2DSVG(draw_width, draw_height)
+        vector_options = vector_painter.drawOptions()
+        vector_options.fillHighlights = False
+        vector_options.continuousHighlight = False
+
+        if atom_circle_mode == 'legacy':
+            vector_painter.DrawMoleculeWithHighlights(
+                drawing_mol, '', highlights, {}, radii,
+                {index: int(circle_linewidth) for index in highlights})
+        else:
+            vector_painter.DrawMolecule(drawing_mol)
+        for atom in drawing_mol.GetAtoms():
+            index = atom.GetIdx()
+            xy_svg = vector_painter.GetDrawCoords(index)
+            if np.linalg.norm(atom_xy[index] - (xy_svg.x, xy_svg.y)) > 0.01:
+                raise RuntimeError('RDKit SVG and Cairo atom coordinates do not match')
+        vector_painter.FinishDrawing()
+
+        def parse_glyph_path(commands):
+            """Convert RDKit SVG glyph outlines into a Matplotlib Path.
+
+            RDKit's atom-symbol outlines normally consist of absolute
+            M/L/Q/C/Z commands; handling these directly avoids introducing
+            any extra image conversion library dependency. """
+            
+            tokens = re.findall(r'[MLQCZmlqcz]|[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?', commands)
+            vertices, codes = [], []
+            pos, command = 0, None
+            current = np.zeros(2, dtype=float)
+            start = None
+            n_params = {'M': 2, 'L': 2, 'Q': 4, 'C': 6}
+            
+            while pos < len(tokens):
+                if tokens[pos].isalpha():
+                    command = tokens[pos]
+                    pos += 1
+                if command is None:
+                    raise ValueError('Malformed RDKit SVG atom-symbol path')
+                if command.upper() == 'Z':
+                    if start is None:
+                        raise ValueError('Unexpected SVG path close')
+                    vertices.append(tuple(start))
+                    codes.append(MPLPath.CLOSEPOLY)
+                    current = start.copy()
+                    command = None
+                    continue
+                    
+                kind = command.upper()
+                if kind not in n_params:
+                    raise ValueError('Unsupported SVG glyph path command: {}'.format(command))
+                count = n_params[kind]
+                if pos + count > len(tokens):
+                    raise ValueError('Truncated RDKit SVG atom-symbol path')
+                values = [float(t) for t in tokens[pos:pos + count]]
+                pos += count
+                relative = command.islower()
+                segments = [np.asarray(values[k:k + 2], dtype=float)
+                            for k in range(0, count, 2)]
+                if relative:
+                    segments = [v + current for v in segments]
+                if kind == 'M':
+                    current = segments[0]
+                    start = current.copy()
+                    vertices.append(tuple(current))
+                    codes.append(MPLPath.MOVETO)
+                    command = 'l' if relative else 'L'
+                elif kind == 'L':
+                    current = segments[0]
+                    vertices.append(tuple(current))
+                    codes.append(MPLPath.LINETO)
+                elif kind == 'Q':
+                    vertices.extend(tuple(v) for v in segments)
+                    codes.extend((MPLPath.CURVE3, MPLPath.CURVE3))
+                    current = segments[-1]
+                elif kind == 'C':
+                    vertices.extend(tuple(v) for v in segments)
+                    codes.extend((MPLPath.CURVE4,) * 3)
+                    current = segments[-1]
+            return MPLPath(np.asarray(vertices, dtype=float), codes)
+
+        svg_root = ET.fromstring(vector_painter.GetDrawingText())
+        for element in svg_root.iter():
+            if not element.tag.endswith('path'):
+                continue
+            path_data = element.attrib.get('d', '')
+            if not path_data:
+                continue
+            path = parse_glyph_path(path_data)
+            classes = element.attrib.get('class', '').split()
+            is_glyph = (not any(cls.startswith('bond-') for cls in classes)
+                        and any(cls.startswith('atom-') for cls in classes))
+            css = {}
+            for statement in element.attrib.get('style', '').split(';'):
+                if ':' in statement:
+                    k, v = statement.split(':', 1)
+                    css[k.strip()] = v.strip()
+            fill = element.attrib.get('fill', css.get('fill', 'none'))
+            stroke = element.attrib.get('stroke', css.get('stroke', 'none'))
+            if is_glyph:
+                glyph_paths.append((path, fill))
+            else:
+                try:
+                    linewidth = float(css.get('stroke-width', '2').replace('px',''))
+                except ValueError as err:
+                    raise ValueError('Invalid RDKit SVG stroke-width') from err
+                chemical_paths.append((path, fill, stroke, linewidth,
+                                       css.get('stroke-linecap', 'butt'),
+                                       css.get('stroke-linejoin', 'miter')))
+
+    def place_atom_labels():
+        """Return (name, x, y) labels with simple collision avoidance."""
+
+        from builtins import abs
+
+        placed = []
+        occupied = []
+        all_atom_xy = np.asarray(list(atom_xy.values()), dtype=float)
+        ligand_center = np.mean(all_atom_xy, axis=0)
+        bond_segments = [(atom_xy[b.GetBeginAtomIdx()], atom_xy[b.GetEndAtomIdx()])
+                         for b in drawing_mol.GetBonds()]
+        label_fontsize = 11.0
+        label_height = 22.0
+        angles = np.arange(0.0, 2.0 * np.pi, np.pi / 8.0)
+        directions = [np.asarray((np.cos(a), np.sin(a))) for a in angles]
+
+        for _, index, name, fav, unfav in selected:
+            center = atom_xy[index]
+            outward = center - ligand_center
+            outward_norm = float(np.linalg.norm(outward))
+            if outward_norm > 1e-9:
+                outward /= outward_norm
+            else:
+                outward = np.asarray((0.0, -1.0))
+            directions_sorted = sorted(
+                directions, key=lambda direction: -float(np.dot(direction, outward)))
+            label_width = max(34.0, len(name) * 9.0 + 12.0)
+            best_cost, best_position = float('inf'), None
+
+            base_offset = max(62.0,
+                circle_radii_pixels.get(index, 0.0) + 0.5 * label_width + 14.0)
+            offsets = [base_offset + extra for extra in
+                       (0.0, 12.0, 24.0, 38.0, 52.0, 68.0, 85.0)]
+            for offset in offsets:
+                for direction in directions_sorted:
+                    candidate = center + offset * direction
+                    x, y = candidate
+
+                    if (x < label_width / 2 + 8 or
+                            x > draw_width - label_width / 2 - 8 or
+                            y < label_height / 2 + 10 or
+                            y > draw_height - label_height / 2 - 10):
+                        continue
+
+                    cost = 0.32 * (offset - base_offset)
+                    cost += 12.0 * (1.0 - float(np.dot(direction, outward)))
+
+                    for other_index, other in atom_xy.items():
+                        if other_index == index:
+                            continue
+                        dist = float(np.linalg.norm(candidate - other))
+                        if dist < 38.0:
+                            cost += 2.0 * (38.0 - dist) ** 2
+                        if (abs(x - other[0]) < label_width / 2 + 13.0 and
+                                abs(y - other[1]) < label_height / 2 + 13.0):
+                            cost += 1800.0
+                        if other_index in atom_labels and dist < 50.0:
+                            cost += 0.8 * (50.0 - dist) ** 2
+
+                        ring_radius = circle_radii_pixels.get(other_index, 0.0)
+                        if ring_radius:
+                            safe_distance = ring_radius + label_width / 2 + 5.0
+                            if dist < safe_distance:
+                                cost += 4.0 * (safe_distance - dist) ** 2
+
+                    for start, end in bond_segments:
+                        vec = end - start
+                        denom = float(np.dot(vec, vec))
+                        if denom < 1e-12:
+                            continue
+                        fraction = np.clip(np.dot(candidate - start, vec) / denom, 0, 1)
+                        near = start + fraction * vec
+                        bond_distance = float(np.linalg.norm(candidate - near))
+                        if bond_distance < 23.0:
+                            cost += 0.8 * (23.0 - bond_distance) ** 2
+
+                    for old_x, old_y, old_width, old_height in occupied:
+                        overlap_x = (label_width + old_width) / 2 + 8.0 - abs(x - old_x)
+                        overlap_y = (label_height + old_height) / 2 + 6.0 - abs(y - old_y)
+                        if overlap_x > 0 and overlap_y > 0:
+                            cost += 4000.0 + 20.0 * overlap_x * overlap_y
+                    if cost < best_cost:
+                        best_cost, best_position = cost, candidate
+
+            if best_position is None:
+                best_position = np.clip(
+                    center + base_offset * outward,
+                    [label_width / 2 + 8, label_height / 2 + 10],
+                    [draw_width - label_width / 2 - 8,
+                     draw_height - label_height / 2 - 10])
+            label_x, label_y = (float(v) for v in best_position)
+            placed.append((name, label_x, label_y))
+            occupied.append((label_x, label_y, label_width, label_height))
+        return placed, label_fontsize
+
+    if show_atom_labels:
+        placed_labels, label_fontsize = place_atom_labels()
+    else:
+        placed_labels, label_fontsize = [], 11.0
+
+    from prody import LOGGER
+
+    contact_rows = []
+    if show_residue_contacts:
+        protein = atoms.select(protein_selection)
+        if protein is None or protein.numAtoms() == 0:
+            raise ValueError('protein_selection does not select protein atoms')
+        protein_heavy = protein.select('noh')
+        if protein_heavy is None or protein_heavy.numAtoms() == 0:
+            raise ValueError('protein_selection contains no heavy atoms')
+        protein_xyz = np.asarray(protein_heavy.getCoords(), dtype=float)
+        if protein_xyz.ndim != 2 or protein_xyz.shape[1] != 3 or not np.isfinite(protein_xyz).all():
+            raise ValueError('Invalid protein heavy-atom coordinates')
+        lig_heavy_xyz = coords[heavy_indices]
+
+        def _field(values, n):
+            return [''] * n if values is None else [str(v).strip() for v in values]
+
+        size = protein_heavy.numAtoms()
+        p_segs = _field(protein_heavy.getSegnames(), size)
+        p_chains = _field(protein_heavy.getChids(), size)
+        p_names = _field(protein_heavy.getResnames(), size)
+        p_nums = [int(v) for v in protein_heavy.getResnums()]
+        p_icodes = _field(protein_heavy.getIcodes(), size)
+        best_by_residue = {}
+
+        for start in range(0, size, 1024):
+            end = min(size, start + 1024)
+            block_d2 = np.sum(
+                (protein_xyz[start:end, None, :] - lig_heavy_xyz[None, :, :]) ** 2,
+                axis=2)
+            nearest_lig = np.argmin(block_d2, axis=1)
+            nearest_d2 = block_d2[np.arange(end - start), nearest_lig]
+            for offset, distance2 in enumerate(nearest_d2):
+                if distance2 > contact_cutoff * contact_cutoff:
+                    continue
+                i = start + offset
+                key = (p_segs[i], p_chains[i], p_names[i], p_nums[i], p_icodes[i])
+                distance = float(np.sqrt(distance2))
+                if key not in best_by_residue or distance < best_by_residue[key]['distance_A']:
+                    prody_lig_index = heavy_indices[int(nearest_lig[offset])]
+                    best_by_residue[key] = {
+                        'segment': key[0], 'chain': key[1], 'resname': key[2],
+                        'resnum': key[3], 'icode': key[4],
+                        'distance_A': distance,
+                        'ligand_index': prody_lig_index,
+                        'ligand_atom': names[prody_lig_index]}
+
+        contact_rows = list(best_by_residue.values())
+        prody_to_rdkit = {j: index for index, j in rdkit_to_prody.items()}
+        for row in contact_rows:
+            row['rdkit_atom'] = prody_to_rdkit[row['ligand_index']]
+
+        if residue_data is not None:
+            if isinstance(residue_data, (str, Path)):
+                with Path(residue_data).open('r', newline='', encoding='utf-8') as fd:
+                    stored_rows = list(csv.DictReader(fd, delimiter='\t'))
+            elif isinstance(residue_data, list):
+                stored_rows = residue_data
+            else:
+                raise TypeError('residue_data must be a list of dictionaries or a TSV path')
+            score_by_key = {}
+            for row in stored_rows:
+                if not isinstance(row, dict):
+                    raise TypeError('residue_data rows must be dictionaries')
+                try:
+                    key = (str(row['chain']).strip(),
+                           str(row['resname']).strip(),
+                           int(row['resnum']), str(row.get('icode', '')).strip())
+                    delta_score = float(row['delta_score_kcal_mol'])
+                except (ValueError, TypeError, KeyError) as error:
+                    raise ValueError('Invalid residue_data identity/score') from error
+                if not np.isfinite(delta_score):
+                    raise ValueError('Nonfinite residue_data final score')
+                if key in score_by_key:
+                    raise ValueError('Ambiguous residue_data entries for {}'.format(key))
+                score_by_key[key] = delta_score
+            for row in contact_rows:
+                key = (row['chain'], row['resname'], row['resnum'], row['icode'])
+                if key in score_by_key:
+                    row['delta_score'] = score_by_key[key]
+
+        effective_rank = ('favorable' if residue_data is not None else 'distance') \
+            if residue_sort_by == 'auto' else residue_sort_by
+        if effective_rank != 'distance':
+            if residue_data is None:
+                raise ValueError('residue_sort_by={!r} requires residue_data '
+                                 '(TSV or residue list)'.format(effective_rank))
+            missing = [row for row in contact_rows if 'delta_score' not in row]
+            if missing:
+                raise ValueError('Missing delta S for {} of {} contact residues. '
+                                 'Use matching residue_data (same protein chain) '
+                                 'or residue_sort_by="distance".'.format(
+                                     len(missing), len(contact_rows)))
+
+        by_distance = lambda row: (row['distance_A'], row['chain'],
+                                   row['resnum'], row['resname'])
+        if effective_rank == 'distance':
+            ranked_contacts = sorted(contact_rows, key=by_distance)
+        elif effective_rank == 'favorable':
+            ranked_contacts = sorted(
+                (row for row in contact_rows if row['delta_score'] < -1e-10),
+                key=lambda row: (row['delta_score'], *by_distance(row)))
+        elif effective_rank == 'unfavorable':
+            ranked_contacts = sorted(
+                (row for row in contact_rows if row['delta_score'] > 1e-10),
+                key=lambda row: (-row['delta_score'], *by_distance(row)))
+        elif effective_rank == 'absolute':
+            ranked_contacts = sorted(
+                contact_rows,
+                key=lambda row: (-abs(row['delta_score']), *by_distance(row)))
+        else: 
+            negatives = sorted(
+                (row for row in contact_rows if row['delta_score'] < -1e-10),
+                key=lambda row: (row['delta_score'], *by_distance(row)))
+            positives = sorted(
+                (row for row in contact_rows if row['delta_score'] > 1e-10),
+                key=lambda row: (-row['delta_score'], *by_distance(row)))
+            if max_contact_residues is None:
+                ranked_contacts = negatives + positives
+            else:
+                n = int(max_contact_residues)
+                target_negative = (n + 1) // 2
+                target_positive = n // 2
+                selected_neg = negatives[:target_negative]
+                selected_pos = positives[:target_positive]
+                seen = {id(r) for r in selected_neg + selected_pos}
+                remainder = sorted(
+                    [r for r in negatives + positives if id(r) not in seen],
+                    key=lambda r: (-abs(r['delta_score']), *by_distance(r)))
+                ranked_contacts = (selected_neg + selected_pos +
+                                   remainder[:max(0, n - len(selected_neg) - len(selected_pos))])
+        if max_contact_residues is not None:
+            ranked_contacts = ranked_contacts[:max_contact_residues]
+        contact_rows = ranked_contacts
+
+        aa_to_one = {
+            'ALA':'A', 'ARG':'R', 'ASN':'N', 'ASP':'D', 'CYS':'C',
+            'GLU':'E', 'GLN':'Q', 'GLY':'G', 'HIS':'H', 'ILE':'I',
+            'LEU':'L', 'LYS':'K', 'MET':'M', 'PHE':'F', 'PRO':'P',
+            'SER':'S', 'THR':'T', 'TRP':'W', 'TYR':'Y', 'VAL':'V',
+            'HSD':'H', 'HSE':'H', 'HSP':'H', 'HID':'H', 'HIE':'H',
+            'HIP':'H', 'CYX':'C', 'CYM':'C', 'ASH':'D', 'GLH':'E',
+            'MSE':'M'}
+        
+        for row in contact_rows:
+            resname = (aa_to_one.get(row['resname'], row['resname'])
+                       if residue_code == 'one' else row['resname'])
+            resid = '{}{}{}'.format(resname, row['resnum'], row['icode'])
+            row['label'] = ('{}:{}'.format(row['chain'], resid)
+                            if show_chain and row['chain'] else resid)
+
+        if not show_chain:
+            label_counts = {}
+            for row in contact_rows:
+                label_counts[row['label']] = label_counts.get(row['label'], 0) + 1
+            for row in contact_rows:
+                if label_counts[row['label']] > 1 and row['chain']:
+                    row['label'] = '{}:{}'.format(row['chain'], row['label'])
+
+        score_max_abs = max((abs(row['delta_score']) for row in
+                             best_by_residue.values() if 'delta_score' in row),
+                            default=0.0)
+
+        LOGGER.info('\nProtein-ligand geometric contacts: {} selected / {} within '
+                    '{:.2f} Å | residue_sort_by={}'.format(
+                        len(contact_rows), len(best_by_residue),
+                        contact_cutoff, effective_rank))
+        LOGGER.info('{:<14s} {:<12s} {:>12s} {:>12s}'.format(
+            'Residue', 'Ligand atom', 'Dist. [Å]', 'Delta S'))
+        LOGGER.info('-' * 58)
+        for row in contact_rows:
+            score_text = ('{:+.2f}'.format(row['delta_score'])
+                          if 'delta_score' in row else '-')
+            LOGGER.info('{:<14s} {:<12s} {:>12.2f} {:>12s}'.format(
+                row['label'], row['ligand_atom'], row['distance_A'], score_text))
+
+    LOGGER.info('\nSMINA ligand atom contributions: TOP {} / {} | sort_by={}'.format(
+        len(selected), len(ranked), sort_by))
+    LOGGER.info('{:<8s} {:>14s} {:>14s} {:>14s}'.format(
+        'Atom', 'Favorable (-)', 'Penalty (+)', 'Net'))
+    LOGGER.info('-' * 55)
+    for _, idx, name, fav, unfav in selected:
+        LOGGER.info('{:<8s} {:>+14.3f} {:>+14.3f} {:>+14.3f}'.format(
+            name, -fav, unfav, unfav - fav))
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(16, 8) if show_residue_contacts
+                               else (11.5, 7.0))
+        fig.subplots_adjust(left=0.015, right=0.985, top=0.97,
+                            bottom=0.15 if show_residue_contacts else 0.13)
+
+    if ligand_render == 'vector':
+        ax.set_xlim(0, draw_width)
+        ax.set_ylim(draw_height, 0)
+        for path, fill, stroke, linewidth, cap, join in chemical_paths:
+            ax.add_patch(PathPatch(
+                path,
+                facecolor=fill if fill != 'none' else 'none',
+                edgecolor=stroke if stroke != 'none' else 'none',
+                linewidth=linewidth,
+                capstyle=cap if cap in ('butt','round','projecting') else 'butt',
+                joinstyle=join if join in ('miter','round','bevel') else 'miter',
+                zorder=1.3))
+    else:
+        ax.imshow(picture, zorder=0)
+    if atom_circle_mode == 'fractional':
+        for _, index, _name, fav, unfav in selected:
+            total = fav + unfav
+            if total <= 1e-12:
+                continue
+            cx, cy = (float(v) for v in atom_xy[index])
+            radius_px = circle_radii_pixels[index]
+            band_width = min(radius_px * 0.40,
+                             3.3 * float(circle_linewidth))
+            blue_fraction = float(fav / total)
+            if fav > 1e-12:
+                ax.add_patch(Wedge(
+                    (cx, cy), radius_px,
+                    90.0, 90.0 + 360.0 * blue_fraction,
+                    width=band_width,
+                    facecolor=blue,
+                    edgecolor='none', zorder=4))
+            if unfav > 1e-12:
+                ax.add_patch(Wedge(
+                    (cx, cy), radius_px,
+                    90.0 + 360.0 * blue_fraction, 450.0,
+                    width=band_width,
+                    facecolor=orange,
+                    edgecolor='none', zorder=4))
+
+    for glyph_path, glyph_color in glyph_paths:
+        if atom_symbol_glow and atom_symbol_glow_width > 0:
+            ax.add_patch(PathPatch(
+                glyph_path, facecolor='white', edgecolor='white',
+                linewidth=float(atom_symbol_glow_width),
+                joinstyle='round', capstyle='round',
+                zorder=18))
+        ax.add_patch(PathPatch(
+            glyph_path, facecolor=glyph_color, edgecolor='none',
+            zorder=19))
+
+    if show_residue_contacts:
+        ax.set_xlim(-350, draw_width + 350)
+        ax.set_ylim(draw_height + 45, -45)
+        sides = {'left': [], 'right': []}
+        for row in contact_rows:
+            xy = atom_xy[row['rdkit_atom']]
+            side = 'left' if xy[0] < draw_width / 2.0 else 'right'
+            sides[side].append((row, xy))
+        for side, entries in sides.items():
+            entries.sort(key=lambda item: (item[1][1], item[0]['distance_A']))
+            if not entries:
+                continue
+            n = len(entries)
+            y_min, y_max = 72.0, draw_height - 72.0
+            if n == 1:
+                row_y = [float(np.clip(entries[0][1][1], y_min, y_max))]
+            else:
+                row_y = np.linspace(y_min, y_max, n)
+            dest_x = -30 if side == 'left' else draw_width + 30
+            align = 'right' if side == 'left' else 'left'
+            for (row, xy), target_y in zip(entries, row_y):
+                label = row['label']
+                if show_contact_distances:
+                    label += '  {:.2f} Å'.format(row['distance_A'])
+                if 'delta_score' in row:
+                    label += '  ΔS={:+.2f}'.format(row['delta_score'])
+                fill_color, edge_color = 'white', '0.80'
+                if color_residue_boxes_by_delta and 'delta_score' in row:
+                    delta = row['delta_score']
+                    if abs(delta) > 1e-10:
+                        base = blue if delta < 0 else orange
+                        fraction = (abs(delta) / score_max_abs
+                                    if score_max_abs > 0 else 0)
+                        intensity = min(0.84, (0.10 +
+                                         0.68 * float(fraction) ** 1.8) *
+                                         float(residue_box_contrast))
+                        fill_color = tuple(
+                            float(1.0 - (1.0 - c) * intensity) for c in base)
+                        edge_color = tuple(float(0.75 * c) for c in base)
+                annotation = ax.text(
+                    dest_x, float(target_y), label,
+                    ha=align, va='center', fontsize=float(residue_fontsize),
+                    color='0.12',
+                    bbox=dict(boxstyle='round,pad=0.28', fc=fill_color,
+                              ec=edge_color, lw=1.0, alpha=1.0),
+                    zorder=15, clip_on=False)
+                if residue_text_glow and residue_text_glow_width > 0:
+                    from matplotlib.patheffects import withStroke, Normal
+                    annotation.set_path_effects([
+                        withStroke(linewidth=float(residue_text_glow_width),
+                                   foreground='white'),
+                        Normal()
+                    ])
+
+                row['_label_artist'] = annotation
+                row['_contact_xy'] = np.asarray(xy, dtype=float)
+                row['_contact_side'] = side
+
+        ax.figure.canvas.draw()
+        renderer = ax.figure.canvas.get_renderer()
+        for row in contact_rows:
+            annotation = row['_label_artist']
+            box_patch = annotation.get_bbox_patch()
+            if box_patch is None:
+                continue
+            bbox = box_patch.get_window_extent(renderer)
+            inv = ax.transData.inverted()
+            c0 = inv.transform((bbox.x0, bbox.y0))
+            c1 = inv.transform((bbox.x1, bbox.y1))
+            left = min(c0[0], c1[0])
+            right = max(c0[0], c1[0])
+            target_y = 0.5 * (c0[1] + c1[1])
+            side = row['_contact_side']
+
+            target_x = right if side == 'left' else left
+            end_xy = np.asarray((target_x, target_y), dtype=float)
+            center = row['_contact_xy']
+            delta = end_xy - center
+            length = float(np.linalg.norm(delta))
+            if length <= 1e-6:
+                continue
+            unit = delta / length
+            atom_index = row['rdkit_atom']
+            start_xy = center + unit * (circle_radii_pixels.get(atom_index, 0) + 5)
+            dx = end_xy[0] - start_xy[0]
+            bend = abs(dx) * 0.32
+            sign = -1 if side == 'left' else 1
+            cfirst = (start_xy[0] + sign * bend, start_xy[1])
+            csecond = (end_xy[0] - sign * bend, end_xy[1])
+            path = MPLPath(
+                [tuple(start_xy), cfirst, csecond, tuple(end_xy)],
+                [MPLPath.MOVETO, MPLPath.CURVE4,
+                 MPLPath.CURVE4, MPLPath.CURVE4])
+            ax.add_patch(PathPatch(
+                path, edgecolor='0.49', facecolor='none', linewidth=1.0,
+                capstyle='round', zorder=0.9, clip_on=False))
+
+            del row['_label_artist'], row['_contact_xy'], row['_contact_side']
+
+    import matplotlib.patheffects as path_effects
+    for name, label_x, label_y in placed_labels:
+        annotation = ax.text(label_x, label_y, name, fontsize=label_fontsize, 
+                            color='black', ha='center', va='center', zorder=23,
+                            clip_on=False)
+        annotation.set_path_effects([
+            path_effects.withStroke(linewidth=3.0, foreground='white')])
+
+    ax.axis('off')
+    legend_handles = [Patch(color=blue, label='Favorable (-)'),
+                      Patch(color=orange, label='Unfavorable (+)')]
+    if show_residue_contacts:
+        from matplotlib.lines import Line2D
+        legend_handles.append(Line2D([0], [0], color='0.47', lw=1.4,
+                                     label='3D contact ≤ {:.1f} Å'.format(contact_cutoff)))
+    ax.legend(
+        handles=legend_handles,
+        loc='lower center', ncol=len(legend_handles), frameon=False,
+        bbox_to_anchor=(0.5, -0.04), fontsize=15 if show_residue_contacts else 16,
+        handlelength=1.65, handleheight=1.25, columnspacing=1.65)
     return ax
 
 
