@@ -6592,14 +6592,14 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                           threshold, distA, kwargs, kind,
                           detect_records_fn, overlap_fn,
                           dali_filter_kwargs=None, msa_fasta=None,
-                          msa_ref_label=None):
+                          msa_ref_label=None, selection='protein'):
     """Shared alignment/thresholding pipeline behind :func:`calcSignatureCavities`
     and :func:`calcSignatureChannels`. The two public functions differ only in
     which detection family they dispatch to. See those functions for the full
     description of *structures*, *ref_structure*, *output_path*, *voxel_res*,
-    *threshold*, *distA*, *dali_filter_kwargs*, *msa_fasta* and *msa_ref_label*
-    -- documented here only where this shared layer adds meaning beyond what's
-    written there.
+    *threshold*, *distA*, *dali_filter_kwargs*, *msa_fasta*, *msa_ref_label*
+    and *selection* -- documented here only where this shared layer adds
+    meaning beyond what's written there.
 
     :arg structures: See :func:`calcSignatureCavities`.
     :type structures: list of str or None
@@ -6652,7 +6652,11 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
 
     :arg msa_ref_label: See :func:`calcSignatureCavities`.
     :type msa_ref_label: str or None
+
+    :arg selection: See :func:`calcSignatureCavities`.
+    :type selection: str
     """
+    import json
     import pandas as pd
     import re
     from prody.database import searchDali
@@ -6762,14 +6766,24 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
     _ag_ref_prot = _ag_ref.select('protein')
     if _ag_ref_prot is None:
         raise ValueError("No protein atoms in reference: {0}".format(ref_pdb_id))
+    _ag_ref_sel = _ag_ref.select(selection)
+    if _ag_ref_sel is None:
+        raise ValueError("selection {0!r} matched no atoms in reference: {1}"
+                          .format(selection, ref_pdb_id))
     ref_pdb = align_dir / 'ref.pdb'
-    writePDB(str(ref_pdb), _ag_ref_prot)
+    writePDB(str(ref_pdb), _ag_ref_sel)
 
     ref_resnums = _getMappingResnums(ref_pdb, ref_chain)
 
     # ── 3. CE-align all structures onto the reference ─────────────────────────
     report_rows  = []
     msa_mappings = {}
+    status = {lbl: {'aligned': False, 'detection': 'skipped', 'n_objects': 0,
+                    'message': 'not processed'} for lbl in structures}
+
+    def _skip(label, reason):
+        _warn(reason)
+        status[label]['message'] = reason
 
     # parsePDB already restricted _ag_ref_prot to ref_chain, so its hierview
     # holds exactly one chain -- take it directly instead of indexing by the
@@ -6782,30 +6796,40 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
     for label in structures:
         ag = label_to_ag[label]
         if ag is None:
-            _warn('No atoms parsed for {0}'.format(label))
+            _skip(label, 'No atoms parsed for {0}'.format(label))
             continue
 
         ag_chain = ag.select('protein')
         if ag_chain is None:
-            _warn('No protein atoms in {0}'.format(label))
+            _skip(label, 'No protein atoms in {0}'.format(label))
             continue
 
         # Likewise already restricted to its own chain by parsePDB.
         mobile_chain_obj = next(iter(ag_chain.getHierView()), None)
         if not isinstance(mobile_chain_obj, Chain):
-            _warn('Chain not found in {0}.'.format(label))
+            _skip(label, 'Chain not found in {0}.'.format(label))
+            continue
+
+        ag_sel = ag.select(selection)
+        if ag_sel is None:
+            _skip(label, 'selection {0!r} matched no atoms in {1}'
+                         .format(selection, label))
             continue
 
         mapping = mapChainOntoChain(mobile_chain_obj, ref_chain_obj,
                                      pwalign='cealign', overlap=50.)
         if mapping is None:
-            _warn('CE-align could not map {0} onto the reference.'.format(label))
+            _skip(label, 'CE-align could not map {0} onto the reference.'
+                         .format(label))
             continue
 
-        atommap, selection, seqid, cover = mapping
+        atommap, ref_map, seqid, cover = mapping
         mapped_flags = atommap.getFlags('mapped')
-        superpose(atommap, selection, weights=mapped_flags)
-        rmsd = float(calcRMSD(atommap, selection, weights=mapped_flags))
+        # The fit uses the mapped protein atoms only. applyTransformation then
+        # moves the whole parent AtomGroup, so cofactors and ions kept by
+        # *selection* follow the protein without influencing the fit.
+        superpose(atommap, ref_map, weights=mapped_flags)
+        rmsd = float(calcRMSD(atommap, ref_map, weights=mapped_flags))
 
         # Structures stay in the ensemble regardless of alignment quality --
         # RMSD/coverage/identity are reported, not gated. Only a grossly bad
@@ -6815,10 +6839,10 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                   'alignment may be less reliable.'.format(label, rmsd))
 
         sup_pdb = align_dir / '{0}.pdb'.format(label)
-        writePDB(str(sup_pdb), ag_chain)
+        writePDB(str(sup_pdb), ag_sel)
 
-        ca_mask = selection.getNames() == 'CA'
-        ref_rn  = selection.getResnums()[ca_mask]
+        ca_mask = ref_map.getNames() == 'CA'
+        ref_rn  = ref_map.getResnums()[ca_mask]
         tgt_rn  = atommap.getResnums()[ca_mask]
         ca_mapped = mapped_flags[ca_mask]
         msa_mappings[label] = {
@@ -6826,13 +6850,17 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
             for rn, tn, is_mapped in zip(ref_rn, tgt_rn, ca_mapped)
         }
 
-        report_rows.append({
+        row = {
             'pdb_chain':      label,
             'rmsd_A':         round(rmsd, 3),
             'coverage_pct':   round(float(cover), 2),
             'identity_pct':   round(float(seqid), 2),
             'superposed_pdb': str(sup_pdb),
-        })
+        }
+        report_rows.append(row)
+        status[label].update(aligned=True, message='', rmsd_A=row['rmsd_A'],
+                             coverage_pct=row['coverage_pct'],
+                             identity_pct=row['identity_pct'])
         LOGGER.info('{0} RMSD={1:.3f}A coverage={2:.1f}% identity={3:.1f}%'.format(
             label, rmsd, cover, seqid))
 
@@ -6855,6 +6883,10 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
     from prody.sequence.analysis import calcShannonEntropy
 
     msa_fasta_path = None
+    anchor_idx = None
+    anchor_source = None
+    ref_ca = _ag_ref_prot.select('name CA')
+    ref_seq = ref_ca.getSequence() if ref_ca is not None else ''
 
     if msa_fasta:
         # User-supplied MSA replaces the auto-generated MSA from the ensemble
@@ -6871,13 +6903,8 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                 .format(msa_fasta))
         user_labels = user_msa.getLabels(full=True)
 
-        ref_ca_for_msa = _ag_ref_prot.select('protein and name CA')
-        ref_seq = ref_ca_for_msa.getSequence() if ref_ca_for_msa is not None else ''
-
         col_to_resnum = {}
-        anchor_idx = None
         anchor_positional = False
-        anchor_source = None
 
         if msa_ref_label is not None:
             if msa_ref_label not in user_labels:
@@ -6892,6 +6919,7 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
             # reference's own residues.
             anchor_idx = user_labels.index(ref_label)
             anchor_positional = True
+            anchor_source = 'label'
         else:
             idcode = None
             accession = None
@@ -6923,7 +6951,7 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                     idx = idx[0] if idx else None
                 if idx is not None:
                     anchor_idx = idx
-                    anchor_source = 'accession'
+                    anchor_source = source
                     LOGGER.info(
                         "msa_fasta: row {0!r} matched via UniProt {1} {2} "
                         "from {3} chain {4}'s own DBREF; using it to anchor "
@@ -7050,7 +7078,6 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
         msa_labels = [ref_label] + homolog_labels
         msa_array = np.full((len(msa_labels), len(ref_resnums)), b'-', dtype='S1')
 
-        ref_ca = _ag_ref_prot.select('name CA')
         ref_rn_to_1l = {}
         if ref_ca is not None:
             ref_rn_to_1l = {int(rn): _one_letter(rname) for rn, rname in
@@ -7085,12 +7112,24 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
         entropy = calcShannonEntropy(ensemble_msa, omitgaps=True)
         entropy_by_resnum = {int(rn): float(e) for rn, e in zip(ref_resnums, entropy)}
 
+    ref_rn_to_name = {}
+    if ref_ca is not None:
+        ref_rn_to_name = {int(rn): rname for rn, rname in
+                          zip(ref_ca.getResnums(), ref_ca.getResnames())}
+    df_entropy = pd.DataFrame({
+        'resnum':  [int(rn) for rn in ref_resnums],
+        'resname': [ref_rn_to_name.get(int(rn), '') for rn in ref_resnums],
+        'entropy': [entropy_by_resnum.get(int(rn), np.nan) for rn in ref_resnums],
+    })
+    entropy_path = out_dir / 'signature_{0}_entropy.csv'.format(kind)
+    df_entropy.to_csv(entropy_path, index=False)
+
     ref_resnums_arr = _ag_ref_prot.getResnums()
     ref_betas        = _ag_ref_prot.getBetas()
     new_betas = np.array([entropy_by_resnum.get(int(rn), b)
                            for rn, b in zip(ref_resnums_arr, ref_betas)])
     _ag_ref_prot.setBetas(new_betas)
-    writePDB(str(ref_pdb), _ag_ref_prot)
+    writePDB(str(ref_pdb), _ag_ref_sel)
     if msa_fasta_path is not None:
         LOGGER.info('Reference coloured by Shannon entropy; MSA written: {0}'.format(
             msa_fasta_path.name))
@@ -7104,21 +7143,27 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
         label   = row.pdb_chain
         sup_pdb = Path(row.superposed_pdb)
         if not sup_pdb.exists():
-            _warn('Superposed PDB not found: {0}'.format(sup_pdb.name))
+            _skip(label, 'Superposed PDB not found: {0}'.format(sup_pdb.name))
             continue
 
-        ag   = parsePDB(str(sup_pdb))
-        sel = ag.select('protein') if ag is not None else None
-        prot = sel.copy() if sel is not None else None
+        prot = parsePDB(str(sup_pdb))
         if prot is None:
-            _warn('No protein atoms in {0}'.format(sup_pdb.name))
+            _skip(label, 'No atoms in {0}'.format(sup_pdb.name))
             continue
 
         det_out = str(cav_dir / '{0}_{1}'.format(kind, label))
         try:
-            records.extend(detect_records_fn(prot, det_out, label))
+            label_records = detect_records_fn(prot, det_out, label)
         except Exception as e:
             _warn('CaviTracer {0}: {1}'.format(label, e))
+            status[label].update(detection='error', message=str(e))
+            continue
+        records.extend(label_records)
+        if label_records:
+            status[label].update(detection='ok', n_objects=len(label_records))
+        else:
+            status[label].update(detection='none_found',
+                                 message='no {0} records returned'.format(kind))
 
     df_records = pd.DataFrame(records)
     df_records.to_csv(out_dir / 'aligned_{0}_params.csv'.format(kind), index=False)
@@ -7151,7 +7196,7 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
             sig_occupancies = fil.getOccupancies()[mask]
 
     sig_pdb_path = out_dir / 'signature_{0}_pt{1}.pdb'.format(kind, threshold)
-    writePDB(str(sig_pdb_path), _ag_ref_prot)
+    writePDB(str(sig_pdb_path), _ag_ref_sel)
     with open(str(sig_pdb_path)) as f:
         ref_lines = f.readlines()
     if ref_lines and ref_lines[-1].startswith('END'):
@@ -7159,7 +7204,7 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
 
     with open(str(sig_pdb_path), 'w') as f:
         f.writelines(ref_lines)
-        start_serial = _ag_ref_prot.numAtoms() + 1
+        start_serial = _ag_ref_sel.numAtoms() + 1
         for i, ((x, y, z), occ) in enumerate(zip(sig_coords, sig_occupancies)):
             f.write("ATOM  {:5d}  H   FIL A   1    "
                     "{:8.3f}{:8.3f}{:8.3f}  1.00{:6.2f}\n".format(
@@ -7175,6 +7220,8 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
         '{0}_records'.format(kind):   df_records,
         'ensemble_voxels':            overlap_pdb,
         'signature_pdb':              str(sig_pdb_path),
+        'entropy':                    df_entropy,
+        'entropy_path':               str(entropy_path),
     }
     if msa_fasta_path is not None:
         result['msa_fasta_path'] = str(msa_fasta_path)
@@ -7234,6 +7281,37 @@ def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
         result['signature_{0}_residues_path'.format(kind)] = str(residues_path)
         LOGGER.info('Signature {0} residues written: {1}'.format(kind, residues_path.name))
 
+    run_summary = {
+        'kind': kind,
+        'reference': {
+            'label':             ref_label,
+            'sequence':          ref_seq,
+            'msa_anchor_row':    user_labels[anchor_idx] if anchor_idx is not None else None,
+            'msa_anchor_source': anchor_source,
+        },
+        'parameters': {
+            'selection':          selection,
+            'voxel_res':          voxel_res,
+            'threshold':          threshold,
+            'distA':              distA,
+            'dali_filter_kwargs': dali_filter_kwargs,
+            'detection_kwargs':   kwargs,
+        },
+        'msa': {
+            'source': 'user' if msa_fasta else 'ensemble',
+            'path':   str(msa_fasta) if msa_fasta else str(msa_fasta_path),
+        },
+        'structures': [
+            dict({'label': lbl, 'rmsd_A': None, 'coverage_pct': None,
+                  'identity_pct': None}, **st)
+            for lbl, st in status.items()
+        ],
+    }
+    run_summary_path = out_dir / 'signature_{0}_run_summary.json'.format(kind)
+    with open(str(run_summary_path), 'w') as f:
+        json.dump(run_summary, f, indent=2, default=str)
+    result['run_summary_path'] = str(run_summary_path)
+
     return result
 
 
@@ -7241,7 +7319,7 @@ def calcSignatureCavities(structures=None, ref_structure=None,
                          output_path='output',
                          voxel_res=0.5, threshold=20, distA=4.5,
                          dali_filter_kwargs=None, msa_fasta=None,
-                         msa_ref_label=None, **kwargs):
+                         msa_ref_label=None, selection='protein', **kwargs):
     """Calculate surface cavities for an ensemble of homologous protein structures.
 
     Structures are superposed onto a reference using ProDy's own CE-align
@@ -7304,6 +7382,18 @@ def calcSignatureCavities(structures=None, ref_structure=None,
         when the accession is already known. default is ``None``
     :type msa_ref_label: str or None
 
+    :arg selection: ProDy selection string applied to each parsed,
+        chain-restricted structure. The atoms it picks are written to the
+        ``aligned/`` and signature PDB files and are what detection sees.
+        CE-align, the superposition fit, residue mapping, the MSA and the
+        entropy always use the protein atoms only; other atoms kept by
+        *selection* (cofactors, ions) are moved with the protein but never
+        influence the fit. The default ``'protein'`` excludes water and
+        every hetero molecule. To keep a cofactor, use for example
+        ``'protein or resname HEM'``. The selection should include the
+        protein. default is ``'protein'``
+    :type selection: str
+
     :arg distA: Distance cutoff in Å for identifying reference residues near
         signature voxels. default is ``4.5``
     :type distA: float
@@ -7320,6 +7410,18 @@ def calcSignatureCavities(structures=None, ref_structure=None,
         * ``signature_pdb`` — path to the reference structure combined with
           the thresholded consensus voxels, named with the threshold (e.g.
           ``signature_cavity_pt20.pdb``)
+        * ``entropy`` — DataFrame with columns ``resnum``, ``resname`` and
+          ``entropy``, one row per reference protein Cα residue; ``entropy``
+          is NaN for residues the MSA does not cover
+        * ``entropy_path`` — path to the same table written as
+          ``signature_cavity_entropy.csv``
+        * ``run_summary_path`` — path to ``signature_cavity_run_summary.json``,
+          which records the reference label and sequence, the MSA anchor row
+          and source, the run parameters (including *selection*), the MSA
+          source and path, and one entry per input structure with its
+          alignment RMSD, coverage and identity and its detection status
+          (``ok``, ``none_found``, ``error`` or ``skipped``), object count
+          and message
         * ``signature_cavity_residues`` — ``{key: "X123, Y456, ..."}``,
           present only when at least one voxel passes *threshold*; ``'ref'``
           holds reference residues within *distA* of a signature voxel, and
@@ -7368,14 +7470,15 @@ def calcSignatureCavities(structures=None, ref_structure=None,
                                    calcSurfaceCavityOverlaps,
                                    dali_filter_kwargs=dali_filter_kwargs,
                                    msa_fasta=msa_fasta,
-                                   msa_ref_label=msa_ref_label)
+                                   msa_ref_label=msa_ref_label,
+                                   selection=selection)
 
 
 def calcSignatureChannels(structures=None, ref_structure=None,
                          output_path='output',
                          voxel_res=0.5, threshold=20, distA=4.5,
                          dali_filter_kwargs=None, msa_fasta=None,
-                         msa_ref_label=None, **kwargs):
+                         msa_ref_label=None, selection='protein', **kwargs):
     """Calculate channels for an ensemble of homologous protein structures.
 
     Identical pipeline to :func:`calcSignatureCavities` -- structures are
@@ -7415,6 +7518,9 @@ def calcSignatureChannels(structures=None, ref_structure=None,
     :arg msa_ref_label: See :func:`calcSignatureCavities`.
     :type msa_ref_label: str or None
 
+    :arg selection: See :func:`calcSignatureCavities`.
+    :type selection: str
+
     :arg distA: Distance cutoff in Å for identifying reference residues near
         signature voxels. default is ``4.5``
     :type distA: float
@@ -7431,6 +7537,18 @@ def calcSignatureChannels(structures=None, ref_structure=None,
         * ``signature_pdb`` — path to the reference structure combined with
           the thresholded consensus voxels, named with the threshold (e.g.
           ``signature_channel_pt20.pdb``)
+        * ``entropy`` — DataFrame with columns ``resnum``, ``resname`` and
+          ``entropy``, one row per reference protein Cα residue; ``entropy``
+          is NaN for residues the MSA does not cover
+        * ``entropy_path`` — path to the same table written as
+          ``signature_channel_entropy.csv``
+        * ``run_summary_path`` — path to ``signature_channel_run_summary.json``,
+          which records the reference label and sequence, the MSA anchor row
+          and source, the run parameters (including *selection*), the MSA
+          source and path, and one entry per input structure with its
+          alignment RMSD, coverage and identity and its detection status
+          (``ok``, ``none_found``, ``error`` or ``skipped``), object count
+          and message
         * ``signature_channel_residues`` — ``{key: "X123, Y456, ..."}``,
           present only when at least one voxel passes *threshold*; ``'ref'``
           holds reference residues within *distA* of a signature voxel, and
@@ -7478,7 +7596,8 @@ def calcSignatureChannels(structures=None, ref_structure=None,
                                    calcChannelSurfaceOverlaps,
                                    dali_filter_kwargs=dali_filter_kwargs,
                                    msa_fasta=msa_fasta,
-                                   msa_ref_label=msa_ref_label)
+                                   msa_ref_label=msa_ref_label,
+                                   selection=selection)
 
 
 # The dictionary the written file declares conformance to, quoted from the schema's

@@ -1,12 +1,17 @@
 """This module contains unit tests for signature cavity/channel detection in
 :mod:`~prody.proteins.channels`."""
 
+import json
 import os
 import shutil
 import tempfile
 from unittest.mock import MagicMock, patch
 
-from prody import LOGGER, parsePDB
+import numpy as np
+import pandas as pd
+
+from prody import LOGGER, parsePDB, writePDB
+from prody.proteins import channels
 from prody.proteins.channels import calcSignatureCavities, calcSignatureChannels
 from prody.tests import unittest
 from prody.tests.datafiles import pathDatafile
@@ -240,6 +245,263 @@ class TestCalcSignatureChannels(unittest.TestCase):
         ref_written = parsePDB(os.path.join(self.out_dir, 'aligned', 'ref.pdb'))
         betas = ref_written.select('protein and name CA').getBetas()
         self.assertTrue((betas < 1e-6).all())
+
+
+class TestCalcSignatureSelection(unittest.TestCase):
+
+    def setUp(self):
+        self.out_dir = tempfile.mkdtemp(prefix='sigsel_')
+        unaligned_dir = os.path.join(self.out_dir, 'unaligned')
+        os.makedirs(unaligned_dir, exist_ok=True)
+        _seedLocalStructure(unaligned_dir, 'pdb1ubi.pdb', '1ubi')
+        # 1ubj is 1ubi rigidly moved, waters included, so a kept hetero
+        # group only matches the reference if the superposition carries it.
+        moved = parsePDB(pathDatafile('pdb1ubi.pdb'))
+        rot = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
+        moved.setCoords(moved.getCoords().dot(rot.T) + np.array([5., -3., 2.]))
+        writePDB(os.path.join(unaligned_dir, 'pdb1ubj.pdb'), moved)
+
+    def tearDown(self):
+        shutil.rmtree(self.out_dir, ignore_errors=True)
+
+    def _aligned(self, name):
+        return parsePDB(os.path.join(self.out_dir, 'aligned', name))
+
+    def testDefaultSelectionExcludesHeteroAtoms(self):
+        """Without selection, only protein atoms reach the aligned and
+        signature files, as before the parameter existed."""
+
+        result = calcSignatureChannels(
+            structures=['1ubjA'], ref_structure='1ubiA',
+            output_path=self.out_dir)
+
+        for ag in (self._aligned('1ubjA.pdb'), self._aligned('ref.pdb'),
+                   parsePDB(result['signature_pdb'])):
+            self.assertIsNone(ag.select('water'))
+            self.assertIsNotNone(ag.select('protein'))
+
+    def testSelectionKeepsHeteroAtomsInAlignedFrame(self):
+        """A selection that keeps waters writes them to the aligned and
+        signature files, superposed with the protein, while the reference
+        entropy betas stay on protein atoms only."""
+
+        result = calcSignatureChannels(
+            structures=['1ubjA'], ref_structure='1ubiA',
+            output_path=self.out_dir, selection='protein or water')
+
+        original_waters = parsePDB(pathDatafile('pdb1ubi.pdb')).select('water')
+        ref_written = self._aligned('ref.pdb')
+        mobile_written = self._aligned('1ubjA.pdb')
+
+        for ag in (ref_written, mobile_written, parsePDB(result['signature_pdb'])):
+            self.assertEqual(len(ag.select('water')), len(original_waters))
+
+        self.assertLess(np.abs(
+            mobile_written.select('water').getCoords()
+            - ref_written.select('water').getCoords()).max(), 0.05)
+
+        self.assertTrue((ref_written.select('protein').getBetas() < 1e-6).all())
+        np.testing.assert_allclose(ref_written.select('water').getBetas(),
+                                    original_waters.getBetas())
+
+    def testSelectionMatchingNothingInReferenceRaises(self):
+        """A selection that picks no reference atoms must fail loudly."""
+
+        with self.assertRaises(ValueError) as ctx:
+            calcSignatureChannels(
+                structures=['1ubjA'], ref_structure='1ubiA',
+                output_path=self.out_dir, selection='resname HEM')
+
+        self.assertIn('selection', str(ctx.exception))
+
+
+class TestCalcSignatureEntropyFile(unittest.TestCase):
+
+    def setUp(self):
+        self.out_dir = tempfile.mkdtemp(prefix='sigent_')
+        unaligned_dir = os.path.join(self.out_dir, 'unaligned')
+        os.makedirs(unaligned_dir, exist_ok=True)
+        _seedLocalStructure(unaligned_dir, 'pdb1ubi.pdb', '1ubi')
+        _seedLocalStructure(unaligned_dir, 'pdb1ubi.pdb', '1ubj')
+        self.ref_ca = parsePDB(pathDatafile('pdb1ubi.pdb')).select(
+            'protein and name CA')
+
+    def tearDown(self):
+        shutil.rmtree(self.out_dir, ignore_errors=True)
+
+    def _checkFile(self, result, kind):
+        path = os.path.join(self.out_dir, 'signature_{0}_entropy.csv'.format(kind))
+        self.assertEqual(os.path.realpath(result['entropy_path']),
+                          os.path.realpath(path))
+        on_disk = pd.read_csv(path)
+        self.assertEqual(list(on_disk.columns), ['resnum', 'resname', 'entropy'])
+        self.assertEqual(len(on_disk), self.ref_ca.numAtoms())
+        self.assertEqual(list(on_disk['resnum']), list(self.ref_ca.getResnums()))
+        self.assertEqual(list(on_disk['resname']), list(self.ref_ca.getResnames()))
+        pd.testing.assert_frame_equal(result['entropy'], on_disk)
+        return on_disk
+
+    def testEnsembleMsaEntropyIsWrittenForEveryReferenceResidue(self):
+        result = calcSignatureChannels(
+            structures=['1ubjA'], ref_structure='1ubiA',
+            output_path=self.out_dir)
+
+        on_disk = self._checkFile(result, 'channel')
+        self.assertTrue((on_disk['entropy'] < 1e-6).all())
+
+    def testUncoveredResiduesAreNaN(self):
+        """Residues beyond the end of the user's MSA row get NaN entropy."""
+
+        covered = 70
+        msa_path = os.path.join(self.out_dir, 'user.fasta')
+        with open(msa_path, 'w') as f:
+            f.write('>1ubiA\n{0}\n'.format(self.ref_ca.getSequence()[:covered]))
+            f.write('>other\n{0}\n'.format(self.ref_ca.getSequence()[:covered]))
+
+        result = calcSignatureCavities(
+            structures=['1ubjA'], ref_structure='1ubiA',
+            output_path=self.out_dir, msa_fasta=msa_path)
+
+        on_disk = self._checkFile(result, 'cavity')
+        self.assertTrue(on_disk['entropy'][:covered].notna().all())
+        self.assertTrue(on_disk['entropy'][covered:].isna().all())
+
+
+class TestCalcSignatureRunSummary(unittest.TestCase):
+
+    def setUp(self):
+        self.out_dir = tempfile.mkdtemp(prefix='sigsum_')
+        unaligned_dir = os.path.join(self.out_dir, 'unaligned')
+        os.makedirs(unaligned_dir, exist_ok=True)
+        for pdb_id in ('1ubi', '1ubj', '1ubk'):
+            _seedLocalStructure(unaligned_dir, 'pdb1ubi.pdb', pdb_id)
+
+    def tearDown(self):
+        shutil.rmtree(self.out_dir, ignore_errors=True)
+
+    def _run(self, detect_channels, n_found=1, **kwargs):
+        """Run with detection stubbed: *detect_channels* is called in place of
+        calcChannels and may raise. *n_found* rows come back from the
+        parameter and residue extraction."""
+
+        with patch.object(channels, 'calcChannels', detect_channels), \
+                patch.object(channels, 'getChannelParameters',
+                             return_value=([10.0] * n_found, [1.5] * n_found,
+                                           [100.0] * n_found)), \
+                patch.object(channels, 'getChannelResidueNames',
+                             return_value=['0: A1'] * n_found):
+            result = calcSignatureChannels(
+                structures=['1ubjA', '1ubkA'], ref_structure='1ubiA',
+                output_path=self.out_dir, **kwargs)
+        with open(result['run_summary_path']) as f:
+            return result, json.load(f)
+
+    def testSummaryRecordsReferenceParametersMsaAndStructures(self):
+        result, summary = self._run(MagicMock(return_value=(['ch'], {})),
+                                    selection='protein', voxel_res=0.75)
+
+        self.assertEqual(
+            os.path.realpath(result['run_summary_path']),
+            os.path.realpath(os.path.join(
+                self.out_dir, 'signature_channel_run_summary.json')))
+        self.assertEqual(summary['kind'], 'channel')
+
+        ref_seq = parsePDB(pathDatafile('pdb1ubi.pdb')).select(
+            'protein and name CA').getSequence()
+        self.assertEqual(summary['reference'], {
+            'label': '1ubiA', 'sequence': ref_seq,
+            'msa_anchor_row': None, 'msa_anchor_source': None})
+
+        self.assertEqual(summary['parameters'], {
+            'selection': 'protein', 'voxel_res': 0.75, 'threshold': 20,
+            'distA': 4.5, 'dali_filter_kwargs': None, 'detection_kwargs': {}})
+        self.assertEqual(summary['msa']['source'], 'ensemble')
+        self.assertEqual(os.path.realpath(summary['msa']['path']),
+                          os.path.realpath(result['msa_fasta_path']))
+
+        self.assertEqual([s['label'] for s in summary['structures']],
+                          ['1ubjA', '1ubkA'])
+        for entry in summary['structures']:
+            self.assertEqual(
+                sorted(entry), ['aligned', 'coverage_pct', 'detection',
+                                 'identity_pct', 'label', 'message',
+                                 'n_objects', 'rmsd_A'])
+
+    def testDetectionStatusOk(self):
+        _, summary = self._run(MagicMock(return_value=(['ch'], {})))
+
+        for entry in summary['structures']:
+            self.assertTrue(entry['aligned'])
+            self.assertEqual(entry['detection'], 'ok')
+            self.assertEqual(entry['n_objects'], 1)
+            self.assertIsNotNone(entry['rmsd_A'])
+            self.assertIsNotNone(entry['coverage_pct'])
+            self.assertIsNotNone(entry['identity_pct'])
+
+    def testDetectionStatusNoneFoundWhenNoRowsComeBack(self):
+        _, summary = self._run(MagicMock(return_value=([], {})), n_found=0)
+
+        for entry in summary['structures']:
+            self.assertTrue(entry['aligned'])
+            self.assertEqual(entry['detection'], 'none_found')
+            self.assertEqual(entry['n_objects'], 0)
+
+    def testDetectionStatusErrorCarriesExceptionMessage(self):
+        _, summary = self._run(MagicMock(side_effect=RuntimeError('boom')))
+
+        for entry in summary['structures']:
+            self.assertTrue(entry['aligned'])
+            self.assertEqual(entry['detection'], 'error')
+            self.assertEqual(entry['message'], 'boom')
+            self.assertEqual(entry['n_objects'], 0)
+
+    def testStructureThatFailsAlignmentIsSkippedWithReason(self):
+        real_map = channels.mapChainOntoChain
+        calls = []
+
+        def failSecond(mobile, ref, **kwargs):
+            calls.append(mobile)
+            return None if len(calls) == 2 else real_map(mobile, ref, **kwargs)
+
+        with patch.object(channels, 'mapChainOntoChain', failSecond):
+            _, summary = self._run(MagicMock(return_value=(['ch'], {})))
+
+        good, bad = summary['structures']
+        self.assertTrue(good['aligned'])
+        self.assertEqual(good['detection'], 'ok')
+        self.assertFalse(bad['aligned'])
+        self.assertEqual(bad['detection'], 'skipped')
+        self.assertEqual(bad['n_objects'], 0)
+        self.assertIn('CE-align could not map 1ubkA', bad['message'])
+        self.assertIsNone(bad['rmsd_A'])
+
+    def testUserMsaAnchorAndKwargsAreRecorded(self):
+        ref_seq = parsePDB(pathDatafile('pdb1ubi.pdb')).select(
+            'protein and name CA').getSequence()
+        msa_path = os.path.join(self.out_dir, 'user.fasta')
+        with open(msa_path, 'w') as f:
+            f.write('>1ubiA\n{0}\n>other\n{0}\n'.format(ref_seq))
+
+        _, summary = self._run(MagicMock(return_value=(['ch'], {})),
+                               msa_fasta=msa_path, dali_filter_kwargs={'cutoff_Z': 5},
+                               probe_in=1.7)
+
+        self.assertEqual(summary['msa'], {'source': 'user', 'path': msa_path})
+        self.assertEqual(summary['reference']['msa_anchor_row'], '1ubiA')
+        self.assertEqual(summary['reference']['msa_anchor_source'], 'label')
+        self.assertEqual(summary['parameters']['detection_kwargs'],
+                          {'probe_in': 1.7})
+        self.assertEqual(summary['parameters']['dali_filter_kwargs'],
+                          {'cutoff_Z': 5})
+
+    def testNoImageFilesAreWritten(self):
+        calcSignatureChannels(
+            structures=['1ubjA'], ref_structure='1ubiA',
+            output_path=self.out_dir)
+
+        written = [name for _, _, names in os.walk(self.out_dir)
+                   for name in names if name.lower().endswith('.png')]
+        self.assertEqual(written, [])
 
 
 class _FakeDaliRecord(object):
