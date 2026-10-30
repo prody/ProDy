@@ -32,10 +32,15 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 
            'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters',
            'getSurfaceCavityResidueNames', 'selectSurfaceCavityBySelection',
-           'calcSurfaceCavityOverlaps',
+           'calcSurfaceCavityOverlaps', 'getLiningResindexMask',
+           'getLiningResidues','getSiteScores','getSiteScoreStats', 'getLiningResIndices',
            'getSurfaceCavityResidueNamesMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
            'getChannelParametersMultipleFrames', '_reportAtomsInputComposition',
+           'getObjectLiningInfo', 'getObjectLiningInfoMultipleFrames',
+           'getSurfaceCavityLiningInfo','getSurfaceCavityLiningInfoMultipleFrames',
+           'getConnectedCavityChannelLiningInfoMultipleFrames',
+           'getConnectedCavityChannelLiningInfo',
            'getChannelResidueNamesMultipleFrames', 'calcPoresFromChannels',
            'showPores', 'getPoreParameters', 'getPoreResidueNames',
            'calcPoresFromChannelsMultipleFrames', 'getPoreParametersMultipleFrames',
@@ -49,13 +54,15 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'writeChannelsCIF',
            'buildLiningSequenceDistanceMatrix', 'buildCenterlineDistanceMatrix',
            'buildVoxelOverlapDistanceMatrix','prepareChannelRecords',
-           'compareClusterings', 'clusteringDistanceStats', 'computeBootstrapStability',
+           'compareClusterings', 'computeBootstrapStability', 'coassociationMatrix',
+           'clusterConsensusStrength',
             'renameChannelFilesWithClusterLabels', 'clusterChannels',
            'writeChannelsCIF', 'writePyMolCaviTracerScript',
            'mergeFramesPQR',
            'writeChimeraXMultiModelScript', 'writePyMolMultiModelScript',
            'writeVmdMultiModelScript',
-           'ClusterCalculator','ClusteringRecords','Cluster']
+           'ClusterCalculator','ClusteringRecords','Cluster',
+           'writeClusterLabels']
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -210,7 +217,7 @@ _OVERLAP_OFFSET_CACHE = {}
 # object is written under inside the residue and parameter text files. The two
 # differ for every object but the cavities, which would broke the reading side
 # of selectChannelBySelection when the per-object files labels change e.g., from
-# _channel0.pqr to _chl0.pqr.
+# _channel0.pqr to _chl0.pqr
 _OBJECT_TAGS = {'chl': 'channel', 'lnk': 'link', 'pore': 'pore',
                 'cavity': 'cavity'}
 
@@ -4915,53 +4922,35 @@ def _popLiningOptions(kwargs):
         include_water=kwargs.pop('include_water', False),
         include_chain=kwargs.pop('include_chain', True))
 
+def _infoAsListOfStrings(info,key='Residues',object_type = 'channel', sep=", "):
+    """Format channel metadata as a list of human-readable strings.
 
-def _formatLiningResidues(residues, options):
-    """Label every residue in *residues* as ``<resname><resnum>:<chain>``, one each.
+    Parameters
+    ----------
+    info : dict or list
+        Channel information to format. This can be a mapping from channel names to
+        per-channel dictionaries, or a list of such mappings for multiple
+        conformations. Each dictionary is expected to contain a key named by
+        ``key`` whose value is a sequence of residue or atom labels.
+    key : str, optional
+        The dictionary key whose associated values should be converted to a string
+        representation for each channel.
+    sep : str, optional
+        Separator used to join multiple entries within a single channel.
 
-    *options* are the :func:`_popLiningOptions` settings of the calling report.
+    Returns
+    -------
+    list
+        A list of formatted strings. For a single structure, each entry is
+        ``"{channel}: {values}"``. For multiple conformations, each element is a
+        list of such strings, one per channel.
 
-    The residue is read from the hierarchical view rather than from a representative
-    atom. Standing for a residue by its ``CA`` silently dropped everything that has
-    none -- nucleic acids, cofactors, ligands, ions -- although those atoms line the
-    channel and enter the calculation exactly as protein atoms do, and it raised
-    :exc:`AttributeError` where a channel was lined by no protein at all.
-
-    The chain is written unless *include_chain* is false, because without it a
-    residue number is not an identifier: an oligomer lines a channel with residues of
-    the same number from several chains, and the report then names one residue twice
-    instead of naming two. The chain needs a separator of its own, since an
-    insertion code already sits directly behind the number and ``ASP100A`` is taken.
-    A colon separates it, and the entry prefix written by the callers remains
-    unambiguous, as it is a colon *and a space*. A structure with no chain
-    identifiers gets no separator either.
-
-    Waters are left out unless *include_water*: :func:`calcChannels` drops them
-    before tessellating, so they shape no channel, and being reported one entry per
-    molecule they would bury the lining of a solvated structure under hundreds of
-    HOH. FIL pseudoatoms are always dropped, in case a structure has a chain and
-    residue number colliding with the ones :func:`getChannelAtoms` writes for
-    them."""
-
-    if residues is None:
-        return []
-
-    residues = residues.select('not resname FIL' if options.include_water
-                               else 'not water and not resname FIL')
-    if residues is None:
-        return []
-
-    labels = []
-    for residue in residues.getHierView().iterResidues():
-        resname = (_oneLetterResname(residue) if options.one_letter_aa
-                   else residue.getResname())
-        chid = residue.getChid().strip() if options.include_chain else ''
-        labels.append('{0}{1}{2}{3}'.format(resname, residue.getResnum(),
-                                            residue.getIcode().strip(),
-                                            ':' + chid if chid else ''))
-    return labels
-
-def _infoAsListOfStrings(info,key='Residues',sep=", "):
+    Notes
+    -----
+    This helper is used to turn nested channel dictionaries into compact output
+    suitable for logging or reporting while preserving the per-channel
+    organization of the source data.
+    """
 
     if not info:
         return []
@@ -4974,21 +4963,47 @@ def _infoAsListOfStrings(info,key='Residues',sep=", "):
         return sep.join(map(str, lst))
 
     result = []
-    if isinstance(info,dict):
-        for channel in info:
-            lst = _joinList(info[channel][key])
-            result.append(f"{channel}: {lst}")
+    if isinstance(info[0],dict):
+        for i in range(len(info)):
+            lst = _joinList(info[i][key])
+            result.append(f"{object_type}_{i}: {lst}")
         return result
     
-    for conf in info:
+    for j in range(len(info)):
         tmp = []
-        for channel in conf:
-            lst = _joinList(conf[channel][key])
-            tmp.append(f"{channel}: {lst}")
+        for i in range(len(conf)):
+            lst = _joinList(conf[i][key])
+            tmp.append(f"Conformation_{j}_{object_type}_{i}: {lst}")
         result.append(tmp)
     return result
 
-def _liningResindexMask(resindices, tree, points, radii, buffer=2.5):
+def getLiningResindexMask(resindices, tree, points, radii, buffer=2.5):
+    """Return a boolean mask selecting residues lining a set of channel points.
+
+    Parameters
+    ----------
+    resindices : array-like
+        Residue indices for each coordinate in the structure. The values are used
+        to map queried point hits back to the residues they belong to.
+    tree : scipy.spatial.cKDTree or similar
+        Spatial index queried with the channel point coordinates and radii.
+    points : array-like
+        Coordinates of points sampled along the channel centerline.
+    radii : array-like
+        Radius associated with each channel point. A point is considered a hit if
+        a structure coordinate lies within the corresponding distance.
+    buffer : float, optional
+        Additional padding added to each radius before querying the spatial tree.
+        Defaults to 2.5.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        A boolean mask over the input residue indices, with ``True`` values for
+        residues that intersect any of the point/radius neighborhoods. Returns
+        ``None`` when no points are provided or when no hits are found.
+    """
+    
     from itertools import chain
     if len(points) == 0:
         return None
@@ -4997,8 +5012,7 @@ def _liningResindexMask(resindices, tree, points, radii, buffer=2.5):
     
     hits = tree.query_ball_point(np.asarray(points, dtype=float),
                                  np.asarray(r,dtype=float))
-    
-    # hits = [h for h in hits if len(h)]
+
     flat_idx = np.fromiter(chain.from_iterable(hits), dtype=np.int64)
     if flat_idx.size==0:
         return None
@@ -5010,7 +5024,30 @@ def _liningResindexMask(resindices, tree, points, radii, buffer=2.5):
     return mask
 
 
-def _getResidueOrientation(context):
+def getResidueOrientation(context):
+    """Return the signed orientation of each lining residue relative to a channel center.
+
+    This callback is intended for ``getChannelLiningInfo`` and evaluates whether a
+    residue points toward or away from the channel interior. For each residue, the
+    function combines the direction from the residue C-alpha to the side-chain
+    center-of-mass with the direction from the residue C-alpha to the nearest
+    channel center point, then returns the dot product of these normalized vectors.
+
+    Parameters
+    ----------
+    context : dict
+        A dictionary containing the filtered atom data for the channel context,
+        including the atom mask, coordinates, residue indices, and channel center
+        points. Expected keys are ``mask``, ``coords``, ``resindices``,
+        ``all_ca``, ``all_hydrogen``, ``all_backbone``, and ``points``.
+
+    Returns
+    -------
+    numpy.ndarray
+        One value per residue with a positive sign indicating the residue points
+        toward the channel center and a negative sign indicating it points away
+        from the channel.
+    """
 
     mask = context['mask']
     coords_sub =context['coords'][mask]
@@ -5051,16 +5088,27 @@ def _getResidueOrientation(context):
     return np.einsum("ij,ij->i", v, n)
 
 
-def _saveLiningInfo(info,filepath,**kwargs):
+_LINING_SUFFIXES = ('.pkl', '.txt', '.csv', '.tsv')
+
+
+def _jsonDefault(obj):
+    """json.dumps fallback so callback results such as ndarrays and numpy
+    scalars (e.g. getObjectResponseProfile) can be written to .txt."""
+    if hasattr(obj, 'tolist'):
+        return obj.tolist()
+    return str(obj)
+
+
+def saveLiningInfo(info, filepath, **kwargs):
     """
     Save a dict of dicts to disk in the requested format.
 
     Parameters
     ----------
-    data : dict
+    info : dict
         Dict of dicts, e.g. {record_id: {field: value, ...}, ...}
     filepath : str
-        Output path. .pkl extension is auto-added if other extension not passed
+        Output path. .pkl extension is added if no extension is passed.
     kwargs :
         Extra options:
         - for txt: none currently
@@ -5070,29 +5118,23 @@ def _saveLiningInfo(info,filepath,**kwargs):
     import csv
     import json
     from pathlib import Path
-    
+
     filepath = Path(filepath)
-    fmt=filepath.suffix if not "" else ".pkl"
+    if filepath.suffix == "":
+        filepath = filepath.with_suffix(".pkl")
+    fmt = filepath.suffix
+
     if fmt == ".pkl":
-        if filepath.suffix == "":
-            filepath = filepath.with_suffix(".pkl")
         with open(filepath, "wb") as f:
             pickle.dump(info, f)
 
     elif fmt == ".txt":
-        if filepath.suffix == "":
-            filepath = filepath.with_suffix(".txt")
         with open(filepath, "w") as f:
             for key, subdict in info.items():
-                # one line per top-level record; inner dict as JSON
-                # (safer than str() because it round-trips and handles
-                # quoting/escaping correctly)
-                line = json.dumps({key: subdict})
+                line = json.dumps({key: subdict}, default=_jsonDefault)
                 f.write(line + "\n")
 
     elif fmt in (".csv", ".tsv"):
-        if filepath.suffix == "":
-            filepath = filepath.with_suffix(".csv" if fmt == "csv" else ".tsv")
         delimiter = "," if fmt == ".csv" else "\t"
 
         fieldnames = kwargs.get("fieldnames")
@@ -5114,10 +5156,9 @@ def _saveLiningInfo(info,filepath,**kwargs):
                 writer.writerow(row)
 
     else:
-        raise ValueError(f"Unknown format '{fmt}'. Use pickle, txt, csv, or tsv.")
+        raise ValueError("Unknown format '{0}'. Use .pkl, .txt, .csv or .tsv.".format(fmt))
 
     return filepath
-
 
 def _liningContacts(source, points, radii, distA, deep=None):
     """
@@ -5217,7 +5258,7 @@ def _liningResindexMaskFromContacts(resindices,source,points,radii,distA,deep=No
     return mask, atom_gaps
 
 
-def _getLiningResidues(context):
+def getLiningResidues(context):
     """Return unique residue labels for residues lining the object."""
     from prody.atomic.atomic import AAMAP
 
@@ -5246,23 +5287,8 @@ def _getLiningResidues(context):
         labels = np.char.add(labels,np.char.add(':', chains.astype(str)),)
     return np.unique(labels).tolist()
 
-def _getObjectResponseProfile(context):
-    kwargs = context['kwargs']
-    prs_matrix=kwargs.get('prs_matrix')
-    if not isinstance(prs_matrix,np.ndarray):
-        print('PRS Matrix must be provided')
-        return
-    if prs_matrix[0][0] == 1:
-        prs_matrix -= np.eye(len(prs_matrix))
-    mask = context['mask']
-    resindices_sub = context['resindices'][mask]
-    effect = prs_matrix[resindices_sub]
-    sense = prs_matrix.T[resindices_sub]
-    ec = np.mean(effect,axis=0)
-    sc = np.mean(sense,axis=0)
-    return {'Effecting':ec,'Sensing':sc}
 
-def _getSiteScores(context):
+def getSiteScores(context):
     kwargs = context['kwargs']
     mask = context['mask']
     scores = kwargs.get('scores')
@@ -5274,8 +5300,8 @@ def _getSiteScores(context):
     subscores = scores[mask]
     return subscores
 
-def _getSiteScoreStats(context):
-    subscores = _getSiteScores(context)
+def getSiteScoreStats(context):
+    subscores = getSiteScores(context)
     if subscores is None:
         return {}
     if isinstance(subscores, dict):
@@ -5286,7 +5312,19 @@ def _getSiteScoreStats(context):
     return {'max': float(np.max(subscores)),
             'median': float(np.median(subscores))}
 
-def _getLiningResIndices(context):
+def getLiningResIndices(context):
+    """Return the unique residue indices for the currently selected lining atoms.
+
+    Parameters
+    ----------
+    context : dict
+        Calculation context containing the atom mask and residue index array.
+
+    Returns
+    -------
+    numpy.ndarray
+        Unique residue numbers for the atoms that line the object.
+    """
     mask = context['mask']
     resindices = context['resindices'][mask]
     unique_resindices = np.unique(resindices)
@@ -5334,10 +5372,15 @@ def getObjectLiningInfo(atoms, objects, object_type='channel',
         Lining information for each object.
     """
 
-    if callbacks is None:
-        callbacks = {'Residues': _getLiningResidues,}
+    aliases = {
+        'channel': 'channels',
+        'channels': 'channels',
+        'pore': 'pores',
+        'pores': 'pores',
+        'link': 'links',
+        'links': 'links'}
 
-    info = {}
+    info = []
     context = {}
     deep = {}
 
@@ -5349,10 +5392,11 @@ def getObjectLiningInfo(atoms, objects, object_type='channel',
     else:
         atoms = atoms.select('not water and not resname FIL')
 
-    plurals = {'channel': 'channels','pore': 'pores','link': 'links',}
+    if object_type not in aliases:
+        raise ValueError(f"object_type must be  in {list(aliases.keys())}")
 
-    if object_type not in plurals:
-        raise ValueError("object_type must be 'channel', 'pore' or 'link'")
+    object_type = aliases[object_type]
+
     _requireCoords(atoms)
 
     source = _liningSource(atoms)
@@ -5380,95 +5424,27 @@ def getObjectLiningInfo(atoms, objects, object_type='channel',
     object_list = (objects if isinstance(objects, list)else [objects])
 
     for i, obj in enumerate(object_list):
-        obj_key = ('{0}{1}'.format(object_type, i) if isinstance(objects, list) else object_type)
-        info[obj_key] = {}
+        info.append({})
         points, radii = _sampleObjectSpheres(obj)
 
         mask, atom_gaps = _liningResindexMaskFromContacts(context['resindices'],
-            source,
-            points,
-            radii,
-            options.distA,
-            deep)
+                                                            source, points, radii,
+                                                            options.distA, deep)
         context['points'] = points
         context['radii'] = radii
         context['mask'] = mask
         context['atom_gaps'] = atom_gaps
 
         for name, func in callbacks.items():
-            info[obj_key][name] = (func(context) if mask is not None else [])
+            info[i][name] = (func(context) if mask is not None else [])
 
     _reportDeepLiningAtoms(atoms,deep)
 
     if options.residues_file_name is not None:
-        output_file = _saveLiningInfo(info,options.residues_file_name,**kwargs)
+        output_file = saveLiningInfo(info,options.residues_file_name,**kwargs)
         LOGGER.info("Lining Info was saved to: {0}".format(output_file))
         
     return info
-
-# def getObjectEssentialityScores(atoms, objects,stats_only=True, object_type='channel', **kwargs):
-#     # ESSA is only scores protein residues and will not score ligands, nucleotides, waters, ions, or other objects
-#     #Might update to account for cofactors,ribozymes, ect.
-#     atoms = atoms.protein
-#     info={}
-#     z_scores = kwargs.pop('z_scores',None)
-#     if not z_scores:
-#         enm = kwargs.pop('enm','gnm')
-#         n_modes = kwargs.pop('n_modes',10)
-#         cutoff = kwargs.pop('cutoff',None)
-#         lig = kwargs.pop('lig', None)
-#         lowmem = kwargs.pop('lowmem',False)
-#         essa=ESSA()
-#         essa.setSystem(atoms,lig=lig)
-#         essa.scanResidues(enm=enm,n_modes=n_modes,cutoff=cutoff,lowmem=lowmem)
-#         z_scores = essa._zscore
-#     if stats_only:
-#         info = getObjectLiningInfo(atoms, 
-#                             objects,
-#                             object_type=object_type,
-#                             callbacks={'SiteEssentiality':_getSiteScoreStats},
-#                             scores=z_scores,
-#                             **kwargs)
-#     else:
-#         info = getObjectLiningInfo(atoms, 
-#                                     objects,
-#                                     object_type=object_type,
-#                                     callbacks={'SiteEssentiality':_getSiteScores},
-#                                     scores=z_scores,
-#                                     **kwargs)
-#     return info
-
-# def getObjectEffectivenessSensitivity(atoms, objects,prs_data = None,stats_only=True, object_type='channel', **kwargs):
-    
-
-#     info={}
-#     effectivness = None
-#     sensitivity = None
-#     if prs_data:
-#         prs_matrix,effectiveness,sensitivity = prs_data
-#     else:
-#         enm = kwargs.pop('enm','anm')
-#         n_modes = kwargs.pop('n_modes','all')
-#         model, atomsca = calcENM(atoms, select='calpha',model=enm,n_modes=n_modes,trim='trim')
-#         prs_matrix,effectiveness,sensitivity = calcPerturbResponse(model, atoms = atomsca)       
-        
-#     if stats_only:
-#         info = getObjectLiningInfo(atoms, 
-#                             objects,
-#                             object_type=object_type,
-#                             callbacks={'PRScores':_getSiteScoreStats},
-#                             scores={'effectiveness':effectiveness,
-#                                    'sensitivity':sensitivity},
-#                             **kwargs)
-#     else:
-#         info = getObjectLiningInfo(atoms, 
-#                                     objects,
-#                                     object_type=object_type,
-#                                     callbacks={'PRScores':_getSiteScores},
-#                                     scores={'effectiveness':effectiveness,
-#                                    'sensitivity':sensitivity},
-#                                     **kwargs)
-#     return info
 
 
 def getObjectResidueNames(atoms, channels, **kwargs):
@@ -5527,13 +5503,14 @@ def getObjectResidueNames(atoms, channels, **kwargs):
     info = getObjectLiningInfo(atoms,
                                 channels,
                                 object_type='channel',
-                                callbacks = {'Residues': _getLiningResidues},
+                                callbacks = {'Residues': getLiningResidues},
                                 **kwargs )
     
-    resnames = _infoAsListOfStrings(info)
+    resnames = _infoAsListOfStrings(info, object_type = object_type, **kwargs)
     return resnames
 
-def getObjectLiningInfoMultipleFrames(atoms, objects_all, trajectory=None, object_type='channel',callbacks={'Residues':_getLiningResidues}, **kwargs):
+def getObjectLiningInfoMultipleFrames(atoms, objects_all, trajectory=None, object_type='channel',
+                                                callbacks={'Residues':getLiningResidues}, **kwargs):
     '''Provides the resnames and resid of residues that are forming the object(s) in
     multiple frames/models. 
     Residues are extracted based on distA which is the distance between FIL atoms 
@@ -5709,9 +5686,9 @@ def getChannelResidueNames(atoms, channels, **kwargs):
     info = getObjectLiningInfo(atoms, 
                                 channels, 
                                 object_type='channel',
-                                callbacks={'Residues':_getLiningResidues},
+                                callbacks={'Residues':getLiningResidues},
                                 **kwargs)
-    resnames = _infoAsListOfStrings(info)
+    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
     return resnames
 
 def getPoreResidueNames(atoms, pores, **kwargs):
@@ -5763,9 +5740,9 @@ def getPoreResidueNames(atoms, pores, **kwargs):
     info = getObjectLiningInfo(atoms, 
                                 pores, 
                                 object_type='pore',
-                                callbacks={'Residues':_getLiningResidues},
+                                callbacks={'Residues':getLiningResidues},
                                 **kwargs)
-    resnames = _infoAsListOfStrings(info)
+    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
     return resnames
 
 
@@ -5818,9 +5795,9 @@ def getLinkResidueNames(atoms, links, **kwargs):
     info = getObjectLiningInfo(atoms, 
                                 links, 
                                 object_type='link',
-                                callbacks={'Residues':_getLiningResidues},
+                                callbacks={'Residues':getLiningResidues},
                                 **kwargs)
-    resnames = _infoAsListOfStrings(info)
+    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
     return resnames
 
 def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwargs):
@@ -5872,10 +5849,10 @@ def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, **kwa
                                      channels, 
                                      trajectory=trajectory, 
                                     object_type='channel',
-                                      callbacks={'Residues':_getLiningResidues},
+                                      callbacks={'Residues':getLiningResidues},
                                         **kwargs)
     
-    resnames = _infoAsListOfStrings(info)
+    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
     return resnames
 
 def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None, **kwargs):
@@ -5927,14 +5904,14 @@ def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None, **kwargs):
                                      pores, 
                                      trajectory=trajectory, 
                                     object_type='pore',
-                                      callbacks={'Residues':_getLiningResidues},
+                                      callbacks={'Residues':getLiningResidues},
                                         **kwargs)
     
-    resnames = _infoAsListOfStrings(info)
+    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
     return resnames
 
 
-def getLinkResidueNamesMultipleFrames(atoms, links, trajectory=None, callbacks={'Residues':_getLiningResidues}, **kwargs):
+def getLinkResidueNamesMultipleFrames(atoms, links, trajectory=None, callbacks={'Residues':getLiningResidues}, **kwargs):
     '''Provides the resnames and resid of residues that are forming the chamber
     link(s) in multiple frames/models.
 
@@ -5987,69 +5964,61 @@ def getLinkResidueNamesMultipleFrames(atoms, links, trajectory=None, callbacks={
                                      links, 
                                      trajectory=trajectory, 
                                     object_type='link',
-                                      callbacks={'Residues':_getLiningResidues},
+                                      callbacks={'Residues':getLiningResidues},
                                         **kwargs)
     
-    resnames = _infoAsListOfStrings(info)
+    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
     return resnames
 
 
-def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
-    '''Provides the resnames and resid of residues that form surface cavities.
+def getSurfaceCavityLiningInfo(atoms, cavities, surface, callbacks=None,
+                               **kwargs):
+    '''Provides lining information for surface cavities, in the same form as
+    :func:`getObjectLiningInfo`.
 
-    Residues are extracted based on distA, the clearance between the surface of
-    the cavity points and the van der Waals surface of the residue's own atoms. Surface cavity points are taken from
-    Voronoi vertices assigned to each cavity. Results can be saved as a txt file 
-    by providing the `residues_file_name` parameter.
+    Cavity points are the Voronoi vertices assigned to each cavity
+    (``surface[4][cavity.tetrahedra]``), each with the probe radius that
+    :func:`_vertexRadii` fits to it. Lining is then the same surface-to-surface
+    criterion used for channels, pores and links::
+
+        gap = |xp - xa| - rp - ra  <=  distA
+
+    A residue lines the cavity when at least one of its atoms satisfies it.
 
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`, :class:`.LigandInteractionsTrajectory`
 
-    :arg cavities: A list of surface cavity objects returned by :func:`calcSurfaceCavities`.
+    :arg cavities: surface cavity objects returned by :func:`calcSurfaceCavities`.
     :type cavities: list
 
-    :arg surface: Surface data returned by :func:`calcSurfaceCavities`.
-        The function uses `surface[4]`, which contains Voronoi vertices assigned
-        to surface cavities.
+    :arg surface: surface data returned by :func:`calcSurfaceCavities`;
+        ``surface[4]`` must hold the Voronoi vertices.
     :type surface: list
 
-    :arg distA: Residues reaching within this distance of the object's surface
-        are reported. It is a clearance between surfaces: the local probe radius
-        and the atom's van der Waals radius are both taken off, so a touching
-        atom sits at 0 and the reach is the same in a wide part of the object as
-        in a narrow one, and the same at a hydrogen as at a potassium ion.
-        Default is 1.5 [Ang]
-    :type distA: int, float
+    :arg callbacks: dict ``{name: func}``. Each ``func`` receives the
+        calculation context and its return value is stored under ``name``.
+        Default is ``{'Residues': getLiningResidues}``. Besides the keys that
+        :func:`getObjectLiningInfo` provides (``mask``, ``points``, ``radii``,
+        ``atom_gaps``, ``resindices`` ...) the context carries ``cavity`` and
+        ``object_index``. Cavities without vertices give ``[]`` for every
+        callback.
+    :type callbacks: dict
 
-    :arg residues_file_name: The file with residues will be saved in a text file
-        with the provided name. The suffix '_Residues_All_surface_cavities.txt' 
-        will be added.
-    :type residues_file_name: str
+    The remaining keywords (``distA``, ``residues_file_name``,
+    ``one_letter_aa``, ``include_water``, ``include_chain``) behave as in
+    :func:`getObjectResidueNames`. ``residues_file_name`` is passed to
+    :func:`saveLiningInfo`, so its extension picks the format (.pkl default,
+    .txt, .csv, .tsv). Any other keywords reach the callbacks through
+    ``context['kwargs']``.
 
-    :arg one_letter_aa: Whether to apply one-letter code to residue names.
-        Default is False. Only amino acids and nucleotides are translated;
-        ligands, cofactors and ions keep their residue name, so that the ion K
-        stays K rather than being read as a lysine.
-    :type one_letter_aa: bool
-
-    :arg include_water: Whether to list water molecules among the lining
-        residues. They are reported one entry per molecule, so a solvated
-        structure gives hundreds of them. Default is False.
-    :type include_water: bool
-
-    :arg include_chain: Whether to append the chain identifier to each residue,
-        as ``ASP108:A``. Default is True: without it a residue number does not
-        identify a residue, since an oligomer lines a channel with residues of
-        the same number from several chains. Pass False for the plain
-        ``ASP108`` labels written by earlier versions.
-    :type include_chain: bool
-
-    :returns: A list of residue names and residue numbers for each surface cavity.
-    :rtype: list
+    :returns: ``{'cavity0': {callback_name: result, ...}, ...}``
+    :rtype: dict
     '''
 
-    _requireCoords(atoms)
+    if callbacks is None:
+        callbacks = {'Residues': getLiningResidues}
 
+    _requireCoords(atoms)
     options = _popLiningOptions(kwargs)
 
     if surface is None or len(surface) < 5:
@@ -6059,33 +6028,68 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     if not isinstance(cavities, list):
         cavities = [cavities]
 
-    selected_residues_cav = []
-    source = _liningSource(atoms)
+    # Probe radii come from the full structure the diagram was built on, not
+    # from the water-filtered one used to decide what lines the cavity.
     radii_source = _vertexRadiiSource(atoms)
+    lining_atoms = None
+    if options.include_water:
+        lining_atoms = atoms.select('not resname FIL')
+    else:
+        lining_atoms = atoms.select('not water and not resname FIL')
+
+    source = _liningSource(lining_atoms)
+    context = {'options': options,
+                'kwargs': kwargs,
+                'source': source,
+                'tree': source[0],
+                'coords': source[1],
+                'vdw_radii': source[2],
+                'resindices': lining_atoms.getResindices(),
+                'atom_names': lining_atoms.getNames(),
+                'elements': lining_atoms.getElements(),
+                'all_resnames': lining_atoms.getResnames(),
+                'all_resnums': lining_atoms.getResnums(),
+                'all_chains': lining_atoms.getChids()}
+
+    context['all_ca'] = (context['atom_names'] == 'CA')
+    context['all_hydrogen'] = (context['elements'] == 'H')
+    context['all_backbone'] = np.isin(context['atom_names'], ['N', 'CA', 'C', 'O'])
+    source = context['source']
+
+    info = []
     intruding = 0
 
     for i, cavity in enumerate(cavities):
+        info.append({})
+
         if cavity.tetrahedra is None or len(cavity.tetrahedra) == 0:
-            selected_residues_cav.append('cavity' + str(i) + ': None')
+            for name in callbacks:
+                info[key][name] = []
             continue
 
         points = vertices[cavity.tetrahedra]
-        # No deep-atom accounting here, unlike the object reports: a cavity keeps
-        # no radius of its own, so the probe is _vertexRadii's min over the very
-        # atoms being reported, and the gap to the atom holding that minimum is
-        # identically zero. Nothing can lie inside a probe fitted around it. The
-        # intruding count below is the signal that survives, a vertex swallowed
-        # whole rather than an atom reaching into the route.
+        # No deep-atom accounting: a cavity keeps no radius of its own, so the
+        # probe is the min over the very atoms being reported and the gap to
+        # the atom holding that minimum is identically zero. The intruding
+        # count below is the signal that survives.
         radii = _vertexRadii(points, radii_source)
         intruding += int((radii < 0).sum())
-        residues = _liningResidues(atoms, source, points, radii, options.distA)
 
-        residues_info = _formatLiningResidues(residues, options)
-        residues_list = ", ".join(residues_info) if residues_info else "None"
-        selected_residues_cav.append('cavity' + str(i) + ': ' + residues_list)
+        mask, atom_gaps = _liningResindexMaskFromContacts(context['resindices'], source, points, radii, options.distA)
 
-    # A vertex of the diagram cannot lie inside an atom the diagram was built from,
-    # so a negative radius means these atoms are not the ones the cavities came from.
+        context['cavity'] = cavity
+        context['object_index'] = i
+        context['points'] = points
+        context['radii'] = radii
+        context['mask'] = mask
+        context['atom_gaps'] = atom_gaps
+
+        for name, func in callbacks.items():
+            info[i][name] = func(context) if mask is not None else []
+
+    # A vertex of the diagram cannot lie inside an atom the diagram was built
+    # from, so a negative radius means these atoms are not the ones the
+    # cavities came from.
     if intruding:
         _warn("{0} cavity vertices lie inside an atom of the supplied structure. "
               "The cavities were calculated on a different set of atoms than the "
@@ -6093,101 +6097,65 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
               "structure.".format(intruding))
 
     if options.residues_file_name is not None:
-        output_file = options.residues_file_name + '_Residues_All_surface_cavities.txt'
-        with open(output_file, "w") as f_res:
-            f_res.write("# cavity_id residues_within_" + str(options.distA)
-                        + "_A_of_the_cavity_surface\n")
-            for k in selected_residues_cav:
-                f_res.write("{0}_{1}\n".format(options.residues_file_name, k))
-                
-        LOGGER.info("Surface cavity residues were saved to: {0}".format(output_file))
+        output_file = saveLiningInfo(info, options.residues_file_name, **kwargs)
+        LOGGER.info("Lining Info was saved to: {0}".format(output_file))
 
-    return selected_residues_cav
+    return info
 
 
-def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all, 
-                                               surfaces_all, 
-                                               trajectory=None, **kwargs):
-    """Provides residue names for surface cavities calculated for multiple 
-    frames/models.
+def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
+    '''Provides the resnames and resid of residues that form surface cavities.
 
-    This function is a multi-frame wrapper for :func:`getSurfaceCavityResidueNames`. 
-    For each model or trajectory frame, the atomic coordinates are matched with
-      the corresponding surface cavity prediction. Thus, cavities calculated 
-    for frame/model ``i`` are analyzed against the protein coordinates from 
-    frame/model ``i``.
+    Thin wrapper over :func:`getSurfaceCavityLiningInfo` with the default
+    ``Residues`` callback, returning one string per cavity as before. See that
+    function for the arguments (``distA``, ``residues_file_name``,
+    ``one_letter_aa``, ``include_water``, ``include_chain``).
 
-    This function should be used with results returned by 
-    :func:`calcSurfaceCavitiesMultipleFrames`.
+    :returns: A list of residue names and residue numbers for each surface cavity.
+    :rtype: list
+    '''
 
-    :arg atoms: an Atomic object from which residues are selected.
-    :type atoms: :class:`.Atomic`
+    info = getSurfaceCavityLiningInfo(atoms, cavities, surface,
+                                      callbacks={'Residues': getLiningResidues},
+                                      **kwargs)
+    return _infoAsListOfStrings(info,object_type='SurfaceCavity',**kwargs)
 
-    :arg cavities_all: list of surface cavity lists returned by
-        :func:`calcSurfaceCavitiesMultipleFrames`. Each element corresponds
-        to one model or trajectory frame.
-    :type cavities_all: list
 
-    :arg surfaces_all: list of surface data objects returned by
-        :func:`calcSurfaceCavitiesMultipleFrames`. Each element corresponds
-        to one model or trajectory frame and must contain Voronoi vertices in
-        ``surface[4]``.
-    :type surfaces_all: list
 
-    :arg trajectory: optional trajectory object. If provided, coordinates are
-        taken from trajectory frames. If None, a multi-model PDB is assumed.
-    :type trajectory: :class:`.Trajectory` or None
+def getSurfaceCavityLiningInfoMultipleFrames(atoms, cavities_all, surfaces_all,
+                                             trajectory=None, callbacks=None,
+                                             **kwargs):
+    """Multi-frame version of :func:`getSurfaceCavityLiningInfo`, for results
+    of :func:`calcSurfaceCavitiesMultipleFrames`.
 
+    Cavities calculated for frame/model ``i`` are analysed against the
+    coordinates of frame/model ``i``.
+
+    :arg trajectory: optional trajectory object. If None, a multi-model PDB
+        is assumed and models are selected with ``setACSIndex``.
     :arg start_frame: first frame/model index to analyze. Default is 0.
-    :type start_frame: int
+    :arg stop_frame: last frame/model index to analyze. Default is -1 (all
+        available).
+    :arg callbacks: as in :func:`getSurfaceCavityLiningInfo`.
+    :arg residues_file_name: base name; ``_modelX`` / ``_frameX`` is inserted
+        before the extension, giving one file per frame.
 
-    :arg stop_frame: last frame/model index to analyze. Default is -1, meaning
-        all available frames/models in ``cavities_all`` and ``surfaces_all``.
-    :type stop_frame: int
+    :returns: list of ``getSurfaceCavityLiningInfo`` dicts, one per frame/model.
+    :rtype: list
+    """
 
-    :arg residues_file_name: base name for output residue files. If provided,
-        one file will be written for each model/frame with ``_modelX`` or
-        ``_frameX`` added to the file name.
-    :type residues_file_name: str
-
-    :arg distA: Residues reaching within this distance of the object's surface
-        are reported. It is a clearance between surfaces: the local probe radius
-        and the atom's van der Waals radius are both taken off, so a touching
-        atom sits at 0 and the reach is the same in a wide part of the object as
-        in a narrow one, and the same at a hydrogen as at a potassium ion.
-        Default is 1.5 [Ang]
-    :type distA: int, float
-
-    :arg one_letter_aa: whether to apply one-letter code to residue names.
-        Default is False. Only amino acids and nucleotides are translated;
-        ligands, cofactors and ions keep their residue name, so that the ion K
-        stays K rather than being read as a lysine.
-    :type one_letter_aa: bool
-
-    :arg include_water: Whether to list water molecules among the lining
-        residues. They are reported one entry per molecule, so a solvated
-        structure gives hundreds of them. Default is False.
-    :type include_water: bool
-
-    :arg include_chain: Whether to append the chain identifier to each residue,
-        as ``ASP108:A``. Default is True: without it a residue number does not
-        identify a residue, since an oligomer lines a channel with residues of
-        the same number from several chains. Pass False for the plain
-        ``ASP108`` labels written by earlier versions.
-    :type include_chain: bool  """
+    if callbacks is None:
+        callbacks = {'Residues': getLiningResidues}
 
     start_frame = kwargs.pop('start_frame', 0)
-    # Popped and honoured rather than left in kwargs: the docstring has always
-    # documented it, but it was neither read here nor accepted by the per-frame
-    # report it was forwarded to.
     stop_frame = kwargs.pop('stop_frame', -1)
     residues_file_name = kwargs.pop('residues_file_name', None)
 
-    selected_residues_all = []
+    info_all = []
 
     if trajectory is None:
-        # multi-model PDB. As in getObjectResidueNamesMultipleFrames, the lists
-        # already hold one entry per analysed frame, numbered from start_frame.
+        # multi-model PDB: the lists hold one entry per analysed frame,
+        # numbered from start_frame.
         available = min(len(cavities_all), len(surfaces_all))
         first, last = _frameBounds(start_frame + available, start_frame,
                                    stop_frame)
@@ -6195,45 +6163,252 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
             cavities = cavities_all[model_index - first]
             surface = surfaces_all[model_index - first]
             atoms.setACSIndex(model_index)
-
             if residues_file_name is not None:
-                frame_residues_file_name = residues_file_name + "_model{}".format(model_index)
+                frame_residues_file_name = residues_file_name + "_frame{}".format(model_index)
             else:
                 frame_residues_file_name = None
-
-            residues = getSurfaceCavityResidueNames(atoms, cavities, surface,
-                residues_file_name=frame_residues_file_name, **kwargs)
-
-            selected_residues_all.append(residues)
+            info = getSurfaceCavityLiningInfo(
+                atoms, cavities, surface, callbacks=callbacks,
+                residues_file_name=frame_residues_file_name,
+                **kwargs)
+            info_all.append(info)
 
     else:
-        # trajectory / DCD
         if hasattr(trajectory, 'reset'):
             trajectory.reset()
 
         first, last = _frameBounds(None, start_frame, stop_frame)
         atoms_copy = atoms.copy()
         for frame_pos, frame in enumerate(trajectory[first:last]):
-            # The frames outlast the results whenever the trajectory is longer
-            # than the run that produced them, and indexing past the end of the
-            # lists would raise rather than stop.
+            # frames outlast the results when the trajectory is longer than
+            # the run that produced them
             if frame_pos >= min(len(cavities_all), len(surfaces_all)):
+                break
+
+            frame_index = first + frame_pos
+            atoms_copy.setCoords(frame.getCoords())
+            if residues_file_name is not None:
+                frame_residues_file_name = residues_file_name + "_frame{}".format(frame_index)
+            else:
+                frame_residues_file_name = None
+
+            info = getSurfaceCavityLiningInfo(
+                atoms_copy, cavities_all[frame_pos], surfaces_all[frame_pos],
+                callbacks=callbacks,
+                residues_file_name=frame_residues_file_name,
+                **kwargs)
+            info_all.append(info)
+
+    return info_all
+
+
+def _getContext(context):
+    """Return a copy of the current lining context."""
+    return context.copy()
+
+
+def getConnectedCavityChannelLiningInfo(atoms, connected, surface,
+                                        callbacks=None, merge=True, **kwargs):
+    """
+    Calculate lining information for connected surface-cavity/channel pairs.
+
+    Each unique cavity and channel is processed only once.
+
+    If merge=False, cavity and channel lining information are reported
+    separately as ``cavity_info`` and ``channel_info``.
+
+    If merge=True, the cavity and channel contexts for each connection are
+    merged and callbacks are evaluated on the combined lining region.
+    """
+    if surface is None:
+        raise ValueError("surface is required")
+
+    if callbacks is None:
+        callbacks = {'Residues': getLiningResidues}
+
+    # Collect unique objects by their original indices.
+    cavities = {}
+    channels = {}
+
+    for connection in connected:
+        cavity_index = connection['cavity_index']
+        channel_index = connection['channel_index']
+
+        cavities.setdefault(cavity_index, connection['cavity'])
+        channels.setdefault(channel_index, connection['trimmed_channel'])
+
+    cavity_indices = list(cavities)
+    channel_indices = list(channels)
+
+    if merge:
+        # Get the calculation context for every unique object.
+        context_callback = {'context': _getContext}
+
+        cavity_results = getSurfaceCavityLiningInfo(atoms,
+                                                    list(cavities.values()),
+                                                    surface, index=False,
+                                                    callbacks=context_callback,
+                                                    **kwargs)
+
+        channel_results = getObjectLiningInfo(atoms,
+                                            list(channels.values()),
+                                            object_type='channel', index=False,
+                                            callbacks=context_callback,
+                                            **kwargs)
+
+        # Map original indices -> contexts.
+        cavity_contexts = {index: result['context'] for index, result in zip(cavity_indices, cavity_results)}
+
+        channel_contexts = {index: result['context'] for index, result in zip(channel_indices, channel_results)}
+
+        # Merge the appropriate cavity/channel context for each connection.
+        for connection in connected:
+            cavity_context = cavity_contexts[connection['cavity_index']]
+            channel_context = channel_contexts[connection['channel_index']]
+
+            combined_context = cavity_context.copy()
+            combined_context['points'] = np.concatenate((cavity_context['points'], channel_context['points']))
+            combined_context['radii'] = np.concatenate(( cavity_context['radii'], channel_context['radii']))
+            combined_context['atom_gaps'] = np.minimum( cavity_context['atom_gaps'], channel_context['atom_gaps'] )
+            combined_context['mask'] = (cavity_context['mask'] | channel_context['mask'])
+            connection['merged_info'] = {key: callback(combined_context) for key, callback in callbacks.items()}
+
+        return connected
+
+    # Normal separate cavity/channel reporting.
+    cavity_info = getSurfaceCavityLiningInfo(atoms,
+                                    list(cavities.values()),
+                                    surface, index=False,
+                                    callbacks=callbacks,
+                                    **kwargs)
+
+    channel_info = getObjectLiningInfo(atoms,
+                                list(channels.values()),
+                                object_type='channel',
+                                callbacks=callbacks, index=False,
+                                **kwargs)
+
+    cavity_info = {index: result for index, result in zip(cavity_indices, cavity_info)}
+    channel_info = {index: result for index, result in zip(channel_indices, channel_info)}
+    for connection in connected:
+        connection['cavity_info'] = (cavity_info[connection['cavity_index']])
+        connection['channel_info'] = (channel_info[connection['channel_index']])
+
+    return connected
+
+def getConnectedCavityChannelLiningInfoMultipleFrames(atoms, connected, surface, trajectory=None,
+                                                      callbacks=None, merge=True, **kwargs):
+    """
+    Calculate connected cavity/channel lining information over multiple frames.
+
+    Parameters
+    ----------
+    atoms : AtomGroup
+        Structure used for residue/atom identification and VDW radii.
+    connected : list
+        Per-frame lists of connected cavity/channel dictionaries.
+    surface : list
+        Surface object for each analysed frame.
+    trajectory : Trajectory, optional
+        Trajectory supplying coordinates. If None, coordinates are taken
+        from the coordinate sets in ``atoms``.
+    callbacks : dict, optional
+        Callback functions receiving the lining calculation context.
+    merge : bool, default=True
+        If True, report merged cavity/channel lining information.
+
+    Returns
+    -------
+    info_all : list
+        Lining information for each analysed frame.
+    """
+    if callbacks is None:
+        callbacks = {'Residues': getLiningResidues}
+
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+    residues_file_name = kwargs.pop('residues_file_name', None)
+
+    connected_all = connected
+    surfaces_all = surface
+
+    if len(connected_all) != len(surfaces_all):
+        LOGGER.warning("The number of connected-cavity/channel results ({0}) does not "
+            "match the number of surfaces ({1}). Only frames for which both "
+            "are available will be analysed.".format(len(connected_all), len(surfaces_all)))
+
+    available = min(len(connected_all), len(surfaces_all))
+
+    if trajectory is None:
+        # Multi-model PDB: results are assumed to correspond to coordinate
+        # sets beginning at start_frame.
+        first, last = _frameBounds(start_frame + available, start_frame, stop_frame)
+
+        for model_index in range(first, last):
+            result_index = model_index - first
+
+            if result_index >= available:
+                break
+
+            atoms.setACSIndex(model_index)
+
+            if residues_file_name is not None:
+                frame_residues_file_name = (residues_file_name + "_frame{}".format(model_index))
+            else:
+                frame_residues_file_name = None
+
+            connected_all[result_index] = getConnectedCavityChannelLiningInfo(atoms,
+                                    connected_all[result_index],
+                                    surfaces_all[result_index],
+                                    callbacks=callbacks,
+                                    residues_file_name=frame_residues_file_name,
+                                    merge=merge,
+                                    **kwargs)
+
+    else:
+        if hasattr(trajectory, 'reset'):
+            trajectory.reset()
+
+        first, last = _frameBounds(None, start_frame, stop_frame)
+
+        atoms_copy = atoms.copy()
+
+        for frame_pos, frame in enumerate(trajectory[first:last]):
+            # The trajectory may contain more frames than the channel/cavity
+            # calculation that produced connected_all and surfaces_all.
+            if frame_pos >= available:
                 break
 
             frame_index = first + frame_pos
             atoms_copy.setCoords(frame.getCoords())
 
             if residues_file_name is not None:
-                frame_residues_file_name = residues_file_name + "_frame{}".format(frame_index)
+                frame_residues_file_name = (residues_file_name + "_frame{}".format(frame_index))
             else:
                 frame_residues_file_name = None
 
-            residues = getSurfaceCavityResidueNames(atoms_copy, cavities_all[frame_pos], surfaces_all[frame_pos],
-                residues_file_name=frame_residues_file_name, **kwargs)
+            connected_all[frame_pos]= getConnectedCavityChannelLiningInfo(atoms_copy,
+                                                connected_all[frame_pos],
+                                                surfaces_all[frame_pos],
+                                                callbacks=callbacks,
+                                                residues_file_name=frame_residues_file_name,
+                                                merge=merge,
+                                                **kwargs)
 
-            selected_residues_all.append(residues)
 
-    return selected_residues_all
+    return connected_all
+
+def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
+                                               surfaces_all, trajectory=None,
+                                               **kwargs):
+    """Per-frame lists of cavity residue strings; wrapper over
+    :func:`getSurfaceCavityLiningInfoMultipleFrames` with the ``Residues``
+    callback. Arguments as in that function."""
+
+    info_all = getSurfaceCavityLiningInfoMultipleFrames(
+        atoms, cavities_all, surfaces_all, trajectory=trajectory,
+        callbacks={'Residues': getLiningResidues}, **kwargs)
+    return [_infoAsListOfStrings(info,object_type='SurfaceCavity',**kwargs) for info in info_all]
 
 
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
@@ -11296,7 +11471,10 @@ class ChannelCalculator:
                 tetra for tetra in cavity.tetrahedra
                 if cavity.tetrahedra_depths.get(tetra, np.inf) <= max_depth])
 
-def prepareChannelRecords(channels, atoms=None, trajectory=None, voxelize=False,
+
+
+
+def prepareChannelRecords(channels, atoms=None, trajectory=None, metric=None, voxelize=False,
                           max_proc=None, mp_context=None, **kwargs):
     """
     Build a flat list of ChannelRecords (one per channel, frame-major order).
@@ -11308,6 +11486,32 @@ def prepareChannelRecords(channels, atoms=None, trajectory=None, voxelize=False,
     atoms, trajectory :
         If both are given, lining residues are computed and stored on each
         record (record.lining_residues).
+
+    metric : str, callable, or iterable of str/callable, optional
+        Metric or metrics the records should be prepared for.
+
+        Recognized preparation requirements:
+
+            chamfer
+            frechet
+            projection
+                Basic ChannelRecord geometry only.
+            centerline
+                Additionally prepare representative points along the centerline.
+            voxel
+            voxel_overlap
+                Additionally voxelize all records onto a common lattice.
+
+            lining
+            residue
+            residue_lining
+                Additionally calculate lining residues.
+
+        Callables are accepted but do not imply any additional preparation,
+        since their geometry requirements cannot be inferred. For example,
+        if a callable requires voxels, pass:
+
+            metric=['voxel', my_metric]
     voxelize : bool
         If True, every record is voxelized onto a shared lattice
         (common global_origin + voxel_size).
@@ -11328,12 +11532,49 @@ def prepareChannelRecords(channels, atoms=None, trajectory=None, voxelize=False,
 
     if channels is None or len(channels) == 0:
         return []
+    
+    if metric is None:
+        metrics = []
 
-    # Split kwargs between the calculator and the lining-residue routine
+    elif isinstance(metric, str) or callable(metric):
+        metrics = [metric]
+
+    else:
+        try:
+            metrics = list(metric)
+        except TypeError:
+            raise TypeError("metric must be a string, callable, iterable of metrics, or None")
+
+    sparse_centerline_metrics = {'centerline'} 
+    dense_centerline_metrics = {'chamfer', 'frechet','projection'}
+    voxel_metrics = {'voxel','voxel_overlap',}
+    lining_metrics = { 'lining','residue','residue_lining', }
+    known_metrics = ( sparse_centerline_metrics | dense_centerline_metrics | voxel_metrics | lining_metrics)
+    string_metrics = set()
+
+    for m in metrics:
+        if callable(m):
+            continue
+        if not isinstance(m, str):
+            raise TypeError( "each metric must be a string or callable")
+        m = m.lower()
+        if m not in known_metrics:
+            raise ValueError(f"unknown metric {m!r}; expected one of {sorted(known_metrics)} or a callable")
+        string_metrics.add(m)
+
+    prepare_rep_points = bool(string_metrics & sparse_centerline_metrics)
+    prepare_voxels = (voxelize or bool(string_metrics & voxel_metrics))
+    prepare_lining = bool(string_metrics & lining_metrics)
+    if metric is None and atoms is not None and trajectory is not None:
+        prepare_lining = True
+    if prepare_lining:
+        if atoms is None or trajectory is None:
+            raise ValueError("atoms and trajectory are required when preparing records for a residue-lining metric")
+
     calc_keys = ('voxel_size', 'pad_factor', 'h', 'angle_deg', 'q',
                  'n_samples', 'alpha', 'beta')
     calc_kwargs = {k: kwargs.pop(k) for k in calc_keys if k in kwargs}
-    clustercalc = ClusterCalculator(**calc_kwargs)
+    clustercalc = ClusterCalculator(atoms=atoms,**calc_kwargs)
 
     # Flatten channels, tracking which frame each belongs to
     flat_channels = []
@@ -11352,17 +11593,17 @@ def prepareChannelRecords(channels, atoms=None, trajectory=None, voxelize=False,
     ctx = multiprocessing.get_context(mp_context) if mp_context else multiprocessing.get_context()
 
     # A shared lattice origin is required before any voxelization
-    if voxelize:
+    if prepare_voxels:
         raw_bboxes = [clustercalc.channelBoundBox(c) for c in flat_channels]
         clustercalc.global_origin = np.min([bb[0] for bb in raw_bboxes], axis=0)
         LOGGER.info("All Bounding Boxes Built")
 
     # Build records (optionally voxelized)
     if max_proc == 1 or n == 1:
-        records = [clustercalc._buildChannelRecord(ch, fid, voxelize=voxelize)
+        records = [clustercalc._buildChannelRecord(ch, fid, voxelize=prepare_voxels)
                    for fid, ch in zip(frame_ids, flat_channels)]
     else:
-        tasks = [(ch, fid, voxelize) for fid, ch in zip(frame_ids, flat_channels)]
+        tasks = [(ch, fid, prepare_voxels) for fid, ch in zip(frame_ids, flat_channels)]
         chunksize = max(1, n // (max_proc * 4))
         with ctx.Pool(processes=max_proc) as pool:
             records = pool.map(clustercalc._buildChannelRecordWorker, tasks,
@@ -11371,13 +11612,14 @@ def prepareChannelRecords(channels, atoms=None, trajectory=None, voxelize=False,
         for record in records:
             if not record.channel.getSplines()[0]:
                 record.channel._buildSplines()
-    LOGGER.info("All Channels Voxelized" if voxelize else "All Channel Records Built")
+    LOGGER.info("All Channels Voxelized" if prepare_voxels else "All Channel Records Built")
 
     # Optional lining residues
-    if atoms is not None and trajectory is not None:
+
+    if prepare_lining:
         resinds = getObjectLiningInfoMultipleFrames(
             atoms, channels, trajectory,
-            callbacks={'ResIndices': _getLiningResIndices},
+            callbacks={'ResIndices': getLiningResIndices},
             **kwargs)
 
         # Each frame's result is a dict keyed by whatever ID the routine uses
@@ -11394,16 +11636,84 @@ def prepareChannelRecords(channels, atoms=None, trajectory=None, voxelize=False,
 
         for residue_set, record in zip(residue_sets, records):
             record.lining_residues = residue_set
+            record.packed_lining = clustercalc._pack(residue_set)
         LOGGER.info("Lining residues assigned")
+    
+    if prepare_rep_points:
+        records = clustercalc.prepareCenterlineRecords(records)
 
     return records
 
+def _scanGrid(scan, allowed, defaults=None):
+    """Value tuples in `allowed` order. Missing keys take `defaults`; unknown keys raise."""
+    from itertools import product
+    unknown = set(scan) - set(allowed)
+    if unknown:
+        raise ValueError(f"unknown scan keys {sorted(unknown)}; allowed: {list(allowed)}")
+    defaults = defaults or {}
+    axes = []
+    for k in allowed:
+        if k in scan:
+            vals = scan[k]
+        elif k in defaults:
+            vals = [defaults[k]]
+        else:
+            raise ValueError(f"scan is missing {k!r}")
+        axes.append(np.atleast_1d(vals).astype(float).tolist())
+    return list(product(*axes))
 
 def buildCenterlineDistanceMatrix(channels=None, records=None, h=10, n_samples=5, angle_deg=5.0,
                                     q=1.0,dtype=np.float32,block_size=None,max_proc=None,
                                     normalize_radii=True,clip_distance=True,**kwargs ):
+    """Build a pairwise distance matrix between channel centerlines.
+
+    This routine accepts either a nested collection of Channel objects or a
+    precomputed sequence of ChannelRecord instances, converts them into
+    representative centerline records, and computes the geometric distances
+    between all channels. The result is an NxN NumPy array where each entry is a
+    distance between the corresponding pair of channel centerlines.
+
+    Parameters
+    ----------
+    channels : sequence of sequence of Channel, optional
+        Nested channel groups, typically one list per conformation. Each channel
+        must have a valid cost and centerline spline before clustering.
+    records : sequence of ChannelRecord, optional
+        Prebuilt channel records. Pass either this or ``channels``, but not both.
+    h : int, optional
+        Number of representative points used along the centerline for distance
+        evaluation.
+    n_samples : int, optional
+        Number of samples used when constructing the spline-based geometric
+        representation.
+    angle_deg : float, optional
+        Angular tolerance used during centerline distance calculations.
+    q : float, optional
+        Distance weighting exponent.
+    dtype : numpy.dtype, optional
+        Data type of the output distance matrix.
+    block_size : int, optional
+        Number of channel pairs to process per block. If None, all channels are
+        processed in one block.
+    max_proc : int, optional
+        Maximum number of worker processes used when evaluating the matrix.
+    normalize_radii : bool, optional
+        Whether to normalize radial contributions in the distance metric.
+    clip_distance : bool, optional
+        Whether to clip computed distances to a maximum value.
+    **kwargs
+        Additional keyword arguments passed through to lower-level routines.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        An NxN symmetric distance matrix for the input channels, or None when no
+        channels or records are provided.
+    """
+
     import multiprocessing
     from multiprocessing import Pool
+    scan = kwargs.pop('scan', None)
     clustercalc = ClusterCalculator(h=h, angle_deg=angle_deg, q=q, n_samples=n_samples)
     # Accept either nested channels or a flat list of ChannelRecords.
     if records is not None and channels is not None:
@@ -11430,61 +11740,57 @@ def buildCenterlineDistanceMatrix(channels=None, records=None, h=10, n_samples=5
     else:
         # Materialize the input in case records is an iterator.
         records = list(records)
-
         if not records:
             return None
-
         if not np.all(isinstance(record, clustercalc.ChannelRecord) for record in records):
             raise TypeError("records must contain only ChannelRecord instances.")
 
     if not records:
         return None
-
     S = clustercalc.computeAverageStart(records)
-
     clustercalc.computeRepresentativePoints(records, S, h=h)
-
     n = len(records)
     if n == 0:
         return np.empty((0, 0), dtype=dtype)
 
     h = min(len(r.rep_points) for r in records)
-    weights = clustercalc.computeDistanceWeights(h, q).astype(np.float32)
-
-    shell_data = clustercalc._prepareAllShells(records, h)   # built ONCE, shared by every block/worker
-    centroids,radii_means = clustercalc._prepareChannelCentroids(records)
-
+    shell_data = clustercalc._prepareAllShells(records, h)   # independent of q
+    centroids, radii_means = clustercalc._prepareChannelCentroids(records)
 
     if block_size is None:
         block_size = n
     block_size = max(1, int(block_size))
-
-    D = np.empty((n, n), dtype=dtype)
     blocks = [(start, min(start + block_size, n)) for start in range(0, n, block_size)]
 
     if max_proc is None:
         max_proc = max(1, multiprocessing.cpu_count() // 2)
     mp_context = kwargs.get('mp_context')
-    if mp_context is None:
-        ctx = multiprocessing.get_context()
-    else:
-        ctx = multiprocessing.get_context(mp_context)
+    ctx = multiprocessing.get_context(mp_context) if mp_context else multiprocessing.get_context()
 
-    if max_proc == 1:
-        clustercalc._initDistanceWorker(shell_data, weights, n, centroids,radii_means,normalize_radii,clip_distance)
-        for block in blocks:
-            start, end, Db = clustercalc._distanceBlock(block)
-            D[start:end] = Db
-    else:
-        with ctx.Pool(processes=max_proc,initializer= clustercalc._initDistanceWorker,
-                        initargs=(shell_data, weights, n,centroids,radii_means,normalize_radii,clip_distance)) as pool:
-            for start, end, block in pool.imap( clustercalc._distanceBlock, blocks):
-                D[start:end] = block
+    def _buildD(q_value):
+        weights = clustercalc.computeDistanceWeights(h, q_value).astype(np.float32)
+        initargs = (shell_data, weights, n, centroids, radii_means,
+                    normalize_radii, clip_distance)
+        D = np.empty((n, n), dtype=dtype)
+        if max_proc == 1:
+            clustercalc._initDistanceWorker(*initargs)
+            for block in blocks:
+                start, end, Db = clustercalc._distanceBlock(block)
+                D[start:end] = Db
+        else:
+            with ctx.Pool(processes=max_proc, initializer=clustercalc._initDistanceWorker,
+                          initargs=initargs) as pool:
+                for start, end, Db in pool.imap(clustercalc._distanceBlock, blocks):
+                    D[start:end] = Db
+        D = np.minimum(D, D.T)          # enforce exact numerical symmetry
+        np.fill_diagonal(D, 0.0)
+        return D
 
-
-    D = np.minimum(D, D.T)          # enforce exact numerical symmetry
-    np.fill_diagonal(D, 0.0)
-    return D, records
+    if scan:
+        results = {(qv,): _buildD(qv) for (qv,) in _scanGrid(scan, ['q'])}
+        return results, records
+    
+    return _buildD(q), records
 
 
 def buildVoxelOverlapDistanceMatrix(channels=None, records=None, voxel_size=0.25,
@@ -11533,8 +11839,9 @@ def buildVoxelOverlapDistanceMatrix(channels=None, records=None, voxel_size=0.25
     if records is not None and channels is not None:
         raise ValueError("Pass either channels or records, not both.")
 
-    alpha = kwargs.pop('alpha', 0.5)
+    alpha = kwargs.pop('alpha', 1.0)
     beta = kwargs.pop('beta', 2.0)
+    scan = kwargs.pop('scan', None)
     clustercalc = ClusterCalculator(voxel_size=voxel_size, pad_factor=pad_factor,
                                     alpha=alpha, beta=beta)
 
@@ -11544,9 +11851,6 @@ def buildVoxelOverlapDistanceMatrix(channels=None, records=None, voxel_size=0.25
     ctx = (multiprocessing.get_context(mp_context) if mp_context
            else multiprocessing.get_context())
 
-    # ------------------------------------------------------------------
-    # Obtain voxelized records on a shared lattice
-    # ------------------------------------------------------------------
     if records is None:
         if channels is None or len(channels) == 0:
             return None
@@ -11592,9 +11896,6 @@ def buildVoxelOverlapDistanceMatrix(channels=None, records=None, voxel_size=0.25
                         rec.channel._buildSplines()
             LOGGER.info("All Records Voxelized")
 
-    # ------------------------------------------------------------------
-    # Frame bookkeeping derived from conformation_id
-    # ------------------------------------------------------------------
     n = len(records)
     conf_ids = np.array([rec.conformation_id for rec in records])
     unique_frames = np.unique(conf_ids)
@@ -11602,9 +11903,6 @@ def buildVoxelOverlapDistanceMatrix(channels=None, records=None, voxel_size=0.25
     # Index arrays (not slices) so record order doesn't have to be frame-sorted
     frame_indices = [np.nonzero(conf_ids == f)[0] for f in unique_frames]
 
-    # ------------------------------------------------------------------
-    # Initialise D
-    # ------------------------------------------------------------------
     D = np.ones((n, n), dtype=float)
     if interframe_only:
         for idx in frame_indices:
@@ -11614,9 +11912,6 @@ def buildVoxelOverlapDistanceMatrix(channels=None, records=None, voxel_size=0.25
     bboxes_mn = np.array([rec.bbox[0] for rec in records])
     bboxes_mx = np.array([rec.bbox[1] for rec in records])
 
-    # ------------------------------------------------------------------
-    # Candidate pairs from bounding-box overlap
-    # ------------------------------------------------------------------
     tasks = []
     for a in range(num_frames):
         for b in range(a, num_frames):
@@ -11635,27 +11930,74 @@ def buildVoxelOverlapDistanceMatrix(channels=None, records=None, voxel_size=0.25
             local_i, local_j = np.nonzero(overlap)
             for i, j in zip(idx_a[local_i].tolist(), idx_b[local_j].tolist()):
                 tasks.append((i, j, records[i], records[j]))
+    
+    counts = [clustercalc._voxelOverlapCounts(task) for task in tasks]
+    LOGGER.info("All Channel Overlap Counts Computed")
 
-    scores = [clustercalc._scoreVoxelOverlapPrepared(task) for task in tasks]
-    LOGGER.info("All Channel Overlaps Scored")
+    cols = np.array(counts, dtype=float).reshape(-1, 5)     # safe when there are no tasks
+    ii, jj = cols[:, 0].astype(int), cols[:, 1].astype(int)
+    inter, a, b = cols[:, 2], cols[:, 3], cols[:, 4]
 
-    for i, j, score in scores:
-        D[i, j] = score
-        D[j, i] = score
+    def _fill(alpha_v, beta_v):
+        Dk = D.copy()
+        score = clustercalc._voxelScoreFromCounts(inter, a, b, alpha_v, beta_v)
+        Dk[ii, jj] = score
+        Dk[jj, ii] = score
+        return Dk
 
-    return D, records
+    if scan:
+        grid = _scanGrid(scan, ['alpha', 'beta'], defaults={'alpha': alpha, 'beta': beta})
+        return {(av, bv): _fill(av, bv) for av, bv in grid}, records
+
+    return _fill(alpha, beta), records
 
 
 def buildLiningSequenceDistanceMatrix(atoms,channels=None,trajectory=None,records=None,**kwargs):
+    """
+    Build a distance matrix for channel lining residue sets.
+
+    Parameters
+    ----------
+    atoms : :class:`~prody.atomic.Atomic`
+        Atomic structure or trajectory used to determine lining residues.
+    channels : list, optional
+        Channel groups to process. If provided, ``trajectory`` must also be
+        supplied so that lining residues can be computed for each frame.
+    trajectory : object, optional
+        Trajectory associated with ``channels`` when computing lining residue
+        information across conformations.
+    records : list, optional
+        Precomputed channel records. Pass either ``channels`` or ``records``,
+        not both.
+    **kwargs
+        Additional keyword arguments forwarded to the lining-residue extraction
+        machinery and to the clustering parameters used to build the channel
+        records.
+
+    Returns
+    -------
+    tuple
+        A pair ``(distance_matrix, records)`` where ``distance_matrix`` is the
+        Tversky distance matrix between lining residue sets and ``records`` is
+        the list of channel records used to build it.
+
+    Notes
+    -----
+    This function encodes each lining residue set as a packed binary vector
+    over the unique residue indices in ``atoms`` and computes pairwise Tversky
+    distances between all channel records.
+    """
+
     if records is not None and channels is not None:
         raise ValueError("Pass either channels or records, not both.")
     if channels and not trajectory:
         raise ValueError("If channels is passed, trajectory must also be passed") 
     
     alpha = kwargs.pop('alpha',0.5)
-    beta = kwargs.pop('beta',2.0)
-    clustercalc = ClusterCalculator(alpha=alpha,beta=beta)
-    n_resi= len(np.unique(atoms.getResindices()))
+    beta = kwargs.pop('beta',0.5)
+    scan = kwargs.pop('scan',None)
+    clustercalc = ClusterCalculator(atoms = atoms, alpha=alpha,beta=beta)
+    # clustercalc.n_residues = len(np.unique(atoms.getResindices()))
     if records is None:
         if channels is None or len(channels) == 0:
             return None
@@ -11665,178 +12007,188 @@ def buildLiningSequenceDistanceMatrix(atoms,channels=None,trajectory=None,record
                 records.append(clustercalc._buildChannelRecord(channel=channel, conformation_id=conf_id))
 
         resinds = getObjectLiningInfoMultipleFrames(atoms,channels,trajectory,
-                                                    callbacks={'ResIndices':_getLiningResIndices},
+                                                    callbacks={'ResIndices':getLiningResIndices},
                                                     **kwargs)
         residue_sets = [channel_group[channel]['ResIndices'] for channel_group in resinds for channel in channel_group]
         for residue_set, record in zip(residue_sets,records):
             record.lining_residues = residue_set
 
-        packed = np.array([clustercalc._pack(residue_set,n_resi) for residue_set in residue_sets])
-        return clustercalc._TverskyDistanceMatrix(packed), records
+        packed = np.array([clustercalc._pack(residue_set) for residue_set in residue_sets])
+    else:
+        packed = np.array([clustercalc._pack(rec.lining_residues) for rec in records])
+
+    if scan:
+        inter, lo, hi = clustercalc._TverskyCounts(packed)
+        results = {(a, b): clustercalc._TverskyFromCounts(inter, lo, hi, a, b)
+                   for a, b in _scanGrid(scan, ['alpha', 'beta'],defaults={'alpha':alpha,'beta':beta})}
+        return results, records
     
-    packed = np.array([clustercalc._pack(rec.lining_residues,n_resi) for rec in records])
     return clustercalc._TverskyDistanceMatrix(packed), records
 
 
+def _sklearnToLinkage(model):
+    """Convert a fitted sklearn AgglomerativeClustering into a scipy-style
+    linkage matrix [child_1, child_2, distance, sample_count]."""
+    if getattr(model, "distances_", None) is None:
+        return None
+    n_samples = len(model.labels_)
+    counts = np.zeros(model.children_.shape[0])
+    for i, merge in enumerate(model.children_):
+        c = 0
+        for child in merge:
+            c += 1 if child < n_samples else counts[child - n_samples]
+        counts[i] = c
+    return np.column_stack([model.children_, model.distances_, counts]).astype(float)
 
-def clusterChannels(distance_matrix, method, records, **kwargs):
+def _fitAgglomerative(distance_matrix, **kwargs):
+    """Returns (model, labels, linkage_matrix). Labels are 0-based."""
+    n_clusters = kwargs.pop("n_clusters", None)
+    distance_threshold = kwargs.pop("distance_threshold", None)
+    linkage_name = kwargs.pop("linkage", "average")
+
+    # sklearn: n_clusters and distance_threshold are mutually exclusive
+    if n_clusters is not None:
+        distance_threshold = None
+    elif distance_threshold is None:
+        distance_threshold = 0.4  # assumes distances on a 0-1 scale
+
+    try:
+        from sklearn.cluster import AgglomerativeClustering
+    except ImportError:
+        AgglomerativeClustering = None
+
+    if AgglomerativeClustering is not None:
+        try:
+            model = AgglomerativeClustering(n_clusters=n_clusters,
+                                            distance_threshold=distance_threshold,
+                                            metric="precomputed",
+                                            linkage=linkage_name,
+                                            compute_distances=True,
+                                            **kwargs)
+            model.fit(distance_matrix)
+        except Exception as exc:
+            raise RuntimeError(f"AgglomerativeClustering fitting failed: {exc}") from exc
+        return model, model.labels_, _sklearnToLinkage(model)
+
+    try:
+        from scipy.cluster.hierarchy import linkage as sp_linkage, fcluster
+        from scipy.spatial.distance import squareform
+    except ImportError as exc:
+        raise ImportError("AgglomerativeClustering requires scikit-learn or scipy") from exc
+
+    Z = sp_linkage(squareform(np.asarray(distance_matrix), checks=False),
+                   method=linkage_name)
+    if n_clusters is not None:
+        labels = fcluster(Z, t=n_clusters, criterion="maxclust") - 1
+    else:
+        labels = fcluster(Z, t=distance_threshold, criterion="distance") - 1
+    return "scipy_hierarchical", labels, Z
+
+
+def clusterChannels(distance_matrix, method, records, update_record_ids=True, **kwargs):
     """
     Cluster channels/samples from a precomputed distance matrix.
 
     Parameters
     ----------
-    distance_matrix : array-like of shape (n_samples, n_samples)
-        A square, precomputed pairwise distance matrix.
-    method : str
-        Clustering algorithm to use. One of {'HDBSCAN', 'DBSCAN', 'agglomerative'}.
+    distance_matrix : array-like (n_samples, n_samples)
+    method : {'HDBSCAN', 'DBSCAN', 'agglomerative'}
+    records : sequence of ChannelRecord, length n_samples
+    update_record_ids : bool, default True
+        If True, append each label to record.cluster_ids. subcluster() passes
+        False and writes the full hierarchical path itself.
     **kwargs
         sparse : bool, default False
-            If True, convert distance_matrix to a scipy CSR sparse matrix
-            before fitting (only meaningful for methods that support sparse
-            precomputed distances, e.g. DBSCAN/HDBSCAN).
-        Any other keyword arguments are forwarded directly to the
-        corresponding scikit-learn estimator's constructor. Common examples:
-            - HDBSCAN: min_cluster_size, min_samples, cluster_selection_epsilon
-            - DBSCAN: eps, min_samples
-            - agglomerative: n_clusters, linkage, distance_threshold
+        Everything else is forwarded to the estimator
+        (HDBSCAN: min_cluster_size, min_samples, ...; DBSCAN: eps, min_samples;
+        agglomerative: n_clusters, linkage, distance_threshold).
 
     Returns
     -------
-    labels : numpy.ndarray of shape (n_samples,)
-        Cluster label for each sample. Returned for 'HDBSCAN' and 'DBSCAN'.
-    (labels, linkage_matrix) : tuple
-        Returned for 'agglomerative'. linkage_matrix follows the format
-        expected by scipy.cluster.hierarchy.dendrogram: columns are
-        [child_1, child_2, distance, sample_count].
-
-    Raises
-    ------
-    ValueError
-        If distance_matrix is not square, or method is not recognized.
-    ImportError
-        If the required scikit-learn clustering class is unavailable.
+    labels : ndarray (n_samples,)   (noise = -1 for HDBSCAN/DBSCAN)
+    clustering : ClusteringRecords
+        linkage_matrix is populated for agglomerative.
+        Noise points (label -1) get their own Cluster with label -1.
     """
-    labels = []
     from scipy.sparse import csr_matrix
-    distance_matrix = np.asarray(distance_matrix) if not kwargs.get('sparse', False) else distance_matrix
 
-    try:
-        n_rows, n_cols = distance_matrix.shape
-    except (AttributeError, ValueError) as exc:
-        raise ValueError("distance_matrix must be a 2D array-like object") from exc
+    sparse = kwargs.pop("sparse", False)
+    if not sparse:
+        distance_matrix = np.array(distance_matrix, copy=True)
 
+    shape = getattr(distance_matrix, "shape", None)
+    if shape is None or len(shape) != 2:
+        raise ValueError("distance_matrix must be a 2D array-like object")
+    n_rows, n_cols = shape
     if n_rows != n_cols:
-        raise ValueError(
-            f"distance_matrix must be square (n_samples x n_samples); got shape {distance_matrix.shape}"
-        )
-    n = n_rows
+        raise ValueError( f"distance_matrix must be square (n_samples x n_samples); got shape {shape}")
+    if len(records) != n_rows:
+        raise ValueError( f"distance_matrix has {n_rows} rows but {len(records)} records were given")
 
-    valid_methods = {'HDBSCAN', 'DBSCAN', 'agglomerative'}
+    valid_methods = {"HDBSCAN", "DBSCAN", "agglomerative"}
     if method not in valid_methods:
         raise ValueError(f"Unknown method '{method}'. Expected one of {sorted(valid_methods)}")
-        
-    sparse = kwargs.pop('sparse', False)
+
     if sparse:
         distance_matrix = csr_matrix(distance_matrix)
-    else:
-        distance_matrix = np.asarray(distance_matrix,copy=True)
-    if method == 'HDBSCAN':
+
+    linkage_matrix = None
+    if method == "HDBSCAN":
         try:
             from sklearn.cluster import HDBSCAN
         except ImportError as exc:
-            raise ImportError(
-                "HDBSCAN requires scikit-learn"
-            ) from exc
-
-        # Sensible defaults; anything the caller passes in kwargs overrides these.
-        kwargs.setdefault('metric', 'precomputed')
+            raise ImportError("HDBSCAN requires scikit-learn") from exc
+        kwargs.setdefault("metric", "precomputed")
         try:
-            model= HDBSCAN(**kwargs)
+            model = HDBSCAN(**kwargs)
             model.fit(distance_matrix)
         except Exception as exc:
             raise RuntimeError(f"HDBSCAN fitting failed: {exc}") from exc
         labels = model.labels_
-
-    elif method == 'DBSCAN':
+    elif method == "DBSCAN":
         try:
             from sklearn.cluster import DBSCAN
         except ImportError as exc:
             raise ImportError("DBSCAN requires scikit-learn") from exc
-
-        kwargs.setdefault('metric', 'precomputed')
-        kwargs.setdefault('eps', 0.5)
-        kwargs.setdefault('min_samples', 5)
+        kwargs.setdefault("metric", "precomputed")
+        kwargs.setdefault("eps", 0.5)
+        kwargs.setdefault("min_samples", 5)
         try:
             model = DBSCAN(**kwargs)
             model.fit(distance_matrix)
         except Exception as exc:
             raise RuntimeError(f"DBSCAN fitting failed: {exc}") from exc
         labels = model.labels_
+    else:
+        model, labels, linkage_matrix = _fitAgglomerative(distance_matrix, **kwargs)
 
-    elif method == 'agglomerative':
-        try:
-            from sklearn.cluster import AgglomerativeClustering
-            backend = 'sklearn'
-        except ImportError:
-            try:
-                from scipy.cluster.hierarchy import linkage, fcluster
-                from scipy.spatial.distance import squareform
-                backend = 'scipy'
-            except ImportError as exc:
-                raise ImportError("AgglomerativeClustering requires scikit-learn or scipy") from exc
-            
-        if backend == 'sklearn':
-            distance_threshold = kwargs.pop('distance_threshold', 0.4) #0.4 assumes dist scale 0-1
-            linkage = kwargs.pop('linkage', 'average')
+    labels = np.asarray(labels)
+    if update_record_ids:
+        for rec, label in zip(records, labels):
+            rec.cluster_ids.append(int(label))
 
-            # distance_threshold and n_clusters are mutually exclusive in sklearn;
-            # if the caller supplied a distance_threshold, n_clusters must be None.
-            if 'n_clusters' in kwargs and kwargs['n_clusters'] is not None:
-                distance_threshold = None
-            else:
-                n_clusters=None
-            try:
-                model = AgglomerativeClustering(
-                    distance_threshold=distance_threshold,
-                    n_clusters=n_clusters,
-                    metric='precomputed',
-                    linkage=linkage,
-                    compute_distances=True,
-                    **kwargs,
-                )
-                model.fit(distance_matrix)
-            except Exception as exc:
-                raise RuntimeError(f"AgglomerativeClustering fitting failed: {exc}") from exc
-            labels = model.labels_
-        else:
-            method= kwargs.pop('method', 'average')
-            criterion = kwargs.pop('criterion', 'distance')
-            distance_threshold = kwargs.pop('distance_threshold', 0.4)
-            condensed = squareform(distance_matrix)
-            linkage_matrix = linkage(condensed,method=method)
-            labels = fcluster(linkage_matrix, distance_threshold, criterion=criterion)
-            model = 'scipy_hierarchical'
-            
-    for rec,label in zip(records,labels):
-        rec.cluster_ids.append(label)
-    p = np.argsort(labels)
-    sorted_recs = np.asarray(records,dtype=object)[p]
+    # Stable sort so records inside a cluster keep their original order; this
+    # keeps cluster.records aligned with distance_matrix[np.ix_(mask, mask)].
+    order = np.argsort(labels, kind="stable")
+    sorted_recs = np.empty(len(records), dtype=object)
+    for i, j in enumerate(order):
+        sorted_recs[i] = records[j]
+
     unique, counts = np.unique(labels, return_counts=True)
-    k=len(unique)
-    clusters = np.empty(k,dtype=Cluster)
+    clusters = np.empty(len(unique), dtype=object)
     start = 0
-    for label, count in zip(unique,counts):
+    for k, (label, count) in enumerate(zip(unique, counts)):
         end = start + count
-        recs = sorted_recs[start:end]
-        clusters[label] = Cluster(label,recs)
-        clusters[label]._calcInternalDistanceMatrix(distance_matrix,labels)
-        clusters[label]._calcClusterStats(labels)
+        cl = Cluster(int(label), sorted_recs[start:end])
+        cl.details["is_noise"] = bool(label == -1)
+        cl._calcInternalDistanceMatrix(distance_matrix, labels)
+        cl._calcClusterStats(labels)
+        clusters[k] = cl
         start = end
-    clustering = ClusteringRecords(model,records,clusters,labels,distance_matrix)
-    if isinstance(model,str):
-        if model == 'scipy_hierarchical':
-            clustering.linkage_matrix = linkage_matrix
-    return labels, clustering 
+
+    clustering = ClusteringRecords(model, records, clusters, labels, distance_matrix,
+                                   linkage_matrix=linkage_matrix)
+    return labels, clustering
 
 def renameChannelFilesWithClusterLabels(channels, labels, output_path,
                                         stem='channels', ext='pqr',
@@ -11995,7 +12347,7 @@ def renameChannelFilesWithClusterLabels(channels, labels, output_path,
 
     return renamed
 
-def computeBootstrapStability(D, method, sub_size=0.80, n_bootstrap=100,
+def computeBootstrapStability(D, method, records, sub_size=0.80, n_bootstrap=100,
                                 reference="full",random_state=123,**kwargs):
     """
     Evaluate clustering stability using bootstrap/subsampled datasets.
@@ -12028,12 +12380,10 @@ def computeBootstrapStability(D, method, sub_size=0.80, n_bootstrap=100,
     from sklearn.metrics import adjusted_rand_score
 
     D = np.asarray(D)
-
     if D.ndim != 2 or D.shape[0] != D.shape[1]:
         raise ValueError("D must be a square distance matrix.")
 
     n = len(D)
-
     if not 0 < sub_size <= 1:
         raise ValueError("sub_size must be in (0, 1].")
 
@@ -12052,14 +12402,20 @@ def computeBootstrapStability(D, method, sub_size=0.80, n_bootstrap=100,
         labels_ref = None
 
     scores = []
+    bootstrap_labels = []
     for i in range(n_bootstrap):
         # Random subsample without replacement
         keep = rng.choice(n, size=n_keep, replace=False)
         keep.sort()
         D_sub = D[np.ix_(keep, keep)]
+        recs_sub = np.asarray(records)[keep]
         # Recluster
-        labels_sub = np.asarray(
-            clusterChannels(D_sub, method, **kwargs))
+        update_record_ids = kwargs.pop('update_record_ids',False)
+        labels_sub = np.asarray(clusterChannels(D_sub, method, recs_sub,
+                                    update_record_ids=update_record_ids,**kwargs)[0])
+        labels_full = np.full(n, -2, dtype=int)
+        labels_full[keep] = labels_sub
+        bootstrap_labels.append(labels_full)
 
         if len(labels_sub) != len(keep):
             raise ValueError("clusterChannels returned invalid labels.")
@@ -12088,40 +12444,36 @@ def computeBootstrapStability(D, method, sub_size=0.80, n_bootstrap=100,
         ari = adjusted_rand_score(labels_compare,labels_sub,)
         scores.append(ari)
     scores = np.asarray(scores)
-
+    C = coassociationMatrix(bootstrap_labels, exclude_noise=True)
     return {"scores": scores,
             "mean": np.mean(scores),
             "std": np.std(scores),
             "median": np.median(scores),
-            "reference_labels": labels_ref}
+            "reference_labels": labels_ref,
+            "coassociation_matrix": C}
 
-def clusteringDistanceStats(D, labels):
-    labels = np.asarray(labels)
-    valid = labels >= 0
-    labels = labels[valid]
-    D = D[np.ix_(valid, valid)]
-    clusters = np.unique(labels)
-    within = []
-    between = []
-    for i, c1 in enumerate(clusters):
-        idx1 = labels == c1
-        # within-cluster
-        if idx1.sum() > 1:
-            vals = D[np.ix_(idx1, idx1)]
-            within.append(vals[np.triu_indices_from(vals, k=1)])
-        # between-cluster
-        for c2 in clusters[i+1:]:
-            idx2 = labels == c2
-            between.append(D[np.ix_(idx1, idx2)].ravel())
-    within = np.concatenate(within) if within else np.array([])
-    between = np.concatenate(between) if between else np.array([])
-    return {"mean_within": np.mean(within),
-            "median_within": np.median(within),
-            "mean_between": np.mean(between),
-            "median_between": np.median(between),
-            "separation_ratio":np.mean(between) / np.mean(within)}
 
 def compareClusterings(labels1,labels2):
+    """
+    Compare two clustering label assignments.
+
+    Parameters
+    ----------
+    labels1, labels2 : array-like
+        Cluster labels for the same set of samples. The two label arrays must
+        have the same length and represent equivalent assignments to compare.
+
+    Returns
+    -------
+    dict
+        Dictionary with the adjusted Rand index (``ARI``) and adjusted mutual
+        information (``AMI``) between the two clusterings.
+
+    Notes
+    -----
+    This function requires scikit-learn to be installed.
+    """
+    
     if not checkAndImport('sklearn'):
         raise ImportError('To run computeBootstrapStability, please install scikit-learn')
     if not checkAndImport('sklearn'):
@@ -12132,7 +12484,84 @@ def compareClusterings(labels1,labels2):
     return {"ARI": adjusted_rand_score(labels1, labels2),
             "AMI": adjusted_mutual_info_score(labels1, labels2)}
 
-import numpy as np
+
+def coassociationMatrix(label_list, exclude_noise=True):
+    """
+    Calculate a co-association matrix from multiple clustering results.
+
+    Parameters
+    ----------
+    label_list : list of array-like
+        Each element contains cluster labels for the same samples.
+        Noise should be labeled as -1.
+
+    exclude_noise : bool, default=True
+        If True, pairs are normalized only over runs where both samples
+        are assigned to a non-noise cluster.
+
+        If False, all runs are included in the denominator, so a run in
+        which either sample is noise contributes zero.
+
+    Returns
+    -------
+    C : ndarray
+        Symmetric co-association matrix.
+
+        With exclude_noise=True:
+            C[i, j] = fraction of informative runs in which i and j
+                      were assigned to the same cluster.
+
+        With exclude_noise=False:
+            C[i, j] = fraction of all runs in which i and j were assigned
+                      to the same cluster.
+    """
+    labels0 = np.asarray(label_list[0])
+    n = len(labels0)
+    C = np.zeros((n, n), dtype=float)
+    counts = np.zeros((n, n), dtype=float)
+
+    for labels in label_list:
+        labels = np.asarray(labels)
+        if len(labels) != n:
+            raise ValueError("All label arrays must have the same length.")
+        
+        present = labels != -2
+        if exclude_noise:
+            valid = present & (labels >= 0)
+        else:
+            valid = present
+
+        valid_pair = valid[:, None] & valid[None, :]
+        same = ((labels[:, None] == labels[None, :]) & (labels[:, None] >= 0))
+
+        C += same & valid_pair
+        counts += valid_pair
+
+    C = np.divide(C,counts,out=np.zeros_like(C), where=counts > 0)
+    return C
+
+def clusterConsensusStrength(C, cluster_indices):
+    """
+    Calculate consensus strength for a cluster.
+    Parameters
+    ----------
+    C : ndarray, shape (n_samples, n_samples)
+        Co-association matrix.
+    cluster_indices : array-like
+        Indices of samples belonging to the cluster.
+    Returns
+    -------
+    float
+        Mean pairwise co-association among cluster members.
+        1.0 = every pair was always co-clustered
+        0.0 = no pair was ever co-clustered
+    """
+    cluster_indices = np.asarray(cluster_indices)
+    if len(cluster_indices) < 2:
+        return np.nan
+    sub = C[np.ix_(cluster_indices, cluster_indices)]
+    i, j = np.triu_indices(len(cluster_indices), k=1)
+    return np.mean(sub[i, j])
 
 
 def writeClusterLabels(filename, labels, names=None):
@@ -12288,9 +12717,10 @@ def _frechetTable(D, full=False):
 class ClusterCalculator:
     
     def __init__(self, atoms=None, voxel_size=0.25,pad_factor=1.02,h=10,angle_deg=5.0,
-                q=1.0,n_samples=5, global_origin=None,alpha=0.5,beta=2.0):
+                q=1.0,n_samples=5, global_origin=None,alpha=1.0,beta=2.0):
         
         self.atoms = atoms
+        self.n_residues = len(np.unique(atoms.getResindices())) if atoms else None
         self.voxel_size=voxel_size
         self.pad_factor=pad_factor
         self.h=h
@@ -12302,6 +12732,8 @@ class ClusterCalculator:
         self.beta = beta
         POPCOUNT_TABLE = np.array([bin(i).count("1") for i in range(256)], dtype=np.uint8)
         self.POPCOUNT_TABLE = POPCOUNT_TABLE
+
+        self.scan = None
 
     class ChannelRecord:
         """Cached geometry for one channel"""
@@ -12327,6 +12759,7 @@ class ClusterCalculator:
             self.offset = offset
             self.volume = volume
             self.lining_residues = lining_residues
+            self.packed_lining = self.calculator._pack(lining_residues) if lining_residues is not None else None
 
             #calculated during center sampling 
             self.rep_points = rep_points
@@ -12480,6 +12913,7 @@ class ClusterCalculator:
             return (self.W[node] * np.log(e) - self.A[node],
                     self.B[node] - self.W[node] / e)
         
+    @staticmethod
     def stabilityNoiseDecision(size, stability, ratio, min_cluster_size,
                                 min_persistence_ratio, singleton_noise=True,
                                 min_ratio_floor=1.0):
@@ -12530,34 +12964,36 @@ class ClusterCalculator:
 ##### Bounding Box Functions #####
 
 
-
 ##### Functions Related to the Channel Lining Residue Pipeline #####
-    def _pack(self,residue_set, n_residues):
-        arr = np.zeros(n_residues, dtype=np.uint8)
+    def _pack(self,residue_set):
+        arr = np.zeros(self.n_residues, dtype=np.uint8)
         arr[list(residue_set)] = 1
         return np.packbits(arr)
     
-    def _TverskyDistanceMatrix(self, packed):
-        """ 
-        alpha weighs the impact of the minimum and maximum relative complement
-        beta weighs the overall effect of difference between two sets
-        alpha = 0.5, beta = 2.0 reproduces the jaccard index
-        alpha = 0.5, beta=0.5 reproduces the dice index
-        """
-        alpha = self.alpha
-        beta = self.beta
+    def _TverskyCounts(self, packed):
         n = packed.shape[0]
-        dist = np.zeros((n, n), dtype=float)
+        inter = np.zeros((n, n), dtype=np.int64)
+        lo = np.zeros((n, n), dtype=np.int64)
+        hi = np.zeros((n, n), dtype=np.int64)
         for i in range(n):
-            intersection = self.POPCOUNT_TABLE[packed[i] & packed].sum(axis=1)
+            inter[i] = self.POPCOUNT_TABLE[packed[i] & packed].sum(axis=1)
             x_minus_y = self.POPCOUNT_TABLE[packed[i] & ~packed].sum(axis=1)
             y_minus_x = self.POPCOUNT_TABLE[~packed[i] & packed].sum(axis=1)
-            a = np.minimum(x_minus_y, y_minus_x)
-            b = np.maximum(x_minus_y, y_minus_x)
-            denominator = intersection + beta * (alpha * a + (1 - alpha) * b)
-            dist[i] = 1.0 - intersection / denominator
+            lo[i] = np.minimum(x_minus_y, y_minus_x)
+            hi[i] = np.maximum(x_minus_y, y_minus_x)
+        return inter, lo, hi
 
+    @staticmethod
+    def _TverskyFromCounts(inter, lo, hi, alpha, beta):
+        denominator = inter + beta * (alpha * lo + (1 - alpha) * hi)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            dist = 1.0 - inter / denominator
+        dist[denominator == 0] = 0.0      # both sets empty -> identical
         return dist
+
+    def _TverskyDistanceMatrix(self, packed):
+        inter, lo, hi = self._TverskyCounts(packed)
+        return self._TverskyFromCounts(inter, lo, hi, self.alpha, self.beta)
 ##### Functions Related to the Channel Lining Residue Pipeline #####
 
 
@@ -12656,6 +13092,37 @@ class ClusterCalculator:
         return np.stack([X.ravel(), Y.ravel(), Z.ravel()], axis=-1)
 
     def voxelizeChannelAligned(self,centers, radii, tree, dims, grid_mn):
+        """
+        Rasterize a channel onto a lattice-aligned boolean voxel grid.
+
+        Parameters
+        ----------
+        centers : array-like
+            Centerline coordinates for the channel, shaped ``(n, 3)``.
+        radii : array-like
+            Radius for each centerline point, shaped ``(n,)``.
+        tree : scipy.spatial.cKDTree or similar
+            KD-tree built from ``centers`` for efficient point-in-channel tests.
+        dims : tuple[int, int, int]
+            Grid dimensions in voxels along each axis.
+        grid_mn : array-like
+            World-space coordinates of the lower corner of the grid origin.
+
+        Returns
+        -------
+        numpy.ndarray
+            Boolean mask with shape ``dims`` marking voxels whose centers lie
+            inside the channel volume.
+
+        Notes
+        -----
+        This method first finds a compact set of candidate voxels from the
+        union of padded segment bounding boxes, then evaluates only those
+        candidates against the channel geometry using the point-inside-mask
+        predicate. This avoids a full voxel-by-voxel scan while preserving the
+        exact channel volume on the lattice.
+        """
+        
         voxel_size=self.voxel_size
         if len(centers) < 2:
             return np.zeros(dims, dtype=bool)
@@ -12722,21 +13189,25 @@ class ClusterCalculator:
         u3 = self.voxel_size ** 3
         return intersection*u3, a*u3,b*u3
 
+    def _voxelOverlapCounts(self, task):
+        i, j, rec_a, rec_b = task
+        inter, a, b = self._maskVoxelOverlapVolume(rec_a, rec_b)
+        return i, j, inter, a, b
 
-    def _scoreVoxelOverlapPrepared(self,task):
-        """
-        Calculate Jaccard distance for one channel pair, from cached masks.
-        """
-        i, j, prepared_a, prepared_b= task
-        alpha = self.alpha
-        beta = self.beta
-        inter, a , b = self._maskVoxelOverlapVolume(prepared_a, prepared_b)
+    @staticmethod
+    def _voxelScoreFromCounts(inter, a, b, alpha, beta):
+        """Works on scalars or arrays. No overlap volume at all -> 1.0."""
+        inter = np.asarray(inter, dtype=float)
+        a = np.asarray(a, dtype=float)
+        b = np.asarray(b, dtype=float)
         denominator = inter + beta * (alpha * a + (1 - alpha) * b)
-        if denominator <= 0:
-            return i, j, 1.0
-        score = 1.0 - inter / denominator
-        return i, j, score
+        with np.errstate(divide='ignore', invalid='ignore'):
+            score = 1.0 - inter / denominator
+        return np.where(denominator > 0, score, 1.0)
 
+    def _scoreVoxelOverlapPrepared(self, task):
+        i, j, inter, a, b = self._voxelOverlapCounts(task)
+        return i, j, float(self._voxelScoreFromCounts(inter, a, b, self.alpha, self.beta))
 
 ##### Functions Related to the Voxelization Pipeline #####
 
@@ -13007,7 +13478,7 @@ class ClusterCalculator:
         """
         from scipy.spatial.distance import cdist
         start, end = block
-
+        
         shell_data = _worker_shell_data
         weights = _worker_weights
         n = _worker_n
@@ -13039,7 +13510,7 @@ class ClusterCalculator:
 
             A = points[first:last]
             rA = radii[first:last]
-            idA = channel_ids[first:last] - start          # local to this block, still sorted
+            idA = channel_ids[first:last] - start   
 
             B = points
             rB = radii
@@ -13083,6 +13554,50 @@ class ClusterCalculator:
 
         return start, end, Db
 
+    def _distanceRect(self, src_shells, tgt_shells, n_src, n_tgt, weights,
+                  src_centroids, src_radii_means, tgt_centroids, tgt_radii_means,
+                  normalize_radii=True, clip_distance=True):
+        """Distances (n_src, n_tgt) between two independently prepared record sets.
+        Same math as _distanceBlock, but source and target are separate."""
+        from scipy.spatial.distance import cdist
+
+        Db = np.zeros((n_src, n_tgt), dtype=np.float32)
+        Wb = np.zeros((n_src, n_tgt), dtype=np.float32)
+
+        for shell, w in enumerate(weights):
+            if w == 0:
+                continue
+            A, rA, idA, _, _ = src_shells[shell]
+            B, rB, _, t_starts, t_ids = tgt_shells[shell]
+            if len(A) == 0 or len(B) == 0:
+                continue
+
+            spatial = cdist(A, B)
+            if normalize_radii:
+                spatial /= np.maximum(rA[:, None] + rB[None, :], 1e-8)
+                if clip_distance:
+                    np.minimum(spatial, 1.0, out=spatial)
+
+            s_starts = np.r_[0, np.flatnonzero(np.diff(idA)) + 1]
+            s_ids = idA[s_starts]
+
+            red = np.minimum.reduceat(spatial, s_starts, axis=0)
+            red = np.minimum.reduceat(red, t_starts, axis=1)
+
+            Db[np.ix_(s_ids, t_ids)] += w * red
+            Wb[np.ix_(s_ids, t_ids)] += w
+
+        valid = Wb > 0
+        Db[valid] /= Wb[valid]
+        invalid = ~valid
+        if invalid.any():
+            fb = cdist(src_centroids, tgt_centroids)
+            if normalize_radii:
+                fb /= np.maximum(src_radii_means[:, None] + tgt_radii_means[None, :], 1e-8)
+                if clip_distance:
+                    np.minimum(fb, 1.0, out=fb)
+            Db[invalid] = fb[invalid]
+        return Db
 
     def computeThroughput(self, records):
         """throughput = exp(-cost). Stored as `channel.throughput`"""
@@ -13091,9 +13606,149 @@ class ClusterCalculator:
         for r, t in zip(records, throughputs):
             r.channel.throughput = float(t)
 
-##### centerline sampleing functions######
+##### centerline sampling functions######
 
 ####### POST CLUSTERING METRICS #######
+
+
+    @staticmethod
+    def liningSequenceDistance(rec_a, rec_b, alpha=0.5, beta=2.0):
+        """
+        Tversky distance between the lining-residue sets of two ChannelRecords,
+        using their cached packed_lining bit vectors.
+
+        alpha=0.5, beta=2.0 -> Jaccard distance
+        alpha=0.5, beta=1.0 -> Dice distance
+        """
+        pa = rec_a.packed_lining
+        pb = rec_b.packed_lining
+        if pa is None or pb is None:
+            raise ValueError("records must have packed_lining; prepare them with "
+                             "metric='lining' (or pass atoms and trajectory)")
+
+        table = ClusterCalculator.POPCOUNT_TABLE
+        intersection = int(table[pa & pb].sum())
+        a_only = int(table[pa & ~pb].sum())
+        b_only = int(table[~pa & pb].sum())
+
+        denominator = intersection + beta * (alpha * min(a_only, b_only)
+                                             + (1 - alpha) * max(a_only, b_only))
+        if denominator == 0:          
+            return 0.0
+        return float(1.0 - intersection / denominator)
+    
+    @staticmethod
+    def voxelOverlapDistance(rec_a, rec_b):
+        """
+        1 - weighted voxel overlap score between two voxelized ChannelRecords.
+        Non-overlapping channels give 1.0. alpha/beta/voxel_size/global_origin
+        come from the records' calculator (set in prepareChannelRecords).
+        """
+        if not (rec_a.voxelized and rec_b.voxelized):
+            raise ValueError("records must be voxelized; prepare them with "
+                             "metric='voxel' or voxelize=True")
+        calc = rec_a.calculator
+        if rec_b.calculator is not calc:
+            if (not np.isclose(calc.voxel_size, rec_b.calculator.voxel_size) or
+                    not np.allclose(calc.global_origin, rec_b.calculator.global_origin)):
+                raise ValueError("records were voxelized on different lattices")
+        _, _, score = calc._scoreVoxelOverlapPrepared((0, 1, rec_a, rec_b))
+        return float(score)
+
+    def prepareCenterlineRecords(self, records, h=None, q=None):
+        """
+        Populate everything centerlineDistance needs on each record:
+        rep_points / rep_radii (shared start point S from the full set),
+        shell_weights (distance weights), centroid, radius_mean.
+        Distances depend on S, so re-run this if the record set changes.
+        """
+        h = self.h if h is None else h
+        q = self.q if q is None else q
+
+        S = self.computeAverageStart(records)
+        self.computeRepresentativePoints(records, S, h=h)
+
+        weights = self.computeDistanceWeights(h, q).astype(np.float32)
+        centroids, radii_means = self._prepareChannelCentroids(records)
+
+        for rec, c, rm in zip(records, centroids, radii_means):
+            rec.shell_weights = weights      # overwrites the placeholder ones
+            rec.rep_points = c
+            rec.rep_radii = float(rm)
+        return records
+    
+    def centerlineDistanceToReps(self, new_records, rep_records, h=None, q=1.0,
+                             rep_cache=None, normalize_radii=True, clip_distance=True,
+                             batch_size=2000):
+        """Vectorized (len(new_records), len(rep_records)) centerline distance."""
+        if h is None:
+            h = min(len(r.rep_points) for r in rep_records)
+        weights = self.computeDistanceWeights(h, q).astype(np.float32)
+
+        # Target side: build once and reuse across calls
+        if rep_cache is None:
+            rep_cache = (self._prepareAllShells(rep_records, h),
+                        *self._prepareChannelCentroids(rep_records))
+        tgt_shells, tgt_c, tgt_r = rep_cache
+
+        out = np.empty((len(new_records), len(rep_records)), dtype=np.float32)
+        for start in range(0, len(new_records), batch_size):
+            batch = new_records[start:start + batch_size]
+            src_shells = self._prepareAllShells(batch, h)
+            src_c, src_r = self._prepareChannelCentroids(batch)
+            out[start:start + len(batch)] = self._distanceRect(
+                src_shells, tgt_shells, len(batch), len(rep_records), weights,
+                src_c, src_r, tgt_c, tgt_r, normalize_radii, clip_distance)
+        return out
+
+    @staticmethod
+    def centerlineDistance(rec_a, rec_b, normalize_radii=True, clip_distance=True):
+        """
+        Weighted shell-wise centerline distance between two ChannelRecords
+        prepared with prepareCenterlineRecords. Matches _distanceBlock.
+        """
+        from scipy.spatial.distance import cdist
+
+        if rec_a.shell_weights is None or rec_b.shell_weights is None:
+            raise ValueError("records must be prepared with prepareCenterlineRecords "
+                             "(or metric='centerline' in prepareChannelRecords)")
+
+        weights = rec_a.shell_weights
+        h = min(len(weights), len(rec_a.rep_points), len(rec_b.rep_points))
+
+        d_sum = 0.0
+        w_sum = 0.0
+        for s in range(h):
+            w = float(weights[s])
+            if w == 0:
+                continue
+            A, B = rec_a.rep_points[s], rec_b.rep_points[s]
+            if len(A) == 0 or len(B) == 0:
+                continue
+
+            spatial = cdist(A, B)
+            if normalize_radii:
+                rsum = rec_a.rep_radii[s][:, None] + rec_b.rep_radii[s][None, :]
+                spatial = spatial / np.maximum(rsum, 1e-8)
+                if clip_distance:
+                    np.minimum(spatial, 1.0, out=spatial)
+
+            # your block code does min over source reps, then min over target reps
+            d_sum += w * spatial.min()
+            w_sum += w
+
+        if w_sum > 0:
+            return float(d_sum / w_sum)
+
+        # no shell populated by both channels -> centroid fallback
+        d = float(np.linalg.norm(rec_a.centroid - rec_b.centroid))
+        if normalize_radii:
+            d /= max(rec_a.radius_mean + rec_b.radius_mean, 1e-8)
+            if clip_distance:
+                d = min(d, 1.0)
+        return d
+
+
     @staticmethod
     def symmetricChamferDistance(channel_a, channel_b, n_samples=300, return_details=False):
         """
@@ -13128,26 +13783,24 @@ class ClusterCalculator:
         }
     
     @staticmethod
-    def splineProjectionDistance(channel_a, channel_b,
-                                 n_samples=300,
-                                 angle_threshold_deg=60.0,
-                                 n_dense=1000,
-                                 n_candidates=8,
-                                 return_details=False):
+    def splineProjectionDistance(channel_a, channel_b, n_samples=300,angle_threshold_deg=60.0,
+                                 n_dense=1000, n_candidates=8, return_details=False):
         """
         Mean distance from arc-length samples of the shorter channel to the
-        continuous spline of the longer one.
- 
-        A dense KD-tree lookup gives every sample's starting point at once; each
-        is then refined by projecting onto the two neighbouring dense segments
-        and evaluating the spline once at the result. Everything is vectorized
-        (no per-point Python loop); n_dense sets the accuracy (chord error is
-        ~ spacing^2 * curvature / 8, about 1e-4 A at the default).
- 
-        angle_threshold_deg : among the `n_candidates` nearest dense points use
-            the nearest whose tangent (direction-agnostic) is within this angle
-            of the reference tangent; otherwise fall back to the plain nearest.
-            None disables the constraint.
+        spline of the longer channel.
+
+        A dense KD-tree lookup identifies candidate points on the longer channel.
+        For each sample on the shorter channel, the nearest dense point is used
+        as an initial match, then the sample is refined by projecting onto the
+        two neighboring dense spline segments and evaluating the spline at the
+        projected position. The computation is fully vectorized; n_dense controls
+        the sampling resolution (chord error is about spacing^2 * curvature / 8,
+        about 1e-4 A at the default setting).
+
+        angle_threshold_deg : among the `n_candidates` nearest dense points, use
+            the nearest one whose tangent direction is within this angle of the
+            reference tangent; otherwise fall back to the plain nearest neighbor.
+            None disables the tangent-direction constraint.
         """
         la = getattr(channel_a, "channel", channel_a).length
         lb = getattr(channel_b, "channel", channel_b).length
@@ -13263,85 +13916,197 @@ class ClusterCalculator:
 ####### POST CLUSTERING METRICS #######
 
 #### post-clustering #####
-    _PAIRWISE_ITEMS = None
+    _PAIRWISE_ITEMS_A = None
+    _PAIRWISE_ITEMS_B = None
     _PAIRWISE_FN = None
     _PAIRWISE_KWARGS = None
 
 
-    def _initPairwiseWorker(self,items, fn, kwargs):
-        global _PAIRWISE_ITEMS, _PAIRWISE_FN, _PAIRWISE_KWARGS
+    def _initPairwiseWorker(self, items_a, items_b, fn, kwargs):
+        global _PAIRWISE_ITEMS_A, _PAIRWISE_ITEMS_B
+        global _PAIRWISE_FN, _PAIRWISE_KWARGS
 
-        _PAIRWISE_ITEMS = items
+        _PAIRWISE_ITEMS_A = items_a
+        _PAIRWISE_ITEMS_B = items_b
         _PAIRWISE_FN = fn
         _PAIRWISE_KWARGS = kwargs
 
-    def _pairwiseDistanceChunk(self,pair_chunk):
+
+    def _pairwiseDistanceChunk(self, pair_chunk):
         ii, jj = pair_chunk
-
         distances = np.empty(len(ii), dtype=float)
-
         for k, (i, j) in enumerate(zip(ii, jj)):
-            distances[k] = _PAIRWISE_FN(
-                _PAIRWISE_ITEMS[i],
-                _PAIRWISE_ITEMS[j],
-                **_PAIRWISE_KWARGS
-            )
+            distances[k] = _PAIRWISE_FN(_PAIRWISE_ITEMS_A[i],
+                                        _PAIRWISE_ITEMS_B[j],
+                                        **_PAIRWISE_KWARGS)
 
         return ii, jj, distances
-    
-    def pairwiseDistanceMatrix(self, items, metric='chamfer', max_proc=None, mp_context=None, **kwargs):
+
+
+    def pairwiseDistance(self,items_a, items_b=None, metric='chamfer', max_proc=None, mp_context=None, dtype=float, **kwargs):
         """
-        Symmetric (n x n) distance matrix between ChannelRecords (or Channels).
-        `metric` is a function f(a, b, **kwargs) -> float, e.g.
-        ChannelMetrics.frechetDistance (default: symmetricChamferDistance);
-        kwargs (n_samples, ...) are forwarded to it. Only the upper triangle is
-        computed. n_jobs != 1 uses joblib threads.
+        Calculate pairwise distances between ChannelRecords or Channels.
+
+        Three modes are supported.
+
+        Symmetric
+        ---------
+        pairwiseDistance(items_a)
+
+            Computes only the upper triangle and returns an (n, n)
+            symmetric distance matrix.
+
+        Rectangular
+        -----------
+        pairwiseDistance(items_a, items_b)
+
+            Computes all distances between the two collections and returns
+            an (len(items_a), len(items_b)) matrix.
+
+        One-to-many
+        -----------
+        pairwiseDistance(item, items_b)
+
+            Computes the distance from one item to every item in items_b
+            and returns a 1-D array of shape (len(items_b),).
+
+        Parameters
+        ----------
+        items_a : ChannelRecord, Channel, or iterable
+            First item or collection.
+
+        items_b : iterable, optional
+            Second collection. If None, symmetric pairwise distances are
+            calculated within items_a.
+
+        metric : str or callable
+            One of:
+                'chamfer'
+                'frechet'
+                'projection'
+
+            or a callable:
+                metric(a, b, **kwargs) -> float
+
+        max_proc : int or None
+            Number of worker processes.
+            1 performs serial calculation.
+            None uses approximately half available CPUs.
+
+        mp_context : str or None
+            Multiprocessing context, e.g. 'fork', 'spawn'.
+
+        dtype : numpy dtype
+            Output dtype.
+
+        **kwargs
+            Forwarded to the distance function.
+
+        Returns
+        -------
+        ndarray
+            Symmetric mode:
+                (n, n)
+
+            Rectangular mode:
+                (len(items_a), len(items_b))
+
+            One-to-many mode:
+                (len(items_b),)
         """
         import multiprocessing as mp
-        # from multiprocessing import Pool, cpu_count
+
         metrics = {'chamfer': self.symmetricChamferDistance,
-                'frechet': self.frechetDistance,
-                'projection': self.splineProjectionDistance}
+                    'frechet': self.frechetDistance,
+                    'projection': self.splineProjectionDistance}
+
         if callable(metric):
             fn = metric
         elif metric in metrics:
             fn = metrics[metric]
         else:
-            raise ValueError(f"unknown metric {metric!r}; use one of {list(metrics)} or a callable")
+            raise ValueError(f"unknown metric {metric!r}; "
+                            f"use one of {list(metrics)} or a callable")
 
         kwargs.pop("return_details", None)
-        items = list(items)
-        n = len(items)
-        D = np.zeros((n, n))
-        if n > 1:
-            ii, jj = np.triu_indices(n, 1)
-            n_pairs = len(ii)
 
-            iu = np.triu_indices(n, 1)
-            pairs = [(items[i], items[j]) for i, j in zip(*iu)]
+        symmetric = items_b is None
 
-            if max_proc == 1:
-                D[iu] = [fn(a, b, **kwargs) for a, b in pairs]
+        if symmetric:
+            items_a = list(items_a)
+            items_b = items_a
+            one_to_many = False
+
+        else:
+            try:
+                iter(items_a)
+                items_a = list(items_a)
+                one_to_many = False
+            except TypeError:
+                items_a = [items_a]
+                one_to_many = True
+
+            items_b = list(items_b)
+
+        n_a = len(items_a)
+        n_b = len(items_b)
+
+        if symmetric:
+            if n_a == 0:
+                return np.empty((0, 0), dtype=dtype)
+
+        elif one_to_many:
+            if n_b == 0:
+                return np.empty(0, dtype=dtype)
+
+        elif n_a == 0 or n_b == 0:
+            return np.empty((n_a, n_b), dtype=dtype)
+
+        if symmetric:
+            ii, jj = np.triu_indices(n_a,k=1)
+            D = np.zeros( (n_a, n_a), dtype=dtype)
+        else:
+            ii = np.repeat(np.arange(n_a),n_b)
+            jj = np.tile( np.arange(n_b),n_a)
+            D = np.empty( (n_a, n_b),dtype=dtype)
+        n_pairs = len(ii)
+        if n_pairs == 0:
+            if one_to_many:
+                return D[0]
+            return D
+
+        if max_proc == 1:
+            for i, j in zip(ii, jj):
+                D[i, j] = fn(items_a[i],items_b[j],**kwargs)
+
+        else:
+            if mp_context is None:
+                ctx = mp.get_context()
             else:
-                if mp_context is None:
-                    ctx = mp.get_context()
-                else:
-                    ctx = mp.get_context(mp_context)
-                if max_proc is None:
-                    max_proc = max(1, ctx.cpu_count()//2)
-                chunksize = max(1, n_pairs//(max_proc*4))
+                ctx = mp.get_context(mp_context)
 
-                pair_chunks = ((ii[start:start + chunksize], jj[start:start + chunksize])
-                                                for start in range(0, n_pairs, chunksize))
-                with ctx.Pool(processes=max_proc, initializer=self._initPairwiseWorker, 
-                                            initargs=(items, fn, kwargs)) as pool:
-                    for ci, cj, distances in pool.imap_unordered(self._pairwiseDistanceChunk,
-                        pair_chunks,chunksize=1):
-                        D[ci, cj] = distances
-                
-        return D + D.T
+            if max_proc is None:
+                max_proc = max(1, ctx.cpu_count() // 2)
 
-    def clusterDistanceMatrix(self, cluster, metric='chamfer', store=False, D=None, **kwargs):
+            chunksize = max(1,n_pairs // (max_proc * 4))
+            pair_chunks = ((ii[start:start + chunksize], jj[start:start + chunksize])
+                                    for start in range(0, n_pairs,chunksize))
+
+            with ctx.Pool(processes=max_proc,initializer=self._initPairwiseWorker,
+                            initargs=(items_a,items_b,fn,kwargs)) as pool:
+                for ci, cj, distances in pool.imap_unordered(self._pairwiseDistanceChunk,pair_chunks,chunksize=1):
+                    D[ci, cj] = distances
+        if symmetric:
+            D += D.T
+        if one_to_many:
+            return D[0]
+        return D
+
+    def pairwiseDistanceMatrix(self,items,metric='chamfer',max_proc=None,mp_context=None,**kwargs):
+        return self.pairwiseDistance(items, metric=metric, max_proc=max_proc, mp_context=mp_context,**kwargs)
+
+
+    def clusterDistanceMatrix(self, cluster, metric='chamfer', store=False,D=None, **kwargs):
         metrics = {'chamfer': self.symmetricChamferDistance,
                 'frechet': self.frechetDistance,
                 'projection': self.splineProjectionDistance}
@@ -13387,6 +14152,8 @@ class ClusterCalculator:
         return out
 
 class Cluster:
+    """ Stores information of individual clusters """
+
     def __init__(self, label, records, details=None, parent=None, depth=0):
         self.label = label
         self.records = records
@@ -13394,6 +14161,8 @@ class Cluster:
         self.conformation_ids = [rec.conformation_id for rec in records]
         self.approximated = None
         self.soft_assigned = None
+        self.approximated_indices = []
+        self.soft_assigned_indices = []
 
         self.parent = parent
         self.children = []
@@ -13412,23 +14181,26 @@ class Cluster:
         #ClusterCalculator.ClusteringRecords()
         # set by ClusteringRecords.fit(); refer to the ORIGINAL subsample,
         # so they stay valid after extendCluster()
-        self.rep_idx = None             # subsample indices of representatives
-        self.rep_threshold = None       # acceptance radius computed on the reps
+        self.rep_idx = None
+        self.assignment_rep_idx = None
+        self.rep_threshold = None     # acceptance radius computed on the reps
 
         self.depth = depth
         self.distance_matrix = None #if subcluster
         self.linkage_matrix = None #if subcluster
         self.model = None #if subcluster
 
-    @property
+
     def _threshold(self):
+        """Representative acceptance radius or fallback cluster scale."""
         if self.rep_threshold is not None:
             return self.rep_threshold
-        return max(self.mean_pairwise_distance, self.max_nearest_neighbor_distance)
+        vals = [x for x in (self.mean_pairwise_distance, self.max_nearest_neighbor_distance) if x is not None]
+        return max(vals) if vals else 0.0
 
     def _resetStats(self):
+        """Clear summaries invalidated when cluster membership changes."""
         self.persistence = None
-        self.mediod = None
         self.mean_pairwise_distance = None
         self.density = None
         self.max_nearest_neighbor_distance = None
@@ -13437,15 +14209,49 @@ class Cluster:
         self.voxelized_graph = None
         self.graph_occupancy = None
     
-    def extendCluster(self,records):
+    def extendCluster(self, records, indices=None,approximated=False, soft_assigned=False):
+        """Append records and optionally record their indices in the owning ClusteringRecords.records collection. """
         records = list(records)
         self.records = list(self.records) + records
         self.conformation_ids.extend(rec.conformation_id for rec in records)
-        self.approximated = True
+        if indices is not None:
+            indices = [int(i) for i in indices]
+            if approximated:
+                self.approximated_indices.extend(indices)
+            if soft_assigned:
+                self.soft_assigned_indices.extend(indices)
+        if approximated:
+            self.approximated = True
+        if soft_assigned:
+            self.soft_assigned = True
         self.size = len(self.records)
         self._resetStats()
 
+    def removeRecords(self, records, indices=None):
+        """Remove records (matched by identity) from this cluster. Returns count removed.
+        `indices` are the records' global indices, used to clean the index lists."""
+        drop = {id(r) for r in records}
+        keep = [r for r in self.records if id(r) not in drop]
+        n_removed = len(self.records) - len(keep)
+        self.records = keep
+        self.conformation_ids = [r.conformation_id for r in keep]
+        self.size = len(keep)
+
+        if indices is not None:
+            gone = {int(i) for i in indices}
+            self.approximated_indices = [i for i in self.approximated_indices if i not in gone]
+            self.soft_assigned_indices = [i for i in self.soft_assigned_indices if i not in gone]
+            if self.mediod is not None and int(self.mediod) in gone:
+                LOGGER.warn('Medoid of cluster {0} was reassigned; medoid is now None'.format(self.label))
+                self.mediod = None
+            if self.rep_idx is not None and gone & {int(i) for i in self.rep_idx}:
+                LOGGER.warn('Representative(s) of cluster {0} were reassigned'.format(self.label))
+
+        self._resetStats()
+        return n_removed
+
     def _calcInternalDistanceMatrix(self,distance_matrix,labels):
+        """Store the pairwise distances for members belonging to this cluster."""
         D = np.asarray(distance_matrix)
         labels = np.asarray(labels)
         idx = np.flatnonzero(labels == self.label)
@@ -13455,9 +14261,11 @@ class Cluster:
         self.internal_distance_matrix = Dc
     
     def _calcPersistance(self,num_conformations):
+        """Compute the cluster persistence fraction relative to the full sample."""
         self.persistance = self.size/num_conformations
 
     def _calcClusterStats(self,labels):
+        """Compute medoid, mean pairwise distance, max nearest-neighbor distance, and density."""
         labels = np.asarray(labels)
         idx = np.flatnonzero(labels == self.label)
         n = len(idx)            # not self.size: size grows after extendCluster()
@@ -13487,6 +14295,22 @@ class Cluster:
             self.density = np.inf
 
     def buildVoxelizedGraph(self, min_occupancy=0.0, return_coordinates=False):
+        """Build a cluster occupancy grid by aggregating the voxel masks of all records.
+
+        Parameters
+        ----------
+        min_occupancy : float, optional
+            Minimum occupancy value required to keep a voxel in the graph.
+        return_coordinates : bool, optional
+            If True, return the occupancy array together with the global origin and
+            voxel size.
+
+        Returns
+        -------
+        occupancy : numpy.ndarray
+            Occupancy map for the cluster, optionally accompanied by origin and voxel
+            size metadata.
+        """
         if not np.any(self.records):
             self.graph_occupancy = None
             self.voxelized_graph = None
@@ -13594,7 +14418,13 @@ class Cluster:
         return output_file
 
 class ClusteringRecords:
-    def __init__(self,model, records, clusters, labels, distance_matrix, linkage_matrix=None, levels=[0]):
+    """ Stores the results of a clustering run, including the fitted model, the
+    records, the clusters, the labels, and the distance matrix. Also stores
+    the linkage matrix if hierarchical clustering was used. Provides methods
+    for reassignment of clusters, subclustering, noise assignment
+    and other post-clustering analysis. """
+
+    def __init__(self,model, records, clusters, labels, distance_matrix, linkage_matrix=None, levels=None):
         self.model = model
         self.records = records
         self.linkage_matrix = linkage_matrix
@@ -13602,20 +14432,181 @@ class ClusteringRecords:
         self.labels = labels
         self.distance_matrix = distance_matrix
         self.num_clusters = len(clusters)
-        self.levels = levels
+        self.levels = [0] if levels is None else levels
         self.between_distances = None
         self.approximated = False
+        self.approximated_distance_matrices = []
         self._by_label = {}
         self._n_sub = len(self.labels)
         self._fitted = False
         self.sub_clusterings = None
+        self._rep_idx = None
+        self._rep_records = None
+        self._rep_lookup = None
 
-    def getClusterByLabel(self,label):
+    def getClusterByLabel(self, label):
+        if self._by_label:
+            cluster = self._by_label.get(int(label))
+            if cluster is not None:
+                return cluster
         for cluster in self.clusters:
             if cluster.label == label:
                 return cluster
         LOGGER.warn('No Cluster With Label {0} found'.format(label))
+
         return None
+
+    @staticmethod
+    def _clusterPath(cluster):
+        """Labels from the top-level cluster down to `cluster`."""
+        path, node = [], cluster
+        while node is not None:
+            path.append(node.label)
+            node = node.parent
+        path.reverse()
+        return path
+
+    def clusteringDistanceStats(self):
+        """
+        Summarize pairwise distances within and between clusters.
+
+        Parameters
+        ----------
+        D : array-like
+            Square distance matrix of shape ``(n_channels, n_channels)``.
+        labels : array-like
+            Cluster assignments for each channel. Entries with negative labels are
+            ignored.
+
+        Returns
+        -------
+        dict
+            Dictionary containing the mean and median distance values for
+            within-cluster and between-cluster pairs, along with the separation
+            ratio defined as the mean between-cluster distance divided by the mean
+            within-cluster distance.
+        """
+        D = self.distance_matrix
+        labels = np.asarray(self.labels)
+        valid = labels >= 0
+        labels = labels[valid]
+        D = D[np.ix_(valid, valid)]
+        clusters = np.unique(labels)
+        within = []
+        between = []
+        for i, c1 in enumerate(clusters):
+            idx1 = labels == c1
+            # within-cluster
+            if idx1.sum() > 1:
+                vals = D[np.ix_(idx1, idx1)]
+                within.append(vals[np.triu_indices_from(vals, k=1)])
+            # between-cluster
+            for c2 in clusters[i+1:]:
+                idx2 = labels == c2
+                between.append(D[np.ix_(idx1, idx2)].ravel())
+        within = np.concatenate(within) if within else np.array([])
+        between = np.concatenate(between) if between else np.array([])
+        return {"mean_within": np.mean(within),
+                "median_within": np.median(within),
+                "mean_between": np.mean(between),
+                "median_between": np.median(between),
+                "separation_ratio":np.mean(between) / np.mean(within)}
+
+
+    def silhouetteScore(self,ignore_noise=True):
+        """
+        Calculate the silhouette coefficient for each sample using a
+        precomputed pairwise distance matrix.
+        Parameters
+        ----------
+        distance_matrix : (N, N) array_like
+            Symmetric pairwise distance matrix. Diagonal should be zero.
+        labels : (N,) array_like
+            Cluster label for each sample.
+        Returns
+        -------
+        silhouettes : (N,) ndarray
+            Silhouette coefficient for each sample.
+        """
+        def silhouetteSamples(distance_matrix, labels):
+
+            D = np.asarray(distance_matrix, dtype=float)
+            labels = np.asarray(labels)
+            n = len(labels)
+            if D.shape != (n, n):
+                raise ValueError("distance_matrix must have shape (N, N)")
+
+            unique_labels = np.unique(labels)
+            if len(unique_labels) < 2:
+                raise ValueError("Silhouette score requires at least 2 clusters")
+
+            silhouettes = np.zeros(n, dtype=float)
+            for label in unique_labels:
+                idx = np.flatnonzero(labels == label)
+                n_cluster = len(idx)
+                #singleton clusters get silhouette = 0
+                if n_cluster == 1:
+                    silhouettes[idx] = 0.0
+                    continue
+                # Mean intra-cluster distance.
+                # Diagonal is zero, so divide by n_cluster - 1.
+                a = D[np.ix_(idx, idx)].sum(axis=1) / (n_cluster - 1)
+                # Mean distance to the nearest other cluster
+                b = np.full(n_cluster, np.inf)
+                for other_label in unique_labels:
+                    if other_label == label:
+                        continue
+
+                    other_idx = np.flatnonzero(labels == other_label)
+                    mean_dist = D[np.ix_(idx, other_idx)].mean(axis=1)
+                    b = np.minimum(b, mean_dist)
+
+                denom = np.maximum(a, b)
+                silhouettes[idx] = np.divide(b - a, denom, out=np.zeros_like(a), where=denom != 0)
+            return silhouettes
+        
+        D = np.asarray(self.distance_matrix)
+        labels = np.asarray(self.labels)
+        if ignore_noise:
+            keep = labels != -1
+            D = D[np.ix_(keep, keep)]
+            labels = labels[keep]
+
+        return silhouetteSamples(D, labels).mean()
+
+    def frameClusterDistributions(self):
+        labels = np.asarray(self.labels)
+        frames = np.asarray([record.conformation_id for record in self.records])
+
+        unique_frames = np.unique(frames)
+        clusters = np.unique(labels[labels >= 0])
+
+        distributions = np.zeros((len(unique_frames), len(clusters)))
+
+        for i, f in enumerate(unique_frames):
+            lf = labels[frames == f]
+
+            # Only clustered records contribute to distribution
+            lf = lf[lf >= 0]
+
+            if len(lf):
+                counts = np.array([np.sum(lf == c) for c in clusters])
+                distributions[i] = counts / counts.sum()
+
+        return distributions, clusters
+
+    def calcTemporalCoherence(self,by_cluster=False):
+        P, clusters = self.frameClusterDistributions()
+        if by_cluster:
+            if len(P) < 2:
+                return {c: np.nan for c in clusters}
+            delta = np.abs(np.diff(P, axis=0))
+            coherence = 1.0 - np.mean(delta, axis=0)
+            return {cluster: score for cluster, score in zip(clusters, coherence)}
+        from scipy.spatial.distance import jensenshannon
+        js = [jensenshannon(P[i], P[i+1]) for i in range(len(P)-1)]
+        return 1 - np.mean(js)
+    
 
     def fit(self, max_reps_per_cluster=500, random_state=123, keep_internal=True):
         """Choose representatives and an acceptance threshold per cluster,
@@ -13660,6 +14651,7 @@ class ClusteringRecords:
             if len(rep_idx) > 1:
                 D_rep = D[np.ix_(rep_idx, rep_idx)]          # fancy indexing copies
                 mean_pw = float(D_rep[np.triu_indices(len(rep_idx), k=1)].mean())
+                D_nn = D_rep.copy()
                 np.fill_diagonal(D_rep, np.inf)
                 max_nn = float(D_rep.min(axis=1).max())
             else:
@@ -13673,6 +14665,18 @@ class ClusteringRecords:
 
             self._by_label[int(cluster.label)] = cluster
 
+        if self._by_label:
+            self._rep_idx = np.unique(np.concatenate([cluster.rep_idx 
+                                for cluster in self._by_label.values()])).astype(int)
+        else:
+            self._rep_idx = np.empty(0,dtype=int)
+        self._rep_records = [self.records[i] for i in self._rep_idx]
+        self._rep_lookup = {int(global_idx): local_idx for local_idx, global_idx in enumerate(self._rep_idx)}
+
+        for cluster in self._by_label.values():
+            cluster.assignment_rep_idx = np.array([self._rep_lookup[int(i)]
+                                            for i in cluster.rep_idx ], dtype=int)
+
         self.num_clusters = len(self._by_label)
         self.approximated = True
         self._fitted = True
@@ -13681,41 +14685,88 @@ class ClusteringRecords:
     def _checkFitted(self):
         if not self._fitted or not self._by_label:
             raise RuntimeError("call fit() first")
+        
+    def _getCalculator(self, calculator=None):
+        """
+        Resolve the ClusterCalculator used to calculate new distances.
+        Explicit calculator takes priority. Otherwise use the calculator
+        cached by the first representative ChannelRecord.
+        """
+        if calculator is not None:
+            return calculator
+        if not self._rep_records:
+            raise RuntimeError("No representative records available")
+        calculator = getattr(self._rep_records[0], "calculator", None)
+        if calculator is None:
+            raise RuntimeError("Representative ChannelRecords do not have a calculator")
+        return calculator
 
-    @staticmethod
-    def _batches(new_to_sub, n_new, batch_size):
-        for start in range(0, n_new, batch_size):
-            end = min(start + batch_size, n_new)
-            block = new_to_sub(start, end) if callable(new_to_sub) else new_to_sub[start:end]
-            yield start, end, np.asarray(block, dtype=float)
+    def _distanceBatches(self, new_records, calculator, metric, batch_size, max_proc, mp_context, **metric_kwargs):
+        """
+        Yield distances from batches of new records to the compressed
+        representative set.
 
-    def _nNew(self, new_to_sub, n_new):
-        if callable(new_to_sub):
-            if n_new is None:
-                raise ValueError("n_new is required when new_to_sub is a callable")
-            return n_new
-        return len(new_to_sub)
+        Yields
+        ------
+        start, end, D
+
+        where:
+            D.shape == (end-start, n_representatives)
+        """
+        n = len(new_records)
+        #####
+        if metric == 'centerline':
+            # cache the target side once per fit
+            if getattr(self, '_rep_cache', None) is None:
+                h = min(len(r.rep_points) for r in self._rep_records)
+                self._rep_cache = (calculator._prepareAllShells(self._rep_records, h),
+                                *calculator._prepareChannelCentroids(self._rep_records))
+            for start in range(0, n, batch_size):
+                end = min(start + batch_size, n)
+                D = calculator.centerlineDistanceToReps(
+                    new_records[start:end], self._rep_records,
+                    q=metric_kwargs.get('q', calculator.q),
+                    rep_cache=self._rep_cache, batch_size=end - start,
+                    normalize_radii=metric_kwargs.get('normalize_radii', True),
+                    clip_distance=metric_kwargs.get('clip_distance', True))
+                yield start, end, D.astype(float)
+            return
+    # original generic path for other metrics
+        #####
+        for start in range(0,n,batch_size):
+            end = min(start + batch_size, n)
+            batch = new_records[start:end]
+            D = calculator.pairwiseDistance(batch, self._rep_records, metric=metric, max_proc=max_proc,
+                                            mp_context=mp_context, **metric_kwargs)
+
+            yield (start, end, np.asarray(D, dtype=float))
 
     def _distToClusters(self, block, labels_list):
         """(b, n_sub) block -> (b, k): min distance to each cluster's reps."""
+        n_reps = len(self._rep_records)
         if block.shape[1] != self._n_sub:
             raise ValueError(f"expected {self._n_sub} columns (one per subsample "
                                 f"point), got {block.shape[1]}")
         return np.stack([block[:, self._by_label[l].rep_idx].min(axis=1)
                             for l in labels_list], axis=1)
 
-    def assign(self, new_to_sub, n_new=None, batch_size=2000, strict=True,
-                slack=1.0, atol=1e-9):
+    def assign(self, new_records, metric = 'centerline', calculator=None, n_new=None, batch_size=2000, strict=True,
+                slack=1.0, atol=1e-9, max_proc=None, mp_context=None, **metric_kwargs):
         """Hard-assign new points; -1 = unassigned. See earlier docstring."""
         self._checkFitted()
-        n = self._nNew(new_to_sub, n_new)
+        new_records = list(new_records)
+        n = len(new_records)
+        if n == 0: 
+            return np.empty(0,dtype=int)
+        calculator = self._getCalculator(calculator)
         labels_list = list(self._by_label)
         lbl_arr = np.array(labels_list)
-        thr = np.array([self._by_label[l]._threshold for l in labels_list]) * slack
+        thr = np.array([self._by_label[l]._threshold() for l in labels_list]) * slack
         thr = np.where(thr == 0.0, atol, thr)
-
         out = np.full(n, -1, dtype=int)
-        for start, end, block in self._batches(new_to_sub, n, batch_size):
+
+        for start, end, block in self._distanceBatches( new_records, calculator, metric,
+                                        batch_size, max_proc, mp_context, **metric_kwargs):
             d = self._distToClusters(block, labels_list)
             best_j = d.argmin(axis=1)
             best_d = d[np.arange(len(d)), best_j]
@@ -13723,15 +14774,19 @@ class ClusteringRecords:
             out[start:end] = np.where(accept, lbl_arr[best_j], -1)
         return out
 
-    def softAssign(self, new_to_sub, n_new=None, max_distance=None,
-                    bandwidth=None, top_k=None, batch_size=2000):
+    def softAssign(self, new_records, metric ='centerline', calculator = None, 
+                max_distance=None, bandwidth=None, top_k=None, batch_size=2000,
+                    max_proc=None, mp_context=None, **metric_kwargs):
         """Soft-assign borderline points. Returns (labels_list, probs)."""
         self._checkFitted()
-        n = self._nNew(new_to_sub, n_new)
+        new_records = list(new_records)
+        n = len(new_records)
+        if n == 0: 
+            return np.empty(0,dtype=int)
+        calculator = self._getCalculator(calculator)
         labels_list = list(self._by_label)
         k = len(labels_list)
-
-        thr = np.array([self._by_label[l]._threshold for l in labels_list])
+        thr = np.array([self._by_label[l]._threshold() for l in labels_list])
         thr = thr[thr > 0]
         if max_distance is None:
             max_distance = float(2.0 * thr.max()) if thr.size else 1.0
@@ -13739,7 +14794,8 @@ class ClusteringRecords:
             bandwidth = max(float(np.median(thr)) if thr.size else 1.0, 1e-6)
 
         probs = np.zeros((n, k))
-        for start, end, block in self._batches(new_to_sub, n, batch_size):
+        for start, end, block in self._distanceBatches(new_records, calculator, metric,
+                                        batch_size, max_proc, mp_context, **metric_kwargs):
             d = self._distToClusters(block, labels_list)
             w = np.where(d <= max_distance, np.exp(-d / bandwidth), 0.0)
 
@@ -13753,18 +14809,226 @@ class ClusteringRecords:
             probs[start:end] = np.divide(w, s, out=np.zeros_like(w), where=s > 0)
         return labels_list, probs
 
-    def extend(self, new_records, new_to_sub, batch_size=2000, strict=True, slack=1.0):
-        """Hard-assign new ChannelRecords and add them to their Clusters via
-        Cluster.extendCluster(). Returns the labels (-1 = left unassigned)."""
+    def extend(self, new_records, metric='chamfer',calculator = None,
+                            batch_size=2000, strict=True, slack=1.0, 
+                            max_proc = None, mp_context = None, reassign=False, **metric_kwargs):
+        """Hard-assign records and add them to their Clusters.
+
+        reassign=False : new_records are new; appended to self.records.
+        reassign=True  : new_records are already in self.records; those that get a
+                        different, valid label are moved out of their old cluster.
+        reassign=<lbl> : as True, but only records currently in cluster <lbl>
+                        (e.g. -1 for noise) are considered.
+        Returns the final label per input record (-1 = unassigned / unchanged noise).
+        """
+
         new_records = list(new_records)
-        labels = self.assign(new_to_sub, n_new=len(new_records),
-                                batch_size=batch_size, strict=strict, slack=slack)
-        for lbl in np.unique(labels):
-            if lbl == -1:
-                continue
-            members = [new_records[i] for i in np.flatnonzero(labels == lbl)]
-            self._by_label[int(lbl)].extendCluster(members)
+        if not new_records:
+            return np.empty(0,dtype=int)
+        
+        labels = self.assign( new_records, metric=metric, calculator=calculator, 
+                                batch_size=batch_size, strict=strict, slack=slack,
+                                max_proc=max_proc, mp_context=mp_context, **metric_kwargs)
+       
+        if not reassign:
+            offset = len(self.records)
+            self.records.extend(new_records)
+            new_global_idx = offset + np.arange(len(new_records))
+            for lbl in np.unique(labels):
+                local_idx = np.flatnonzero(labels == lbl)
+                self._by_label[lbl].extendCluster( [new_records[i] for i in local_idx],
+                                    indices=new_global_idx[local_idx], approximated=True)
+            return labels
+
+        pos = {id(r): i for i, r in enumerate(self.records)}
+        try:
+            global_idx = np.array([pos[id(r)] for r in new_records])
+        except KeyError:
+            raise ValueError("reassign requires new_records to already be in self.records")
+
+        # current label of every record, built from cluster membership
+        current = np.full(len(self.records), -1, dtype=int)
+        for lbl, cl in self._by_label.items():
+            current[np.asarray(cl.indices, dtype=int)] = lbl
+        cur = current[global_idx]
+
+        result = cur.copy()                      # default: everything stays put
+
+        # restrict to one source cluster if a label was given
+        if reassign is True:
+            cand = np.arange(len(new_records))
+        else:
+            cand = np.flatnonzero(cur == reassign)
+        if cand.size == 0:
+            return result
+
+        cand_records = [new_records[i] for i in cand]
+        new_lbl = self.assign(cand_records, **metric_kwargs)
+
+        # only move records that got a real, different label
+        move = (new_lbl != -1) & (new_lbl != cur[cand])
+        if not move.any():
+            return result
+
+        m_cand = cand[move]                      # positions in new_records
+        m_global = global_idx[m_cand]
+        m_old = cur[m_cand]
+        m_new = new_lbl[move]
+
+        # 1) remove from old clusters
+        for old in np.unique(m_old):
+            sel = m_old == old
+            self._by_label[old].removeFromCluster(m_global[sel])   # see note below
+
+        # 2) add to new clusters
+        for lbl in np.unique(m_new):
+            sel = np.flatnonzero(m_new == lbl)
+            self._by_label[lbl].extendCluster(
+                [new_records[m_cand[j]] for j in sel],
+                indices=m_global[sel], approximated=True)
+
+        result[m_cand] = m_new
+        return result
+
+            # for lbl in np.unique(labels):
+            #     if lbl == -1:
+            #         continue
+            #     local_idx = np.flatnonzero(labels == lbl)
+            #     members = [new_records[i] for i in local_idx]
+            #     global_idx = np.arange(len(self.records))
+            #     indices = global_idx[local_idx]
+            #     self._by_label[lbl].extendCluster(members, indices=indices,approximated=True)
+                
+        # offset= len(self.records)
+        # self.records.extend(new_records)
+        # new_global_idx = (offset + np.arange(len(new_records)))
+        # for lbl in np.unique(labels):
+        #     local_idx = np.flatnonzero(labels == lbl)
+        #     members = [new_records[i] for i in local_idx]
+        #     indices = new_global_idx[local_idx]
+        #     self._by_label[lbl].extendCluster(members, indices=indices,approximated=True)
+        # return labels
+
+    
+    def _bestLabels(self, probs, labels_list, min_probability):
+        """Highest-probability label per row if >= min_probability, else -1."""
+        lbl_arr = np.asarray(labels_list, dtype=int)
+        best_j = probs.argmax(axis=1)
+        best_p = probs[np.arange(len(probs)), best_j]
+        labels = np.where(best_p >= min_probability, lbl_arr[best_j], -1)
+        labels[probs.sum(axis=1) == 0] = -1
         return labels
+
+
+    def softExtend(self, new_records, metric='chamfer', calculator=None,
+                min_probability=0.5, max_distance=None, bandwidth=None, top_k=None,
+                batch_size=2000, max_proc=None, mp_context=None, reassign=False,
+                **metric_kwargs):
+        """
+        Soft-assign records and add each to its highest-probability cluster when
+        that probability is >= min_probability.
+
+        reassign=False : new_records are new; appended to self.records. Records
+                        below the threshold stay in self.records, in no Cluster.
+        reassign=True  : new_records are already in self.records; those whose best
+                        accepted label differs from their current cluster are moved.
+        reassign=<lbl> : as True, but only records currently in cluster <lbl>
+                        (e.g. -1 for noise) are considered.
+
+        Returns
+        -------
+        labels : ndarray   Final label per input record (-1 = unassigned).
+        probabilities : ndarray   Soft-assignment matrix, one row per input record.
+                        In reassign mode, rows for records that were not candidates
+                        are NaN (they were not scored).
+        labels_list : list   Column -> cluster label mapping for probabilities.
+        """
+        new_records = list(new_records)
+        if not new_records:
+            return (np.empty(0, dtype=int), np.empty((0, len(self._by_label))),
+                    list(self._by_label))
+
+        kw = dict(metric=metric, calculator=calculator, max_distance=max_distance,
+                bandwidth=bandwidth, top_k=top_k, batch_size=batch_size,
+                max_proc=max_proc, mp_context=mp_context, **metric_kwargs)
+
+        # ---------- brand-new records ----------
+        if reassign is False or reassign is None:
+            labels_list, probs = self.softAssign(new_records, **kw)
+            labels = self._bestLabels(probs, labels_list, min_probability)
+
+            offset = len(self.records)
+            self.records.extend(new_records)
+            gidx = offset + np.arange(len(new_records))
+            for lbl in np.unique(labels):
+                if lbl == -1:
+                    continue
+                sel = np.flatnonzero(labels == lbl)
+                self._by_label[int(lbl)].extendCluster(
+                    [new_records[i] for i in sel], indices=gidx[sel], soft_assigned=True)
+            return labels, probs, labels_list
+
+        # ---------- reassignment of existing records ----------
+        pos = {id(r): i for i, r in enumerate(self.records)}
+        try:
+            gidx = np.array([pos[id(r)] for r in new_records])
+        except KeyError:
+            raise ValueError("reassign requires new_records to already be in self.records")
+
+        # current label per input record from cluster membership (default -1)
+        owner = {}
+        for cl in self.clusters:
+            for r in cl.records:
+                owner[id(r)] = cl.label
+        cur = np.array([owner.get(id(r), -1) for r in new_records], dtype=int)
+
+        labels = cur.copy()
+        labels_list = list(self._by_label)
+        probs = np.full((len(new_records), len(labels_list)), np.nan)
+
+        cand = np.arange(len(new_records)) if reassign is True else np.flatnonzero(cur == reassign)
+        if cand.size == 0:
+            return labels, probs, labels_list
+
+        labels_list, cand_probs = self.softAssign([new_records[i] for i in cand], **kw)
+        if cand_probs.shape[1] != probs.shape[1]:
+            probs = np.full((len(new_records), cand_probs.shape[1]), np.nan)
+        probs[cand] = cand_probs
+
+        new_lbl = self._bestLabels(cand_probs, labels_list, min_probability)
+        move = (new_lbl != -1) & (new_lbl != cur[cand])
+        if not move.any():
+            return labels, probs, labels_list
+
+        m_pos = cand[move]          # positions in new_records
+        m_gidx = gidx[m_pos]
+        m_old = cur[m_pos]
+        m_new = new_lbl[move]
+
+        # 1) remove from old clusters (noise may have no Cluster object)
+        for old in np.unique(m_old):
+            cl = self.getClusterByLabel(old) if (old != -1 or self._hasLabel(-1)) else None
+            if cl is None:
+                continue
+            sel = np.flatnonzero(m_old == old)
+            cl.removeRecords([new_records[m_pos[j]] for j in sel], indices=m_gidx[sel])
+
+        # 2) add to new clusters
+        for lbl in np.unique(m_new):
+            sel = np.flatnonzero(m_new == lbl)
+            self.getClusterByLabel(int(lbl)).extendCluster(
+                [new_records[m_pos[j]] for j in sel], indices=m_gidx[sel], soft_assigned=True)
+
+        # 3) keep fitted-subsample labels in sync
+        in_fit = m_gidx < self._n_sub
+        if in_fit.any():
+            self.labels = np.asarray(self.labels).copy()
+            self.labels[m_gidx[in_fit]] = m_new[in_fit]
+
+        labels[m_pos] = m_new
+        return labels, probs, labels_list
+        
+
 
     def updateRecordClusterIds(self):
         """
@@ -13817,7 +15081,8 @@ class ClusteringRecords:
         if np.isscalar(noise_labels):
             noise_labels = [noise_labels]
         noise = {int(x) for x in noise_labels}
-        clusters = list(getattr(self, "clusters", None) or [])
+        clusters = getattr(self, "clusters", None)
+        clusters = [] if clusters is None else list(clusters)
         removed = [c for c in clusters if c.label in noise]
         if not removed:
             return []
@@ -13845,11 +15110,13 @@ class ClusteringRecords:
             p.children = sorted(p.children, key=lambda c: c.label)
             for k, ch in enumerate(p.children):
                 ch.local_label = k
+        rec_noise = []
         for cl in removed:                       # detach the dropped objects
             cl.children = []
             cl.parent = None
-
+            rec_noise.extend(cl.records)
         self.clusters = survivors
+        self.clusters.append(Cluster(-1,rec_noise))
 
         # Hierarchy bookkeeping, if present.
         if getattr(self, "hierarchy_roots", None) is not None:
@@ -13875,33 +15142,9 @@ class ClusteringRecords:
         return removed
 
 
-    def getAggLinkageMatrix(self):
-        model = self.model
-        if not hasattr(model, "children_") \
-                or not hasattr(model, "distances_") \
-                or not hasattr(model, "n_leaves_"):
-            raise ValueError("Model does not have the required attributes for linkage matrix calculation.")
-        children = model.children_
-        distances = model.distances_
-        n = model.n_leaves_
-        counts = np.zeros(children.shape[0], dtype=np.int64)
-        for i, (left, right) in enumerate(children):
-            count = 0
-            if left < n:
-                count += 1
-            else:
-                count += counts[left - n]
-            if right < n:
-                count += 1
-            else:
-                count += counts[right - n]
-            counts[i] = count
-        self.linkage_matrix = np.column_stack([children,distances,counts])
-        return self.linkage_matrix
-
     def agglomerativeClusterQuality(self,labels=None,linkage_matrix=None,min_cluster_size=3,
-                min_persistence_ratio=2.0, singleton_noise=True, condense_size=None,
-                external="cluster", min_ratio_floor=1.0):
+                min_persistence_gap = None, min_persistence_ratio=2.0, singleton_noise=True,
+                condense_size=None, external="cluster", linkage_name='average', min_ratio_floor=1.0):
         """
         Parameters
         ----------
@@ -13927,8 +15170,12 @@ class ClusteringRecords:
 
         if linkage_matrix is None:
             if (linkage_matrix := self.linkage_matrix) is None:
-                linkage_matrix = self.getAggLinkageMatrix()
-        labels = np.asarray(self.labels)
+                from scipy.spatial.distance import squareform
+                from scipy.cluster.hierarchy import linkage as sp_linkage
+                linkage_matrix =  sp_linkage(squareform(np.asarray(self.distance_matrix), checks=False), method=linkage_name)
+        if labels is None:
+            labels = self.labels
+
         n = len(labels)
         Z = np.asarray(linkage_matrix, dtype=float)
         if Z.shape != (n - 1, 4):
@@ -14002,28 +15249,31 @@ class ClusteringRecords:
             noise = ClusterCalculator.stabilityNoiseDecision(size, s_log, ratio, min_cluster_size,
                                             min_persistence_ratio,
                                             singleton_noise, min_ratio_floor)
-            rows.append({
-                "cluster": c,
-                "size": size,
-                "node_size": node_size,
-                "coherence": coherence,
-                "internal_merge_distance": internal,
-                "external_merge_distance": ext,
-                "persistence_ratio": ratio,
-                "persistence_gap": gap,
-                "stability": s_log,
-                "mean_persistence": s_log / size if np.isfinite(s_log) else s_log,
-                "stability_lambda": s_lam,
-                "stability_ratio": s_log / threshold if threshold > 0 else np.nan,
-                "recommended_noise": noise,
-            })
+            
+            if (not noise and min_persistence_gap is not None and np.isfinite(gap) and gap < min_persistence_gap):
+                noise = True
+            
+            rows.append({"cluster": c,
+                        "node":int(v),
+                        "size": size,
+                        "node_size": node_size,
+                        "coherence": coherence,
+                        "internal_merge_distance": internal,
+                        "external_merge_distance": ext,
+                        "persistence_ratio": ratio,
+                        "persistence_gap": gap,
+                        "stability": s_log,
+                        "mean_persistence": s_log / size if np.isfinite(s_log) else s_log,
+                        "stability_lambda": s_lam,
+                        "stability_ratio": s_log / threshold if threshold > 0 else np.nan,
+                        "recommended_noise": noise})
 
         return pd.DataFrame(rows).sort_values("cluster").reset_index(drop=True)
 
 
     def assignAggClusteringNoise(self, linkage_matrix=None, min_cluster_size=3,
                 min_persistence_ratio=2.0, singleton_noise=True, condense_size=None,
-                external="cluster", min_ratio_floor=1.0):
+                external="cluster",linkage_name='average', min_ratio_floor=1.0):
         """
         Assign noise points based on agglomerative clustering results.
 
@@ -14044,28 +15294,30 @@ class ClusteringRecords:
             Array of cluster labels with noise points marked as -1.
         """
         if linkage_matrix is None:
-            linkage_matrix = self.getAggLinkageMatrix()
+            if (linkage_matrix := self.linkage_matrix) is None:
+                from scipy.spatial.distance import squareform
+                from scipy.cluster.hierarchy import linkage as sp_linkage
+                linkage_matrix =  sp_linkage(squareform(np.asarray(self.distance_matrix), checks=False), method=linkage_name)
 
-        quality_df = self.agglomerativeClusterQuality(linkage_matrix,
-                                                      min_cluster_size=min_cluster_size,
-                                                      min_persistence_ratio=min_persistence_ratio,
-                                                      singleton_noise=singleton_noise,
-                                                      condense_size=condense_size,
-                                                    external=external,
-                                                     min_ratio_floor=min_ratio_floor)
+        quality_df = self.agglomerativeClusterQuality( labels=self.labels, 
+                    linkage_matrix=linkage_matrix, min_cluster_size=min_cluster_size,
+                    min_persistence_ratio=min_persistence_ratio,
+                    singleton_noise=singleton_noise, condense_size=condense_size,
+                    external=external, min_ratio_floor=min_ratio_floor)
+        
         noise_clusters = quality_df.loc[quality_df["recommended_noise"], "cluster"].values
         labels = self.labels
         labels[np.isin(labels, noise_clusters)] = -1
         if len(noise_clusters):
             self.removeClusters(noise_clusters)  
-
+        
         return labels
 
     def buildAgglomerativeHierarchy(self, linkage_matrix=None, cut_heights=None, n_levels=4,
                                     min_cluster_size=3, singleton_noise=True,
                                     min_persistence_ratio=2.0, min_persistence_gap=None,
-                                    noise_mode="stability", condense_size=None,
-                                    min_ratio_floor=1.0,
+                                    condense_size=None, min_ratio_floor=1.0,
+                                    external="cluster", linkage_name='average',
                                     identify_stable_branches=False,
                                     stable_min_size=None, stable_min_ratio=2.0,
                                     stable_min_gap=None, update_record_ids=False):
@@ -14073,43 +15325,27 @@ class ClusteringRecords:
         Build a hierarchy of FLAT CUTS through an agglomerative dendrogram.
 
         A cluster at level k is attached to the non-noise cluster at level k-1
-        containing its members. Noise is evaluated independently at every cut, so
-        a group may be noise at a fine cut but belong to a valid cluster at a
-        coarser cut.
+        containing its members. Noise is evaluated independently at every cut by
+        agglomerativeClusterQuality (the same decision used by
+        assignAggClusteringNoise), so a group may be noise at a fine cut but
+        belong to a valid cluster at a coarser cut.
 
         Parameters
         ----------
         linkage_matrix : ndarray (n-1, 4), optional
         cut_heights : sequence of float, optional
-            Sorted HIGH -> LOW (coarse -> fine). If None, `n_levels` heights are
+            Coarse -> fine order is enforced. If None, `n_levels` heights are
             taken from merge-distance quantiles.
         n_levels : int, default=4
-        min_cluster_size : int, default=3
-        singleton_noise : bool, default=True
-        min_persistence_ratio : float
-            noise_mode="stability": a cluster is kept if
-                stability >= min_cluster_size * log(min_persistence_ratio)
-            i.e. size-weighted: a 3-point cluster needs ext/int >= 2, a 30-point
-            one only ~1.07. Must not be None in this mode.
-            Legacy modes: rescue ratio for small clusters (None = not used).
-        min_persistence_gap : float or None
-            Absolute guard: external - internal >= gap, else noise (stability
-            mode: applied to every cluster that has an external merge).
-        noise_mode : {"stability", "size", "persistence", "size_and_persistence"}
-            "stability" (default): HDBSCAN-style size-weighted persistence.
-            The other three are the previous ratio/gap behaviours.
-        condense_size : int or None
-            Minimum points for a sub-branch to count as a real split when
-            computing stability (default min_cluster_size).
-        min_ratio_floor : float, default=1.0
-            Stability mode: also noise if ext/int < this (try 1.2 to reject weakly
-            separated fragments of large clusters).
+        min_cluster_size, min_persistence_ratio, singleton_noise, condense_size,
+        external, min_ratio_floor, min_persistence_gap :
+            Passed straight to agglomerativeClusterQuality (see there).
+            min_persistence_ratio must not be None.
         identify_stable_branches : bool
-            Independently find dendrogram branches that persist over a large local
-            height interval -> self.agglomerative_stable_branches. In stability
-            mode a branch qualifies if size >= stable_min_size and
+            Independently find dendrogram branches with
+                size >= stable_min_size and
                 stability >= stable_min_size * log(stable_min_ratio)
-            (and gap >= stable_min_gap if given); otherwise the old ratio test.
+            (and gap >= stable_min_gap if given) -> self.agglomerative_stable_branches.
         stable_min_size : int or None  (default min_cluster_size)
         stable_min_ratio : float, default=2.0
         stable_min_gap : float or None
@@ -14120,26 +15356,20 @@ class ClusteringRecords:
         -------
         clusters : list of Cluster (non-noise, coarse -> fine)
 
-        Each Cluster additionally carries in `.details`: stability,
-        mean_persistence, stability_lambda (and the existing ratio/gap fields);
-        `.stability` mirrors details["stability"]. `.persistence` is still the
-        ratio, for backward compatibility.
-
-        Results are stored as self.clusters-like attributes: hierarchy_roots,
-        hierarchy_levels, hierarchy_labels, hierarchy_noise, hierarchy_cut_heights,
-        agglomerative_stable_branches, levels.
+        Each Cluster carries in `.details`: stability, mean_persistence,
+        stability_lambda, persistence ratio/gap, dendrogram_node, etc.
+        `.persistence` is the ratio; `.stability` mirrors details["stability"].
         """
         from scipy.cluster.hierarchy import fcluster
 
-        modes = {"stability", "size", "persistence", "size_and_persistence"}
-        if noise_mode not in modes:
-            raise ValueError(f"noise_mode must be one of {sorted(modes)}.")
-        if noise_mode == "stability" and min_persistence_ratio is None:
-            raise ValueError("min_persistence_ratio is required for noise_mode='stability'.")
+        if min_persistence_ratio is None:
+            raise ValueError("min_persistence_ratio is required.")
 
         if linkage_matrix is None:
             if (linkage_matrix := self.linkage_matrix) is None:
-                linkage_matrix = self.getAggLinkageMatrix()
+                from scipy.spatial.distance import squareform
+                from scipy.cluster.hierarchy import linkage as sp_linkage
+                linkage_matrix =  sp_linkage(squareform(np.asarray(self.distance_matrix), checks=False), method=linkage_name)
 
         Z = np.asarray(linkage_matrix, dtype=float)
         n = len(self.records)
@@ -14162,10 +15392,7 @@ class ClusteringRecords:
 
         cond = int(condense_size or min_cluster_size)
         D = ClusterCalculator.DendrogramStability(Z, condense_size=cond) if n > 1 else None
-        stab_threshold = min_cluster_size * np.log(min_persistence_ratio) \
-            if min_persistence_ratio else None
 
-        # ---- dendrogram helpers (heights are the monotone-fixed ones) ----------
         def nodeDistance(node):
             return 0.0 if node < n else float(D.raw[node - n])
 
@@ -14191,35 +15418,33 @@ class ClusteringRecords:
             """A branch exists for internal <= h < external."""
             internal = nodeDistance(node)
             p = parentOf(node)
-            external = np.nan if p is None else nodeDistance(p)
-            if np.isfinite(external):
-                gap = external - internal
+            ext = np.nan if p is None else nodeDistance(p)
+            if np.isfinite(ext):
+                gap = ext - internal
                 if internal > 0:
-                    ratio = external / internal
-                elif external > 0:
+                    ratio = ext / internal
+                elif ext > 0:
                     ratio = np.inf
                 else:
                     ratio = np.nan
             else:
                 gap = ratio = np.nan
             size = nodeSize(node)
-            if np.isfinite(external) and size > 1:
-                s_log, s_lam = D.stability(node, external)
-            elif np.isfinite(external):
-                s_log = s_lam = np.inf          # singleton
+            if np.isfinite(ext) and size > 1:
+                s_log, s_lam = D.stability(node, ext)
+            elif np.isfinite(ext):
+                s_log = s_lam = np.inf
             else:
-                s_log = s_lam = np.nan          # root: nothing to separate from
-            return {"node": int(node),
-                    "size": int(size),
+                s_log = s_lam = np.nan
+            return {"node": int(node), "size": int(size),
                     "internal_distance": float(internal),
-                    "external_distance": float(external),
+                    "external_distance": float(ext),
                     "persistence_gap": float(gap),
                     "persistence_ratio": float(ratio),
                     "stability": float(s_log),
                     "mean_persistence": float(s_log / size) if np.isfinite(s_log) else float(s_log),
                     "stability_lambda": float(s_lam)}
 
-        # ---- cut heights --------------------------------------------------------
         if n == 1:
             heights = np.array([0.0])
         elif cut_heights is not None:
@@ -14240,49 +15465,9 @@ class ClusteringRecords:
             if len(merge_distances) <= n_levels:
                 heights = merge_distances[::-1]
             else:
-                q = np.linspace(0.85, 0.15, n_levels)
-                heights = np.unique(np.quantile(merge_distances, q))[::-1]
+                qs = np.linspace(0.85, 0.15, n_levels)
+                heights = np.unique(np.quantile(merge_distances, qs))[::-1]
 
-        # ---- noise decision for one flat cluster at one cut ---------------------
-        def is_noise(size, stats):
-            if singleton_noise and size == 1:
-                return True
-
-            if noise_mode == "stability":
-                noise = ClusterCalculator.stabilityNoiseDecision(
-                    size, stats["stability"], stats["persistence_ratio"],
-                    min_cluster_size, min_persistence_ratio,
-                    singleton_noise, min_ratio_floor)
-                if (not noise and min_persistence_gap is not None
-                        and np.isfinite(stats["persistence_gap"])
-                        and stats["persistence_gap"] < min_persistence_gap):
-                    noise = True
-                return noise
-
-            # ---- legacy modes (unchanged) ----
-            ratio_ok = (min_persistence_ratio is not None
-                        and np.isfinite(stats["persistence_ratio"])
-                        and stats["persistence_ratio"] >= min_persistence_ratio)
-            gap_ok = (min_persistence_gap is not None
-                    and np.isfinite(stats["persistence_gap"])
-                    and stats["persistence_gap"] >= min_persistence_gap)
-            if min_persistence_ratio is None and min_persistence_gap is None:
-                persistent = True
-            else:
-                tests = []
-                if min_persistence_ratio is not None:
-                    tests.append(ratio_ok)
-                if min_persistence_gap is not None:
-                    tests.append(gap_ok)
-                persistent = all(tests)
-            small = size < min_cluster_size
-            if noise_mode == "size":
-                return small
-            if noise_mode == "persistence":
-                return not persistent
-            return small and not persistent      # size_and_persistence
-
-        # ---- build the flat cuts -------------------------------------------------
         all_clusters = []
         hierarchy_levels = []
         hierarchy_roots = []
@@ -14295,28 +15480,49 @@ class ClusteringRecords:
         for depth, h in enumerate(heights):
             flat = np.ones(1, dtype=int) if n == 1 else fcluster(Z, t=float(h), criterion="distance")
 
-            # group indices by flat label in one pass
+            # Same convention as assignAggClusteringNoise: noise points are -1
+            cut_labels = flat.copy()
+            if singleton_noise:
+                cut_labels[np.bincount(flat)[flat] == 1] = -1
+
+            if n > 1 and (cut_labels >= 0).any():
+                q = self.agglomerativeClusterQuality(
+                        labels=cut_labels, linkage_matrix=Z,
+                        min_cluster_size=min_cluster_size,
+                        min_persistence_ratio=min_persistence_ratio,
+                        singleton_noise=singleton_noise, condense_size=condense_size,
+                        external=external, min_ratio_floor=min_ratio_floor,
+                        min_persistence_gap=min_persistence_gap).set_index("cluster")
+            else:
+                q = None
+
             order = np.argsort(flat, kind="stable")
             uniq, starts = np.unique(flat[order], return_index=True)
             groups = np.split(order, starts[1:])
 
-            current_level = []
-            current_by_label = {}
+            current_level, current_by_label = [], {}
             for local_label, idx in zip(uniq, groups):
-                # Dendrogram node of this flat cluster: climb from any member while
-                # the parent merge still happens at or below the cut.
-                node = int(idx[0])
-                while True:
-                    p = parentOf(node)
-                    if p is None or nodeDistance(p) > h:
-                        break
-                    node = p
-                if nodeSize(node) != len(idx):
-                    raise RuntimeError("Could not map flat cluster back to dendrogram node. "
-                                    "This should not occur for a standard linkage matrix.")
-
-                stats = branchStats(node)
-                if is_noise(len(idx), stats):
+                if q is not None:
+                    if local_label not in q.index or q.at[local_label, "recommended_noise"]:
+                        hierarchy_noise[depth, idx] = True
+                        continue
+                    row = q.loc[local_label]
+                    stats = {"node": int(row["node"]), "size": int(row["size"]),
+                             "internal_distance": float(row["internal_merge_distance"]),
+                             "external_distance": float(row["external_merge_distance"]),
+                             "persistence_gap": float(row["persistence_gap"]),
+                             "persistence_ratio": float(row["persistence_ratio"]),
+                             "stability": float(row["stability"]),
+                             "mean_persistence": float(row["mean_persistence"]),
+                             "stability_lambda": float(row["stability_lambda"])}
+                elif n == 1 and not singleton_noise:
+                    # trivial single-point dendrogram: nothing to separate from
+                    nan = float("nan")
+                    stats = {"node": 0, "size": 1, "internal_distance": 0.0,
+                             "external_distance": nan, "persistence_gap": nan,
+                             "persistence_ratio": nan, "stability": nan,
+                             "mean_persistence": nan, "stability_lambda": nan}
+                else:
                     hierarchy_noise[depth, idx] = True
                     continue
 
@@ -14328,15 +15534,15 @@ class ClusteringRecords:
                         parent = previous_by_label.get(int(prev_label))
 
                 cl = Cluster(label=global_counter,
-                            records=[self.records[i] for i in idx],
-                            parent=parent,
-                            depth=depth)
+                             records=[self.records[i] for i in idx],
+                             parent=parent,
+                             depth=depth)
                 global_counter += 1
                 cl.local_label = len(current_level)
                 cl.details["cut_height"] = float(h)
                 cl.details["cut_level"] = depth
                 cl.details["flat_cut_label"] = int(local_label)
-                cl.details["dendrogram_node"] = int(node)
+                cl.details["dendrogram_node"] = stats["node"]
                 cl.details["point_indices"] = idx
                 cl.details.update(stats)
                 cl.persistence = stats["persistence_ratio"]
@@ -14356,7 +15562,6 @@ class ClusteringRecords:
             hierarchy_levels.append(current_level)
             previous_by_label = current_by_label
 
-        # ---- optional: strongly supported LOCAL branches (independent of cuts) --
         stable_branches = []
         if identify_stable_branches and n > 1:
             if stable_min_size is None:
@@ -14366,15 +15571,11 @@ class ClusteringRecords:
                 stats = branchStats(node)
                 if stats["size"] < stable_min_size:
                     continue
+                strong = (np.isfinite(stats["stability"])
+                          and stats["stability"] >= stable_threshold)
                 gap_ok = (stable_min_gap is None
-                        or (np.isfinite(stats["persistence_gap"])
-                            and stats["persistence_gap"] >= stable_min_gap))
-                if noise_mode == "stability":
-                    strong = (np.isfinite(stats["stability"])
-                            and stats["stability"] >= stable_threshold)
-                else:
-                    strong = (np.isfinite(stats["persistence_ratio"])
-                            and stats["persistence_ratio"] >= stable_min_ratio)
+                          or (np.isfinite(stats["persistence_gap"])
+                              and stats["persistence_gap"] >= stable_min_gap))
                 if not (strong and gap_ok):
                     continue
                 idx = leavesOf(node)
@@ -14383,12 +15584,8 @@ class ClusteringRecords:
                                         "records": [self.records[i] for i in idx],
                                         "height_min": stats["internal_distance"],
                                         "height_max": stats["external_distance"]})
-
-            if noise_mode == "stability":
-                key = lambda x: (x["stability"], x["persistence_gap"], x["size"])
-            else:
-                key = lambda x: (x["persistence_ratio"], x["persistence_gap"], x["size"])
-            stable_branches.sort(key=key, reverse=True)
+            stable_branches.sort(key=lambda x: (x["stability"], x["persistence_gap"], x["size"]),
+                                 reverse=True)
 
         if update_record_ids:
             for i, record in enumerate(self.records):
@@ -14405,135 +15602,122 @@ class ClusteringRecords:
 
         return all_clusters
         
-    def subcluster(self,cluster,distance_matrix,linkage_method="average",n_clusters=None,
-                        distance_threshold=None,update_record_ids=True,):
+    def subcluster(self, cluster, distance_matrix, method="agglomerative",
+                   linkage_method="average", n_clusters=None,
+                   distance_threshold=None, update_record_ids=True, **kwargs):
         """
-        Subcluster an existing Cluster using a new distance matrix.
+        Subdivide `cluster` using a new distance matrix, via clusterChannels.
+
         Parameters
         ----------
         cluster : Cluster
-            Existing cluster to subdivide.
-        distance_matrix : ndarray, shape (cluster.size, cluster.size)
-            Pairwise distance matrix for the records in `cluster.records`.
-            The ordering MUST correspond to cluster.records.
-        linkage_method : str, default="average"
-            Linkage method passed to scipy.cluster.hierarchy.linkage.
-        n_clusters : int, optional
-            Number of subclusters to create. Mutually exclusive with
-            distance_threshold.
-        distance_threshold : float, optional
-            Dendrogram distance at which to cut the hierarchy.
-            Mutually exclusive with n_clusters.
+            Cluster (top level or already a child) whose records belong to self.
+        distance_matrix : ndarray (cluster.size, cluster.size)
+            Ordered like cluster.records.
+        method : {'agglomerative', 'HDBSCAN', 'DBSCAN'}
+        linkage_method : str
+            Agglomerative only; used unless `linkage` is passed in kwargs.
+        n_clusters, distance_threshold :
+            Agglomerative only, mutually exclusive, exactly one required.
+        update_record_ids : bool
+            Set record.cluster_ids to [*ancestor labels, cluster.label, child.label].
+            Noise points get -1 as their last entry.
+        **kwargs
+            Forwarded to the estimator (eps, min_samples, min_cluster_size, ...).
 
-        update_record_ids : bool, default=True
-            If True, append the local subcluster label to each
-            ChannelRecord.cluster_ids.
         Returns
         -------
-        children : list of Cluster
-            Newly created child clusters.
-        linkage_matrix : ndarray
-            Linkage matrix describing the subclustering.
-        labels : ndarray
-            Local labels corresponding to cluster.records.
-        Notes
-        -----
-        The parent Cluster is retained. The new clusters are attached
-        through:
-            cluster.children
-        and
-            cluster.subclusters
-        The linkage matrix and distance matrix are also stored on the
-        parent Cluster.
+        children : list of Cluster (includes a label -1 noise cluster if any)
+        sub_clustering : ClusteringRecords for this cluster's records
+            (linkage_matrix is set for agglomerative, else None)
+        labels : ndarray, local labels aligned with cluster.records
+
+        Side effects
+        ------------
+        cluster.children / .distance_matrix / .linkage_matrix / .model / .details
+        child.parent / .depth / .local_label / .details
+        self.sub_clusterings[tuple(path_to_cluster)] = sub_clustering
+        self.levels gains cluster.depth + 1
+        record.cluster_ids (if update_record_ids)
         """
-
-        import numpy as np
-        from scipy.spatial.distance import squareform
-        from scipy.cluster.hierarchy import linkage, fcluster
-
         if not isinstance(cluster, Cluster):
             raise TypeError("cluster must be a Cluster instance.")
-
-        if n_clusters is not None and distance_threshold is not None:
-            raise ValueError("Specify either n_clusters or distance_threshold, "
-                                "not both.")
-
-        if n_clusters is None and distance_threshold is None:
-            raise ValueError("Specify either n_clusters or distance_threshold.")
+        if method not in {"agglomerative", "HDBSCAN", "DBSCAN"}:
+            raise ValueError(f"Unknown method '{method}'.")
 
         records = cluster.records
         n = len(records)
         if n < 2:
-            raise ValueError("A cluster must contain at least two records "
-                                "to be subclustered.")
-        distance_matrix = np.asarray(distance_matrix,dtype=float)
+            raise ValueError("A cluster must contain at least two records to be subclustered.")
+
+        owned = {id(r) for r in self.records}
+        if not all(id(r) in owned for r in records):
+            raise ValueError("cluster does not belong to this ClusteringRecords.")
+
+        distance_matrix = np.asarray(distance_matrix, dtype=float)
         if distance_matrix.shape != (n, n):
-            raise ValueError("distance_matrix must have shape "
-                                f"({n}, {n}) for this cluster, "
-                                f"got {distance_matrix.shape}.")
-        
+            raise ValueError(f"distance_matrix must have shape ({n}, {n}) for this "
+                             f"cluster, got {distance_matrix.shape}.")
         if not np.all(np.isfinite(distance_matrix)):
             raise ValueError("distance_matrix contains non-finite values.")
-        if not np.allclose(distance_matrix,distance_matrix.T,atol=1e-8):
+        if not np.allclose(distance_matrix, distance_matrix.T, atol=1e-8):
             raise ValueError("distance_matrix must be symmetric.")
         if np.any(np.diag(distance_matrix) != 0):
             raise ValueError("distance_matrix must have a zero diagonal.")
 
-        condensed = squareform(distance_matrix,checks=False)
+        fit_kwargs = dict(kwargs)
+        if method == "agglomerative":
+            if n_clusters is not None and distance_threshold is not None:
+                raise ValueError("Specify either n_clusters or distance_threshold, not both.")
+            if n_clusters is None and distance_threshold is None:
+                raise ValueError("Specify either n_clusters or distance_threshold.")
+            fit_kwargs.setdefault("linkage", linkage_method)
+            if n_clusters is not None:
+                fit_kwargs["n_clusters"] = n_clusters
+                fit_kwargs["distance_threshold"] = distance_threshold
+        elif n_clusters is not None or distance_threshold is not None:
+            raise ValueError("n_clusters / distance_threshold only apply to 'agglomerative'; "
+                             "use eps / min_samples / min_cluster_size for DBSCAN/HDBSCAN.")
 
-        Z = linkage(condensed,method=linkage_method,)
-        if n_clusters is not None:
-            if n_clusters < 1 or n_clusters > n:
-                raise ValueError(f"n_clusters must be between 1 and {n}.")
+        # Nothing on the records or cluster is touched until the fit succeeds.
+        labels, sub = clusterChannels(distance_matrix, method, records,
+                                      update_record_ids=False, **fit_kwargs)
 
-            labels = (fcluster(Z,t=n_clusters,criterion="maxclust")- 1)
-        else:
-            if distance_threshold < 0:
-                raise ValueError("distance_threshold must be >= 0.")
-            labels = (fcluster(Z,t=distance_threshold,criterion="distance")- 1)
-
-
-        cluster.children = []
-        cluster.subclusters = []
-        cluster.distance_matrix = distance_matrix
-        cluster.linkage_matrix = Z
-
-        cluster.details["subclustering_method"] = linkage_method
-        cluster.details["subclustering_n_clusters"] = (len(np.unique(labels)))
-        cluster.details["subclustering_distance_threshold"] = (distance_threshold)
-        children = []
-        for local_label in np.unique(labels):
-            member_indices = np.flatnonzero(labels == local_label)
-            child_records = [records[i] for i in member_indices]
-            child = Cluster(label=int(local_label),
-                            records=child_records,
-                            depth=cluster.depth + 1,
-                            parent=cluster,
-                            local_label=int(local_label))
+        path = self._clusterPath(cluster)
+        children = list(sub.clusters)
+        for child in children:
+            child.parent = cluster
+            child.depth = cluster.depth + 1
+            child.local_label = int(child.label)
             child.details["parent_label"] = cluster.label
-            child.details["local_label"] = int(local_label)
-            child.details["member_indices"] = member_indices
-            child.internal_distance_matrix = (distance_matrix[np.ix_(member_indices,member_indices)])
-            child.details["linkage_matrix"] = Z
-            children.append(child)
+            child.details["local_label"] = int(child.label)
+            child.details["member_indices"] = np.flatnonzero(labels == child.label)
+
+        n_noise = int(np.sum(labels == -1))
         cluster.children = children
-        cluster.subclusters = children
+        cluster.distance_matrix = distance_matrix
+        cluster.linkage_matrix = sub.linkage_matrix
+        cluster.model = sub.model
+        cluster.details["subclustering_method"] = method
+        cluster.details["subclustering_params"] = dict(fit_kwargs)
+        cluster.details["subclustering_n_clusters"] = len(children) - (1 if n_noise else 0)
+        cluster.details["subclustering_n_noise"] = n_noise
+        cluster.details["subclustering_distance_threshold"] = distance_threshold
+
+        sub.levels = [cluster.depth + 1]
+        sub.parent_cluster = cluster
+        if self.sub_clusterings is None:
+            self.sub_clusterings = {}
+        self.sub_clusterings[tuple(path)] = sub
+        self.levels = sorted(set(self.levels) | {cluster.depth + 1})
 
         if update_record_ids:
             for child in children:
+                child_path = path + [int(child.label)]
                 for record in child.records:
-                    if record.cluster_ids is None:
-                        record.cluster_ids = []
-                    path = []
-                    node = cluster
-                    while node is not None:
-                        path.append(node.label)
-                        node = getattr(node,"parent",None)
-                    path.reverse()
-                    if (not record.cluster_ids or record.cluster_ids != path):
-                        record.cluster_ids = path.copy()
-                    record.cluster_ids.append(child.label)
-        return children, Z, labels
+                    record.cluster_ids = list(child_path)
+
+        return children, sub, labels
     
     
 #: Colour of each rank - the 0-based position of an object among those a viewer
@@ -14888,6 +16072,7 @@ protein_file = None
 cif_file = None
 pqr_files = []
 channel_regex = None
+outfile=None
 for arg in sys.argv[1:]:
     # Without a "--" PyMOL leaves its own flags and this script in argv, and the
     # script is an existing file, so unguarded it gets loaded as the protein.
@@ -14904,7 +16089,9 @@ for arg in sys.argv[1:]:
         elif arg.lower().endswith(".pqr") and holdsChannels(arg):
             pqr_files.append(arg)
         elif protein_file is None:
-            protein_file = arg
+            protein_file = argi
+    elif arg.lower().endswith(".pse"):
+        outfile=arg
     elif channel_regex is None:
         channel_regex = arg
 
@@ -15266,6 +16453,9 @@ if cif_file or pqr_files:
     cmd.set("sphere_quality", 2)
     cmd.bg_color("white")
     cmd.zoom()
+    if outfile:
+        cmd.save(outfile)
+        print(f"Saved to {outfile}")
     print(f"Success: {sum(len(o) for o in groups.values())} object(s) "
           f"loaded from {', '.join(([cif_file] if cif_file else []) + pqr_files)}.")
 elif not any(files for _, files, _ in sets):
@@ -15300,55 +16490,48 @@ else:
     cmd.set("sphere_quality", 2)
     cmd.bg_color("white")
     cmd.zoom()
+    if outfile:
+        cmd.save(outfile)
+        print(f"Saved to {outfile}")
     print("Success: Files loaded in perfect sequential order with custom radii!")
 '''
 
 _VIS_CHANNELS_FLAT_TRAJ_SCRIPT = r"""
+
 import re
 import glob
 import sys
 import colorsys
 import os
 import argparse
+import time
 
 
-parser = argparse.ArgumentParser(
-    description=("Load trajectory channel PQR files into PyMOL, color the channels "
+parser = argparse.ArgumentParser(description=("Load trajectory channel PQR files into PyMOL, color the channels "
         "according to externally generated cluster labels, and save one PyMOL "
-        "session (.pse) for each supplied clustering."),
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter,)
+        "session (.pse) for each supplied clustering."),formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument("file_pattern",
-    help=("Glob pattern selecting the trajectory channel PQR files. "
+parser.add_argument("file_pattern",help=("Glob pattern selecting the trajectory channel PQR files. "
         "Quote the pattern so that it is expanded by this script rather than "
-        "by the shell, e.g. 'channels/frame*_channel*.pqr'."),)
+        "by the shell, e.g. 'channels/frame*_channel*.pqr'."))
 
-parser.add_argument("--protein-file",
-    dest="protein_file",
-    default=None,
+parser.add_argument("--protein-file", dest="protein_file", default=None,
     help=("Optional protein structure to load together with the channels. "
         "The protein is displayed as a cartoon and included in each saved "
-        "PyMOL session."),)
+        "PyMOL session."))
 
-parser.add_argument("--labels",
-    nargs="+",
-    default=None,
-    metavar="LABEL_FILE",
-    help=( "One or more text files containing cluster labels. Each file may "
-        "contain either one clustering (one label per channel) or multiple "
-        "clustering columns. Rows must correspond to channels in the ordering "
-        "used by this script: ascending frame number, then ascending channel "
-        "rank within each frame. Cluster label -1 is treated as noise. "
-        "If omitted, channels are loaded without clustering labels."),)
+parser.add_argument("--labels",nargs="+",default=None,metavar="LABEL_FILE",
+    help=("One or more text files containing cluster labels. Each file may "
+        "contain either one clustering or multiple clustering columns. "
+        "Rows correspond to channels in ascending frame number, then "
+        "ascending channel rank. Label -1 is noise. Label -2 excludes the "
+        "channel completely from that visualization."))
 
-parser.add_argument("--out-file",
-    dest="out_file",
-    default="traj_out.pse",
-    help=( "Output PyMOL session filename. For a single clustering this is the "
+parser.add_argument("--out-file",dest="out_file", default="traj_out.pse",
+    help=("Output PyMOL session filename. For a single clustering this is the "
         "requested filename. If multiple clusterings are supplied, the "
-        "clustering name is appended to the stem, e.g. "
-        "'traj_out_hdbscan.pse'. Existing files are not overwritten; a "
-        "numeric suffix is added automatically."),)
+        "clustering name is appended to the stem. Existing files are not "
+        "overwritten."))
 
 args = parser.parse_args()
 
@@ -15359,36 +16542,49 @@ out_file = args.out_file
 
 files = sorted(glob.glob(file_pattern))
 if not files:
-    parser.error("No trajectory PQR files matched pattern: %s" % file_pattern)
+    parser.error( "No trajectory PQR files matched pattern: %s" % file_pattern)
 
 if protein_file:
-    protein_name = os.path.splitext(os.path.basename(protein_file))[0]
+    protein_name = os.path.splitext( os.path.basename(protein_file))[0]
     cmd.load(protein_file, protein_name)
     cmd.hide("everything", protein_name)
     cmd.show("cartoon", protein_name)
     cmd.set("all_states", 1, protein_name)
 
+CAVER_PRIMARIES = [(0.0, 0.0, 1.0),
+                    (0.0, 1.0, 0.0),
+                    (1.0, 0.0, 0.0),
+                    (0.0, 1.0, 1.0),
+                    (1.0, 1.0, 0.0),
+                    (1.0, 0.0, 1.0),]
+
+GOLDEN_ANGLE = (3.0 - 5.0 ** 0.5) / 2.0
+HUE_OFFSET = 0.796
+
+SATURATION_VALUE = ((0.95, 0.55),
+                    (0.65, 0.65),
+                    (0.65, 0.95))
+
 
 def caverColour(rank):
-
     rank = max(0, int(rank))
     if rank < len(CAVER_PRIMARIES):
         name = "caver%d" % (rank + 1)
         rgb = CAVER_PRIMARIES[rank]
     else:
         step = rank - len(CAVER_PRIMARIES)
-        saturation, value = SATURATION_VALUE[
-            step % len(SATURATION_VALUE)
-        ]
+        saturation, value = SATURATION_VALUE[step % len(SATURATION_VALUE)]
         name = "gen%d" % rank
-        rgb = colorsys.hsv_to_rgb((HUE_OFFSET + (step + 1) * GOLDEN_ANGLE) % 1.0,saturation,value)
+        rgb = colorsys.hsv_to_rgb((HUE_OFFSET+ (step + 1) * GOLDEN_ANGLE) % 1.0,
+                                    saturation,
+                                    value)
     cmd.set_color(name, list(rgb))
+
     return name
 
 UNCLUSTERED = "grey60"
 
 def clusterColour(cluster):
-
     if str(cluster).lower() in ("noise", "-1"):
         return UNCLUSTERED
     try:
@@ -15396,162 +16592,147 @@ def clusterColour(cluster):
     except (TypeError, ValueError):
         raise ValueError("Cluster labels must be integers or 'noise'; got %r" % cluster)
 
-def number2Letter(number):
-    number = int(number)
-    if number == -1:
-        return "ZZZZ"
-    if number < 0:
-        raise ValueError("Cluster labels other than -1 must be non-negative.")
+FRAME_PREFIX = re.compile(r'^[A-Za-z]+(\d+)')
+CHANNEL_RANK = re.compile(r'chl(\d+)')
+LINK_RANK = re.compile(r'lnk(\d+)')
+CLUSTER_ID = re.compile(r'clid(\w+)')
 
-    n = number + 1
-    letters = ""
+def channelRank(rest):
+    match = CHANNEL_RANK.search(rest)
+    return int(match.group(1)) if match else None
 
-    while n > 0:
-        n, remainder = divmod(n - 1, 26)
-        letters = chr(ord("A") + remainder) + letters
+def linkRank(rest):
+    match = LINK_RANK.search(rest)
+    return int(match.group(1)) if match else None
 
-    if len(letters) > 4:
-        raise ValueError( "Cluster label %d exceeds the four-character segi limit." % number)
-    return letters
+def clusterId(rest):
+    match = CLUSTER_ID.search(rest)
+    return match.group(1) if match else None
+
+def splitFrame(filename):
+    base = os.path.basename(filename)
+    match = FRAME_PREFIX.match(base)
+    if not match:
+        return None, base
+
+    return int(match.group(1)), base[match.end():]
 
 by_chl_frame = {}
 frame_ranks = {}
 
 for fname in files:
     frame, rest = splitFrame(fname)
-
     if frame is None:
         continue
-
     chl_rank = channelRank(rest)
-
     if chl_rank is not None:
         frame_ranks.setdefault(frame, []).append(chl_rank)
         by_chl_frame.setdefault(frame, {})[chl_rank] = fname
 
-
 if not by_chl_frame:
-    parser.error("Files matched the glob, but no frame/channel information could "
-                "be parsed from their filenames.")
+    parser.error( "Files matched the glob, but no frame/channel information could "
+        "be parsed from their filenames.")
 
-# Sort frames and channel ranks explicitly so label assignment does not
-# depend on filesystem/glob ordering.
 channel_order = []
 for frame in sorted(by_chl_frame):
     frame_channels = by_chl_frame[frame]
-
     for rank in sorted(frame_channels):
         channel_order.append(frame_channels[rank])
 
 n_channels = len(channel_order)
 print("Found %d channels across %d frames." % (n_channels, len(by_chl_frame)))
 
-
 def readLabelFile(path):
-    # Parameters
-    # path : str or os.PathLike
-    #     Path to the TSV label file.
-    # Returns
-    # clusterings : list of (str, list[int])
-    #     One ``(name, labels)`` tuple for each clustering column.
-    #     If a header is present, its column names are used as clustering names.
-    #     For a headerless single-column file, the filename stem is used.
-    #     For a headerless multi-column file, names are generated as
-    #     ``<filename>_1``, ``<filename>_2``, etc.
-    # Raises
-    # ValueError
-    #     If the file does not exist, contains no label data, has inconsistent
-    #     column counts, contains non-integer labels, has duplicate/empty column
-    #     names, or does not contain exactly ``n_channels`` label rows.
     import csv
-
     if not os.path.isfile(path):
         raise ValueError("Label file does not exist: %s" % path)
 
     raw_rows = []
-
     with open(path, "r", newline="") as handle:
-        reader = csv.reader(handle, delimiter="\t")
-
+        reader = csv.reader(handle,delimiter="\t")
         for row in reader:
-            # Strip whitespace around individual fields.
             row = [field.strip() for field in row]
-
-            # Ignore completely empty rows.
-            if not row or all(field == "" for field in row):
+            if (not row or all(field == "" for field in row)):
                 continue
 
-            # Ignore comment rows.
             if row[0].startswith("#"):
                 continue
 
             raw_rows.append(row)
 
     if not raw_rows:
-        raise ValueError("No labels found in %s" % path)
+        raise ValueError( "No labels found in %s" % path)
 
     try:
         [int(value) for value in raw_rows[0]]
         header = None
         data_rows = raw_rows
+
     except ValueError:
         header = raw_rows[0]
         data_rows = raw_rows[1:]
 
     if not data_rows:
-        raise ValueError("Label file %s contains a header but no label rows." % path)
+        raise ValueError("Label file %s contains a header " "but no label rows." % path)
 
     ncols = len(data_rows[0])
-
     if ncols == 0:
-        raise ValueError("No label columns found in %s" % path)
+        raise ValueError("No label columns found in %s"% path)
 
     for row_num, row in enumerate(data_rows,start=2 if header is not None else 1):
         if len(row) != ncols:
-            raise ValueError("Inconsistent number of columns in %s at row %d: "
-                "expected %d, found %d."
-                % (path, row_num, ncols, len(row)))
-
+            raise ValueError("Inconsistent number of columns in %s ""at row %d: expected %d, found %d."% (
+                                path, row_num, ncols ,len(row)))
+                                
     rows = []
 
     for row_num, row in enumerate(data_rows,start=2 if header is not None else 1):
         try:
             rows.append([int(value) for value in row])
+
         except ValueError:
-            raise ValueError("Non-integer cluster label in %s at row %d:\n%s"
-                % (path, row_num, "\t".join(row)))
+            raise ValueError("Non-integer cluster label in %s " 
+                                "at row %d:\n%s" % (path,
+                                                    row_num,
+                                                    "\t".join(row)))
 
     if len(rows) != n_channels:
-        raise ValueError("%s contains %d label rows, but %d channels were found."
-            % (path, len(rows), n_channels))
+        raise ValueError("%s contains %d label rows, "
+                         "but %d channels were found."
+                        % (path, len(rows), n_channels))
+
     if header is not None:
         if len(header) != ncols:
-            raise ValueError("Header in %s contains %d names but the data contain "
-            "%d columns."
-            % (path, len(header), ncols))
+            raise ValueError("Header in %s contains %d names "
+                            "but the data contain %d columns."
+                            % (path, len(header),ncols))
 
         if any(not name for name in header):
-            raise ValueError( "Header in %s contains an empty column name." % path)
+            raise ValueError("Header in %s contains an empty "
+                            "column name." % path)
 
         if len(set(header)) != len(header):
-            raise ValueError("Header in %s contains duplicate clustering names." % path)
+            raise ValueError("Header in %s contains duplicate "
+                                "clustering names." % path)
 
     base = os.path.splitext(os.path.basename(path))[0]
-    clusterings = []
 
+    clusterings = []
     for col in range(ncols):
         if header is not None:
             name = header[col]
+
         elif ncols == 1:
             name = base
+
         else:
-            name = "%s_%d" % (base, col + 1)
+            name = "%s_%d" % (base,col + 1)
 
         labels = [row[col] for row in rows]
-
         clusterings.append((name, labels))
 
     return clusterings
+
 
 def freePath(path):
     if not os.path.exists(path):
@@ -15559,90 +16740,133 @@ def freePath(path):
 
     stem, ext = os.path.splitext(path)
     n = 1
-
     while os.path.exists("%s_%d%s" % (stem, n, ext)):
         n += 1
 
     return "%s_%d%s" % (stem, n, ext)
 
-def safeName(name):
 
+def safeName(name):
     name = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(name))
     return name.strip("_.") or "clustering"
 
-def makeOutputPath(base_path, clustering_name=None, multiple=False):
-
+def makeOutputPath(base_path, clustering_name=None, multiple=False,):
     stem, ext = os.path.splitext(base_path)
-
     if ext.lower() != ".pse":
-        # Preserve an unrecognized extension as part of the stem rather
-        # than producing a non-PSE session filename.
         if ext:
             stem = base_path
         ext = ".pse"
 
-    if multiple and clustering_name is not None:
-        path = "%s_%s%s" % (stem,safeName(clustering_name),ext)
+    if (multipleand clustering_name is not None):
+        path = "%s_%s%s" % (stem, safeName(clustering_name), ext)
     else:
         path = stem + ext
 
     return freePath(path)
 
-channel_objects = []
 
-for i, fname in enumerate(channel_order):
-    # Prefix the object name with its global channel index. This guarantees
-    # unique PyMOL object names even if basenames happen to collide.
-    basename = os.path.splitext(os.path.basename(fname))[0]
-    name = "chn_%06d_%s" % (i, basename)
+def applyClustering(channel_objects,labels,):
+    objects_by_label = {}
+    for name, label in zip(channel_objects,labels,):
+        label = int(label)
+        # -2 means the channel is excluded from this visualization entirely.
+        if label == -2:
+            continue
+        objects_by_label.setdefault(label,[]).append(name)
+    group_names = []
+    for label, names in objects_by_label.items():
+        if label == -1:
+            group_name = "noise"
+        else:
+            group_name = "cluster_%d" % label
 
-    cmd.load(fname, name)
-    channel_objects.append(name)
+        selection = " or ".join(names)
+
+        cmd.group(group_name," ".join(names))
+        cmd.color( clusterColour(label),selection)
+        cmd.alter(selection,"segi='%s'" % label)
+        group_names.append(group_name)
+
+    return group_names
 
 clusterings = []
 
 if label_files:
     for label_file in label_files:
-        clusterings.extend(readLabelFile(label_file))
+        clusterings.extend( readLabelFile(label_file))
+
+if clusterings:
+    load_mask = [False] * n_channels
+    for clustering_name, labels in clusterings:
+        for i, label in enumerate(labels):
+            if label != -2:
+                load_mask[i] = True
+else:
+    load_mask = [True] * n_channels
+
+n_load = sum(load_mask)
+print("Loading %d of %d channels." % ( n_load, n_channels))
+
+cmd.set("auto_zoom", 0)
+cmd.set("defer_builds_mode", 3)
+channel_objects = []
+channel_indices = []
+t0 = time.perf_counter()
+
+for global_index, fname in enumerate(channel_order):
+    if not load_mask[global_index]:
+        continue
+
+    basename = os.path.splitext(os.path.basename(fname))[0]
+    name = "chn_%06d_%s" % (global_index,basename)
+    cmd.load(fname,name)
+    channel_objects.append(name)
+    channel_indices.append(global_index)
+
+print("Time to load %d files: %.2f s" % (len(channel_objects), time.perf_counter() - t0))
+
 
 if not clusterings:
-    # No clustering was supplied. Display all channels in the default
-    # unclustered color and save one session.
     for name in channel_objects:
         cmd.color(UNCLUSTERED, name)
-        cmd.alter(name, "segi='ZZZZ'")
-
-    cmd.rebuild()
+        cmd.alter(name,"segi='ZZZZ'")
     cmd.bg_color("white")
-    cmd.zoom()
-
     output_path = makeOutputPath(out_file)
     cmd.save(output_path)
-
     print("Saved session: %s" % output_path)
 
 else:
     multiple = len(clusterings) > 1
+    for clustering_name, full_labels in clusterings:
+        print("Applying clustering '%s' (%d global labels)." % (clustering_name,len(full_labels)))
+        labels = [full_labels[i] for i in channel_indices]
+        excluded_objects = [name for name, label in zip(channel_objects,labels) if label == -2]
+        included_objects = [name for name, label in zip(channel_objects,labels) if label != -2]
 
-    for clustering_name, labels in clusterings:
+        if excluded_objects:
+            cmd.disable(" ".join(excluded_objects))
 
-        print("Applying clustering '%s' (%d labels)." % (clustering_name, len(labels)))
+        if included_objects:
+            cmd.enable(" ".join(included_objects))
 
-        for name, label in zip(channel_objects, labels):
-            cname = clusterColour(label)
-            segname = number2Letter(label)
+        t0 = time.perf_counter()
 
-            cmd.color(cname, name)
-            cmd.alter(name, "segi='%s'" % segname)
+        group_names = applyClustering(channel_objects,labels)
+        t1 = time.perf_counter()
+        print("Clustering applied in %.2f s" % (t1 - t0))
 
-        cmd.rebuild()
+        output_path = makeOutputPath(out_file, clustering_name=clustering_name, multiple=multiple,)
         cmd.bg_color("white")
-        cmd.zoom()
-
-        output_path = makeOutputPath(out_file,clustering_name=clustering_name,multiple=multiple,)
         cmd.save(output_path)
+        print( "Saved clustering '%s': %s" % (clustering_name, output_path))
 
-        print("Saved clustering '%s': %s" % (clustering_name, output_path))
+        for group_name in group_names:
+            cmd.ungroup(group_name)
+            cmd.delete(group_name)
+
+        if excluded_objects:
+            cmd.enable(" ".join(excluded_objects))
+
 """
 
 _VIS_CHANNELS_TRAJ_SCRIPT = r"""
@@ -15652,11 +16876,9 @@ import re
 import sys
 import colorsys
 
-# ---------------------------------------------------------------------------
 # Unified state-based viewer
-#
 # This viewer accepts BOTH trajectory representations used by ProDy/CaviTracer:
-#
+
 #   1. One multi-MODEL PQR:
 #        channels_frames.pqr
 #
@@ -15668,11 +16890,11 @@ import colorsys
 #
 # The two paths end in the same PyMOL representation: one object per channel
 # rank (or cluster), one state per frame.
-#
+
 # For per-frame cluster files, several files may legitimately have the same
 # cluster id AND frame number.  They are accumulated in a list and all of their
 # geometry is placed into that cluster's state.  Nothing is discarded.
-# ---------------------------------------------------------------------------
+
 TRAJ_EXTENSIONS = ('.dcd', '.xtc', '.trr', '.nc', '.dtr')
 
 args = [a for a in sys.argv[1:] if a != "--"]
@@ -15746,10 +16968,6 @@ def clusterColour(cluster):
     except (TypeError, ValueError):
         return caverColour(abs(hash(str(cluster))) % 1000)
 
-
-# ---------------------------------------------------------------------------
-# Filename metadata for the per-frame representation
-# ---------------------------------------------------------------------------
 FRAME_PREFIX = re.compile(r'^[A-Za-z]+(\d+)')
 CHANNEL_RANK = re.compile(r'chl(\d+)')
 LINK_RANK = re.compile(r'lnk(\d+)')
@@ -15888,10 +17106,6 @@ def buildMultistate(file_map, obj, colour, frame_to_state, n_states):
           (obj, colour, n_written, n_states))
     return n_written
 
-
-# ---------------------------------------------------------------------------
-# Representation A: one multi-MODEL PQR
-# ---------------------------------------------------------------------------
 def loadMultiModelPQR(path):
     '''Build one stateful object per channel/link/cavity from a multi-MODEL PQR.'''
     models = []
@@ -15996,9 +17210,6 @@ def loadMultiModelPQR(path):
     return built, groups, len(models)
 
 
-# ---------------------------------------------------------------------------
-# Representation B: one PQR file per frame
-# ---------------------------------------------------------------------------
 def loadPerFramePQRs(files):
     by_chl_rank = {}
     by_cluster = {}
@@ -16007,8 +17218,6 @@ def loadPerFramePQRs(files):
     skipped_dumps = 0
     any_clustered = False
 
-    # IMPORTANT: values in by_cluster are LISTS. Multiple channels from the
-    # same frame can belong to the same cluster and all must be retained.
     for fname in files:
         frame, rest = splitFrame(fname)
         if frame is None:
@@ -16088,10 +17297,6 @@ def loadPerFramePQRs(files):
     cmd.mset("1 -%d" % n_states)
     return built_chl, built_lnk, n_states
 
-
-# ---------------------------------------------------------------------------
-# Dispatch: the same state-building viewer handles either representation.
-# ---------------------------------------------------------------------------
 if len(files) == 1 and files[0].lower().endswith(".pqr") and isMultiModelPQR(files[0]):
     print("Detected multi-MODEL PQR: %s" % files[0])
     built, groups, n_states = loadMultiModelPQR(files[0])
@@ -16530,18 +17735,8 @@ def writePyMolCaviTracerScript(objects, atoms, object_type='channels',
     return str(written), str(protein_file), str(script_file)
     
     
-def writePyMolMultiModelScript(
-        pqr_file,
-        atoms,
-        output_path='.',
-        object_type='channels',
-        flat=False):
+def writePyMolMultiModelScript(atoms, output_path='.', object_type='channels', flat=False):
     """Write a PyMOL trajectory visualization script.
-
-    Parameters
-    ----------
-    pqr_file : str or pathlib.Path
-        PQR file containing the CaviTracer trajectory data.
 
     atoms : Atomic
         Molecular structure to display with the trajectory.
@@ -16571,7 +17766,7 @@ def writePyMolMultiModelScript(
     Returns
     -------
     tuple
-        Paths to the PQR file, protein PDB file, and PyMOL script.
+        protein PDB file, and PyMOL script.
     """
 
     import os
@@ -16584,10 +17779,6 @@ def writePyMolMultiModelScript(
     if object_type not in object_types:
         raise ValueError('object_type must be one of {0}'.format(
             ', '.join(repr(name) for name in object_types)))
-
-    pqr_file = Path(pqr_file)
-    if not pqr_file.is_file():
-        raise ValueError('no PQR at {0}'.format(pqr_file))
 
     output_path = Path(output_path)
     if not output_path.exists():
@@ -16603,6 +17794,8 @@ def writePyMolMultiModelScript(
         suffix = '' if number == 0 else '-{0}'.format(number)
         protein_file = output_path / ('protein' + suffix + '.pdb')
         script_file = output_path / ('vis_channels_traj' + suffix + '.py')
+        if flat:
+            script_file = output_path / ('vis_channels_traj_flat' + suffix + '.py')
         if not (protein_file.exists() or script_file.exists()):
             break
         number += 1
@@ -16618,18 +17811,13 @@ def writePyMolMultiModelScript(
     with open(str(script_file), 'w') as handle:
         handle.write(script)
 
-    try:
-        named = os.path.relpath(str(pqr_file), str(output_path))
-    except ValueError:
-        named = str(pqr_file.resolve())
-
     LOGGER.info("CaviTracer PyMOL files written:")
     LOGGER.info("    protein: {0}".format(protein_file))
-    LOGGER.info("    results: {0}".format(pqr_file))
     LOGGER.info("    PyMOL script: {0}".format(script_file))
-    LOGGER.info("View the result from {0} with: pymol {1} -- {2} {3}".format(
-        output_path, script_file.name, protein_file.name, named))
-
+    LOGGER.info("View the result from {0} with: pymol {1} -- {2}".format(
+        output_path, script_file.name, protein_file.name))
+    
+    return str(protein_file), str(script_file) 
 
 def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
                                   surface=None, output_path='.', num_samples=5):
