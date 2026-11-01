@@ -20,7 +20,7 @@ from prody.utilities import getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
 from prody.ensemble import Ensemble
 from prody.trajectory import Trajectory
-from prody.measure import calcCenter
+from prody.measure import calcCenter, calcTransformation, calcDistance, calcRMSD, superpose
 
 if not hasattr(np, "trapz"):
     np.trapz = np.trapezoid
@@ -63,6 +63,20 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'writeVmdMultiModelScript',
            'ClusterCalculator','ClusteringRecords','Cluster',
            'writeClusterLabels']
+# Sampling of the enclosure test used to strip the moat (see
+# ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
+# of a point depends on how many directions are sampled and how far they are
+# followed, so min_enclosure is only meaningful against a fixed sampling. Adding
+# rays lowers every enclosure, since more directions find more of the thin ways
+# out of a channel, and so invalidates the threshold rather than refining it.
+ENCLOSURE_RAYS = 32
+ENCLOSURE_RANGE = 25.0
+ENCLOSURE_STEP = 0.75
+# One radius for every atom, on the scale of a heavy-atom vdW radius. Enclosure is
+# a burial heuristic, so resolving 1.52 A from 1.7 A would only shift every value
+# by a little and be absorbed by min_enclosure; a single radius means a single
+# tree and a plain nearest-neighbour test.
+ENCLOSURE_RADIUS = 1.7
 
 # Van der Waals radii in Angstrom, by element symbol (upper case). The radii the
 # tessellation is built on, and the ones the lining report measures a Voronoi
@@ -13608,7 +13622,7 @@ class ClusterCalculator:
 
 ##### centerline sampling functions######
 
-####### POST CLUSTERING METRICS #######
+####### POST CLUSTERING METRIC FUNCTIONS #######
 
 
     @staticmethod
@@ -13878,7 +13892,27 @@ class ClusterCalculator:
 
     @staticmethod
     def frechetDistance(channel_a, channel_b, n_samples=300, return_details=False):
-        """Discrete Frechet distance between arc-length-sampled centerlines."""
+        """Compute the discrete Fréchet distance between two channel centerlines.
+
+        Parameters
+        ----------
+        channel_a : Channel or object
+            First channel object containing the centerline geometry to compare.
+        channel_b : Channel or object
+            Second channel object containing the centerline geometry to compare.
+        n_samples : int, optional
+            Number of points sampled along each centerline for the distance
+            calculation.
+        return_details : bool, optional
+            If True, return diagnostic details alongside the scalar distance.
+
+        Returns
+        -------
+        float or tuple
+            Fréchet distance between the two channels. If ``return_details`` is
+            True, a tuple of ``(distance, details)`` is returned, where
+            ``details`` contains intermediate geometric information.
+        """
         from scipy.spatial.distance import cdist
         
         _, pa, ra, sa, _ = _arc(channel_a, n_samples)
@@ -14107,6 +14141,31 @@ class ClusterCalculator:
 
 
     def clusterDistanceMatrix(self, cluster, metric='chamfer', store=False,D=None, **kwargs):
+        """Compute a pairwise distance matrix for the records in a cluster.
+
+        Parameters
+        ----------
+        cluster : Cluster or sequence
+            Cluster membership or record collection used to build the distance
+            matrix.
+        metric : str, optional
+            Distance metric to use for pairwise comparisons, such as
+            ``'chamfer'`` or another supported channel similarity metric.
+        store : bool, optional
+            If True, store the computed distance matrix on the calculator or
+            cluster object for later reuse.
+        D : ndarray or None, optional
+            Existing distance matrix to populate or compare against. If None, a
+            new matrix is created.
+        **kwargs
+            Additional keyword arguments passed to the underlying distance
+            calculation routine.
+
+        Returns
+        -------
+        ndarray
+            Symmetric pairwise distance matrix for the records in the cluster.
+        """
         metrics = {'chamfer': self.symmetricChamferDistance,
                 'frechet': self.frechetDistance,
                 'projection': self.splineProjectionDistance}
@@ -14445,6 +14504,7 @@ class ClusteringRecords:
         self._rep_lookup = None
 
     def getClusterByLabel(self, label):
+        """ Return a cluster by its associated label """
         if self._by_label:
             cluster = self._by_label.get(int(label))
             if cluster is not None:
@@ -14575,6 +14635,15 @@ class ClusteringRecords:
         return silhouetteSamples(D, labels).mean()
 
     def frameClusterDistributions(self):
+        """Summarize the cluster assignments observed across trajectory frames.
+
+        Returns
+        -------
+        dict
+            Mapping of cluster labels to their per-frame distributions or
+            frequencies across the analyzed conformations. The structure is
+            suitable for comparing how cluster membership changes over time.
+        """
         labels = np.asarray(self.labels)
         frames = np.asarray([record.conformation_id for record in self.records])
 
@@ -14596,6 +14665,21 @@ class ClusteringRecords:
         return distributions, clusters
 
     def calcTemporalCoherence(self,by_cluster=False):
+        """Measure how consistently channel assignments remain stable across time.
+
+        Parameters
+        ----------
+        by_cluster : bool, optional
+            If True, report temporal coherence separately for each cluster.
+            Otherwise, compute an overall coherence summary across all records.
+
+        Returns
+        -------
+        float or dict
+            Temporal coherence score for the clustering. If ``by_cluster`` is
+            True, returns a dictionary keyed by cluster label with per-cluster
+            coherence values.
+        """
         P, clusters = self.frameClusterDistributions()
         if by_cluster:
             if len(P) < 2:
