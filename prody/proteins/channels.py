@@ -14,9 +14,10 @@ from collections import namedtuple
 from contextlib import contextmanager
 import numpy as np
 from prody import LOGGER, PY3K
-from prody.atomic import Atomic
+from prody.atomic import Atomic, Chain, AtomGroup
 from prody.utilities import getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
+from prody.proteins.compare import mapChainOntoChain
 from prody.ensemble import Ensemble
 from prody.measure import calcCenter, calcRMSD, superpose
 
@@ -43,6 +44,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'showPores', 'getPoreParameters', 'getPoreResidueNames',
            'calcPoresFromChannelsMultipleFrames', 'getPoreParametersMultipleFrames',
            'getPoreResidueNamesMultipleFrames', 'scanChannelParameters',
+           'scanSurfaceCavityParameters',
            'getLinkParameters', 'getLinkResidueNames',
            'getLinkParametersMultipleFrames', 'getLinkResidueNamesMultipleFrames',
            'scanSurfaceCavityParameters',
@@ -58,10 +60,30 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'renameChannelFilesWithClusterLabels', 'clusterChannels',
            'writeChannelsCIF', 'writePyMolCaviTracerScript',
            'mergeFramesPQR',
+           'connectChannelsToSurfaceCavities',
+           'calcFrequentObjectResidues', 'showFrequentObjectResidues',
+           'calcSignatureCavities', 'calcSignatureChannels',
+           'writeChannelsCIF', 'writeVmdCaviTracerScript', 'writePyMolCaviTracerScript',
+           'writeChimeraXCaviTracerScript', 'mergeFramesPQR',
            'writeChimeraXMultiModelScript', 'writePyMolMultiModelScript',
            'writeVmdMultiModelScript',
            'ClusterCalculator','ClusteringRecords','Cluster',
            'writeClusterLabels']
+# Sampling of the enclosure test used to strip the moat (see
+# ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
+# of a point depends on how many directions are sampled and how far they are
+# followed, so min_enclosure is only meaningful against a fixed sampling. Adding
+# rays lowers every enclosure, since more directions find more of the thin ways
+# out of a channel, and so invalidates the threshold rather than refining it.
+ENCLOSURE_RAYS = 32
+ENCLOSURE_RANGE = 25.0
+ENCLOSURE_STEP = 0.75
+# One radius for every atom, on the scale of a heavy-atom vdW radius. Enclosure is
+# a burial heuristic, so resolving 1.52 A from 1.7 A would only shift every value
+# by a little and be absorbed by min_enclosure; a single radius means a single
+# tree and a plain nearest-neighbour test.
+ENCLOSURE_RADIUS = 1.7
+
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
 # of a point depends on how many directions are sampled and how far they are
@@ -6734,20 +6756,24 @@ def calcChannelSurfaceOverlaps(**kwargs):
             surface = _surfaceFromPqrWorker((pqr_file, resolution))
             merged_surface.update(surface)
 
-    with open(output_file_name, 'w') as out:
-        atom_id = 1
+    n_voxels = len(merged_surface)
+    coords = np.zeros((n_voxels, 3), float)
+    occupancies = np.zeros(n_voxels, float)
 
-        for (ix, iy, iz), count in merged_surface.items():
-            x = ix * resolution
-            y = iy * resolution
-            z = iz * resolution
+    for i, ((ix, iy, iz), count) in enumerate(merged_surface.items()):
+        coords[i] = (ix * resolution, iy * resolution, iz * resolution)
+        occupancies[i] = float(count) / float(len(pqr_files))
 
-            norm_count = float(count) / float(len(pqr_files))
+    ag = AtomGroup(output_file_name)
+    ag.setCoords(coords)
+    ag.setNames(['H'] * n_voxels)
+    ag.setResnames(['FIL'] * n_voxels)
+    ag.setResnums([1] * n_voxels)
+    ag.setChids(['T'] * n_voxels)
+    ag.setOccupancies(occupancies)
+    ag.setBetas([1.0] * n_voxels)
 
-            out.write("ATOM  {:5d}  H   FIL T   1    {:8.3f}{:8.3f}{:8.3f}{:6.2f}  1.00\n"
-                .format(atom_id, x, y, z, norm_count))
-
-            atom_id += 1
+    writePDB(output_file_name, ag, hybrid36=True)
 
     LOGGER.info("Overlap written to: {0}".format(output_file_name))
     LOGGER.info("Number of occupied overlap voxels: {0}".format(len(merged_surface)))
@@ -7490,6 +7516,7 @@ def showFrequentObjectResidues(counts_by_chain, top=50):
         axes.append(ax)
         
     return axes[0] if len(axes) == 1 else axes
+
 
 def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
                           threshold, distA, kwargs, kind,
@@ -8501,6 +8528,7 @@ def calcSignatureChannels(structures=None, ref_structure=None,
                                    msa_fasta=msa_fasta,
                                    msa_ref_label=msa_ref_label,
                                    selection=selection)
+
 
 # The dictionary the written file declares conformance to, quoted from the schema's
 # own README so that a reader can check the file against the same document we wrote
