@@ -5044,8 +5044,8 @@ def getResidueOrientation(context):
 
     This callback is intended for ``getChannelLiningInfo`` and evaluates whether a
     residue points toward or away from the channel interior. For each residue, the
-    function combines the direction from the residue C-alpha to the side-chain
-    center-of-mass with the direction from the residue C-alpha to the nearest
+    function combines the direction from the residue C-alpha to the side-chain's
+    geometric centroid with the direction from the residue C-alpha to the nearest
     channel center point, then returns the dot product of these normalized vectors.
 
     Parameters
@@ -5101,9 +5101,6 @@ def getResidueOrientation(context):
     n /= np.linalg.norm(n, axis=1, keepdims=True)
 
     return np.einsum("ij,ij->i", v, n)
-
-
-_LINING_SUFFIXES = ('.pkl', '.txt', '.csv', '.tsv')
 
 
 def _jsonDefault(obj):
@@ -5398,6 +5395,9 @@ def getObjectLiningInfo(atoms, objects, object_type='channel',
     info = []
     context = {}
     deep = {}
+
+    if callbacks is None:
+        callbacks = {'Residues':getLiningResidues}
 
     options = _popLiningOptions(kwargs)
     context['options'] = options
@@ -14679,7 +14679,7 @@ class Cluster:
 
         return occupancy
     
-    def writeVoxelOccupancyPQR(self,output_file, min_occupancy=0.0, occupancy_as_charge=True):
+    def writeVoxelOccupancyPQR(self,output_file, min_occupancy=0.2, occupancy_as_charge=True):
         """
         Write the cluster voxel occupancy as a PQR-like FIL file.
 
@@ -14693,7 +14693,7 @@ class Cluster:
 
         min_occupancy : float, optional
             Only voxels with occupancy >= this value are written.
-            Default is 0.0.
+            Default is 0.2.
 
         occupancy_as_charge : bool, optional
             Store occupancy in the PQR charge field. Default True.
@@ -14702,6 +14702,9 @@ class Cluster:
         -------
         output_file : str
         """
+        if not min_occupancy > 0:
+            raise ValueError("min_occupancy must be greater than 0.")
+
         if self.graph_occupancy is None:
             self.buildVoxelizedGraph(min_occupancy=min_occupancy)
 
@@ -14755,13 +14758,6 @@ class ClusteringRecords:
         self._by_label = {}
         self._n_sub = len(self.labels)
         self.sub_clusterings = None
-
-        self.__init_stats__()
-
-    def __init_stats__(self):
-        for cl in self.clusters:
-            cl._calcInternalDistanceMatrix(self.distance_matrix, self.labels)
-            cl._calcClusterStats(self.labels)
 
     def getClusterByLabel(self, label):
         """ Return a cluster by its associated label """
@@ -16774,7 +16770,7 @@ def makeOutputPath(base_path, clustering_name=None, multiple=False,):
             stem = base_path
         ext = ".pse"
 
-    if (multipleand clustering_name is not None):
+    if (multiple and clustering_name is not None):
         path = "%s_%s%s" % (stem, safeName(clustering_name), ext)
     else:
         path = stem + ext
