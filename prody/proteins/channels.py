@@ -15722,7 +15722,7 @@ class Cluster:
 
         return occupancy
     
-    def writeVoxelOccupancyPQR(self,output_file, min_occupancy=0.2, occupancy_as_charge=True):
+    def writeVoxelOccupancyPQR(self,output_file, min_occupancy=0.0, occupancy_as_charge=True):
         """
         Write the cluster voxel occupancy as a PQR-like FIL file.
 
@@ -15736,7 +15736,7 @@ class Cluster:
 
         min_occupancy : float, optional
             Only voxels with occupancy >= this value are written.
-            Default is 0.2.
+            Default is 0.0.
 
         occupancy_as_charge : bool, optional
             Store occupancy in the PQR charge field. Default True.
@@ -15745,8 +15745,8 @@ class Cluster:
         -------
         output_file : str
         """
-        if not min_occupancy > 0:
-            raise ValueError("min_occupancy must be greater than 0.")
+        if min_occupancy < 0:
+            raise ValueError("min_occupancy must be non-negative.")
 
         if self.graph_occupancy is None:
             self.buildVoxelizedGraph(min_occupancy=min_occupancy)
@@ -15757,7 +15757,7 @@ class Cluster:
             return None
         origin = np.asarray(info["origin"], dtype=float)
         voxel_size = float(info["voxel_size"])
-        indices = np.argwhere(occupancy >= min_occupancy)
+        indices = np.argwhere((occupancy > 0) & (occupancy >= min_occupancy))
         if len(indices) == 0:
             with open(output_file, "w"):
                 pass
