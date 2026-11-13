@@ -12,15 +12,13 @@ import os
 import logging
 from collections import namedtuple
 from contextlib import contextmanager
-from collections import defaultdict
 import numpy as np
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
 from prody.utilities import getCoords, isListLike
 from prody.proteins import writePDB, parsePDB, parsePQR
 from prody.ensemble import Ensemble
-from prody.trajectory import Trajectory
-from prody.measure import calcCenter, calcTransformation, calcDistance, calcRMSD, superpose
+from prody.measure import calcCenter, calcRMSD, superpose
 
 if not hasattr(np, "trapz"):
     np.trapz = np.trapezoid
@@ -7492,6 +7490,1017 @@ def showFrequentObjectResidues(counts_by_chain, top=50):
         axes.append(ax)
         
     return axes[0] if len(axes) == 1 else axes
+
+def _calcSignatureEnsemble(structures, ref_structure, output_path, voxel_res,
+                          threshold, distA, kwargs, kind,
+                          detect_records_fn, overlap_fn,
+                          dali_filter_kwargs=None, msa_fasta=None,
+                          msa_ref_label=None, selection='protein'):
+    """Shared alignment/thresholding pipeline behind :func:`calcSignatureCavities`
+    and :func:`calcSignatureChannels`. The two public functions differ only in
+    which detection family they dispatch to. See those functions for the full
+    description of *structures*, *ref_structure*, *output_path*, *voxel_res*,
+    *threshold*, *distA*, *dali_filter_kwargs*, *msa_fasta*, *msa_ref_label*
+    and *selection* -- documented here only where this shared layer adds
+    meaning beyond what's written there.
+
+    :arg structures: See :func:`calcSignatureCavities`.
+    :type structures: list of str or None
+
+    :arg ref_structure: See :func:`calcSignatureCavities`.
+    :type ref_structure: str or None
+
+    :arg output_path: See :func:`calcSignatureCavities`.
+    :type output_path: str
+
+    :arg voxel_res: Voxel resolution in Å for the consensus map, passed to
+        *overlap_fn* as ``resolution``. See :func:`calcSignatureCavities`.
+    :type voxel_res: float
+
+    :arg threshold: Minimum occupancy (integer percent, 0-100) for a voxel to
+        be retained in the signature cavity/channel. See
+        :func:`calcSignatureCavities`.
+    :type threshold: int
+
+    :arg distA: Distance cutoff in Å for identifying reference residues near
+        signature voxels. See :func:`calcSignatureCavities`.
+    :type distA: float
+
+    :arg kwargs: Extra keyword arguments forwarded to the family's own
+        detection function (:func:`calcSurfaceCavities` or
+        :func:`calcChannels`) via *detect_records_fn*.
+    :type kwargs: dict
+
+    :arg kind: ``'cavity'`` or ``'channel'`` -- selects output file naming
+        (``signature_<kind>_pt{threshold}.pdb``, ``aligned_<kind>_params.csv``,
+        ``<kind>_overlap.pdb``) and the ``'<kind>_records'`` /
+        ``'signature_<kind>_residues'`` result keys.
+    :type kind: str
+
+    :arg detect_records_fn: Called as ``detect_records_fn(prot, det_out, label)``
+        once per aligned structure; runs the family's own detection and
+        parameter/residue extraction and returns a list of record dicts
+        (each must include a ``'pdb'`` key) to append to the records table.
+    :type detect_records_fn: callable
+
+    :arg overlap_fn: :func:`calcSurfaceCavityOverlaps` or
+        :func:`calcChannelSurfaceOverlaps`.
+    :type overlap_fn: callable
+
+    :arg dali_filter_kwargs: See :func:`calcSignatureCavities`.
+    :type dali_filter_kwargs: dict or None
+
+    :arg msa_fasta: See :func:`calcSignatureCavities`.
+    :type msa_fasta: str or None
+
+    :arg msa_ref_label: See :func:`calcSignatureCavities`.
+    :type msa_ref_label: str or None
+
+    :arg selection: See :func:`calcSignatureCavities`.
+    :type selection: str
+    """
+    import json
+    import pandas as pd
+    import re
+    from prody.database import searchDali
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    out_dir       = Path(output_path).resolve()
+    align_dir     = out_dir / 'aligned'
+    unaligned_dir = out_dir / 'unaligned'
+    cav_dir       = align_dir / 'cavities'
+    overlap_dir   = out_dir / 'overlaps'
+    for d in (align_dir, unaligned_dir, cav_dir, overlap_dir):
+        d.mkdir(parents=True, exist_ok=True)
+
+    def _getMappingResnums(pdb_file, chain=None):
+        """Return ordered Cα residue numbers for a single chain in a PDB file.
+
+        :arg chain: Single-letter chain identifier of a structure label
+            (4-letter PDB id + 1-letter chain id, e.g. the ``'A'`` in
+            ``'1tqnA'``), or ``None`` to use all protein chains. 
+        """
+        ag = parsePDB(str(pdb_file))
+        if ag is None:
+            return []
+        if chain is not None:
+            ca = ag.select('protein and name CA and chain ' + str(chain).strip())
+        else:
+            ca = ag.select('protein and name CA')
+        return list(ca.getResnums()) if ca is not None else []
+
+    def _one_letter(resname):
+        from prody.atomic.atomic import AAMAP
+        if resname in ('HSD', 'HSP'):
+            return AAMAP.get('HIS', resname[0])
+        return AAMAP.get(resname, resname[0] if resname else '?')
+
+    # ── 1. Resolve reference structure string, if given ────────────────────────
+    ref_pdb_id = ref_chain = ref_label = None
+    if ref_structure is not None:
+        ref_structure_str = str(ref_structure)
+        if len(ref_structure_str) < 5:
+            raise ValueError(
+                "ref_structure must be a 4-character PDB code followed by "
+                "a chain identifier (e.g. '2srcA'); got {0!r}."
+                .format(ref_structure_str))
+        ref_pdb_id, ref_chain = ref_structure_str[:4], ref_structure_str[4:]
+        ref_label = ref_structure_str
+
+    # ── 2. Resolve structures, discovering via DALI when not supplied ─────────
+    if structures is None:
+        if ref_pdb_id is None:
+            raise ValueError("Either structures or ref_structure must be provided.")
+
+        dali_rec = searchDali(ref_pdb_id, ref_chain)
+        while not dali_rec.isSuccess:
+            LOGGER.info('Waiting on DALI search results for {0}...'.format(ref_label))
+            dali_rec.fetch()
+
+        filter_kwargs = {'cutoff_len': 0.5, 'cutoff_rmsd': 2.0,
+                          'cutoff_Z': 8, 'stringency': True}
+        if dali_filter_kwargs:
+            filter_kwargs.update(dali_filter_kwargs)
+        pdb_ids = dali_rec.filter(**filter_kwargs)
+        if not pdb_ids:
+            filter_desc = ', '.join('{0}={1}'.format(k, v)
+                                     for k, v in filter_kwargs.items())
+            _warn('DALI search for {0} returned no hits passing {1}. '
+                  'Provide an explicit structures list instead.'
+                  .format(ref_label, filter_desc))
+            return None
+        structures = list(pdb_ids)
+    elif not isinstance(structures, list):
+        raise ValueError("structures must be a list of 'pdbid'+'chain' strings, "
+                          "e.g. ['2srcA', '1bbhA'].")
+
+    if not structures:
+        raise ValueError("No structures found in the provided input.")
+
+    structures = [str(item) for item in structures]
+    for item_str in structures:
+        if len(item_str) < 5:
+            raise ValueError(
+                "Each element of structures must be a 4-character PDB code "
+                "followed by a chain identifier (e.g. '2srcA'); got {0!r}."
+                .format(item_str))
+
+    if ref_pdb_id is None:
+        ref_label = structures[0]
+        ref_pdb_id, ref_chain = ref_label[:4], ref_label[4:]
+
+    # ── batch-parse the reference plus every input structure in one call ──────
+    batch_labels = list(structures)
+    if ref_label not in batch_labels:
+        batch_labels = [ref_label] + batch_labels
+
+    parsed = parsePDB(batch_labels, folder=str(unaligned_dir))
+    if not isinstance(parsed, list):
+        parsed = [parsed]
+    label_to_ag = dict(zip(batch_labels, parsed))
+
+    _ag_ref = label_to_ag[ref_label]
+    if _ag_ref is None:
+        raise ValueError("Could not parse reference: {0} chain {1}".format(ref_pdb_id, ref_chain))
+    _ag_ref_prot = _ag_ref.select('protein')
+    if _ag_ref_prot is None:
+        raise ValueError("No protein atoms in reference: {0}".format(ref_pdb_id))
+    _ag_ref_sel = _ag_ref.select(selection)
+    if _ag_ref_sel is None:
+        raise ValueError("selection {0!r} matched no atoms in reference: {1}"
+                          .format(selection, ref_pdb_id))
+    ref_pdb = align_dir / 'ref.pdb'
+    writePDB(str(ref_pdb), _ag_ref_sel)
+
+    ref_resnums = _getMappingResnums(ref_pdb, ref_chain)
+
+    # ── 3. CE-align all structures onto the reference ─────────────────────────
+    report_rows  = []
+    msa_mappings = {}
+    status = {lbl: {'aligned': False, 'detection': 'skipped', 'n_objects': 0,
+                    'message': 'not processed'} for lbl in structures}
+
+    def _skip(label, reason):
+        _warn(reason)
+        status[label]['message'] = reason
+
+    # parsePDB already restricted _ag_ref_prot to ref_chain, so its hierview
+    # holds exactly one chain -- take it directly instead of indexing by the
+    # chain letter again.
+    ref_chain_obj = next(iter(_ag_ref_prot.getHierView()), None)
+    if not isinstance(ref_chain_obj, Chain):
+        raise ValueError("Chain {0} not found in reference: {1}"
+                          .format(ref_chain, ref_pdb_id))
+
+    for label in structures:
+        ag = label_to_ag[label]
+        if ag is None:
+            _skip(label, 'No atoms parsed for {0}'.format(label))
+            continue
+
+        ag_chain = ag.select('protein')
+        if ag_chain is None:
+            _skip(label, 'No protein atoms in {0}'.format(label))
+            continue
+
+        # Likewise already restricted to its own chain by parsePDB.
+        mobile_chain_obj = next(iter(ag_chain.getHierView()), None)
+        if not isinstance(mobile_chain_obj, Chain):
+            _skip(label, 'Chain not found in {0}.'.format(label))
+            continue
+
+        ag_sel = ag.select(selection)
+        if ag_sel is None:
+            _skip(label, 'selection {0!r} matched no atoms in {1}'
+                         .format(selection, label))
+            continue
+
+        mapping = mapChainOntoChain(mobile_chain_obj, ref_chain_obj,
+                                     pwalign='cealign', overlap=50.)
+        if mapping is None:
+            _skip(label, 'CE-align could not map {0} onto the reference.'
+                         .format(label))
+            continue
+
+        atommap, ref_map, seqid, cover = mapping
+        mapped_flags = atommap.getFlags('mapped')
+        # The fit uses the mapped protein atoms only. applyTransformation then
+        # moves the whole parent AtomGroup, so cofactors and ions kept by
+        # *selection* follow the protein without influencing the fit.
+        superpose(atommap, ref_map, weights=mapped_flags)
+        rmsd = float(calcRMSD(atommap, ref_map, weights=mapped_flags))
+
+        # Structures stay in the ensemble regardless of alignment quality --
+        # RMSD/coverage/identity are reported, not gated. Only a grossly bad
+        # superposition (>2 Angstroms) gets flagged.
+        if rmsd > 2.0:
+            _warn('{0}: superposition RMSD is {1:.2f} A (>2 Angstroms) -- '
+                  'alignment may be less reliable.'.format(label, rmsd))
+
+        sup_pdb = align_dir / '{0}.pdb'.format(label)
+        writePDB(str(sup_pdb), ag_sel)
+
+        ca_mask = ref_map.getNames() == 'CA'
+        ref_rn  = ref_map.getResnums()[ca_mask]
+        tgt_rn  = atommap.getResnums()[ca_mask]
+        ca_mapped = mapped_flags[ca_mask]
+        msa_mappings[label] = {
+            int(rn): (int(tn) if is_mapped else None)
+            for rn, tn, is_mapped in zip(ref_rn, tgt_rn, ca_mapped)
+        }
+
+        row = {
+            'pdb_chain':      label,
+            'rmsd_A':         round(rmsd, 3),
+            'coverage_pct':   round(float(cover), 2),
+            'identity_pct':   round(float(seqid), 2),
+            'superposed_pdb': str(sup_pdb),
+        }
+        report_rows.append(row)
+        status[label].update(aligned=True, message='', rmsd_A=row['rmsd_A'],
+                             coverage_pct=row['coverage_pct'],
+                             identity_pct=row['identity_pct'])
+        LOGGER.info('{0} RMSD={1:.3f}A coverage={2:.1f}% identity={3:.1f}%'.format(
+            label, rmsd, cover, seqid))
+
+
+    df_report = pd.DataFrame(report_rows)
+    df_report.to_csv(out_dir / 'alignment_report.csv', index=False)
+
+    msa_path = out_dir / 'aligned_resnums.msa'
+    with open(msa_path, 'w') as f:
+        f.write('{}\t{}\n'.format(ref_label, ' '.join(str(r) for r in ref_resnums)))
+        for lbl, mapping in msa_mappings.items():
+            vals = ' '.join(
+                str(mapping[r]) if mapping.get(r) is not None else '-'
+                for r in ref_resnums
+            )
+            f.write('{}\t{}\n'.format(lbl, vals))
+
+    # ── 4. Reference entropy coloring + sequence MSA output ───────────────────
+    from prody.sequence.msa import MSA
+    from prody.sequence.analysis import calcShannonEntropy
+
+    msa_fasta_path = None
+    anchor_idx = None
+    anchor_source = None
+    ref_ca = _ag_ref_prot.select('name CA')
+    ref_seq = ref_ca.getSequence() if ref_ca is not None else ''
+
+    if msa_fasta:
+        # User-supplied MSA replaces the auto-generated MSA from the ensemble
+        # of aligned structures. 
+        from prody.sequence.msafile import parseMSA
+
+        try:
+            user_msa = parseMSA(str(msa_fasta))
+        except (OSError, IOError, ValueError):
+            user_msa = parseMSA(str(msa_fasta), filter=lambda label, seq: True)
+        if user_msa is None:
+            raise ValueError(
+                "msa_fasta: no sequences could be parsed from {0!r}."
+                .format(msa_fasta))
+        user_labels = user_msa.getLabels(full=True)
+
+        col_to_resnum = {}
+        anchor_positional = False
+
+        if msa_ref_label is not None:
+            if msa_ref_label not in user_labels:
+                raise ValueError(
+                    "msa_ref_label {0!r} was not found among the {1} row "
+                    "labels of msa_fasta."
+                    .format(msa_ref_label, len(user_labels)))
+            anchor_idx = user_labels.index(msa_ref_label)
+            anchor_source = 'explicit'
+        elif ref_label in user_labels:
+            # Exact label match: assumed to correspond 1:1 to the
+            # reference's own residues.
+            anchor_idx = user_labels.index(ref_label)
+            anchor_positional = True
+            anchor_source = 'label'
+        else:
+            idcode = None
+            accession = None
+            try:
+                from prody.proteins import fetchPDB
+                from prody.proteins.header import parsePDBHeader
+                ref_pdb_file = fetchPDB(ref_pdb_id, folder=str(unaligned_dir))
+                header_source = ref_pdb_file if ref_pdb_file else ref_pdb_id
+                for poly in parsePDBHeader(header_source, 'polymers'):
+                    if ref_chain and poly.chid != ref_chain:
+                        continue
+                    for dbref in poly.dbrefs:
+                        if dbref.database == 'UniProt':
+                            if dbref.idcode and not idcode:
+                                idcode = dbref.idcode
+                            if dbref.accession and not accession:
+                                accession = dbref.accession
+                    if idcode or accession:
+                        break
+            except Exception:
+                idcode = None
+                accession = None
+
+            for candidate, source in ((idcode, 'idcode'), (accession, 'accession')):
+                if not candidate:
+                    continue
+                idx = user_msa.getIndex(candidate)
+                if isinstance(idx, list):
+                    idx = idx[0] if idx else None
+                if idx is not None:
+                    anchor_idx = idx
+                    anchor_source = source
+                    LOGGER.info(
+                        "msa_fasta: row {0!r} matched via UniProt {1} {2} "
+                        "from {3} chain {4}'s own DBREF; using it to anchor "
+                        "entropy for the reference."
+                        .format(user_labels[idx], source, candidate,
+                                ref_pdb_id, ref_chain))
+                    break
+
+            if anchor_idx is None:
+                # Bounded best-identity search when neither an exact label, an explicit
+                # msa_ref_label, nor a DBREF-derived idcode/accession could
+                # locate the reference's own row.
+                max_scan = 500
+                if len(user_labels) > max_scan:
+                    raise ValueError(
+                        "msa_fasta: no row labeled {0!r}, no msa_ref_label "
+                        "given, and no UniProt idcode/accession match "
+                        "against {1} chain {2}'s own DBREF; the supplied "
+                        "MSA has {3} rows, too many to search by pairwise "
+                        "alignment. "
+                        "Pass msa_ref_label to name the anchor row "
+                        "explicitly, or supply a smaller MSA (e.g. Pfam's "
+                        "'seed' alignment instead of 'full')."
+                        .format(ref_label, ref_pdb_id, ref_chain, len(user_labels)))
+
+                from prody.utilities.seqtools import alignBioPairwise
+
+                best_idx = None
+                best_matches = -1
+                for idx in range(len(user_labels)):
+                    seq = str(user_msa[idx])
+                    ungapped = seq.replace('-', '').replace('.', '')
+                    if not ungapped:
+                        continue
+                    alns = alignBioPairwise(ref_seq, ungapped)
+                    if not alns:
+                        continue
+                    aligned_ref, aligned_row = alns[0][0], alns[0][1]
+                    matches = sum(1 for a, b in zip(aligned_ref, aligned_row)
+                                  if a == b and a not in ('-', '.'))
+                    if matches > best_matches:
+                        best_matches = matches
+                        best_idx = idx
+
+                if best_idx is None:
+                    raise ValueError(
+                        "msa_fasta: no row in the supplied MSA could be "
+                        "aligned to the reference structure {0!r}. Review "
+                        "or supply an MSA that includes or aligns to the "
+                        "reference structure."
+                        .format(ref_label))
+
+                anchor_idx = best_idx
+                anchor_source = 'fallback'
+
+        if anchor_positional:
+            ref_row_seq = str(user_msa[anchor_idx])
+            ref_idx = 0
+            for col, ch in enumerate(ref_row_seq):
+                if ch not in ('-', '.'):
+                    if ref_idx < len(ref_resnums):
+                        col_to_resnum[col] = ref_resnums[ref_idx]
+                    ref_idx += 1
+        else:
+            from prody.utilities.seqtools import alignBioPairwise
+
+            anchor_seq = str(user_msa[anchor_idx])
+            ungapped_anchor = anchor_seq.replace('-', '').replace('.', '')
+            alns = alignBioPairwise(ref_seq, ungapped_anchor)
+            if not alns:
+                raise ValueError(
+                    "msa_fasta: row {0!r} could not be aligned to the "
+                    "reference structure {1!r}."
+                    .format(user_labels[anchor_idx], ref_label))
+            aligned_ref, aligned_row = alns[0][0], alns[0][1]
+
+            matches = sum(1 for a, b in zip(aligned_ref, aligned_row)
+                          if a == b and a not in ('-', '.'))
+            mismatches = len(ref_seq) - matches
+            mismatch_pct = 100.0 * mismatches / max(len(ref_seq), 1)
+            if mismatch_pct > 30.0:
+                raise ValueError(
+                    "msa_fasta: row {0!r} for reference {1!r} has {2:.1f}% "
+                    "mismatch (> 30%). Review or supply an MSA that "
+                    "includes or aligns to the reference structure, or a "
+                    "correct msa_ref_label."
+                    .format(user_labels[anchor_idx], ref_label, mismatch_pct))
+
+            if anchor_source == 'fallback':
+                _warn("msa_fasta: no row labeled {0!r} and no UniProt "
+                      "idcode/accession match; using best-matching row "
+                      "{1!r} instead ({2:.1f}% mismatch)."
+                      .format(ref_label, user_labels[anchor_idx], mismatch_pct))
+
+            row_col_map = {}
+            upos = 0
+            for col, ch in enumerate(anchor_seq):
+                if ch not in ('-', '.'):
+                    row_col_map[upos] = col
+                    upos += 1
+
+            ref_idx = 0
+            row_upos = 0
+            for a, b in zip(aligned_ref, aligned_row):
+                is_ref_gap = a in ('-', '.')
+                is_row_gap = b in ('-', '.')
+                if not is_ref_gap and not is_row_gap and ref_idx < len(ref_resnums):
+                    col = row_col_map.get(row_upos)
+                    if col is not None:
+                        col_to_resnum[col] = ref_resnums[ref_idx]
+                if not is_ref_gap:
+                    ref_idx += 1
+                if not is_row_gap:
+                    row_upos += 1
+
+        entropy = calcShannonEntropy(user_msa, omitgaps=True)
+        entropy_by_resnum = {}
+        for col, e in enumerate(entropy):
+            rn = col_to_resnum.get(col)
+            if rn is not None:
+                entropy_by_resnum[rn] = float(e)
+    else:
+        homolog_labels = list(msa_mappings.keys())
+        msa_labels = [ref_label] + homolog_labels
+        msa_array = np.full((len(msa_labels), len(ref_resnums)), b'-', dtype='S1')
+
+        ref_rn_to_1l = {}
+        if ref_ca is not None:
+            ref_rn_to_1l = {int(rn): _one_letter(rname) for rn, rname in
+                            zip(ref_ca.getResnums(), ref_ca.getResnames())}
+        for j, rn in enumerate(ref_resnums):
+            if rn in ref_rn_to_1l:
+                msa_array[0, j] = ref_rn_to_1l[rn].encode()
+
+        for i, label in enumerate(homolog_labels, start=1):
+            aligned_pdb = align_dir / '{0}.pdb'.format(label)
+            hom_ag = parsePDB(str(aligned_pdb)) if aligned_pdb.exists() else None
+            hom_rn_to_1l = {}
+            if hom_ag is not None:
+                hom_ca = hom_ag.select('protein and name CA')
+                if hom_ca is not None:
+                    hom_rn_to_1l = {int(rn): _one_letter(rname) for rn, rname in
+                                    zip(hom_ca.getResnums(), hom_ca.getResnames())}
+            mapping = msa_mappings[label]
+            for j, rn in enumerate(ref_resnums):
+                tgt_rn = mapping.get(rn)
+                if tgt_rn is not None and tgt_rn in hom_rn_to_1l:
+                    msa_array[i, j] = hom_rn_to_1l[tgt_rn].encode()
+
+        msa_fasta_path = out_dir / 'signature_{0}_msa.fasta'.format(kind)
+        with open(str(msa_fasta_path), 'w') as f:
+            for lbl, row in zip(msa_labels, msa_array):
+                seq = ''.join(c.decode() for c in row)
+                f.write('>{0}\n{1}\n'.format(lbl, seq))
+
+        ensemble_msa = MSA(msa_array, title='signature_{0}_msa'.format(kind),
+                            labels=msa_labels)
+        entropy = calcShannonEntropy(ensemble_msa, omitgaps=True)
+        entropy_by_resnum = {int(rn): float(e) for rn, e in zip(ref_resnums, entropy)}
+
+    ref_rn_to_name = {}
+    if ref_ca is not None:
+        ref_rn_to_name = {int(rn): rname for rn, rname in
+                          zip(ref_ca.getResnums(), ref_ca.getResnames())}
+    df_entropy = pd.DataFrame({
+        'resnum':  [int(rn) for rn in ref_resnums],
+        'resname': [ref_rn_to_name.get(int(rn), '') for rn in ref_resnums],
+        'entropy': [entropy_by_resnum.get(int(rn), np.nan) for rn in ref_resnums],
+    })
+    entropy_path = out_dir / 'signature_{0}_entropy.csv'.format(kind)
+    df_entropy.to_csv(entropy_path, index=False)
+
+    ref_resnums_arr = _ag_ref_prot.getResnums()
+    ref_betas        = _ag_ref_prot.getBetas()
+    new_betas = np.array([entropy_by_resnum.get(int(rn), b)
+                           for rn, b in zip(ref_resnums_arr, ref_betas)])
+    _ag_ref_prot.setBetas(new_betas)
+    writePDB(str(ref_pdb), _ag_ref_sel)
+    if msa_fasta_path is not None:
+        LOGGER.info('Reference coloured by Shannon entropy; MSA written: {0}'.format(
+            msa_fasta_path.name))
+    else:
+        LOGGER.info('Reference coloured by Shannon entropy from user-supplied MSA.')
+
+    # ── 5. Detection ────────────────────────────────────────────────────────
+    records = []
+
+    for row in df_report.itertuples():
+        label   = row.pdb_chain
+        sup_pdb = Path(row.superposed_pdb)
+        if not sup_pdb.exists():
+            _skip(label, 'Superposed PDB not found: {0}'.format(sup_pdb.name))
+            continue
+
+        prot = parsePDB(str(sup_pdb))
+        if prot is None:
+            _skip(label, 'No atoms in {0}'.format(sup_pdb.name))
+            continue
+
+        det_out = str(cav_dir / '{0}_{1}'.format(kind, label))
+        try:
+            label_records = detect_records_fn(prot, det_out, label)
+        except Exception as e:
+            _warn('CaviTracer {0}: {1}'.format(label, e))
+            status[label].update(detection='error', message=str(e))
+            continue
+        records.extend(label_records)
+        if label_records:
+            status[label].update(detection='ok', n_objects=len(label_records))
+        else:
+            status[label].update(detection='none_found',
+                                 message='no {0} records returned'.format(kind))
+
+    df_records = pd.DataFrame(records)
+    df_records.to_csv(out_dir / 'aligned_{0}_params.csv'.format(kind), index=False)
+
+    # ── 6. Surface overlaps ───────────────────────────────────────────────────
+    overlap_pdb = str(overlap_dir / '{0}_overlap.pdb'.format(kind))
+    if any(cav_dir.glob('*.pqr')):
+        overlap_fn(
+            pqr_files=str(cav_dir),
+            output_file_name=overlap_pdb, resolution=voxel_res
+        )
+    else:
+        _warn('No PQR files found in {0}; skipping surface overlap.'.format(cav_dir))
+        overlap_pdb = None
+
+    # ── 7. Threshold consensus voxels and combine with the reference ──────────
+    threshold = int(threshold)
+    if not 0 <= threshold <= 100:
+        raise ValueError('threshold must be between 0 and 100, got {0}'.format(threshold))
+
+    sig_coords      = np.empty((0, 3))
+    sig_occupancies = np.empty((0,))
+    if overlap_pdb is not None:
+        sig_atoms = parsePDB(overlap_pdb)
+        fil = sig_atoms.select('resname FIL') if sig_atoms is not None else None
+        if fil is not None:
+            threshold_frac = threshold / 100.0
+            mask = fil.getOccupancies() >= threshold_frac
+            sig_coords      = fil.getCoords()[mask]
+            sig_occupancies = fil.getOccupancies()[mask]
+
+    sig_pdb_path = out_dir / 'signature_{0}_pt{1}.pdb'.format(kind, threshold)
+    writePDB(str(sig_pdb_path), _ag_ref_sel)
+    with open(str(sig_pdb_path)) as f:
+        ref_lines = f.readlines()
+    if ref_lines and ref_lines[-1].startswith('END'):
+        ref_lines = ref_lines[:-1]
+
+    with open(str(sig_pdb_path), 'w') as f:
+        f.writelines(ref_lines)
+        start_serial = _ag_ref_sel.numAtoms() + 1
+        for i, ((x, y, z), occ) in enumerate(zip(sig_coords, sig_occupancies)):
+            f.write("ATOM  {:5d}  H   FIL A   1    "
+                    "{:8.3f}{:8.3f}{:8.3f}  1.00{:6.2f}\n".format(
+                        (start_serial + i) % 100000, x, y, z, occ * 100.0))
+        f.write('END\n')
+
+    LOGGER.info('Signature {0} written: {1} ({2} voxels, threshold={3}%)'.format(
+        kind, sig_pdb_path.name, len(sig_coords), threshold))
+
+    result = {
+        'msa_mappings':               msa_mappings,
+        'alignment_report':           df_report,
+        '{0}_records'.format(kind):   df_records,
+        'ensemble_voxels':            overlap_pdb,
+        'signature_pdb':              str(sig_pdb_path),
+        'entropy':                    df_entropy,
+        'entropy_path':               str(entropy_path),
+    }
+    if msa_fasta_path is not None:
+        result['msa_fasta_path'] = str(msa_fasta_path)
+
+    # ── 8. Map reference residues near signature voxels onto each homologue ──
+    if len(sig_coords) > 0:
+        ca_coords   = _ag_ref_prot.select('name CA').getCoords()
+        ca_resnums  = _ag_ref_prot.select('name CA').getResnums()
+        ca_resnames = _ag_ref_prot.select('name CA').getResnames()
+
+        dist2_cut = distA ** 2
+        near_idx  = set()
+        chunk     = 2000
+        for i in range(0, len(sig_coords), chunk):
+            blk = sig_coords[i:i + chunk]
+            d2  = ((ca_coords[:, None, :] - blk[None, :, :]) ** 2).sum(axis=2)
+            near_idx.update(np.where(d2.min(axis=1) <= dist2_cut)[0].tolist())
+
+        sorted_indices   = sorted(near_idx, key=lambda i: int(ca_resnums[i]))
+        ref_near_resnums = [int(ca_resnums[i]) for i in sorted_indices]
+        ref_str = ', '.join(
+            '{0}{1}'.format(_one_letter(ca_resnames[i]), int(ca_resnums[i]))
+            for i in sorted_indices
+        ) if sorted_indices else 'None'
+
+        signature_residues = {'ref': ref_str}
+        LOGGER.info('Signature {0}: {1} reference residues within {2} A'.format(
+            kind, len(near_idx), distA))
+
+        ref_resnums_set = set(ref_near_resnums)
+        for label, mapping in msa_mappings.items():
+            mapped_resnums = sorted(
+                tgt_rn for ref_rn, tgt_rn in mapping.items()
+                if ref_rn in ref_resnums_set and tgt_rn is not None)
+            if not mapped_resnums:
+                signature_residues[label] = 'None'
+                continue
+
+            aligned_pdb = align_dir / '{0}.pdb'.format(label)
+            hom_ag = parsePDB(str(aligned_pdb)) if aligned_pdb.exists() else None
+            rn_to_1l = {}
+            if hom_ag is not None:
+                hom_ca = hom_ag.select('protein and name CA')
+                if hom_ca is not None:
+                    rn_to_1l = {int(rn): _one_letter(rname) for rn, rname in
+                                zip(hom_ca.getResnums(), hom_ca.getResnames())}
+            parts = ['{0}{1}'.format(rn_to_1l[rn], rn) if rn in rn_to_1l else str(rn)
+                     for rn in mapped_resnums]
+            signature_residues[label] = ', '.join(parts)
+
+        residues_path = out_dir / 'signature_{0}_pt{1}_residues.txt'.format(kind, threshold)
+        with open(str(residues_path), 'w') as f:
+            for key, val in signature_residues.items():
+                f.write('{0}: {1}\n'.format(key, val))
+
+        result['signature_{0}_residues'.format(kind)]      = signature_residues
+        result['signature_{0}_residues_path'.format(kind)] = str(residues_path)
+        LOGGER.info('Signature {0} residues written: {1}'.format(kind, residues_path.name))
+
+    run_summary = {
+        'kind': kind,
+        'reference': {
+            'label':             ref_label,
+            'sequence':          ref_seq,
+            'msa_anchor_row':    user_labels[anchor_idx] if anchor_idx is not None else None,
+            'msa_anchor_source': anchor_source,
+        },
+        'parameters': {
+            'selection':          selection,
+            'voxel_res':          voxel_res,
+            'threshold':          threshold,
+            'distA':              distA,
+            'dali_filter_kwargs': dali_filter_kwargs,
+            'detection_kwargs':   kwargs,
+        },
+        'msa': {
+            'source': 'user' if msa_fasta else 'ensemble',
+            'path':   str(msa_fasta) if msa_fasta else str(msa_fasta_path),
+        },
+        'structures': [
+            dict({'label': lbl, 'rmsd_A': None, 'coverage_pct': None,
+                  'identity_pct': None}, **st)
+            for lbl, st in status.items()
+        ],
+    }
+    run_summary_path = out_dir / 'signature_{0}_run_summary.json'.format(kind)
+    with open(str(run_summary_path), 'w') as f:
+        json.dump(run_summary, f, indent=2, default=str)
+    result['run_summary_path'] = str(run_summary_path)
+
+    return result
+
+
+def calcSignatureCavities(structures=None, ref_structure=None,
+                         output_path='output',
+                         voxel_res=0.5, threshold=20, distA=4.5,
+                         dali_filter_kwargs=None, msa_fasta=None,
+                         msa_ref_label=None, selection='protein', **kwargs):
+    """Calculate surface cavities for an ensemble of homologous protein structures.
+
+    Structures are superposed onto a reference using ProDy's own CE-align
+    (:func:`.mapChainOntoChain` with ``pwalign='cealign'``), surface-cavity
+    detection (:func:`calcSurfaceCavities`) is run on each aligned structure,
+    and a consensus signature cavity is computed across the ensemble.
+
+    :arg structures: A list of ``'pdbid'+'chain'`` strings (e.g. ``'2srcA'``).
+        *pdbid* is a 4-character PDB accession code loaded via
+        :func:`.parsePDB`; *chain* is a single chain identifier. Each string
+        is used directly as its structure's label. If ``None``, *ref_structure*
+        must be given, and homologues are discovered automatically via
+        :func:`.searchDali` .
+    :type structures: list of str or None
+
+    :arg ref_structure: ``'pdbid'+'chain'`` string for the reference
+        structure used for CE-align superposition and residue-number mapping.
+        If ``None`` and *structures* is given, the first entry in *structures*
+        is used as reference. Required when *structures* is ``None``.
+    :type ref_structure: str or None
+
+    :arg output_path: Root directory for all output files.
+        Subdirectories ``aligned/``, ``aligned/cavities/``, and ``overlaps/``
+        are created automatically. default is ``'output'``
+    :type output_path: str
+
+    :arg voxel_res: Voxel resolution in Å for the consensus cavity map, passed
+        to :func:`calcSurfaceCavityOverlaps` as ``resolution``.
+        default is ``0.5``
+    :type voxel_res: float
+
+    Additional keyword arguments are forwarded to :func:`calcSurfaceCavities`.
+
+    :arg threshold: Minimum occupancy (integer percent, 0-100) for a voxel to
+        be retained in the signature cavity. default is ``20``
+    :type threshold: int
+
+    :arg dali_filter_kwargs: Overrides merged over the default DALI filter
+        cutoffs (``cutoff_len=0.5, cutoff_rmsd=2.0, cutoff_Z=8,
+        stringency=True``) before calling :meth:`.DaliRecord.filter`. Only
+        used when *structures* is ``None`` (DALI auto-discovery); ignored
+        otherwise. default is ``None``
+    :type dali_filter_kwargs: dict or None
+
+    :arg msa_fasta: Path to a user-supplied FASTA-format MSA (e.g. one
+        fetched from Pfam via :func:`.fetchPfamMSA` and written with
+        :func:`.writeMSA`). When given, it replaces the auto-built MSA as
+        the Shannon entropy source. The row anchoring to *ref_structure* is
+        resolved in order of preference: *msa_ref_label* if given; an exact
+        ``ref_structure`` label match; the reference's own UniProt idcode
+        (mnemonic, e.g. ``'CP3A4_HUMAN'``) or accession ; and, 
+        only as a last resort and only when the MSA has 500
+        rows or fewer, the best-identity row is found by pairwise alignment 
+        against every row. default is ``None``
+    :type msa_fasta: str or None
+
+    :arg msa_ref_label: Row label within *msa_fasta* to use as the
+        reference's anchor row, bypassing automatic identification (exact
+        label / UniProt accession / best-identity search). Useful
+        when the accession is already known. default is ``None``
+    :type msa_ref_label: str or None
+
+    :arg selection: ProDy selection string applied to each parsed,
+        chain-restricted structure. The atoms it picks are written to the
+        ``aligned/`` and signature PDB files and are what detection sees.
+        CE-align, the superposition fit, residue mapping, the MSA and the
+        entropy always use the protein atoms only; other atoms kept by
+        *selection* (cofactors, ions) are moved with the protein but never
+        influence the fit. The default ``'protein'`` excludes water and
+        every hetero molecule. To keep a cofactor, use for example
+        ``'protein or resname HEM'``. The selection should include the
+        protein. default is ``'protein'``
+    :type selection: str
+
+    :arg distA: Distance cutoff in Å for identifying reference residues near
+        signature voxels. default is ``4.5``
+    :type distA: float
+
+    :returns: Dictionary with keys:
+
+        * ``msa_mappings`` — ``{label: {ref_resnum: tgt_resnum}}``
+        * ``alignment_report`` — DataFrame with RMSD, coverage, and identity
+          per structure
+        * ``cavity_records`` — DataFrame with volume, depth, tetrahedra count,
+          and lining residues per cavity
+        * ``ensemble_voxels`` — path to the combined-voxel PDB written by
+          :func:`calcSurfaceCavityOverlaps`
+        * ``signature_pdb`` — path to the reference structure combined with
+          the thresholded consensus voxels, named with the threshold (e.g.
+          ``signature_cavity_pt20.pdb``)
+        * ``entropy`` — DataFrame with columns ``resnum``, ``resname`` and
+          ``entropy``, one row per reference protein Cα residue; ``entropy``
+          is NaN for residues the MSA does not cover
+        * ``entropy_path`` — path to the same table written as
+          ``signature_cavity_entropy.csv``
+        * ``run_summary_path`` — path to ``signature_cavity_run_summary.json``,
+          which records the reference label and sequence, the MSA anchor row
+          and source, the run parameters (including *selection*), the MSA
+          source and path, and one entry per input structure with its
+          alignment RMSD, coverage and identity and its detection status
+          (``ok``, ``none_found``, ``error`` or ``skipped``), object count
+          and message
+        * ``signature_cavity_residues`` — ``{key: "X123, Y456, ..."}``,
+          present only when at least one voxel passes *threshold*; ``'ref'``
+          holds reference residues within *distA* of a signature voxel, and
+          each homologue label holds its mapped residues
+        * ``signature_cavity_residues_path`` — path to the written residue
+          summary text file (same condition as above)
+
+    :rtype: dict
+
+    Example usage::
+
+        result = calcSignatureCavities(
+            structures=targets,
+            ref_structure='2srcA',
+            msa_fasta='my_msa.fasta',
+            output_path='ensemble_out',
+        )
+        print(result['signature_pdb'])
+
+    """
+    def _detectRecords(prot, det_out, label):
+        cavities, surface = calcSurfaceCavities(prot, output_path=det_out, 
+                                                min_depth=2, separate=False, max_depth=None, **kwargs)
+        volumes, depths, tetrahedra_counts = getSurfaceCavityParameters(cavities)
+        cavity_residues = getSurfaceCavityResidueNames(
+            prot, cavities, surface, distA=4, one_letter_aa=True)
+        rows = []
+        for cav_id, (vol, dep, ntet) in enumerate(zip(volumes, depths, tetrahedra_counts)):
+            res_str = None
+            if cavity_residues and cav_id < len(cavity_residues):
+                parts = cavity_residues[cav_id].split(':', 1)
+                res_str = parts[1].strip() if len(parts) == 2 else parts[0].strip()
+            rows.append({
+                'pdb':              label,
+                'cavity_id':        cav_id,
+                'volume_A3':        round(vol, 3),
+                'depth_A':          round(dep, 3),
+                'tetrahedra_count': ntet,
+                'cavity_residues':  res_str,
+            })
+        return rows
+
+    return _calcSignatureEnsemble(structures, ref_structure, output_path,
+                                   voxel_res, threshold, distA, kwargs,
+                                   'cavity', _detectRecords,
+                                   calcSurfaceCavityOverlaps,
+                                   dali_filter_kwargs=dali_filter_kwargs,
+                                   msa_fasta=msa_fasta,
+                                   msa_ref_label=msa_ref_label,
+                                   selection=selection)
+
+
+def calcSignatureChannels(structures=None, ref_structure=None,
+                         output_path='output',
+                         voxel_res=0.5, threshold=20, distA=4.5,
+                         dali_filter_kwargs=None, msa_fasta=None,
+                         msa_ref_label=None, selection='protein', **kwargs):
+    """Calculate channels for an ensemble of homologous protein structures.
+
+    Identical pipeline to :func:`calcSignatureCavities` -- structures are
+    superposed onto a reference using ProDy's own CE-align -- but dispatches
+    to the channel-detection family (:func:`calcChannels`) instead of the
+    surface-cavity family, producing a consensus signature *channel* (a
+    through-going tunnel) rather than a signature cavity (an enclosed pocket).
+
+    :arg structures: See :func:`calcSignatureCavities`.
+    :type structures: list of str or None
+
+    :arg ref_structure: See :func:`calcSignatureCavities`.
+    :type ref_structure: str or None
+
+    :arg output_path: Root directory for all output files.
+        Subdirectories ``aligned/``, ``aligned/cavities/``, and ``overlaps/``
+        are created automatically. default is ``'output'``
+    :type output_path: str
+
+    :arg voxel_res: Voxel resolution in Å for the consensus channel map,
+        passed to :func:`calcChannelSurfaceOverlaps` as ``resolution``.
+        default is ``0.5``
+    :type voxel_res: float
+
+    Additional keyword arguments are forwarded to :func:`calcChannels`.
+
+    :arg threshold: Minimum occupancy (integer percent, 0-100) for a voxel to
+        be retained in the signature channel. default is ``20``
+    :type threshold: int
+
+    :arg dali_filter_kwargs: See :func:`calcSignatureCavities`.
+    :type dali_filter_kwargs: dict or None
+
+    :arg msa_fasta: See :func:`calcSignatureCavities`.
+    :type msa_fasta: str or None
+
+    :arg msa_ref_label: See :func:`calcSignatureCavities`.
+    :type msa_ref_label: str or None
+
+    :arg selection: See :func:`calcSignatureCavities`.
+    :type selection: str
+
+    :arg distA: Distance cutoff in Å for identifying reference residues near
+        signature voxels. default is ``4.5``
+    :type distA: float
+
+    :returns: Dictionary with keys:
+
+        * ``msa_mappings`` — ``{label: {ref_resnum: tgt_resnum}}``
+        * ``alignment_report`` — DataFrame with RMSD, coverage, and identity
+          per structure
+        * ``channel_records`` — DataFrame with length, bottleneck, volume, and
+          lining residues per channel
+        * ``ensemble_voxels`` — path to the combined-voxel PDB written by
+          :func:`calcChannelSurfaceOverlaps`
+        * ``signature_pdb`` — path to the reference structure combined with
+          the thresholded consensus voxels, named with the threshold (e.g.
+          ``signature_channel_pt20.pdb``)
+        * ``entropy`` — DataFrame with columns ``resnum``, ``resname`` and
+          ``entropy``, one row per reference protein Cα residue; ``entropy``
+          is NaN for residues the MSA does not cover
+        * ``entropy_path`` — path to the same table written as
+          ``signature_channel_entropy.csv``
+        * ``run_summary_path`` — path to ``signature_channel_run_summary.json``,
+          which records the reference label and sequence, the MSA anchor row
+          and source, the run parameters (including *selection*), the MSA
+          source and path, and one entry per input structure with its
+          alignment RMSD, coverage and identity and its detection status
+          (``ok``, ``none_found``, ``error`` or ``skipped``), object count
+          and message
+        * ``signature_channel_residues`` — ``{key: "X123, Y456, ..."}``,
+          present only when at least one voxel passes *threshold*; ``'ref'``
+          holds reference residues within *distA* of a signature voxel, and
+          each homologue label holds its mapped residues
+        * ``signature_channel_residues_path`` — path to the written residue
+          summary text file (same condition as above)
+
+    :rtype: dict
+
+    Example usage::
+
+        result = calcSignatureChannels(
+            structures=targets,
+            ref_structure='2srcA',
+            output_path='ensemble_out',
+        )
+        print(result['signature_pdb'])
+
+    """
+    def _detectRecords(prot, det_out, label):
+        channels, _details = calcChannels(prot, output_path=det_out,
+                                            separate=False, **kwargs)
+        lengths, bottlenecks, volumes = getChannelParameters(channels)
+        channel_residues = getChannelResidueNames(
+            prot, channels, distA=4, one_letter_aa=True)
+        rows = []
+        for ch_id, (ln, bn, vol) in enumerate(zip(lengths, bottlenecks, volumes)):
+            res_str = None
+            if channel_residues and ch_id < len(channel_residues):
+                parts = channel_residues[ch_id].split(':', 1)
+                res_str = parts[1].strip() if len(parts) == 2 else parts[0].strip()
+            rows.append({
+                'pdb':               label,
+                'channel_id':        ch_id,
+                'length_A':          round(ln, 3),
+                'bottleneck_A':      round(bn, 3),
+                'volume_A3':         round(vol, 3),
+                'channel_residues':  res_str,
+            })
+        return rows
+
+    return _calcSignatureEnsemble(structures, ref_structure, output_path,
+                                   voxel_res, threshold, distA, kwargs,
+                                   'channel', _detectRecords,
+                                   calcChannelSurfaceOverlaps,
+                                   dali_filter_kwargs=dali_filter_kwargs,
+                                   msa_fasta=msa_fasta,
+                                   msa_ref_label=msa_ref_label,
+                                   selection=selection)
 
 # The dictionary the written file declares conformance to, quoted from the schema's
 # own README so that a reader can check the file against the same document we wrote
@@ -17479,7 +18488,499 @@ def _writeViewerPQR(result_file, objects, object_type, surface, num_samples):
     else:
         _saveConnectedCavityChannels(objects, surface, result_file, separate=False,
                                     num_samples=num_samples)
+def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
+                             surface=None, output_path='.', num_samples=5):
+    """Write CaviTracer results and a TCL script for visualization in VMD.
 
+    The function saves the supplied CaviTracer objects to a combined PQR file,
+    saves the molecular structure to a PDB file, and creates a VMD TCL script
+    that loads both files and prepares their visualization.
+
+    Channels, pores and chamber links are displayed as VDW spheres using the
+    radii calculated by CaviTracer. Surface cavities are displayed using
+    QuickSurf. For connected surface-cavity/channel results, channels are shown
+    as VDW spheres and cavity regions using QuickSurf.
+
+    Each CaviTracer object is displayed as a separate VMD representation and
+    assigned a different color. The protein is displayed as NewCartoon together
+    with a transparent molecular surface.
+
+    :arg objects: CaviTracer objects to visualize. This can be a list of
+        channels, pores, links, surface cavities, or connected cavity-channel
+        results.
+    :type objects: list or CaviTracer object
+
+    :arg atoms: Molecular structure to display together with the CaviTracer
+        results.
+    :type atoms: :class:`.Atomic`
+
+    :arg object_type: Type of CaviTracer result. Accepted values are
+        ``'channels'``, ``'pores'``, ``'links'``,
+        ``'surface_cavities'`` and ``'connected_cavities_channels'``.
+        Default is ``'channels'``.
+    :type object_type: str
+
+    :arg surface: Surface information returned by
+        :func:`calcSurfaceCavities`. Required for ``'surface_cavities'`` and
+        ``'connected_cavities_channels'``. Ignored for channels, pores and
+        links.
+    :type surface: list or None
+
+    :arg output_path: Directory in which the PQR, PDB and TCL files are saved.
+        Default is the current directory.
+    :type output_path: str or pathlib.Path
+
+    :arg num_samples: Number of samples per tetrahedron used to represent
+        channels, pores and links. Default is 5.
+    :type num_samples: int
+
+    :returns: Paths to the result PQR file, protein PDB file and VMD TCL script.
+    :rtype: tuple 
+    
+    Usage (for channels):
+    atoms = parsePDB('1tqn').select("protein")
+    channels, surface = calcChannels(atoms)
+    writeVmdCaviTracerScript(channels, atoms)
+
+    Next (bash console): 
+    >> vmd -e vis_channels.tcl
+    
+    Pores: writeVmdCaviTracerScript(pores, protein, object_type='pores')
+    
+    Links: writeVmdCaviTracerScript(details['links'], protein, object_type='links')
+    
+    Surface Cavities: writeVmdCaviTracerScript(cavities, protein,
+                         object_type='surface_cavities', surface=cavity_surface)
+     
+    Surface cavities+ channels: writeVmdCaviTracerScript(connected, protein,
+                         object_type='connected_cavities_channels',
+                         surface=cavity_surface)   """
+
+    if PY3K:
+        from pathlib import Path
+    else:
+        from pathlib2 import Path
+
+    _requireCoords(atoms)
+
+    aliases = {
+        'channel': 'channels',
+        'channels': 'channels',
+        'pore': 'pores',
+        'pores': 'pores',
+        'link': 'links',
+        'links': 'links',
+        'cavity': 'surface_cavities',
+        'cavities': 'surface_cavities',
+        'surface_cavity': 'surface_cavities',
+        'surface_cavities': 'surface_cavities',
+        'connected': 'connected_cavities_channels',
+        'connected_cavity_channel': 'connected_cavities_channels',
+        'connected_cavities_channels': 'connected_cavities_channels'}
+
+    object_type = aliases.get(str(object_type).lower())
+
+    if object_type is None:
+        raise ValueError(
+            "object_type must be 'channels', 'pores', 'links', "
+            "'surface_cavities' or 'connected_cavities_channels'")
+
+    if object_type in ('surface_cavities', 'connected_cavities_channels'):
+        if surface is None or len(surface) < 5:
+            raise ValueError(
+                "surface returned by calcSurfaceCavities() must be provided "
+                "for object_type='{0}'.".format(object_type))
+
+    if objects is None:
+        raise ValueError("objects cannot be None")
+
+    if isinstance(objects, list):
+        if not objects:
+            raise ValueError("objects contains no CaviTracer objects to visualize")
+    else:
+        objects = [objects]
+
+    output_path = Path(output_path)
+
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+
+    if not output_path.is_dir():
+        raise ValueError("output_path must be a directory")
+
+    names = {'channels': ('channels', 'vis_channels'),
+             'pores': ('pores', 'vis_pores'),
+             'links': ('links', 'vis_links'),
+             'surface_cavities': ('cavities', 'vis_surface_cavities'),
+             'connected_cavities_channels':
+            ('connected_cavities_channels',
+             'vis_connected_cavities_channels')}
+
+    result_stem, script_stem = names[object_type]
+
+    number = 0
+
+    while True:
+        suffix = '' if number == 0 else '-{0}'.format(number)
+
+        result_file = output_path / (
+            result_stem + suffix + '.pqr')
+        protein_file = output_path / (
+            'protein' + suffix + '.pdb')
+        script_file = output_path / (
+            script_stem + suffix + '.tcl')
+
+        if not (result_file.exists() or
+                protein_file.exists() or
+                script_file.exists()):
+            break
+
+        number += 1
+
+    writePDB(str(protein_file), atoms)
+    _writeViewerPQR(result_file, objects, object_type, surface, num_samples)
+
+    _writeVmdScript(script_file, protein_file, result_file, object_type)
+
+    LOGGER.info("CaviTracer VMD files written:")
+    LOGGER.info("    protein: {0}".format(protein_file))
+    LOGGER.info("    results: {0}".format(result_file))
+    LOGGER.info("    VMD script: {0}".format(script_file))
+    LOGGER.info("View the result with: vmd -e {0}".format(script_file.name))
+
+    return str(result_file), str(protein_file), str(script_file)
+
+
+def _writeVmdScript(script_file, protein_file, result_file, object_type):
+    """Write the VMD script drawing the PQR *result_file* over the structure
+    *protein_file*.
+
+    The script reads the PQR itself rather than through VMD's reader, which
+    takes only the first ``MODEL`` of a file whose models differ in size, as
+    the frames of a :func:`mergeFramesPQR` file do. Each ``MODEL`` becomes a
+    molecule, a file of one structure a single one, all drawn alike and
+    coloured by rank; with several, VMD's animation slider shows one frame's
+    molecule at a time. The number of ranks to colour is read from the file
+    too, so a file written by :func:`writeVmdCaviTracerScript` and one already
+    on disk open alike."""
+
+    import os
+    from pathlib import Path
+
+    script_dir = str(Path(script_file).parent)
+
+    # The most residues any one frame holds on any one chain: the ranks the
+    # script colours, each chain's objects taking the palette from rank 0.
+    residues, frame = {}, None
+    with open(str(result_file)) as handle:
+        for line in handle:
+            if line.startswith('MODEL'):
+                frame = line[5:].strip()
+            elif line.startswith(('ATOM', 'HETATM')):
+                residues.setdefault((frame, line[21]), set()).add(line[22:26])
+    ranks = max(len(resids) for resids in residues.values()) if residues else 0
+
+    def named(path):
+        """*path* as the script finds it: from its own directory."""
+        try:
+            return os.path.relpath(str(path), script_dir)
+        except ValueError:
+            return str(Path(path).resolve())    # on another drive
+
+    # ------------------------------------------------------------------
+    # VMD script
+    # ------------------------------------------------------------------
+
+    tcl = r'''# CaviTracer visualization for VMD
+#
+# Run with:
+#     vmd -e __SCRIPT_NAME__
+
+set script_dir [file dirname [file normalize [info script]]]
+
+set protein_file [file join $script_dir {__PROTEIN_FILE__}]
+set result_file  [file join $script_dir {__RESULT_FILE__}]
+set object_type "__OBJECT_TYPE__"
+
+# ----------------------------------------------------------------------
+# Display
+# ----------------------------------------------------------------------
+
+color Display Background white
+display projection Orthographic
+display depthcue off
+axes location Off
+
+# ----------------------------------------------------------------------
+# Protein
+# ----------------------------------------------------------------------
+
+mol new $protein_file type pdb waitfor all
+set protein_mol [molinfo top]
+mol rename $protein_mol "Protein"
+
+mol delrep 0 $protein_mol
+
+mol representation NewCartoon
+mol color ColorID 2
+mol selection "protein"
+mol material Opaque
+mol addrep $protein_mol
+
+mol representation Surf
+mol color ColorID 8
+mol selection "protein"
+mol material Transparent
+mol addrep $protein_mol
+
+# ----------------------------------------------------------------------
+# CaviTracer object
+# ----------------------------------------------------------------------
+
+# The PQR is read here rather than by VMD's PQR reader, which takes only the
+# first MODEL of a file whose models differ in size, as the frames of a
+# multi-model file do. Each MODEL becomes a molecule of its own, and a file
+# of one structure a single one. CaviTracer stores the sphere radius in the
+# final PQR field.
+
+proc load_cavitracer_frames {filename} {
+
+    set frames {}
+    set number ""
+    set records {}
+    set handle [open $filename r]
+
+    while {[gets $handle line] >= 0} {
+
+        set record [string range $line 0 5]
+
+        if {$record eq "MODEL "} {
+            set number [string trim [string range $line 5 end]]
+        } elseif {$record eq "ATOM  " || $record eq "HETATM"} {
+            lappend records $line
+        } elseif {$record eq "ENDMDL"} {
+            lappend frames [list $number $records]
+            set records {}
+        }
+    }
+
+    close $handle
+
+    if {[llength $records] > 0} {
+        lappend frames [list $number $records]
+    }
+
+    set molecules {}
+
+    foreach frame $frames {
+
+        lassign $frame number records
+
+        set xyz {}
+        set radii {}
+        set resids {}
+        set chains {}
+
+        foreach line $records {
+            lappend xyz [list [string trim [string range $line 30 37]] \
+                              [string trim [string range $line 38 45]] \
+                              [string trim [string range $line 46 53]]]
+            lappend radii [lindex [regexp -all -inline {\S+} $line] end]
+            lappend resids [string trim [string range $line 22 25]]
+            lappend chains [string index $line 21]
+        }
+
+        set molid [mol new atoms [llength $records]]
+        animate dup $molid
+
+        set sel [atomselect $molid "all"]
+        $sel set {x y z} $xyz
+        $sel set radius $radii
+        $sel set resid $resids
+        $sel set chain $chains
+        $sel set resname FIL
+        $sel set name H
+        $sel delete
+
+        lappend molecules [list $molid $number]
+    }
+
+    return $molecules
+}
+
+set result_mols [load_cavitracer_frames $result_file]
+
+# VMD ColorIDs used for consecutive CaviTracer objects.
+__PALETTE__
+
+set ncolors [llength $cavitracer_colors]
+
+proc add_vdw_objects {molid selection_prefix colors ncolors} {
+
+    set all [atomselect $molid $selection_prefix]
+    set resids [lsort -integer -unique [$all get resid]]
+    $all delete
+
+    set index 0
+
+    foreach resid $resids {
+
+        set color_id [lindex $colors [expr {$index % $ncolors}]]
+
+        mol representation VDW 1.0 20.0
+        mol color ColorID $color_id
+        mol selection "$selection_prefix and resid $resid"
+        mol material Opaque
+        mol addrep $molid
+
+        incr index
+    }
+}
+
+proc add_quicksurf_objects {molid selection_prefix colors ncolors} {
+
+    set all [atomselect $molid $selection_prefix]
+    set resids [lsort -integer -unique [$all get resid]]
+    $all delete
+
+    set index 0
+
+    foreach resid $resids {
+
+        set color_id [lindex $colors [expr {$index % $ncolors}]]
+
+        mol representation QuickSurf 1.0 0.5 0.25 2.0
+        mol color ColorID $color_id
+        mol selection "$selection_prefix and resid $resid"
+        mol material Opaque
+        mol addrep $molid
+
+        incr index
+    }
+}
+
+# Every molecule is drawn alike: the one of a single structure, or each
+# frame's.
+foreach entry $result_mols {
+
+    set result_mol [lindex $entry 0]
+
+    if {$object_type == "channels"} {
+
+        mol rename $result_mol "CaviTracer channels"
+        add_vdw_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
+
+    } elseif {$object_type == "pores"} {
+
+        mol rename $result_mol "CaviTracer pores"
+        add_vdw_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
+
+    } elseif {$object_type == "links"} {
+
+        mol rename $result_mol "CaviTracer links"
+        add_vdw_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
+
+    } elseif {$object_type == "surface_cavities"} {
+
+        mol rename $result_mol "CaviTracer surface cavities"
+        add_quicksurf_objects $result_mol "resname FIL" \
+            $cavitracer_colors $ncolors
+
+    } elseif {$object_type == "connected_cavities_channels"} {
+
+        mol rename $result_mol "CaviTracer connected cavities and channels"
+
+        # _saveConnectedCavityChannels writes cavity markers in chain C
+        # and channel spheres in chain H.
+        add_quicksurf_objects $result_mol "resname FIL and chain C" \
+            $cavitracer_colors $ncolors
+
+        add_vdw_objects $result_mol "resname FIL and chain H" \
+            $cavitracer_colors $ncolors
+    }
+}
+
+# The protein is the top molecule, unless there are frames to step through.
+set top_mol $protein_mol
+
+# Several frames: each molecule is named for its frame, and a molecule of one
+# atom and a frame per frame of the file drives them. VMD's animation slider
+# moves it, and each move shows that frame's molecule alone.
+if {[llength $result_mols] > 1} {
+
+    foreach entry $result_mols {
+        mol rename [lindex $entry 0] "frame [lindex $entry 1]"
+    }
+
+    # The atom sits on the first sphere, where it cannot pull the view away.
+    set first [atomselect [lindex [lindex $result_mols 0] 0] "index 0"]
+    set frame_driver [mol new atoms 1]
+    mol rename $frame_driver "CaviTracer frames"
+    animate dup $frame_driver
+    set atom [atomselect $frame_driver "all"]
+    $atom set {x y z} [$first get {x y z}]
+    $atom delete
+    $first delete
+
+    for {set i 1} {$i < [llength $result_mols]} {incr i} {
+        animate dup $frame_driver
+    }
+
+    proc show_cavitracer_frame {args} {
+
+        global frame_driver result_mols
+
+        set current [molinfo $frame_driver get frame]
+        set index 0
+
+        foreach entry $result_mols {
+            if {$index == $current} {
+                mol on [lindex $entry 0]
+            } else {
+                mol off [lindex $entry 0]
+            }
+            incr index
+        }
+    }
+
+    trace add variable ::vmd_frame($frame_driver) write show_cavitracer_frame
+    set top_mol $frame_driver
+
+    # Only the driver follows the animation. VMD rebuilds the representations
+    # of every active molecule at each change of frame, and the protein's
+    # surface alone took seconds a step, though it has a single frame.
+    mol inactive $protein_mol
+    foreach entry $result_mols {
+        mol inactive [lindex $entry 0]
+    }
+
+    molinfo $frame_driver set frame 0
+    show_cavitracer_frame
+}
+
+# Centre the complete view.
+mol top $top_mol
+display resetview
+
+puts ""
+puts "CaviTracer visualization ready."
+puts "Protein: __PROTEIN_FILE__"
+puts "Result:  __RESULT_FILE__"
+'''
+
+    tcl = tcl.replace('__SCRIPT_NAME__', Path(script_file).name)
+    tcl = tcl.replace('__PROTEIN_FILE__', named(protein_file))
+    tcl = tcl.replace('__RESULT_FILE__', named(result_file))
+    tcl = tcl.replace('__OBJECT_TYPE__', object_type)
+    # A colour for every rank drawn, from the palette of the PyMOL and ChimeraX
+    # scripts, so that a channel is the same colour whichever of them shows it.
+    tcl = tcl.replace('__PALETTE__', _vmdPalette(ranks))
+
+    with open(str(script_file), 'w') as handle:
+        handle.write(tcl)
 
 def writeVmdMultiModelScript(pqr_file, atoms, output_path='.',
                              object_type='channels'):
