@@ -424,7 +424,53 @@ class TestSelect(unittest.TestCase):
 
     """Test :class:`.Select`."""
 
-    pass
+    def testArithmeticPromotion(self):
+
+        atoms = AtomGroup('arithmetic')
+        coords = np.array([[1.5, 0., 0.], [2.5, 0., 0.],
+                           [3.5, 0., 0.], [4.5, 0., 0.]])
+        resnums = np.array([1, 2, 3, 4])
+        serials = np.array([2, 4, 4, 4])
+        atoms.setCoords(coords)
+        atoms.setResnums(resnums)
+        atoms.setSerials(serials)
+        cases = [
+            ('resnum - 0.5 > 1', [1, 2, 3]),
+            ('resnum + 0.5 < 3', [0, 1]),
+            ('resnum * 0.5 > 1', [2, 3]),
+            ('resnum / 2 > 1', [2, 3]),
+            ('resnum % 2.0 == 1', [0, 2]),
+            ('0.5 - resnum < -1', [1, 2, 3]),
+            ('2 / resnum < 1', [2, 3]),
+            ('resnum - x < 0', [0, 1, 2, 3]),
+            ('x - resnum > 0', [0, 1, 2, 3]),
+            ('resnum / serial > 0.75', [3]),
+            ('resnum * serial > 8', [2, 3]),
+            ('resnum + 0.5 - 0.25 > 3', [2, 3]),
+            ('resnum + 1.5 * 2 > 6', [3]),
+            ('(resnum + 1.5) * 2 > 6', [1, 2, 3]),
+            ('x * 0.5 < 1.5', [0, 1]),
+            ('(1 + 2) * resnum > 6', [2, 3]),
+        ]
+        for selstr, expected in cases:
+            with self.subTest(selstr=selstr):
+                assert_array_equal(atoms.select(selstr).getIndices(), expected)
+                assert_array_equal(atoms.getResnums(), resnums)
+                assert_array_equal(atoms.getSerials(), serials)
+                assert_array_equal(atoms.getCoords(), coords)
+
+    def testIntegerArithmeticPrecision(self):
+
+        atoms = AtomGroup('integer arithmetic')
+        large = np.array([2**53 + 1, 2**53 + 2], dtype=np.int64)
+        base = np.array([2**53, 2**53], dtype=np.int64)
+        atoms.setCoords(np.zeros((2, 3)))
+        atoms.setData('wideints', large)
+        atoms.setData('offsets', base)
+        result = atoms.select('wideints - offsets == 1')
+        assert_array_equal(result.getIndices(), [0])
+        assert_array_equal(atoms.getData('wideints'), large)
+        assert_array_equal(atoms.getData('offsets'), base)
 
 count = 0
 for case, items in SELECTION_TESTS.items():
