@@ -32,7 +32,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'calcChannelSurfaceOverlaps', 'calcSurfaceCavities', 
            'calcSurfaceCavitiesMultipleFrames', 'getSurfaceCavityParameters',
            'getSurfaceCavityResidueNames', 'selectSurfaceCavityBySelection',
-           'calcSurfaceCavityOverlaps', 'getLiningResindexMask',
+           'calcSurfaceCavityOverlaps', 'getLiningResindexMask', 'getResidueOrientation', 
            'getLiningResidues','getSiteScores','getSiteScoreStats', 'getLiningResIndices',
            'getSurfaceCavityResidueNamesMultipleFrames',
            'getSurfaceCavityParametersMultipleFrames', 
@@ -5088,19 +5088,25 @@ def getResidueOrientation(context):
     sc_com[has_sc] = sc_sum[has_sc] / sc_count[has_sc, None]
 
     valid = ~np.isnan(sc_com[:, 0]) & ~np.isnan(ca_coords[:, 0])
-    ca_coords = ca_coords[valid]
-    sc_com = sc_com[valid]
 
-    center_tree = _kdTree(centers) 
-    _, idx = center_tree.query(ca_coords)
+    orientation = np.full(n_res, np.nan)
 
-    v = sc_com - ca_coords
-    v /= np.linalg.norm(v, axis=1, keepdims=True)
+    if np.any(valid):
+        ca_valid = ca_coords[valid]
+        sc_valid = sc_com[valid]
 
-    n = centers[idx] - ca_coords
-    n /= np.linalg.norm(n, axis=1, keepdims=True)
+        center_tree = _kdTree(centers)
+        _, idx = center_tree.query(ca_valid)
 
-    return np.einsum("ij,ij->i", v, n)
+        v = sc_valid - ca_valid
+        v /= np.linalg.norm(v, axis=1, keepdims=True)
+
+        n = centers[idx] - ca_valid
+        n /= np.linalg.norm(n, axis=1, keepdims=True)
+
+        orientation[valid] = np.einsum("ij,ij->i", v, n)
+
+    return orientation
 
 
 def _jsonDefault(obj):
