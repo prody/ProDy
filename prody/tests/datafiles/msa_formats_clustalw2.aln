@@ -1,0 +1,17 @@
+CLUSTAL 2.1 multiple sequence alignment
+
+
+sp|P01.2|ABC_HUMAN      ACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWY 60
+tr:Q8.1*                ACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWYACDEFGHIKL-NPQRSTVWY 59
+seq.3                   ACDEFGHIKLMNPQRSTVWYACDEF-HIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWY 59
+                        *************************.****************** **************
+
+sp|P01.2|ABC_HUMAN      ACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWY 120
+tr:Q8.1*                --DEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWY 117
+seq.3                   ACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWY 119
+                          **************************************:*******************
+
+sp|P01.2|ABC_HUMAN      MNPQ 124
+tr:Q8.1*                MN-- 119
+seq.3                   MNAC 123
+                        **

@@ -1,0 +1,15 @@
+# STOCKHOLM 1.0
+#=GF ID   First_family
+
+/query           ACDEFGHIKL
+P99999.2/1-15    AC-EFGHIK-
+
+/query           MNPQR
+P99999.2/1-15    mn-qr
+//
+# STOCKHOLM 1.0
+#=GF ID   Second_family
+
+other            GGGGGGGGGG
+another          HHHHHHHHHH
+//

@@ -1,0 +1,12 @@
+CLUSTAL W (1.83) multiple sequence alignment
+
+
+1abc.A          ACDEFGHIKL
+model:2         AC-EFGHIKL
+target*         ACDEF-HIKL
+                ** ** ****
+
+1abc.A          MNPQ
+model:2         MN-Q
+target*         MNPQ
+                ** *
