@@ -119,6 +119,22 @@ class TestNeoAdaptiveANM(unittest.TestCase):
                                  geom_bond_hi=0, geom_clash=0, contact_on=0)
         self.assertGreater(ens.numConfs(), 1)
 
+    def testSuperposedRMSDOption(self):
+        """superposed_rmsd measures shape only: the RMSD it reports is never above the plain one, the off setting
+        reproduces the default path exactly, and the run keeps every step guarantee."""
+        from prody.dynamics.neo_adaptive import _rmsd_to
+        X, T = OPEN.getCoords(), CLOSED.getCoords()
+        R = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
+        self.assertLessEqual(_rmsd_to(X, T, superposed=True), _rmsd_to(X, T) + 1e-9)
+        self.assertAlmostEqual(_rmsd_to(T @ R.T + 5.0, T, superposed=True), 0.0, places=6)
+        assert_array_equal(X, OPEN.getCoords())                      # the coordinates themselves are not moved
+        off = calcNeoAdaptiveANM(OPEN, CLOSED, N_STEPS, model='genanm', superposed_rmsd=False)
+        assert_array_equal(off.getCoordsets(), self.ens.getCoordsets())
+        on = calcNeoAdaptiveANM(OPEN, CLOSED, N_STEPS, model='genanm', superposed_rmsd=True)
+        self.assertGreater(on.numConfs(), 1)
+        for Y in on.getCoordsets():
+            self.assertLessEqual(bond_lengths(Y).max(), 6.0 + 1e-6)
+
     def testInvalidInput(self):
         self.assertRaises(TypeError, calcNeoAdaptiveANM, OPEN, CLOSED, 2.5)
         self.assertRaises(ValueError, calcNeoAdaptiveANM, OPEN, CLOSED, N_STEPS, mode=7)

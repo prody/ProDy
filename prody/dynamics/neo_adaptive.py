@@ -107,6 +107,16 @@ from .functions import calcENM
 from .generalized_anm import GENANM_MODEL_NAMES
 from .adaptive import AANM_ONEWAY, AANM_ALTERNATING, AANM_BOTHWAYS
 
+
+def _rmsd_to(coords, target, weights=None, superposed=False):
+    """RMSD of *coords* to *target*. With *superposed* the RMSD is taken after the optimal superposition of a copy of
+    *coords* onto *target*, so it measures shape only; the coordinates themselves are never moved. ANM modes carry no
+    rigid-body motion, so a rotation that builds up between the moving structure and the target cannot be removed by
+    later steps; measured without superposition it would keep the RMSD above the target and stall the run."""
+    if superposed:
+        coords = superpose(np.array(coords, dtype=float), np.asarray(target, dtype=float), weights)[0]
+    return calcRMSD(coords, target, weights)
+
 # Defaults: these reproduce the published NeoAdaptiveANM configuration.
 DEFAULT_ADJ_MAX = 6.0      # bond guard: longest allowed sequential Ca-Ca distance (A); native breaks exempt
 DEFAULT_F = 0.2            # step factor
@@ -482,7 +492,7 @@ def checkInput(a, b, **kwargs):
     if not kwargs.get('aligned', False):
         coordsA, _ = superpose(coordsA, coordsB, weights)
 
-    rmsd = calcRMSD(coordsA, coordsB, weights)
+    rmsd = _rmsd_to(coordsA, coordsB, weights, bool(kwargs.get('superposed_rmsd', False)))
     LOGGER.info('Initialized Adaptive ANM with RMSD {:4.3f}\n'.format(rmsd))
 
     return coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd
@@ -775,6 +785,7 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, Fmin,
     risk_topk      = int(kwargs.get('risk_topk', 8))
     model          = kwargs.get('model', 'anm')
     target_rmsd    = float(kwargs.get('target_rmsd', 1.0))
+    superposed_rmsd = bool(kwargs.get('superposed_rmsd', False))   # measure RMSD to the target after superposition
     meaningful_rmsd_improve = float(
         kwargs.get('meaningful_rmsd_improve', max(0.05, 0.05 * target_rmsd))
     )
@@ -854,7 +865,7 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, Fmin,
     Fmin = float(min(Fmin, Fmin_max))
 
     enm_kwargs = dict(kwargs)
-    for key in ('model', 'n_modes', 'trim'):
+    for key in ('model', 'n_modes', 'trim', 'superposed_rmsd'):
         enm_kwargs.pop(key, None)
 
     def _try_step(sel_idx_, sel_vecs_, ov_, f_seed_, rel_stiff_=None, mu_=None):
@@ -913,7 +924,7 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, Fmin,
                     LOGGER.info("steric: rejected step at f_eff=%.4f (non-bonded Ca-Ca %.2f A < %.2f A)"
                                 % (f_eff_, dmin_, clash_min))
                     continue
-            imp_ = rmsd_before_step - calcRMSD(cand_, coords_tar, weights)
+            imp_ = rmsd_before_step - _rmsd_to(cand_, coords_tar, weights, superposed_rmsd)
             if imp_ <= 0.0:
                 continue
             if imp_ > best_imp:
@@ -1208,7 +1219,7 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, Fmin,
     worst_edges_hist.append(worst_end.tolist())
 
     initial[:]       = coords_updated
-    rmsd_after_step  = calcRMSD(initial, coords_tar, weights)
+    rmsd_after_step  = _rmsd_to(initial, coords_tar, weights, superposed_rmsd)
     rmsds.append(rmsd_after_step)
     rmsd_improvement = rmsd_before_step - rmsd_after_step
 
@@ -1585,6 +1596,13 @@ def calcNeoAdaptiveANM(a, b, n_steps=100, mode=AANM_ONEWAY, **kwargs):
 
     :kwarg f: step factor, default 0.2
     :kwarg target_rmsd: RMSD at which the path counts as converged, default 1.0
+    :kwarg superposed_rmsd: measure every RMSD to the target after superposition
+        (shape only), default **False**. ANM modes carry no rigid-body motion,
+        so a rotation that builds up along the path is never removed; without
+        superposition it keeps the RMSD above *target_rmsd* although the shapes
+        have met. The RMSD drives the stop tests, the mode budget (Fmin), the
+        acceptance of each step and the rewinds, so the option changes the
+        path; the coordinates themselves are never superposed.
     :kwarg min_rmsd_diff: stop when the last RMSD changes are all smaller than
         this, default 0.0 (off)
     :kwarg min_rmsd_improve: stop when a step improves the RMSD by less than
