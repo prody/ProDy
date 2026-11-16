@@ -57,7 +57,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
            'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
            'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions',
-           'calcLigandResidueDistances']
+           'calcLigandResidueDistances', 'showLigandResidueDistances']
 
 
 def cleanNumbers(listContacts):
@@ -8887,3 +8887,225 @@ def calcLigandResidueDistances(atoms, trajectory=None, ligand='UNL',
                         (groups[i], labels[i], means[i], sds[i], persistence[i]))
     
     return result
+
+
+def showLigandResidueDistances(data, min_persistence=10.0,
+                               contact_cutoff=None, top_n=18, residues=None,
+                               balance_groups=True, filename=None, **kwargs):
+    """Show a bar plot of residue-ligand minimum distances and persistence."""
+    
+    import os
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize, LinearSegmentedColormap
+    from matplotlib.cm import ScalarMappable
+
+    balance_groups = kwargs.pop('balance_groups', True)
+    save_statistics = kwargs.pop('save_statistics', False)
+
+    label_fontsize = kwargs.pop('label_fontsize', 24)
+    axis_fontsize = kwargs.pop('axis_fontsize', 25)
+    tick_fontsize = kwargs.pop('tick_fontsize', 21)
+    header_fontsize = kwargs.pop('header_fontsize', 25)
+    colorbar_fontsize = kwargs.pop('colorbar_fontsize', 21)
+
+    fig_width = kwargs.pop('fig_width', 11.5)
+    row_height = kwargs.pop('row_height', 0.66)
+    png_dpi = kwargs.pop('png_dpi', 300)
+    xlim = kwargs.pop('xlim', None)
+    show = kwargs.pop('show', None)
+
+    if filename is None and save_statistics:
+        raise ValueError('A filename is required for optional DAT output.')
+    if isinstance(data, (str, os.PathLike)):
+        with np.load(os.fspath(data), allow_pickle=False) as saved:
+            result = {key: saved[key] for key in saved.files}
+    else:
+        result = data
+    dist = np.asarray(result['distances'])
+   
+    if dist.ndim != 2 or dist.size == 0:
+        raise ValueError('Distance matrix is missing or empty.')
+    if not np.isfinite(min_persistence) or not 0 <= float(min_persistence) <= 100:
+        raise ValueError('min_persistence must be between 0 and 100.')
+   
+    cutoff = (float(np.asarray(result['contact_cutoff']).item())
+              if contact_cutoff is None else float(contact_cutoff))
+   
+    if not np.isfinite(cutoff) or cutoff <= 0:
+        raise ValueError('contact_cutoff must be a positive number.')
+    if top_n is not None:
+        top_n = int(top_n)
+        if top_n < 0:
+            raise ValueError('top_n must be nonnegative or None.')
+        if top_n == 0:
+            top_n = None
+    if fig_width <= 0 or row_height <= 0 or png_dpi <= 0:
+        raise ValueError('Figure dimensions and PNG resolution must be positive.')
+    if xlim is not None and (not np.isfinite(xlim) or xlim <= 0):
+        raise ValueError('xlim must be a positive number.')
+
+    persistence = np.mean(dist <= cutoff, axis=0) * 100.0
+    mean = np.mean(dist, axis=0)
+    sd = np.std(dist, axis=0)
+    labels = np.asarray(result['labels']).astype(str)
+    resnames = np.asarray(result['resnames']).astype(str)
+    resnums = np.asarray(result['resnums'], dtype=int)
+    groups = np.asarray(result.get('groups', result['chains'])).astype(str)
+    group_types = np.asarray(result.get('group_types',
+                                       np.full(len(groups), 'Chain'))).astype(str)
+    eligible = np.flatnonzero(persistence >= float(min_persistence))
+    if eligible.size == 0:
+        LOGGER.warn('No residues satisfy the persistence threshold %.1f%%.' %
+                    min_persistence)
+        return []
+
+    def _rank(i):
+        return (-persistence[i], mean[i], int(resnums[i]), labels[i])
+
+    requested_order = None
+    
+    if residues is not None:
+        wanted = ([item.strip() for item in residues.split(',')]
+                  if isinstance(residues, str)
+                  else [str(item).strip() for item in residues])
+        wanted = [item for item in wanted if item]
+        if not wanted:
+            raise ValueError('The residue selection is empty.')
+        requested_order = {}
+        missing = []
+        for j, item in enumerate(wanted):
+            matches = [int(i) for i in eligible if item.upper() in
+                       (labels[i].upper(),
+                        (groups[i] + ':' + labels[i]).upper(),
+                        (resnames[i] + str(resnums[i])).upper(),
+                        (groups[i] + ':' + resnames[i] + str(resnums[i])).upper())]
+            if not matches:
+                missing.append(item)
+            for i in matches:
+                if i not in requested_order:
+                    requested_order[i] = j
+        if missing:
+            raise ValueError('Residues not found or below threshold: %s.' %
+                             ', '.join(missing))
+        selected = list(requested_order)
+        
+    else:
+        selected = sorted(eligible.tolist(), key=_rank)
+        if top_n is not None and len(selected) > top_n:
+            if balance_groups and len(set(groups[selected])) > 1:
+                names = sorted(set(groups[selected]))
+                chosen = []
+                for j, name in enumerate(names):
+                    quota = top_n // len(names) + (j < top_n % len(names))
+                    candidates = [i for i in selected if groups[i] == name]
+                    chosen.extend(candidates[:quota])
+                chosen_set = set(chosen)
+                chosen.extend([i for i in selected if i not in chosen_set]
+                              [:top_n - len(chosen)])
+                selected = chosen
+            else:
+                selected = selected[:top_n]
+
+    names = sorted(set(groups[selected]))
+    indices, positions, ticklabels, headers = [], [], [], []
+    y = 0.0
+    
+    for name in names:
+        group = [i for i in selected if groups[i] == name]
+        group.sort(key=(lambda i: requested_order[i])
+                   if requested_order is not None else _rank)
+        head_type = group_types[group[0]]
+        headers.append((head_type + ' ' + name, y))
+        y += 1.08
+        for i in group:
+            indices.append(i)
+            positions.append(y)
+            ticklabels.append(labels[i])
+            y += 1.0
+        y += 0.85
+
+    fig_height = max(6.4, 2.0 + row_height * y)
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    blues = plt.get_cmap('Blues')
+    cmap = LinearSegmentedColormap.from_list(
+        'Blues_readable', blues(np.linspace(0.30, 0.95, 256)))
+    norm = Normalize(vmin=0.0 if float(min_persistence) == 0 else 10.0,
+                     vmax=100.0)
+    colors = [cmap(norm(persistence[i])) for i in indices]
+    ax.barh(positions, mean[indices], xerr=sd[indices], height=0.76,
+            color=colors, edgecolor='#284764', linewidth=0.8,
+            error_kw={'elinewidth': 1.9, 'ecolor': '#20252a',
+                      'capsize': 4.0, 'capthick': 1.7})
+    ax.set_yticks(positions)
+    ax.set_yticklabels(ticklabels, fontsize=label_fontsize)
+    ax.set_xlabel('Mean minimum distance [Å]', fontsize=axis_fontsize,
+                  labelpad=14)
+    ax.tick_params(axis='x', labelsize=tick_fontsize, width=1.3, length=6)
+    ax.tick_params(axis='y', length=0, pad=12)
+    
+    if xlim is None:
+        ax.set_xlim(left=0)
+    else:
+        ax.set_xlim(0, xlim)
+    
+    ax.set_ylim(y - 0.55, -0.7)
+    
+    for side in ('top', 'right', 'left'):
+        ax.spines[side].set_visible(False)
+    ax.grid(axis='x', alpha=0.13, linewidth=0.75)
+    ax.set_axisbelow(True)
+    
+    for title, yy in headers:
+        ax.text(0.002, yy, title, transform=ax.get_yaxis_transform(),
+                fontsize=header_fontsize, fontweight='bold', va='center',
+                ha='left', clip_on=False)
+    
+    colorbar = fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), ax=ax,
+                            pad=0.035, fraction=0.052, shrink=0.92, aspect=22)
+    colorbar.set_label('Contact persistence [%]', fontsize=axis_fontsize,
+                       labelpad=14)
+    
+    if float(min_persistence) == 0:
+        colorbar.set_ticks([0, 10, 25, 50, 75, 100])
+    else:
+        colorbar.set_ticks([10, 25, 50, 75, 100])
+    colorbar.ax.tick_params(labelsize=colorbar_fontsize, length=5)
+    fig.subplots_adjust(left=0.19, right=0.83, top=0.982,
+                        bottom=max(0.075, min(0.16, 1.1 / fig_height)))
+
+    plotted = [groups[i] + ':' + labels[i] for i in indices]
+    
+    if filename is not None:
+        prefix = os.fspath(filename)
+        parent = os.path.dirname(os.path.abspath(prefix))
+    
+        if not os.path.isdir(parent):
+            os.makedirs(parent)
+        
+        fig.savefig(prefix + '.' + 'png', dpi=png_dpi,
+                        bbox_inches='tight', pad_inches=0.22)
+        LOGGER.info('Saved distance plots as %s.png.' % prefix)
+    
+        if save_statistics:
+            with open(prefix + '_plotted_residues.dat', 'w') as handle:
+                handle.write('# Group Residue Mean_A SD_A Persistence_percent\n')
+                for i in indices:
+                    handle.write('%s %s %.5f %.5f %.3f\n' %
+                                 (groups[i], labels[i], mean[i], sd[i], persistence[i]))
+            LOGGER.info('Saved %s_plotted_residues.dat.' % prefix)
+    
+    if show is None:
+        show = SETTINGS['auto_show']
+    
+    if show:
+        plt.show()
+    
+    if filename is not None and not show:
+        plt.close(fig)
+    
+    LOGGER.info('Plotted %d residues (cutoff %.2f A, minimum persistence %.1f%%).'
+                % (len(plotted), cutoff, min_persistence))
+    LOGGER.info('Residues on figure: %s' % ', '.join(plotted))
+    
+    return plotted
+
