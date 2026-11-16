@@ -160,7 +160,9 @@ def _bonded_mask(atoms, n_atoms, coords=None, break_dist=4.6):
             ok = False
         if resnums is not None and int(resnums[i + 1]) - int(resnums[i]) != 1:
             ok = False
-        bonded[i] = ok
+        # combine with the distance backstop above; assigning ``ok`` alone would
+        # discard it whenever annotation is present
+        bonded[i] = bonded[i] and ok
 
     n_breaks = int(np.count_nonzero(~bonded))
     if n_breaks:
