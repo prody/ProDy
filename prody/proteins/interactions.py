@@ -8892,7 +8892,78 @@ def calcLigandResidueDistances(atoms, trajectory=None, ligand='UNL',
 def showLigandResidueDistances(data, min_persistence=10.0,
                                contact_cutoff=None, top_n=18, residues=None,
                                balance_groups=True, filename=None, **kwargs):
-    """Show a bar plot of residue-ligand minimum distances and persistence."""
+    """Show a bar plot of residue-ligand minimum distances and persistence.
+    
+    Each bar shows the mean of minimum heavy-atom distances across all
+    analyzed conformations. Error bars show the corresponding standard
+    deviation. Bar colors represent contact persistence (percentage of
+    conformations with a minimum distance <= *contact_cutoff*). Only the
+    plotted residues are affected by *min_persistence* and *top_n*.
+
+    :arg data: Results of :func:`.calcLigandResidueDistances`, or a previously
+        saved ``.npz`` file.
+    :type data: dict or str
+
+    :arg min_persistence: Minimum contact persistence [%] for display.
+        Default is 10.0. Use 0 to include all residues.
+    :type min_persistence: float
+
+    :arg contact_cutoff: Contact threshold (Angstroms) used to calculate
+        persistence. If None, use the cutoff stored in *data*. Default is None.
+        Changing it does not modify the calculated mean or standard deviation.
+    :type contact_cutoff: float or None
+
+    :arg top_n: Maximum number of residues to show, ranked by contact
+        persistence. Default is 18. Use 0 or None to show all eligible residues.
+    :type top_n: int or None
+
+    :arg residues: Optional comma-separated string or list of residue labels,
+        e.g. ``'L420,Y185'`` or ``'A:L420,B:R75'``. Overrides *top_n*.
+    :type residues: str or list or None
+
+    :arg balance_groups: If True (default), distribute *top_n* between protein
+        chains/segments, then fill any remaining positions by persistence.
+    :type balance_groups: bool
+
+    :arg filename: Optional filename prefix for PNG figures. If None (default), 
+        no figure files are written.
+    :type filename: str or None
+
+    :arg save_statistics: If True, write ``_plotted_residues.dat`` alongside
+        the figure files. Requires *filename*. Default is False.
+    :type save_statistics: bool
+
+    :arg label_fontsize: Font size of residue names. Default is 24.
+    :type label_fontsize: int
+
+    :arg axis_fontsize: Font size of axis and colorbar labels. Default is 25.
+    :type axis_fontsize: int
+
+    :arg tick_fontsize: Font size of axis tick labels. Default is 21.
+    :type tick_fontsize: int
+
+    :arg header_fontsize: Font size of chain/segment headings. Default is 25.
+    :type header_fontsize: int
+
+    :arg colorbar_fontsize: Font size of colorbar tick labels. Default is 21.
+    :type colorbar_fontsize: int
+
+    :arg fig_width: Figure width in inches. Default is 11.5.
+    :type fig_width: float
+
+    :arg row_height: Height in inches per bar. Default is 0.66.
+    :type row_height: float
+
+    :arg png_dpi: Resolution for PNG figures. Default is 300.
+    :type png_dpi: int
+
+    :arg xlim: Optional maximum value of the distance axis (Angstroms).
+        If None, the upper limit is determined automatically.
+    :type xlim: float or None
+
+    :arg show: Whether to display the figure. If None, follow
+        ``SETTINGS['auto_show']``.
+    :type show: bool or None  """
     
     import os
     import matplotlib.pyplot as plt
