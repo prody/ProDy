@@ -123,6 +123,18 @@ The following functions can be used to generate transitions between conformers u
   * :func:`.calcNeoAdaptiveANM` - generate physical transitions, soft modes first, with a
     steric test, geometric correction and contact springs
 
+The following functions analyze transition pathways, such as those of NeoAdaptiveANM; each
+``calc`` function has a ``show`` companion that plots its result:
+
+  * :func:`.calcPathGeometry` - RMSD and chain geometry of every frame against native-aware limits
+  * :func:`.calcStepWork` - elastic work, effective stiffness and mode content of every step
+  * :func:`.calcDeformationModes` - decomposition of a conformational change over normal modes
+  * :func:`.calcRouteDistance` - distance between two routes
+  * :func:`.calcClosestApproach` - closest approach of a path to a structure, against the straight line
+  * :func:`.calcPathPCA` - several paths in the plane of their principal components
+  * :func:`.buildAllAtomPath` - all-atom trajectory from a C-alpha path
+  * :func:`.dropMidpoints` - accepted steps only, without the stored midpoints
+
 ENM-MD hybrid methods
 ===================
 
@@ -372,6 +384,10 @@ __all__.extend(adaptive.__all__)
 from . import neo_adaptive
 from .neo_adaptive import *
 __all__.extend(neo_adaptive.__all__)
+
+from . import pathtools
+from .pathtools import *
+__all__.extend(pathtools.__all__)
 
 from . import clustenm
 from .clustenm import *
