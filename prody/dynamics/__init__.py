@@ -317,9 +317,6 @@ from . import generalized_anm
 from .generalized_anm import *
 __all__.extend(generalized_anm.__all__)
 
-from . import generalized_anm
-from .generalized_anm import *
-__all__.extend(generalized_anm.__all__)
 
 from . import rtb
 from .rtb import *
