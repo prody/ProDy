@@ -56,7 +56,8 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'showSminaLigandStructure',
            'showSminaTermValues', 'showPairEnergy', 'checkNonstandardResidues',
            'saveInteractionsAsDummyAtoms', 'createFoldseekAlignment', 'runFoldseek', 'runDali', 
-           'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions']
+           'runBLAST', 'extractMultiModelPDB', 'calcSignatureInteractions',
+           'calcLigandResidueDistances']
 
 
 def cleanNumbers(listContacts):
@@ -8529,3 +8530,301 @@ class LigandInteractionsTrajectory(object):
 
         return freq_contacts_list
 
+
+def calcLigandResidueDistances(atoms, trajectory=None, ligand='UNL',
+                               ligand_segname=None, ligand_resnum=None,
+                               ligand_chain=None, protein_selection='protein',
+                               contact_cutoff=5.0, filename=None,
+                               save_statistics=False, save_per_frame=False,
+                               output=False):
+    """Calculate minimum distances between protein residues and a ligand."""
+    
+    import os
+    import gzip
+    from scipy.spatial import cKDTree
+    from prody.atomic import AAMAP
+
+    if not np.isfinite(contact_cutoff) or contact_cutoff <= 0:
+        raise ValueError('contact_cutoff must be a positive number.')
+    if filename is None and (save_statistics or save_per_frame):
+        raise ValueError('A filename is required for optional DAT output.')
+    if not isinstance(protein_selection, str) or not protein_selection.strip():
+        raise ValueError('protein_selection must be a nonempty selection string.')
+
+    is_path = isinstance(atoms, (str, os.PathLike))
+    pdb_path = os.fspath(atoms) if is_path else None
+    has_trajectory = trajectory is not None
+    
+    if is_path:
+        if not os.path.isfile(pdb_path):
+            raise IOError('PDB file not found: ' + pdb_path)
+        structure = parsePDB(pdb_path, model=1)
+    else:
+        structure = atoms
+
+    if structure is None or not hasattr(structure, 'select'):
+        raise TypeError('atoms must be a PDB filename or a ProDy Atomic object.')
+    if structure.numAtoms() < 1:
+        raise ValueError('Input structure has no atoms.')
+
+    ligand_selection = 'resname ' + str(ligand)
+    if ligand_segname is not None:
+        ligand_selection += ' and segname ' + str(ligand_segname)
+    if ligand_resnum is not None:
+        ligand_selection += ' and resnum ' + str(int(ligand_resnum))
+    if ligand_chain is not None:
+        ligand_selection += ' and chain ' + str(ligand_chain)
+    
+    ligand_atoms = structure.select('(' + ligand_selection + ') and noh')
+    protein_atoms = structure.select('(' + protein_selection + ') and noh')
+    
+    if ligand_atoms is None:
+        raise ValueError('No ligand heavy atoms for: ' + ligand_selection)
+    if protein_atoms is None:
+        raise ValueError('No protein heavy atoms for: ' + protein_selection)
+
+    ligand_ids = np.asarray(ligand_atoms.getIndices(), dtype=np.int64)
+    protein_ids = np.asarray(protein_atoms.getIndices(), dtype=np.int64)
+    n_atoms = structure.numAtoms()
+    
+    if max(int(ligand_ids.max()), int(protein_ids.max())) >= n_atoms:
+        raise ValueError('Provide the full AtomGroup, not an indexed Selection.')
+
+    def _metadata(selection, getter, default=''):
+        method = getattr(selection, getter, None)
+        values = method() if method is not None else None
+        if values is None:
+            return [default] * selection.numAtoms()
+        return list(values)
+
+    ligand_keys = set()
+    for ch, seg, rn, ic in zip(_metadata(ligand_atoms, 'getChids'),
+                               _metadata(ligand_atoms, 'getSegnames'),
+                               _metadata(ligand_atoms, 'getResnums', 0),
+                               _metadata(ligand_atoms, 'getIcodes')):
+        ligand_keys.add((str(ch).strip(), str(seg).strip(),
+                         int(rn), str(ic).strip()))
+    
+    if len(ligand_keys) != 1:
+        raise ValueError('Ligand selection contains %d residues; restrict it '
+                         'using ligand_chain, ligand_segname or ligand_resnum.' %
+                         len(ligand_keys))
+
+    resnames = _metadata(protein_atoms, 'getResnames')
+    resnums = _metadata(protein_atoms, 'getResnums', 0)
+    chids = _metadata(protein_atoms, 'getChids')
+    segnames = _metadata(protein_atoms, 'getSegnames')
+    icodes = _metadata(protein_atoms, 'getIcodes')
+
+    residue_keys = []
+    residue_lookup = {}
+    atom_resindices = np.empty(protein_atoms.numAtoms(), dtype=np.int32)
+    
+    for i, (rn, num, ch, seg, ic) in enumerate(zip(resnames, resnums, chids,
+                                                   segnames, icodes)):
+        key = (str(ch).strip(), str(seg).strip(), str(rn).strip(),
+               int(num), str(ic).strip())
+        if key not in residue_lookup:
+            residue_lookup[key] = len(residue_keys)
+            residue_keys.append(key)
+        atom_resindices[i] = residue_lookup[key]
+
+    # Prefer PDB chain identifiers where they uniquely identify structural
+    # groups. If several segments share a chain ID, distinguish them by their
+    # segment names.
+    chain_segments = {}
+    for ch, seg, _, _, _ in residue_keys:
+        chain_segments.setdefault(ch, set()).add(seg)
+    group_lookup = {}
+    used_labels = set()
+    for ch, seg in [(key[0], key[1]) for key in residue_keys]:
+        pair = (ch, seg)
+        if pair in group_lookup:
+            continue
+        if ch and len(chain_segments[ch]) == 1:
+            label, category = ch, 'Chain'
+        elif seg:
+            label, category = seg, 'Segment'
+        elif ch:
+            label, category = ch, 'Chain'
+        else:
+            label, category = '?', 'Group'
+        if label in used_labels:
+            label = (ch or '?') + '/' + (seg or '?')
+        if label in used_labels:
+            raise ValueError('Cannot distinguish the protein chain/segment groups.')
+        used_labels.add(label)
+        group_lookup[pair] = (label, category)
+
+    groups = [group_lookup[(key[0], key[1])][0] for key in residue_keys]
+    group_types = [group_lookup[(key[0], key[1])][1] for key in residue_keys]
+
+    # The nearest ligand atom is found for each protein atom. The minimum of
+    # these distances within each residue yields the same minimum heavy-atom
+    # distance as a residue-by-ligand atom search.
+    atom_order = np.argsort(atom_resindices, kind='stable')
+    sorted_indices = atom_resindices[atom_order]
+    starts = np.r_[0, np.flatnonzero(np.diff(sorted_indices)) + 1]
+
+    def _pdb_frames(path):
+        """Read coordinates from PDB files, including multi-model and gzipped PDBs.
+           Yield the model index and atomic coordinates for each model without
+           loading the entire structure into memory. """
+        opener = gzip.open if path.lower().endswith('.gz') else open
+        with opener(path, 'rt') as handle:
+            coords = []
+            model_found = False
+            model_index = 0
+            for line in handle:
+                record = line[:6].strip()
+                if record == 'MODEL':
+                    model_found = True
+                    if coords:
+                        raise ValueError('MODEL before ENDMDL in ' + path)
+                    continue
+                if record in ('ATOM', 'HETATM'):
+                    if line[16:17] not in (' ', 'A'):
+                        continue
+                    try:
+                        coords.append((float(line[30:38]), float(line[38:46]),
+                                       float(line[46:54])))
+                    except ValueError:
+                        raise ValueError('Invalid PDB coordinates: ' + line.rstrip())
+                elif record == 'ENDMDL':
+                    if coords:
+                        model_index += 1
+                        yield model_index, np.asarray(coords, dtype=float)
+                        coords = []
+                elif record == 'END' and not model_found:
+                    break
+            if coords:
+                model_index += 1
+                yield model_index, np.asarray(coords, dtype=float)
+
+    opened_traj = False
+    if has_trajectory:
+        if isinstance(trajectory, (str, os.PathLike)):
+            traj = Trajectory(os.fspath(trajectory))
+            opened_traj = True
+        else:
+            traj = trajectory
+        if traj.numAtoms() != n_atoms:
+            if opened_traj:
+                traj.close()
+            raise ValueError('Trajectory and PDB atom counts differ; atom order '
+                             'must also be identical.')
+        traj.reset()
+        n_frames = int(traj.numFrames())
+        frames = ((i + 1, frame.getCoords()) for i, frame in enumerate(traj))
+    elif is_path:
+        n_frames = None
+        frames = _pdb_frames(pdb_path)
+    else:
+        n_frames = int(structure.numCoordsets())
+        if n_frames < 1:
+            raise ValueError('No conformations found in the input Atomic object.')
+        acs_index = structure.getACSIndex()
+
+        def _atomic_frames():
+            try:
+                for i in range(n_frames):
+                    structure.setACSIndex(i)
+                    yield i + 1, structure.getCoords()
+            finally:
+                structure.setACSIndex(acs_index)
+        frames = _atomic_frames()
+
+    distances_list = []
+    frame_numbers = []
+    first_coords = structure.getCoords()
+    first_checked = False
+    try:
+        for frame_number, xyz in frames:
+            xyz = np.asarray(xyz)
+            if xyz.shape != (n_atoms, 3):
+                raise ValueError('Frame %d: expected coordinates for %d atoms, '
+                                 'received %d.' % (frame_number, n_atoms, len(xyz)))
+            if is_path and not has_trajectory and not first_checked:
+                if not np.allclose(xyz, first_coords, atol=0.025, rtol=0):
+                    raise ValueError('PDB MODEL 1 does not match parsePDB atom order.')
+                first_checked = True
+            ligxyz = xyz[ligand_ids]
+            proxyz = xyz[protein_ids]
+            if not (np.isfinite(ligxyz).all() and np.isfinite(proxyz).all()):
+                raise ValueError('Non-finite coordinates in frame %d.' % frame_number)
+            per_atom = cKDTree(ligxyz).query(proxyz)[0]
+            per_residue = np.minimum.reduceat(per_atom[atom_order], starts)
+            distances_list.append(per_residue.astype(np.float32))
+            frame_numbers.append(frame_number)
+    finally:
+        if opened_traj:
+            traj.close()
+
+    if not distances_list:
+        raise ValueError('No conformations were analyzed.')
+    if n_frames is not None and len(frame_numbers) != n_frames:
+        raise ValueError('Frame count differs from the number analyzed.')
+
+    distances = np.vstack(distances_list)
+    means = np.mean(distances, axis=0)
+    sds = np.std(distances, axis=0)
+    persistence = 100.0 * np.mean(distances <= contact_cutoff, axis=0)
+
+    labels = [AAMAP.get(key[2], key[2]) + str(key[3]) + key[4] for key in residue_keys]
+
+    result = {
+        'distances': distances,
+        'frame_numbers': np.asarray(frame_numbers, dtype=np.int32),
+        'chains': np.asarray([key[0] for key in residue_keys], dtype='U32'),
+        'segments': np.asarray([key[1] for key in residue_keys], dtype='U32'),
+        'groups': np.asarray(groups, dtype='U64'),
+        'group_types': np.asarray(group_types, dtype='U16'),
+        'resnames': np.asarray([key[2] for key in residue_keys], dtype='U8'),
+        'resnums': np.asarray([key[3] for key in residue_keys], dtype=np.int32),
+        'icodes': np.asarray([key[4] for key in residue_keys], dtype='U8'),
+        'labels': np.asarray(labels, dtype='U32'),
+        'mean': means, 'sd': sds, 'persistence': persistence,
+        'contact_cutoff': np.asarray(float(contact_cutoff)),
+        'ligand': np.asarray(str(ligand)),
+        'format_version': np.asarray(2, dtype=np.int16)}
+
+    if filename is not None:
+        prefix = os.fspath(filename)
+        parent = os.path.dirname(os.path.abspath(prefix))
+        if not os.path.isdir(parent):
+            os.makedirs(parent)
+        np.savez_compressed(prefix + '.npz', **result)
+    
+        LOGGER.info('Saved residue-ligand distances to %s.npz.' % prefix)
+    
+        if save_statistics:
+            with open(prefix + '_statistics.dat', 'w') as handle:
+                handle.write('# Group Residue Mean_A SD_A Persistence_percent '
+                             'Contact_frames Total_frames\n')
+                for i in range(len(residue_keys)):
+                    handle.write('%s %s %.5f %.5f %.3f %d %d\n' %
+                                 (groups[i], labels[i], means[i], sds[i],
+                                  persistence[i],
+                                  np.count_nonzero(distances[:, i] <= contact_cutoff),
+                                  distances.shape[0]))
+            LOGGER.info('Saved %s_statistics.dat.' % prefix)
+    
+        if save_per_frame:
+            with open(prefix + '_per_frame.dat', 'w') as handle:
+                handle.write('# Frame ' + ' '.join(groups[i] + ':' + labels[i]
+                                                  for i in range(len(labels))) + '\n')
+                for num, row in zip(frame_numbers, distances):
+                    handle.write('%d %s\n' %
+                                 (num, ' '.join('%.5f' % val for val in row)))
+            LOGGER.info('Saved %s_per_frame.dat.' % prefix)
+
+    LOGGER.info('Analyzed %d conformations, %d residues and ligand %s '
+                '(contact cutoff %.2f A).' %
+                (distances.shape[0], len(residue_keys), ligand, contact_cutoff))
+    if output:
+        LOGGER.info('Group Residue Mean_A SD_A Persistence_percent')
+        for i in range(len(residue_keys)):
+            LOGGER.info('%s %s %.3f %.3f %.1f' %
+                        (groups[i], labels[i], means[i], sds[i], persistence[i]))
+    
+    return result
