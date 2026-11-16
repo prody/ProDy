@@ -8537,7 +8537,66 @@ def calcLigandResidueDistances(atoms, trajectory=None, ligand='UNL',
                                contact_cutoff=5.0, filename=None,
                                save_statistics=False, save_per_frame=False,
                                output=False):
-    """Calculate minimum distances between protein residues and a ligand."""
+    """Calculate distances between protein residues and a ligand.
+    
+    For each analyzed conformation, the minimum distance between any heavy 
+    atom of a protein residue and any heavy atom of the ligand is calculated, 
+    regardless of the ``contact cutoff``. A residue is considered to be in 
+    contact with the ligand when this distance is less than or equal to 
+    ``contact_cutoff``. Contact persistence represents the percentage of 
+    analyzed conformations in which such a contact occurs. Mean distances 
+    and standard deviations are calculated across all analyzed conformations, 
+    including those in which the residue is outside the contact cutoff. 
+
+    :arg atoms: Protein-ligand structure, or the filename of a PDB file. PDB
+        files with multi-model PDB records are read one model at a time.
+    :type atoms: :class:`.Atomic` or str
+
+    :arg trajectory: Optional DCD filename or ProDy trajectory object. Its atom
+        count and atom order must correspond to *atoms*.
+    :type trajectory: :class:`.Trajectory` or str or None
+
+    :arg ligand: Residue name of the ligand. Default is ``'UNL'``.
+    :type ligand: str
+
+    :arg ligand_segname: Optional segment name specifying the ligand.
+    :type ligand_segname: str or None
+
+    :arg ligand_resnum: Optional residue number specifying the ligand.
+    :type ligand_resnum: int or None
+
+    :arg ligand_chain: Optional chain identifier specifying the ligand.
+    :type ligand_chain: str or None
+
+    :arg protein_selection: A selection string specifying the protein
+        atoms to analyze. Default is ``'protein'``.
+    :type protein_selection: str
+
+    :arg contact_cutoff: Maximum heavy-atom distance (in Angstroms) defining
+        a residue-ligand contact. Default is 5.0.
+    :type contact_cutoff: float
+
+    :arg filename: Output prefix for an optional compressed ``.npz`` file.
+        If None (default), no files are written.
+    :type filename: str or None
+
+    :arg save_statistics: If True, also write a readable ``_statistics.dat``
+        table. Requires *filename*. Default is False.
+    :type save_statistics: bool
+
+    :arg save_per_frame: If True, also write a ``_per_frame.dat`` table of all
+        residue distances. Requires *filename*. Default is False.
+    :type save_per_frame: bool
+
+    :arg output: If True, report per-residue statistics.
+        Default is False.
+    :type output: bool
+
+    :returns: Dictionary containing the full frame-by-residue distance matrix,
+        residue identities, frame numbers, mean distances, standard deviations,
+        and contact persistence. The result can be used directly with
+        :func:`.showLigandResidueDistances`.
+    :rtype: dict """
     
     import os
     import gzip
