@@ -4990,7 +4990,7 @@ def _infoAsListOfStrings(info,key='Residues',object_type = 'channel', sep=", "):
     if not info:
         return []
       
-    def _joinList(lst,sep=sep ):
+    def _joinList(lst,sep=sep):
         if not lst:
             return ""
         if len(lst) == 1:
@@ -5006,8 +5006,8 @@ def _infoAsListOfStrings(info,key='Residues',object_type = 'channel', sep=", "):
     
     for j in range(len(info)):
         tmp = []
-        for i in range(len(conf)):
-            lst = _joinList(conf[i][key])
+        for i in range(len(info[i])):
+            lst = _joinList(info[i][key])
             tmp.append(f"Conformation_{j}_{object_type}_{i}: {lst}")
         result.append(tmp)
     return result
@@ -5546,8 +5546,8 @@ def getObjectResidueNames(atoms, channels, object_type='channel', **kwargs):
                                 object_type=object_type,
                                 callbacks = {'Residues': getLiningResidues},
                                 **kwargs )
-    
-    resnames = _infoAsListOfStrings(info, object_type = object_type, **kwargs)
+    sep = kwargs.pop('sep', ", ")
+    resnames = _infoAsListOfStrings(info, object_type = object_type, sep = sep)
     return resnames
 
 def getObjectLiningInfoMultipleFrames(atoms, objects_all, trajectory=None, object_type='channel',
@@ -5729,7 +5729,9 @@ def getChannelResidueNames(atoms, channels, object_type='channel', **kwargs):
                                 object_type=object_type,
                                 callbacks={'Residues':getLiningResidues},
                                 **kwargs)
-    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
+
+    sep = kwargs.pop('sep', ", ")                          
+    resnames = _infoAsListOfStrings(info,object_type=object_type,sep=sep)
     return resnames
 
 def getPoreResidueNames(atoms, pores, object_type='pore', **kwargs):
@@ -5783,7 +5785,8 @@ def getPoreResidueNames(atoms, pores, object_type='pore', **kwargs):
                                 object_type=object_type,
                                 callbacks={'Residues':getLiningResidues},
                                 **kwargs)
-    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
+    sep = kwargs.pop('sep', ", ")
+    resnames = _infoAsListOfStrings(info,object_type=object_type,sep=sep)
     return resnames
 
 
@@ -5838,7 +5841,9 @@ def getLinkResidueNames(atoms, links,object_type='link', **kwargs):
                                 object_type=object_type,
                                 callbacks={'Residues':getLiningResidues},
                                 **kwargs)
-    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
+
+    sep = kwargs.pop('sep', ", ")
+    resnames = _infoAsListOfStrings(info,object_type=object_type,sep=sep)
     return resnames
 
 def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, object_type='channel', **kwargs):
@@ -5892,8 +5897,9 @@ def getChannelResidueNamesMultipleFrames(atoms, channels, trajectory=None, objec
                                     object_type='channel',
                                       callbacks={'Residues':getLiningResidues},
                                         **kwargs)
-    
-    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
+
+    sep = kwargs.pop('sep', ", ")
+    resnames = _infoAsListOfStrings(info,object_type=object_type,sep=sep)
     return resnames
 
 def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None,object_type='pore', **kwargs):
@@ -5948,7 +5954,8 @@ def getPoreResidueNamesMultipleFrames(atoms, pores, trajectory=None,object_type=
                                       callbacks={'Residues':getLiningResidues},
                                         **kwargs)
     
-    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
+    sep = kwargs.pop('sep', ", ")
+    resnames = _infoAsListOfStrings(info,object_type=object_type,sep=sep)
     return resnames
 
 
@@ -6007,13 +6014,13 @@ def getLinkResidueNamesMultipleFrames(atoms, links, trajectory=None, object_type
                                     object_type=object_type,
                                       callbacks={'Residues':getLiningResidues},
                                         **kwargs)
-    
-    resnames = _infoAsListOfStrings(info,object_type=object_type,**kwargs)
+
+    sep = kwargs.pop('sep', ", ")
+    resnames = _infoAsListOfStrings(info,object_type=object_type,sep=sep)
     return resnames
 
 
-def getSurfaceCavityLiningInfo(atoms, cavities, surface, callbacks=None,
-                               **kwargs):
+def getSurfaceCavityLiningInfo(atoms, cavities, surface, callbacks=None, **kwargs):
     '''Provides lining information for surface cavities, in the same form as
     :func:`getObjectLiningInfo`.
 
@@ -6105,7 +6112,7 @@ def getSurfaceCavityLiningInfo(atoms, cavities, surface, callbacks=None,
 
         if cavity.tetrahedra is None or len(cavity.tetrahedra) == 0:
             for name in callbacks:
-                info[key][name] = []
+                info[i][name] = []
             continue
 
         points = vertices[cavity.tetrahedra]
@@ -6159,7 +6166,9 @@ def getSurfaceCavityResidueNames(atoms, cavities, surface, **kwargs):
     info = getSurfaceCavityLiningInfo(atoms, cavities, surface,
                                       callbacks={'Residues': getLiningResidues},
                                       **kwargs)
-    return _infoAsListOfStrings(info,object_type='SurfaceCavity',**kwargs)
+
+    sep = kwargs.pop('sep', ", ")
+    return _infoAsListOfStrings(info,object_type='SurfaceCavity',sep=sep)
 
 
 
@@ -6449,7 +6458,9 @@ def getSurfaceCavityResidueNamesMultipleFrames(atoms, cavities_all,
     info_all = getSurfaceCavityLiningInfoMultipleFrames(
         atoms, cavities_all, surfaces_all, trajectory=trajectory,
         callbacks={'Residues': getLiningResidues}, **kwargs)
-    return [_infoAsListOfStrings(info,object_type='SurfaceCavity',**kwargs) for info in info_all]
+
+    sep = kwargs.pop('sep', ", ")
+    return [_infoAsListOfStrings(info,object_type='SurfaceCavity',sep=sep) for info in info_all]
 
 
 def selectChannelBySelection(atoms, residue_sele, **kwargs):
