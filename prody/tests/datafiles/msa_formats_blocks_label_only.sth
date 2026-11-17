@@ -1,0 +1,22 @@
+# STOCKHOLM 1.0
+#=GF ID   Toy_domain
+#=GF AC   PF99999.1
+#=GS P12345.1/3-24 AC P12345.1
+
+P12345.1/3-24        ACDEFGHIKL
+short                AC-EFG.IKL
+seq:2*x|y            ACDEFGHIK-
+#=GR seq:2*x|y SS    HHHHHH....
+#=GC SS_cons         HHHHHH....
+
+P12345.1/3-24 MNPQRS
+short         MN-QRS
+seq:2*x|y     mnpqrs
+#=GC SS_cons  ......
+
+P12345.1/3-24    TVWY
+short            TV-Y
+seq:2*x|y        TVWY
+
+short
+//

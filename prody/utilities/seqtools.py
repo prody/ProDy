@@ -13,12 +13,20 @@ GAP_EXT_PENALTY = -0.1
 ALIGNMENT_METHOD = 'local'
 
 SPLITLABEL = re.compile(r'[/-]+').split
+SPLITRANGE = re.compile(r'(.*)/(\d+)-(\d+)\s*$').match
 
 
 def splitSeqLabel(label):
     """Returns label, starting residue number, and ending residue number parsed
-    from sequence label."""
+    from sequence label.  In a label that contains ``/``, only a ``/start-end``
+    suffix is split from the rest of the label."""
 
+    if '/' in label:
+        match = SPLITRANGE(label)
+        if match is None:
+            return label, None, None
+        idcode, start, end = match.groups()
+        return idcode, int(start), int(end)
     try:
         if label.strip() == '':
             raise Exception
