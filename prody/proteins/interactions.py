@@ -690,15 +690,18 @@ def calcSASA(atoms, **kwargs):
 
 
 def calcBSA(atoms, separate=False, selection='protein and noh', groups=None):
-    """Calculate buried solvent-accessible area for all molecular groups.
+    """Calculate buried solvent-accessible surface area (BSA) of protein
+    complexes using :func:`.calcSASA`.
 
-    When *groups* is None, groups are identified automatically from the PDB
-    chain IDs within *selection*.  Use explicit groups (mapping name -> ProDy
-    selection string) when a biological entity spans multiple chains or two
-    protomers have been exported under the same chain ID.
-
+    BSA is calculated as half of the difference between the sum of solvent-
+    accessible surface areas (SASA) of isolated components and the SASA of
+    the complete complex.
     The global BSA for N groups is (sum(SASA_i) - SASA_complex)/2.
     This represents half the sum of lost solvent accessibility on all partners.
+
+    By default, individual components are identified using chain IDs.
+    Alternatively, molecular components can be defined using the *groups*
+    argument. At least two non-overlapping groups are required.
 
     If separate=False, return the global BSA (float, Å²).
     If separate=True, return a dict containing bsa_total, delta_sasa,
@@ -708,7 +711,64 @@ def calcBSA(atoms, separate=False, selection='protein and noh', groups=None):
 
     By default solvent, ions, and hydrogens are excluded, just as for a
     protein-only calcSASA calculation.
-    To use this function compiled hpb.so is required. """
+    
+    For complexes containing more than two components, the sum of
+    pairwise BSA values does not necessarily equal the total BSA.
+    Pairwise BSA is calculated for each isolated pair, whereas
+    total BSA considers the complete molecular complex.
+
+    SASA calculations require the compiled ProDy hpb.so extension.
+    All surface areas are reported in Å².
+    
+    :arg atoms: Atomic object containing the molecular complex.
+    :type atoms: :class:`.Atomic`
+
+    :arg separate: If True, return detailed SASA and BSA values for
+        individual components and interfaces. If False, return only
+        the total BSA. Default is False.
+    :type separate: bool
+
+    :arg selection: Atom selection used for SASA calculations.
+        Default is 'protein and noh'.
+    :type selection: str
+
+    :arg groups: Dictionary mapping component names to ProDy selection
+        strings. If None, components are identified automatically using
+        chain IDs. Groups must be non-overlapping and cover all atoms
+        included in the selection. Default is None.
+    :type groups: dict or None
+
+    :returns: Total BSA (float) if *separate* is False. Otherwise,
+        a dictionary containing:
+
+        * **bsa_total** -- total buried surface area of the complex.
+        * **delta_sasa** -- difference between the sum of isolated
+          SASAs and the SASA of the complex (twice the total BSA).
+        * **sasa_complex** -- SASA of the complete complex.
+        * **sasa_isolated** -- SASA of each isolated component.
+        * **pairwise_bsa** -- BSA between each pair of isolated components.
+        * **bsa_vs_rest** -- BSA between each component and the remaining
+          components considered together.
+        * **groups** -- component names and their selection strings.
+        * **unit** -- surface area unit ('A^2').
+
+    Examples:
+
+    Calculate the total BSA of a protein complex:
+    >>> from prody import *
+    >>> atoms = parsePDB('1a2k')
+    >>> bsa = calcBSA(atoms)
+
+    Calculate BSA for individual interfaces:
+    >>> results = calcBSA(atoms, separate=True)
+    >>> results['bsa_total']
+    >>> results['pairwise_bsa']
+    >>> results['bsa_vs_rest']
+
+    Calculate BSA between two user-defined molecular components:
+    >>> groups = {'component1': 'chain A B',
+                  'component2': 'chain C D E'}
+    >>> bsa = calcBSA(atoms, groups=groups) """
     
     from math import fsum, isfinite
     from itertools import combinations
