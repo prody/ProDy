@@ -44,7 +44,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBondingTrajectory', 'calcPiStackingTrajectory', 
            'calcPiCationTrajectory', 'calcHydrophobicTrajectory', 'calcDisulfideBondsTrajectory',
            'calcProteinInteractions', 'calcStatisticsInteractions', 'calcDistribution',
-           'calcSASA', 'calcVolume','compareInteractions', 'showInteractionsGraph',
+           'calcSASA', 'calcBSA', 'calcVolume','compareInteractions', 'showInteractionsGraph',
            'showInteractionsHist', 'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions', 'showLigandInteraction',
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
@@ -687,6 +687,186 @@ def calcSASA(atoms, **kwargs):
             return output_final
         else:
             return [ float(i[-1]) for i in output_final ]
+
+
+def calcBSA(atoms, separate=False, selection='protein and noh', groups=None):
+    """Calculate buried solvent-accessible surface area (BSA) of protein
+    complexes using :func:`.calcSASA`.
+
+    BSA is calculated as half of the difference between the sum of solvent-
+    accessible surface areas (SASA) of isolated components and the SASA of
+    the complete complex.
+    The global BSA for N groups is (sum(SASA_i) - SASA_complex)/2.
+    This represents half the sum of lost solvent accessibility on all partners.
+
+    By default, individual components are identified using chain IDs.
+    Alternatively, molecular components can be defined using the *groups*
+    argument. At least two non-overlapping groups are required.
+
+    If separate=False, return the global BSA (float, Å²).
+    If separate=True, return a dict containing bsa_total, delta_sasa,
+    sasa_complex, sasa_isolated, pairwise_bsa (isolated pairs) and
+    bsa_vs_rest (each group versus all others considered together). Pairwise
+    BSA must not be summed to reproduce the global BSA.
+
+    By default solvent, ions, and hydrogens are excluded, just as for a
+    protein-only calcSASA calculation.
+    
+    For complexes containing more than two components, the sum of
+    pairwise BSA values does not necessarily equal the total BSA.
+    Pairwise BSA is calculated for each isolated pair, whereas
+    total BSA considers the complete molecular complex.
+
+    SASA calculations require the compiled ProDy hpb.so extension.
+    All surface areas are reported in Å².
+    
+    :arg atoms: Atomic object containing the molecular complex.
+    :type atoms: :class:`.Atomic`
+
+    :arg separate: If True, return detailed SASA and BSA values for
+        individual components and interfaces. If False, return only
+        the total BSA. Default is False.
+    :type separate: bool
+
+    :arg selection: Atom selection used for SASA calculations.
+        Default is 'protein and noh'.
+    :type selection: str
+
+    :arg groups: Dictionary mapping component names to ProDy selection
+        strings. If None, components are identified automatically using
+        chain IDs. Groups must be non-overlapping and cover all atoms
+        included in the selection. Default is None.
+    :type groups: dict or None
+
+    :returns: Total BSA (float) if *separate* is False. Otherwise,
+        a dictionary containing:
+
+        * **bsa_total** -- total buried surface area of the complex.
+        * **delta_sasa** -- difference between the sum of isolated
+          SASAs and the SASA of the complex (twice the total BSA).
+        * **sasa_complex** -- SASA of the complete complex.
+        * **sasa_isolated** -- SASA of each isolated component.
+        * **pairwise_bsa** -- BSA between each pair of isolated components.
+        * **bsa_vs_rest** -- BSA between each component and the remaining
+          components considered together.
+        * **groups** -- component names and their selection strings.
+        * **unit** -- surface area unit ('A^2').
+
+    Examples:
+
+    Calculate the total BSA of a protein complex:
+    >>> from prody import *
+    >>> atoms = parsePDB('1a2k')
+    >>> bsa = calcBSA(atoms)
+
+    Calculate BSA for individual interfaces:
+    >>> results = calcBSA(atoms, separate=True)
+    >>> results['bsa_total']
+    >>> results['pairwise_bsa']
+    >>> results['bsa_vs_rest']
+
+    Calculate BSA between two user-defined molecular components:
+    >>> groups = {'component1': 'chain A B',
+                  'component2': 'chain C D E'}
+    >>> bsa = calcBSA(atoms, groups=groups) """
+    
+    from math import fsum, isfinite
+    from itertools import combinations
+    from prody.proteins.interactions import calcSASA
+    from prody.atomic import Selection
+
+    base = atoms.select(selection)
+    if base is None or base.numAtoms() == 0:
+        raise ValueError('The requested selection contains no atoms.')
+
+    if groups is None:
+        chids = [str(ch).strip() for ch in base.getChids()]
+        if not chids or '' in chids:
+            raise ValueError('Blank chain IDs: provide explicit groups.')
+        groups = {ch: 'chain ' + ch for ch in sorted(set(chids))}
+    elif not isinstance(groups, dict) or not groups:
+        raise TypeError('groups must be a nonempty dict: label -> selection string.')
+
+    if len(groups) < 2:
+        raise ValueError('At least two groups are needed to calculate BSA.')
+
+    chosen = {}
+    chosen_ids = {}
+    used = set()
+    for label, expr in groups.items():
+        if not isinstance(label, str) or not label.strip():
+            raise ValueError('Group labels must be nonempty strings.')
+        if not isinstance(expr, str) or not expr.strip():
+            raise ValueError('Each group must have a nonempty selection expression.')
+        sel = base.select('(' + expr + ')')
+        if sel is None or sel.numAtoms() == 0:
+            raise ValueError('Group %r is empty under selection %r.' % (label, selection))
+        ids = set(int(i) for i in sel.getIndices())
+        if used.intersection(ids):
+            raise ValueError('Group %r overlaps another group.' % label)
+        used.update(ids)
+        chosen[label] = expr
+        chosen_ids[label] = ids
+
+    all_ids = set(int(i) for i in base.getIndices())
+    if used != all_ids:
+        raise ValueError('%d atoms in selection are not assigned to any group.' %
+                         len(all_ids - used))
+
+    parent = base.getAtomGroup()
+    acsi = base.getACSIndex()
+
+    def calculate(indices):
+        if not indices:
+            raise ValueError('Cannot calculate SASA for an empty atom subset.')
+        selected = Selection(parent, sorted(indices), 'all', acsi=acsi)
+        subset = selected.copy()
+        values = calcSASA(subset, selection='all', sasa_cutoff=0.0)
+        if values is None or len(values) == 0:
+            raise ValueError('calcSASA returned no values for %d atoms' % len(indices))
+        result = float(fsum(float(x) for x in values))
+        if not isfinite(result) or result < 0:
+            raise ValueError('Invalid SASA for %d atoms' % len(indices))
+        return result
+
+    def ids_of(names):
+        result = set()
+        for name in names:
+            result.update(chosen_ids[name])
+        return result
+
+    names = list(chosen)
+    isolated = {name: calculate(chosen_ids[name]) for name in names}
+    complex_sasa = calculate(all_ids)
+    delta = float(fsum(isolated.values()) - complex_sasa)
+
+    if delta < -0.01:
+        raise ValueError('Negative buried area (%.3f Å²); check SASA and groups.' % delta)
+    if -0.01 <= delta < 0:
+        delta = 0.0 
+    total = delta / 2.0
+    if not separate:
+        return total
+
+    pairwise = {}
+    for a, b in combinations(names, 2):
+        sasab = calculate(ids_of((a, b)))
+        pairwise[(a, b)] = (isolated[a] + isolated[b] - sasab) / 2.0
+
+    vs_rest = {}
+    for name in names:
+        rest = [n for n in names if n != name]
+        sasa_rest = calculate(ids_of(rest)) if len(rest) > 1 else isolated[rest[0]]
+        vs_rest[name] = (isolated[name] + sasa_rest - complex_sasa) / 2.0
+
+    return {'bsa_total': total,
+            'delta_sasa': delta,
+            'sasa_complex': complex_sasa,
+            'sasa_isolated': isolated,
+            'pairwise_bsa': pairwise,
+            'bsa_vs_rest': vs_rest,
+            'groups': chosen,
+            'unit': 'A^2'}
 
 
 def calcVolume(atoms, **kwargs):
