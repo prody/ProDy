@@ -13755,26 +13755,25 @@ def _updateCoassociation(coassigned, observed, indices, labels,
 
 
 def coassociationMatrix(label_list, exclude_noise=True):
-    """
-    Calculate a co-association matrix from multiple clustering results.
+    """Calculate a co-association matrix from multiple clustering results.
 
-    Parameters
-    ----------
-    label_list : list of array-like
-        Each element contains cluster labels for the same samples.
-        Noise should be labeled as -1.
+    :arg label_list: List of clustering label arrays for the same samples.
+        Noise should be labeled as ``-1``.
+    :type label_list: list
 
-    exclude_noise : bool, default=True
-        If True, pairs are normalized only over runs where both samples
-        are assigned to a non-noise cluster.
+    :arg exclude_noise: If **True**, pairs are normalized only over runs
+        where both samples are assigned to a non-noise cluster.
+        If **False**, all runs are included in the denominator, so a run
+        in which either sample is noise contributes zero.
+        Default is **True**.
+    :type exclude_noise: bool
 
-        If False, all runs are included in the denominator, so a run in
-        which either sample is noise contributes zero.
+    :returns: Symmetric co-association matrix. Each element represents
+        the fraction of considered runs in which two samples were assigned
+        to the same cluster.
+    :rtype: :class:`numpy.ndarray`
 
-    Returns
-    -------
-    C : ndarray
-        Symmetric co-association matrix.
+    Symmetric co-association matrix.
 
         With exclude_noise=True:
             C[i, j] = fraction of informative runs in which i and j
@@ -13782,8 +13781,8 @@ def coassociationMatrix(label_list, exclude_noise=True):
 
         With exclude_noise=False:
             C[i, j] = fraction of all runs in which i and j were assigned
-                      to the same cluster.
-    """
+                      to the same cluster."""
+                      
     labels0 = np.asarray(label_list[0])
     n = len(labels0)
     C = np.zeros((n, n), dtype=float)
