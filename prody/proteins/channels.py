@@ -13949,9 +13949,27 @@ def _dense(obj, n_dense):
     return (spline,) + _cached(obj, ("dense", n_dense), build)
   
 def _frechetTable(D, full=False, free=False):
-    """
-    Discrete Frechet from point-distance matrix D (na x nb), rows = reference
-    (short) curve, columns = the curve it is matched against.
+    """Calculate the discrete Fréchet distance from a point-distance matrix.
+
+    Rows of *D* represent the reference (short) curve, while columns
+    represent the curve against which it is matched.
+
+    :arg D: Pairwise point-distance matrix of shape (na, nb).
+    :type D: :class:`numpy.ndarray`
+
+    :arg full: If **True**, return the complete Fréchet distance table
+        instead of a single distance. Default is **False**.
+    :type full: bool
+
+    :arg free: If **False**, use classic Fréchet coupling from (0, 0) to
+        (na-1, nb-1). If **True**, use subcurve Fréchet distance, where
+        the entire reference curve is traversed but the second curve
+        may be entered and left anywhere. Default is **False**.
+    :type free: bool
+
+    :returns: Discrete Fréchet distance, or the complete (na, nb)
+        distance table if *full* is **True**.
+    :rtype: float or :class:`numpy.ndarray` """
 
     free=False : classic coupling, (0,0) -> (na-1, nb-1).
     free=True  : subcurve Frechet. The whole row-curve is traversed, but the
