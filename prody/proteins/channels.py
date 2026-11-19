@@ -13036,41 +13036,41 @@ def buildVoxelOverlapDistanceMatrix(channels=None, records=None, voxel_size=0.25
     return _fill(alpha, beta), records
 
 
-def buildLiningSequenceDistanceMatrix(atoms,channels=None,trajectory=None,records=None,**kwargs):
-    """
-    Build a distance matrix for channel lining residue sets.
+def buildLiningSequenceDistanceMatrix(atoms, channels=None, trajectory=None,
+                                      records=None, **kwargs):
+    """ Build a distance matrix for channel lining residue sets.
 
-    Parameters
-    ----------
-    atoms : :class:`~prody.atomic.Atomic`
-        Atomic structure or trajectory used to determine lining residues.
-    channels : list, optional
-        Channel groups to process. If provided, ``trajectory`` must also be
-        supplied so that lining residues can be computed for each frame.
-    trajectory : object, optional
-        Trajectory associated with ``channels`` when computing lining residue
-        information across conformations.
-    records : list, optional
-        Precomputed channel records. Pass either ``channels`` or ``records``,
-        not both.
-    **kwargs
-        Additional keyword arguments forwarded to the lining-residue extraction
-        machinery and to the clustering parameters used to build the channel
-        records.
-
-    Returns
-    -------
-    tuple
-        A pair ``(distance_matrix, records)`` where ``distance_matrix`` is the
-        Tversky distance matrix between lining residue sets and ``records`` is
-        the list of channel records used to build it.
-
-    Notes
-    -----
     This function encodes each lining residue set as a packed binary vector
-    over the unique residue indices in ``atoms`` and computes pairwise Tversky
+    over the unique residue indices in *atoms* and computes pairwise Tversky
     distances between all channel records.
-    """
+
+    :arg atoms: Atomic structure used to determine lining residues.
+    :type atoms: :class:`.Atomic`
+
+    :arg channels: Channel groups to process. If provided, *trajectory* must
+        also be supplied so that lining residues can be computed for each frame.
+    :type channels: list or None
+
+    :arg trajectory: Trajectory associated with *channels* when computing
+        lining residue information across conformations.
+    :type trajectory: object or None
+
+    :arg records: Precomputed channel records. Pass either *channels* or
+        *records*, not both.
+    :type records: list or None
+
+    :arg kwargs: Additional keyword arguments forwarded to the lining-residue
+        extraction machinery and clustering parameters, including ``alpha``,
+        ``beta``, and ``scan``.
+    :type kwargs: dict
+
+    :returns: A tuple ``(distance_matrix, records)``, where
+        ``distance_matrix`` contains pairwise Tversky distances between
+        lining residue sets and ``records`` contains the corresponding
+        channel records. When ``scan`` is provided, a dictionary of
+        distance matrices is returned instead of a single matrix.
+        Returns **None** if no channels or records are available.
+    :rtype: tuple or None """
 
     if records is not None and channels is not None:
         raise ValueError("Pass either channels or records, not both.")
