@@ -13495,61 +13495,61 @@ def computeBootstrapStability(distance_matrix, method, sub_size=0.80, n_bootstra
                               reference="full", random_state=123,
                               sampling="channel", records=None,
                               block_size=5, keeps=None, **kwargs):
-    """
-    Evaluate clustering stability using channel-, frame-, or block-level
+    """Evaluate clustering stability using channel-, frame-, or block-level
     subsampling.
 
-    Parameters
-    ----------
-    distance_matrix : ndarray, shape (n_samples, n_samples)
-        Precomputed distance matrix.
-    method : str
-        Clustering method passed to clusterChannels().
-    sub_size : float, default=0.80
-        Fraction of sampling units to retain.
-    n_bootstrap : int, default=100
-        Number of subsampling replicates.
-    reference : {"full", "first"}, default="full"
-        "full": compare each subsample to clustering of all samples.
-        "first": compare each subsample to the first subsample.
-    random_state : int, default=123
-        Random seed.
-    sampling : {"channel", "frame", "block"}, default="channel"
-        Sampling strategy:
-        "channel": independently sample individual channels.
-        "frame": sample conformations, retaining all their channels.
-        "block": sample contiguous blocks of conformations.
-    records : sequence, optional
-        ChannelRecord objects corresponding to the rows/columns of D.
-        Each record must have a conf_id attribute.
-        Required for frame- and block-level sampling.
-    block_size : int, default=5
-        Number of consecutive conformations per temporal block.
-        Only used when sampling="block".
-    keeps : list of ndarray, optional
-        Precomputed subsampling indices. If provided, these are reused
-        instead of generating new subsamples.
-    **kwargs
-        Additional arguments passed to clusterChannels().
+    :arg distance_matrix: Precomputed pairwise distance matrix.
+    :type distance_matrix: :class:`numpy.ndarray`
 
-    Returns
-    -------
-    dict
-        scores : ndarray
-            ARI scores for each replicate.
-        mean, std, median : float
-            Summary statistics of ARI scores.
-        reference_labels : ndarray
-            Reference clustering labels.
-        bootstrap_labels : list
-            Clustering labels for each subsample.
-        coassociation_matrix : ndarray
-            Pairwise coassociation frequencies.
-        keeps : list
-            Subsampling indices used.
-        sampling : str
-            Sampling strategy used.
-    """
+    :arg method: Clustering method passed to :func:`.clusterChannels`.
+    :type method: str
+
+    :arg sub_size: Fraction of sampling units to retain.
+        Default is **0.80**.
+    :type sub_size: float
+
+    :arg n_bootstrap: Number of subsampling replicates.
+        Default is **100**.
+    :type n_bootstrap: int
+
+    :arg reference: Reference clustering used for comparison.
+        ``'full'`` compares each subsample with the clustering of all
+        samples, while ``'first'`` compares each subsample with the first
+        subsample. Default is ``'full'``.
+    :type reference: str
+
+    :arg random_state: Random seed. Default is **123**.
+    :type random_state: int
+
+    :arg sampling: Subsampling strategy: ``'channel'`` independently
+        samples channels, ``'frame'`` samples entire conformations, and
+        ``'block'`` samples consecutive blocks of conformations.
+        Default is ``'channel'``.
+    :type sampling: str
+
+    :arg records: Channel records corresponding to the rows and columns
+        of *distance_matrix*. Each record must have a
+        ``conformation_id`` attribute. Required for frame- and
+        block-level sampling.
+    :type records: list or None
+
+    :arg block_size: Number of consecutive conformations per block.
+        Used only when *sampling* is ``'block'``. Default is **5**.
+    :type block_size: int
+
+    :arg keeps: Precomputed subsampling indices. If provided, these
+        are reused instead of generating new subsamples.
+    :type keeps: list or None
+
+    :arg kwargs: Additional arguments passed to :func:`.clusterChannels`.
+    :type kwargs: dict
+
+    :returns: Dictionary containing ARI scores (``scores``), reference
+        clustering labels (``reference_labels``), pairwise co-association
+        frequencies (``coassociation_matrix``), subsampling indices
+        (``keeps``), and the sampling strategy (``sampling``).
+    :rtype: dict """
+    
     if not checkAndImport('sklearn'):
         raise ImportError('To run computeBootstrapStability, please install scikit-learn')
 
