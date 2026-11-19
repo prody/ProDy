@@ -370,13 +370,15 @@ def getMasses(elements):
     if isinstance(elements, str):
         return mass_dict[elements.capitalize()]
     else:
-        masses = zeros(len(elements))
-        for i,element in enumerate(elements):
-            if element.capitalize() in mass_dict:
-                masses[i] = mass_dict[element.capitalize()]
-            else:
-                masses[i] = 0.
-        return masses
+        elements = asarray(elements)
+        if elements.size == 0:
+            return zeros(0)
+        # a structure has only a handful of distinct element symbols, so the
+        # lookup is done once per distinct symbol rather than once per atom
+        unique_elements, inverse = unique(elements, return_inverse=True)
+        unique_masses = array([mass_dict.get(str(element).capitalize(), 0.)
+                               for element in unique_elements])
+        return unique_masses[inverse.reshape(-1)]
 
 def count(L, a=None):
     return len([b for b in L if b is a])
