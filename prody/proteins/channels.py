@@ -13971,13 +13971,6 @@ def _frechetTable(D, full=False, free=False):
         distance table if *full* is **True**.
     :rtype: float or :class:`numpy.ndarray` """
 
-    free=False : classic coupling, (0,0) -> (na-1, nb-1).
-    free=True  : subcurve Frechet. The whole row-curve is traversed, but the
-                 column curve may be entered and left anywhere, so
-                 ca[0, j] = D[0, j] and the answer is min_j ca[na-1, j].
-
-    full=True returns the whole (na, nb) table instead of the scalar.
-    """
     na, nb = D.shape
     I, K = np.arange(na)[None, :], np.arange(na + nb - 1)[:, None]
     J = K - I
