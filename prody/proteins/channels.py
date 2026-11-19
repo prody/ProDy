@@ -13688,26 +13688,21 @@ def computeBootstrapStability(distance_matrix, method, sub_size=0.80, n_bootstra
             "sampling": sampling}
 
 
-def compareClusterings(labels1,labels2):
-    """
-    Compare two clustering label assignments.
+def compareClusterings(labels1, labels2):
+    """Compare two clustering label assignments.
+    This function requires scikit-learn.
 
-    Parameters
-    ----------
-    labels1, labels2 : array-like
-        Cluster labels for the same set of samples. The two label arrays must
-        have the same length and represent equivalent assignments to compare.
+    :arg labels1: Cluster labels for the first clustering.
+    :type labels1: array-like
 
-    Returns
-    -------
-    dict
-        Dictionary with the adjusted Rand index (``ARI``) and adjusted mutual
-        information (``AMI``) between the two clusterings.
+    :arg labels2: Cluster labels for the second clustering. Must have
+        the same length as *labels1*.
+    :type labels2: array-like
 
-    Notes
-    -----
-    This function requires scikit-learn to be installed.
-    """
+    :returns: Dictionary containing the adjusted Rand index (``ARI``)
+        and adjusted mutual information (``AMI``) between the two
+        clusterings.
+    :rtype: dict """
     
     if not checkAndImport('sklearn'):
         raise ImportError('To run compareClusterings, please install scikit-learn')
