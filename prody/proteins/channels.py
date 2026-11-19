@@ -13808,22 +13808,23 @@ def coassociationMatrix(label_list, exclude_noise=True):
     C = np.divide(C,counts,out=np.zeros_like(C), where=counts > 0)
     return C
 
+
 def clusterConsensusStrength(C, cluster_indices):
-    """
-    Calculate consensus strength for a cluster.
-    Parameters
-    ----------
-    C : ndarray, shape (n_samples, n_samples)
-        Co-association matrix.
-    cluster_indices : array-like
-        Indices of samples belonging to the cluster.
-    Returns
-    -------
-    float
-        Mean pairwise co-association among cluster members.
-        1.0 = every pair was always co-clustered
-        0.0 = no pair was ever co-clustered
-    """
+    """Calculate consensus strength for a cluster.
+
+    :arg C: Co-association matrix of shape (n_samples, n_samples).
+    :type C: :class:`numpy.ndarray`
+
+    :arg cluster_indices: Indices of samples belonging to the cluster.
+    :type cluster_indices: array-like
+
+    :returns: Mean pairwise co-association among cluster members.
+        A value of **1.0** indicates that every pair was always
+        co-clustered, while **0.0** indicates that no pair was ever
+        co-clustered. Returns **NaN** for clusters containing fewer
+        than two samples.
+    :rtype: float """
+
     cluster_indices = np.asarray(cluster_indices)
 
     if len(cluster_indices) < 2:
