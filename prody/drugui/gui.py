@@ -972,7 +972,7 @@ class DruGUI:
                     set PROBETOPPAR {{{self.PROBETOPPAR}}}
                     set PROBETYPES {{{self.PROBETYPES}}}
                     {tcl_opts}
-                    set logfile [open probe_analysis.log a]
+                    set logfile [open "probe_analysis.log" a]
 
                     """
                     probe_analysis += """
@@ -1686,34 +1686,61 @@ class DruGUI:
                         incr residProbe
                         $sel delete
                     }
-                    if {![dict exist $probePercent 'IPRO'] || [dict get $probePercent 'IPRO'] < 100} {
-                        set residProbe 1
-                        while {$residProbe <= $nProbe} {
-                            set whichProbe [::tcl::mathfunc::int [expr rand() * [llength $probeidlist]]]
-                            if {[lindex $howmanylist $whichProbe] > 0} {
-                                set sel [atomselect top "chain  X and resid $residProbe"]
-                                $sel set resname [lindex $probeidlist $whichProbe]
-                                $sel delete
-                                foreach {old new} [lindex $aliaslist $whichProbe] {
-                                set sel [atomselect top "chain  X and resid $residProbe and name $old"]
-                                $sel set name $new
-                                $sel delete
-                                }
-                                incr residProbe
-                                lset howmanylist $whichProbe [expr [lindex $howmanylist $whichProbe] -1]
+                    if {![dict exists $probePercent IPRO] || [dict get $probePercent IPRO] < 100} {
+    
+                        set probeAssignments [list]
+                        set tempHowMany $howmanylist
+                        foreach probeid $probeidlist count $tempHowMany {
+                            for {set i 0} {$i < $count} {incr i} {
+                                lappend probeAssignments $probeid
                             }
                         }
+
+                        set n [llength $probeAssignments]
+                        for {set i [expr $n - 1]} {$i > 0} {incr i -1} {
+                            set j [::tcl::mathfunc::int [expr rand() * ($i + 1)]]
+                            set tmp [lindex $probeAssignments $i]
+                            lset probeAssignments $i [lindex $probeAssignments $j]
+                            lset probeAssignments $j $tmp
+                        }
+
+                        set residProbe 1
+                        foreach probeid $probeAssignments {
+                            if {$residProbe > $nProbe} { break }
+                            
+                            set probeIdx [lsearch $probeidlist $probeid]
+                            set aliasPairs [lindex $aliaslist $probeIdx]
+                            
+                            set sel [atomselect top "chain X and resid $residProbe"]
+                            if {[$sel num] == 0} {
+                                $sel delete
+                                incr residProbe
+                                continue
+                            }
+                            $sel set resname $probeid
+                            $sel delete
+                            
+                            foreach {old new} $aliasPairs {
+                                set sel [atomselect top "chain X and resid $residProbe and name $old"]
+                                $sel set name $new
+                                $sel delete
+                            }
+                            
+                            incr residProbe
+                        }
+
                         set selstr [list]
                         dict for {key value} $probePercent {
                             set info [dict get $PROBEDATA $key]
                             dict with info {
-                            lappend selstr "(resname $key and name $atomnames)"
+                                lappend selstr "(resname $key and name $atomnames)"
                             }
                         }
                         set selstr [join $selstr " or "]
                         set sel [atomselect top "(same residue as index $indicesProbe) and ($selstr)"]
+
                         } else {
-                            set sel [atomselect top "same residue as index $indicesProbe"]
+                        set sel [atomselect top "same residue as index $indicesProbe"]
                         }
                     $sel writepdb $intermediate.pdb
                     $sel delete
@@ -1722,13 +1749,13 @@ class DruGUI:
                     coordpdb $intermediate.pdb PROB    
 
                     if {$totalcharge > 0} {
-                        set n_ions [expr round($totalcharge)]
+                        set n_ions [expr max(1, round($totalcharge))]
                         set ion_name "CLA"
                         set ion_resname "CLA"
                         set ncl $n_ions
                         set nna 0
-                    } else  {
-                        set n_ions [expr -1 * round($totalcharge)]
+                    } else {
+                        set n_ions [expr max(1, round(abs($totalcharge)))]
                         set ion_name "SOD"
                         set ion_resname "SOD"
                         set ncl 0
