@@ -56,19 +56,17 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'buildVoxelOverlapDistanceMatrix','prepareChannelRecords',
            'compareClusterings', 'computeBootstrapStability', 'coassociationMatrix',
            'clusterConsensusStrength', 'calcDistancesToMediod', 
-           'calcNearestNeighborDistances',
-           'renameChannelFilesWithClusterLabels', 'clusterChannels',
-           'writeChannelsCIF', 'writePyMolCaviTracerScript',
-           'mergeFramesPQR',
-           'connectChannelsToSurfaceCavities',
+           'calcNearestNeighborDistances', 'renameChannelFilesWithClusterLabels', 
+           'clusterChannels', 'writeChannelsCIF', 'writePyMolCaviTracerScript',
+           'mergeFramesPQR', 'connectChannelsToSurfaceCavities',
            'calcFrequentObjectResidues', 'showFrequentObjectResidues',
            'calcSignatureCavities', 'calcSignatureChannels',
            'writeChannelsCIF', 'writeVmdCaviTracerScript', 'writePyMolCaviTracerScript',
            'writeChimeraXCaviTracerScript', 'mergeFramesPQR',
            'writeChimeraXMultiModelScript', 'writePyMolMultiModelScript',
-           'writeVmdMultiModelScript',
-           'ClusterCalculator','ClusteringRecords','Cluster',
-           'writeClusterLabels']
+           'writeVmdMultiModelScript', 'ClusterCalculator','ClusteringRecords',
+           'Cluster', 'writeClusterLabels']
+
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
 # of a point depends on how many directions are sampled and how far they are
@@ -19018,6 +19016,7 @@ puts "Result:  __RESULT_FILE__"
     with open(str(script_file), 'w') as handle:
         handle.write(tcl)
 
+
 def writeVmdMultiModelScript(pqr_file, atoms, output_path='.',
                              object_type='channels'):
     """Write a VMD script for a PQR already on disk, such as the multi-model
@@ -19363,7 +19362,6 @@ def writePyMolMultiModelScript(atoms, output_path='.', object_type='channels', f
     else:
         script = _VIS_CHANNELS_TRAJ_SCRIPT
 
-
     with open(str(script_file), 'w') as handle:
         handle.write(script)
 
@@ -19374,6 +19372,7 @@ def writePyMolMultiModelScript(atoms, output_path='.', object_type='channels', f
         output_path, script_file.name, protein_file.name))
     
     return str(protein_file), str(script_file) 
+
 
 def writeChimeraXCaviTracerScript(objects, atoms, object_type='channels',
                                   surface=None, output_path='.', num_samples=5):
@@ -19739,3 +19738,4 @@ def writeChimeraXMultiModelScript(pqr_file, atoms, output_path='.',
     LOGGER.info("View the result with: chimerax {0}".format(script_file.name))
 
     return str(pqr_file), str(protein_file), str(script_file)
+    
