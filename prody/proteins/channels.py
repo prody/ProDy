@@ -4957,7 +4957,7 @@ def _popLiningOptions(kwargs):
         include_water=kwargs.pop('include_water', False),
         include_chain=kwargs.pop('include_chain', True))
 
-def _infoAsListOfStrings(info,key='Residues',object_type = 'channel', sep=", "):
+def _infoAsListOfStrings(info, key='Residues', object_type = 'channel', sep=", "):
     """Format channel metadata as a list of human-readable strings.
 
     Parameters
@@ -5004,10 +5004,10 @@ def _infoAsListOfStrings(info,key='Residues',object_type = 'channel', sep=", "):
             result.append(f"{object_type}_{i}: {lst}")
         return result
     
-    for j in range(len(info)):
+    for j, conf in enumerate(info):
         tmp = []
-        for i in range(len(info[i])):
-            lst = _joinList(info[i][key])
+        for i in range(len(conf)):
+            lst = _joinList(conf[i][key])
             tmp.append(f"Conformation_{j}_{object_type}_{i}: {lst}")
         result.append(tmp)
     return result
