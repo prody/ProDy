@@ -13714,22 +13714,24 @@ def compareClusterings(labels1, labels2):
 
 def _updateCoassociation(coassigned, observed, indices, labels,
                         exclude_noise=True):
-    """
-    Incrementally update coassociation counts for one bootstrap replicate.
+    """Incrementally update coassociation counts for one bootstrap replicate.
 
-    Parameters
-    ----------
-    coassigned : ndarray
-        Counts of samples assigned to the same cluster.
-    observed : ndarray
-        Counts of samples jointly assigned.
-    indices : ndarray
-        Original indices of samples included in this replicate.
-    labels : ndarray
-        Cluster labels corresponding to indices.
-    exclude_noise : bool
-        Whether to exclude noise (-1) from both counts.
-    """
+    :arg coassigned: Counts of samples assigned to the same cluster.
+    :type coassigned: :class:`numpy.ndarray`
+
+    :arg observed: Counts of samples jointly assigned.
+    :type observed: :class:`numpy.ndarray`
+
+    :arg indices: Original indices of samples included in this replicate.
+    :type indices: :class:`numpy.ndarray`
+
+    :arg labels: Cluster labels corresponding to *indices*.
+    :type labels: :class:`numpy.ndarray`
+
+    :arg exclude_noise: Whether to exclude noise (``-1``) from both counts.
+        Default is **True**.
+    :type exclude_noise: bool """
+    
     from scipy.sparse import csr_matrix
     
     indices = np.asarray(indices)
@@ -13748,9 +13750,7 @@ def _updateCoassociation(coassigned, observed, indices, labels,
 
     # Same-cluster assignments
     _, inverse = np.unique(labels, return_inverse=True)
-
     M = csr_matrix((np.ones(len(indices), dtype=np.uint32),(indices, inverse)),shape=(coassigned.shape[0], inverse.max() + 1))
-
     coassigned += (M @ M.T).toarray()
 
 
