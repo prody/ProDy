@@ -13449,10 +13449,8 @@ def calcDistancesToMediod(distance_matrix):
     D = np.asarray(distance_matrix)
     n = D.shape[0]
     if n > 1:
-        D_no_diag = D.copy()
-        np.fill_diagonal(D_no_diag, np.inf)
         mediod = np.argmin(D.sum(axis=1))
-        distances_to_mediod = D_no_diag[mediod]
+        distances_to_mediod = D[mediod].copy()
     
         return (mediod,distances_to_mediod)
 
