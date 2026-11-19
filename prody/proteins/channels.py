@@ -13169,28 +13169,44 @@ def _fitAgglomerative(distance_matrix, **kwargs):
     return "scipy_hierarchical", labels, Z
 
 
-def clusterChannels(distance_matrix, method, records=None, update_record_ids=True, calc_stats=True,labels_only=False, **kwargs):
+def clusterChannels(distance_matrix, method, records=None, update_record_ids=True, 
+                                    calc_stats=True,labels_only=False, **kwargs):
     """Cluster channels/samples from a precomputed distance matrix.
-    
-    distance_matrix : array-like (n_samples, n_samples)
-    method : {'HDBSCAN', 'DBSCAN', 'agglomerative'}
-    records : sequence of ChannelRecord, length n_samples
-    update_record_ids : bool, default True
-        If True, append each label to record.cluster_ids. subcluster() passes
-        False and writes the full hierarchical path itself.
-    **kwargs
-        sparse : bool, default False
-        Everything else is forwarded to the estimator
-        (HDBSCAN: min_cluster_size, min_samples, ...; DBSCAN: eps, min_samples;
-        agglomerative: n_clusters, linkage, distance_threshold).
 
-    Returns
-    -------
-    labels : ndarray (n_samples,)   (noise = -1 for HDBSCAN/DBSCAN)
-    clustering : ClusteringRecords
-        linkage_matrix is populated for agglomerative.
-        Noise points (label -1) get their own Cluster with label -1.
-    """
+    :arg distance_matrix: Precomputed pairwise distance matrix.
+    :type distance_matrix: array-like
+
+    :arg method: Clustering method: ``'HDBSCAN'``, ``'DBSCAN'``, or
+        ``'agglomerative'``.
+    :type method: str
+
+    :arg records: Sequence of channel records corresponding to the rows
+        of *distance_matrix*. Required when *labels_only* is **False**.
+    :type records: list or None
+
+    :arg update_record_ids: If **True**, append each cluster label to the
+        corresponding record's ``cluster_ids``. Default is **True**.
+    :type update_record_ids: bool
+
+    :arg calc_stats: If **True**, calculate cluster statistics.
+        Default is **True**.
+    :type calc_stats: bool
+
+    :arg labels_only: If **True**, return only cluster labels without
+        constructing clustering records. Default is **False**.
+    :type labels_only: bool
+
+    :arg kwargs: Additional arguments passed to the clustering algorithm,
+        including ``sparse`` (default **False**). Other parameters depend
+        on the selected method.
+    :type kwargs: dict
+
+    :returns: A tuple containing cluster labels and a
+        :class:`.ClusteringRecords` object. Noise points have label ``-1``.
+        For agglomerative clustering, the linkage matrix is also stored.
+        If *labels_only* is **True**, the second element is **None**.
+    :rtype: tuple """
+    
     from scipy.sparse import csr_matrix
 
     sparse = kwargs.pop("sparse", False)
