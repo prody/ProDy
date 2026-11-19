@@ -12727,9 +12727,11 @@ def _scanGrid(scan, allowed, defaults=None):
         axes.append(np.atleast_1d(vals).astype(float).tolist())
     return list(product(*axes))
 
-def buildCenterlineDistanceMatrix(channels=None, records=None, h=10, n_samples=5, angle_deg=5.0,
-                                    q=1.0,dtype=np.float32,block_size=None,max_proc=None,
-                                    normalize_radii=True,clip_distance=True,**kwargs ):
+
+def buildCenterlineDistanceMatrix(channels=None, records=None, h=10, n_samples=5, 
+                                    angle_deg=5.0, q=1.0, dtype=np.float32, 
+                                    block_size=None, max_proc=None,
+                                    normalize_radii=True, clip_distance=True, **kwargs ):
     """Build a pairwise distance matrix between channel centerlines.
 
     This routine accepts either a nested collection of Channel objects or a
@@ -12738,43 +12740,56 @@ def buildCenterlineDistanceMatrix(channels=None, records=None, h=10, n_samples=5
     between all channels. The result is an NxN NumPy array where each entry is a
     distance between the corresponding pair of channel centerlines.
 
-    Parameters
-    ----------
-    channels : sequence of sequence of Channel, optional
-        Nested channel groups, typically one list per conformation. Each channel
-        must have a valid cost and centerline spline before clustering.
-    records : sequence of ChannelRecord, optional
-        Prebuilt channel records. Pass either this or ``channels``, but not both.
-    h : int, optional
-        Number of representative points used along the centerline for distance
-        evaluation.
-    n_samples : int, optional
-        Number of samples used when constructing the spline-based geometric
-        representation.
-    angle_deg : float, optional
-        Angular tolerance used during centerline distance calculations.
-    q : float, optional
-        Distance weighting exponent.
-    dtype : numpy.dtype, optional
-        Data type of the output distance matrix.
-    block_size : int, optional
-        Number of channel pairs to process per block. If None, all channels are
-        processed in one block.
-    max_proc : int, optional
-        Maximum number of worker processes used when evaluating the matrix.
-    normalize_radii : bool, optional
-        Whether to normalize radial contributions in the distance metric.
-    clip_distance : bool, optional
-        Whether to clip computed distances to a maximum value.
-    **kwargs
-        Additional keyword arguments passed through to lower-level routines.
+    :arg channels: Nested channel groups, typically one list per conformation.
+        Each channel must have a valid cost and centerline spline before
+        clustering.
+    :type channels: list or None
 
-    Returns
-    -------
-    numpy.ndarray or None
-        An NxN symmetric distance matrix for the input channels, or None when no
-        channels or records are provided.
-    """
+    :arg records: Prebuilt channel records. Pass either *records* or *channels*,
+        but not both.
+    :type records: list or None
+
+    :arg h: Number of representative points used along the centerline for
+        distance evaluation.
+    :type h: int
+
+    :arg n_samples: Number of samples used when constructing the spline-based
+        geometric representation.
+    :type n_samples: int
+
+    :arg angle_deg: Angular tolerance passed to the clustering calculator.
+    :type angle_deg: float
+
+    :arg q: Distance weighting exponent.
+    :type q: float
+
+    :arg dtype: Data type of the output distance matrix.
+    :type dtype: :class:`numpy.dtype`
+
+    :arg block_size: Number of matrix rows to process per block. If **None**,
+        all channels are processed in one block.
+    :type block_size: int or None
+
+    :arg max_proc: Maximum number of worker processes used when evaluating
+        the matrix.
+    :type max_proc: int or None
+
+    :arg normalize_radii: Whether to normalize radial contributions in the
+        distance metric.
+    :type normalize_radii: bool
+
+    :arg clip_distance: Whether to clip computed distances to a maximum value.
+    :type clip_distance: bool
+
+    :arg kwargs: Additional keyword arguments, including ``mp_context``
+        and ``scan`` for evaluating multiple values of *q*.
+    :type kwargs: dict
+
+    :returns: A tuple containing the symmetric NxN distance matrix and the
+        corresponding channel records. If ``scan`` is provided, the matrix is
+        replaced by a dictionary of distance matrices. Returns **None** when
+        no channels or records are available.
+    :rtype: tuple or None """
 
     import multiprocessing
     from multiprocessing import Pool
