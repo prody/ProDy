@@ -12876,44 +12876,48 @@ def buildCenterlineDistanceMatrix(channels=None, records=None, h=10, n_samples=5
 def buildVoxelOverlapDistanceMatrix(channels=None, records=None, voxel_size=0.25,
                                     max_proc=1, mp_context=None, pad_factor=1.02,
                                     interframe_only=False, **kwargs):
-    """
-    Calculate pairwise spatial distance (1 - weighted voxel overlap score)
+    """Calculate pairwise spatial distance (1 - weighted voxel overlap score)
     between channels.
 
     Every channel is voxelized exactly once onto a shared lattice (common
     origin + voxel pitch). Pairwise overlap is then integer-indexed slicing
     and a bitwise AND between cached masks.
 
-    Parameters
-    ----------
-    channels : list[list[Channel]] or None
-        One list of channels per frame. Mutually exclusive with `records`.
-    records : list[ChannelRecord] or None
-        Pre-built records (e.g. from prepareChannelRecords). Frame membership
-        is taken from each record's `conformation_id`. Unvoxelized records
-        are voxelized here onto a shared lattice.
-    voxel_size : float
-        Voxel pitch. Ignored when records are already voxelized (their
-        lattice is used instead).
-    max_proc : int or None
-        Worker processes for the per-channel voxelization step.
-        None -> cpu_count // 2.
-    mp_context : str or None
-        Multiprocessing context, e.g. 'fork'.
-    pad_factor : float
-        Passed to ClusterCalculator.
-    interframe_only : bool
-        If True, pairs within the same frame are never compared and their
-        entries in D are NaN. Cross-frame pairs that do not overlap are
-        1.0 (max distance), never NaN.
+    :arg channels: One list of channels per frame. Mutually exclusive with
+        *records*.
+    :type channels: list or None
 
-    Returns
-    -------
-    D : ndarray (n, n)
-        Symmetric distance matrix. Diagonal is 0.
-    records : list[ChannelRecord]
-        Voxelized records, in the same order as the rows/columns of D.
-    """
+    :arg records: Pre-built records (e.g. from :func:`.prepareChannelRecords`).
+        Frame membership is taken from each record's ``conformation_id``.
+        Unvoxelized records are voxelized here onto a shared lattice.
+    :type records: list or None
+
+    :arg voxel_size: Voxel pitch. Ignored when records are already voxelized
+        (their lattice is used instead).
+    :type voxel_size: float
+
+    :arg max_proc: Number of worker processes for the per-channel voxelization
+        step. If **None**, half of the available CPU cores are used.
+    :type max_proc: int or None
+
+    :arg mp_context: Multiprocessing context, e.g. ``'fork'``.
+    :type mp_context: str or None
+
+    :arg pad_factor: Padding factor passed to :class:`.ClusterCalculator`.
+    :type pad_factor: float
+
+    :arg interframe_only: If **True**, pairs within the same frame are never
+        compared and their entries in the distance matrix are NaN, except
+        for the diagonal, which remains zero. Cross-frame pairs that do not
+        overlap have a distance of 1.0.
+    :type interframe_only: bool
+
+    :returns: A tuple containing the symmetric pairwise distance matrix
+        and the corresponding voxelized channel records. The diagonal
+        elements are zero. Returns **None** if no channels or records are
+        available.
+    :rtype: tuple or None """
+    
     import multiprocessing
 
     if records is not None and channels is not None:
