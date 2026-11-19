@@ -12539,62 +12539,61 @@ class ChannelCalculator:
                 if cavity.tetrahedra_depths.get(tetra, np.inf) <= max_depth])
 
 
-
-
 def prepareChannelRecords(channels, atoms=None, trajectory=None, metric=None, voxelize=False,
                           max_proc=None, mp_context=None, **kwargs):
-    """
-    Build a flat list of ChannelRecords (one per channel, frame-major order).
+    """Prepare channel records for clustering and distance calculations.
 
-    Parameters
-    ----------
-    channels : list[list[Channel]]
-        One list of channels per frame.
-    atoms, trajectory :
-        If both are given, lining residues are computed and stored on each
-        record (record.lining_residues).
+    This function converts channels from multiple conformations into a flat
+    list of channel records, preserving their original frame order. Depending
+    on the selected metric, additional information such as representative
+    centerline points, voxelized channel volumes, or lining residues is
+    calculated and stored in the records.
 
-    metric : str, callable, or iterable of str/callable, optional
-        Metric or metrics the records should be prepared for.
+    :arg channels: Channels grouped by conformation, with one list of channels
+        per frame.
+    :type channels: list
 
-        Recognized preparation requirements:
+    :arg atoms: Protein structure used to identify channel-lining residues.
+        Required together with *trajectory* for residue-based metrics.
+    :type atoms: :class:`.Atomic` or None
 
-            chamfer
-            frechet
-            projection
-                Basic ChannelRecord geometry only.
-            centerline
-                Additionally prepare representative points along the centerline.
-            voxel
-            voxel_overlap
-                Additionally voxelize all records onto a common lattice.
+    :arg trajectory: Trajectory or ensemble containing the conformations
+        corresponding to *channels*. Required for lining-residue calculations.
+    :type trajectory: object or None
 
-            lining
-            residue
-            residue_lining
-                Additionally calculate lining residues.
+    :arg metric: Metric or collection of metrics for which the records should
+        be prepared. Supported options are ``'chamfer'``, ``'frechet'``,
+        ``'projection'``, ``'centerline'``, ``'voxel'``, ``'voxel_overlap'``,
+        ``'lining'``, ``'residue'``, and ``'residue_lining'``.
+        Callable metrics are also accepted but do not automatically trigger
+        additional data preparation. If **None**, lining residues are
+        calculated when both *atoms* and *trajectory* are provided.
+    :type metric: str, callable, iterable, or None
 
-        Callables are accepted but do not imply any additional preparation,
-        since their geometry requirements cannot be inferred. For example,
-        if a callable requires voxels, pass:
+    :arg voxelize: If **True**, voxelize all channels using a common grid
+        origin and voxel size. Default is **False**.
+    :type voxelize: bool
 
-            metric=['voxel', my_metric]
-    voxelize : bool
-        If True, every record is voxelized onto a shared lattice
-        (common global_origin + voxel_size).
-    max_proc : int or None
-        Worker processes for record building. None -> cpu_count // 2.
-    mp_context : str or None
-        Multiprocessing context, e.g. 'fork' or 'spawn'.
-    **kwargs :
-        ClusterCalculator options (voxel_size, pad_factor, h, angle_deg, q,
-        n_samples, alpha, beta) are consumed here; everything else is
-        forwarded to getObjectLiningInfoMultipleFrames.
+    :arg max_proc: Maximum number of worker processes. If **None**, half of
+        the available CPU cores are used.
+    :type max_proc: int or None
 
-    Returns
-    -------
-    records : list[ClusterCalculator.ChannelRecord]
-    """
+    :arg mp_context: Multiprocessing context, such as ``'fork'`` or
+        ``'spawn'``. If **None**, the default context is used.
+    :type mp_context: str or None
+
+    :arg kwargs: Additional parameters for :class:`.ClusterCalculator`,
+        including ``voxel_size``, ``pad_factor``, ``h``, ``angle_deg``,
+        ``q``, ``n_samples``, ``alpha``, and ``beta``. Remaining keyword
+        arguments are forwarded to :func:`.getObjectLiningInfoMultipleFrames`
+        when lining residues are calculated.
+    :type kwargs: dict
+
+    :returns: List of channel records in frame-major order, containing
+        additional information required by the selected metrics.
+        Returns an empty list if no channels are provided.
+    :rtype: list """    
+    
     import multiprocessing
 
     if channels is None or len(channels) == 0:
@@ -12682,7 +12681,6 @@ def prepareChannelRecords(channels, atoms=None, trajectory=None, metric=None, vo
     LOGGER.info("All Channels Voxelized" if prepare_voxels else "All Channel Records Built")
 
     # Optional lining residues
-
     if prepare_lining:
         resinds = getObjectLiningInfoMultipleFrames(
             atoms, channels, trajectory,
@@ -13153,11 +13151,8 @@ def _fitAgglomerative(distance_matrix, **kwargs):
 
 
 def clusterChannels(distance_matrix, method, records=None, update_record_ids=True, calc_stats=True,labels_only=False, **kwargs):
-    """
-    Cluster channels/samples from a precomputed distance matrix.
-
-    Parameters
-    ----------
+    """Cluster channels/samples from a precomputed distance matrix.
+    
     distance_matrix : array-like (n_samples, n_samples)
     method : {'HDBSCAN', 'DBSCAN', 'agglomerative'}
     records : sequence of ChannelRecord, length n_samples
@@ -18522,6 +18517,8 @@ def _writeViewerPQR(result_file, objects, object_type, surface, num_samples):
     else:
         _saveConnectedCavityChannels(objects, surface, result_file, separate=False,
                                     num_samples=num_samples)
+
+
 def writeVmdCaviTracerScript(objects, atoms, object_type='channels',
                              surface=None, output_path='.', num_samples=5):
     """Write CaviTracer results and a TCL script for visualization in VMD.
