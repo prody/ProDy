@@ -1898,7 +1898,11 @@ class Select(object):
             else:
                 # ndim must not be zero for in place operation
                 if ndim:
-                    binop(left, right, left)
+                    try:
+                        binop(left, right, left)
+                    except TypeError:
+                        # Allow promotion when the result cannot fit in left.
+                        left = binop(left, right)
                 else:
                     left = binop(left, right)
         return left
