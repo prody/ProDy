@@ -13194,9 +13194,8 @@ def clusterChannels(distance_matrix, method, records=None, update_record_ids=Tru
     n_rows, n_cols = shape
     if n_rows != n_cols:
         raise ValueError( f"distance_matrix must be square (n_samples x n_samples); got shape {shape}")
-    if records is not None:
-        if len(records) != n_rows:
-            raise ValueError( f"distance_matrix has {n_rows} rows but {len(records)} records were given")
+    if records is None and not labels_only:
+        raise ValueError("records must be provided when labels_only=False")
 
     valid_methods = {"HDBSCAN", "DBSCAN", "agglomerative"}
     if method not in valid_methods:
