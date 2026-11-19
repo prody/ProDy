@@ -848,7 +848,7 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     elif model in GENANM_MODEL_NAMES:
         # generalized ANM: contact springs plus virtual bond, angle and dihedral
         # terms; keywords (k_bond, k_theta, k_phi, kappa, cutoff, ...) are passed
-        # to genANM.buildHessian, whose defaults are the MD-calibrated constants
+        # to genANM.buildHessian, whose defaults are the default force constants
         enm = genANM(title)
         enm.buildHessian(atoms, gamma=gamma,
                          **dict((k, v) for k, v in kwargs.items() if k in GENANM_KEYWORDS))

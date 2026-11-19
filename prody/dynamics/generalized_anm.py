@@ -419,7 +419,7 @@ def buildGeneralizedHessian(coords, cutoff=15.0, gamma=1.0, k_bond=20.0,
     With ``kappa == 0`` the six rigid-body zero modes are preserved; with
     ``kappa != 0`` only the three translational zero modes are exact.
 
-    MD-calibrated constants (gamma = 1, cutoff = 15 A):
+    Default constants (gamma = 1, cutoff = 15 A):
     ``k_bond = 20, k_theta = 10, k_phi = 1, kappa = 0``."""
 
     coords = np.asarray(coords, dtype=float)
@@ -484,7 +484,7 @@ class genANM(ANM):
     def getForceConstants(self):
         """Return ``(k_bond, k_theta, k_phi, kappa)`` used to build the Hessian.
 
-        The MD-calibrated set is ``(20.0, 10.0, 1.0, 0.0)`` at ``gamma = 1`` and
+        The default set is ``(20.0, 10.0, 1.0, 0.0)`` at ``gamma = 1`` and
         ``cutoff = 15 A``."""
 
         return (self._k_bond, self._k_theta, self._k_phi, self._kappa)
@@ -645,5 +645,5 @@ def calcGenANM(pdb, selstr='calpha', cutoff=15.0, gamma=1.0, n_modes=20,
 
 
 # Earlier name of buildGeneralizedHessian, kept so that existing imports keep working.
-# Note that the defaults are now the MD-calibrated constants (k_bond=20, kappa=0).
+# Note that the defaults are now k_bond=20, k_theta=10, k_phi=1 and kappa=0.
 build_generalized_hessian = buildGeneralizedHessian

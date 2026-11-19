@@ -62,7 +62,7 @@ def test_calc_modes_and_calcGenANM_with_array():
 
 
 # ---------------------------------------------------------------------------
-# Properties of the MD-calibrated genANM (zero modes, reduction to ANM, calcENM, save/load)
+# Properties of genANM with the default constants (zero modes, reduction to ANM, calcENM, save/load)
 # ---------------------------------------------------------------------------
 
 import os
@@ -86,7 +86,7 @@ class TestGenANM(unittest.TestCase):
         self.gen.calcModes(n_modes=10, zeros=True)
 
     def testDefaultConstants(self):
-        """MD-calibrated constants are the defaults."""
+        """The force constants 20, 10, 1 and 0 are the defaults."""
         self.assertEqual(self.gen.getForceConstants(), (20.0, 10.0, 1.0, 0.0))
         self.assertEqual(self.gen.numZeros(), 6)
 
