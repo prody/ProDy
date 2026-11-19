@@ -13806,6 +13806,7 @@ def coassociationMatrix(label_list, exclude_noise=True):
         counts += valid_pair
 
     C = np.divide(C,counts,out=np.zeros_like(C), where=counts > 0)
+
     return C
 
 
@@ -13843,45 +13844,31 @@ def clusterConsensusStrength(C, cluster_indices):
 
 
 def writeClusterLabels(filename, labels, names=None):
-    """
-    Write one or more clustering label sets to a tab-separated text file.
+    """Write one or more clustering label sets to a tab-separated text file.
 
-    Parameters
-    ----------
-    filename : str or os.PathLike
-        Output filename. A '.tsv' extension is recommended.
+    Note that label ``-1`` is conventionally used for noise or unclustered
+    channels. Rows must follow the same channel order expected by the PyMOL 
+    visualization script: ascending frame followed by ascending channel 
+    rank within each frame.
 
-    labels : array-like or sequence of array-like
-        Cluster labels to write.
+    :arg filename: Output filename. A ``.tsv`` extension is recommended.
+    :type filename: str or os.PathLike
 
-        For a single clustering, this may be a 1-D array of shape
-        ``(n_channels,)``.
+    :arg labels: Cluster labels to write. For a single clustering, this
+        may be a 1-D array of shape (n_channels,). For multiple clusterings,
+        this may be a sequence of 1-D arrays or a 2-D NumPy array of shape
+        (n_channels, n_clusterings). All label sets must contain the same
+        number of channels.
+    :type labels: array-like or sequence of array-like
 
-        For multiple clusterings, this may be either:
+    :arg names: Column names for the clustering label sets. The number
+        of names must equal the number of clustering columns.
+        If **None**, names are generated as ``labels_1``, ``labels_2``,
+        etc. Default is **None**.
+    :type names: list or None
 
-        - a sequence of 1-D arrays, one array per clustering, or
-        - a 2-D NumPy array of shape ``(n_channels, n_clusterings)``.
-
-        All clustering label sets must contain the same number of channels.
-
-    names : sequence of str, optional
-        Column names for the clustering label sets. The number of names must
-        equal the number of clustering columns. If omitted, names are generated
-        as ``labels_1``, ``labels_2``, etc.
-
-    Returns
-    -------
-    str
-        The output filename.
-
-    Notes
-    -----
-    Label -1 is conventionally used for noise/unclustered channels.
-
-    Rows must be in the same channel order expected by the PyMOL
-    visualization script: ascending frame followed by ascending channel rank
-    within each frame.
-    """
+    :returns: Output filename.
+    :rtype: str """
 
     if isinstance(labels, np.ndarray) and labels.ndim == 1:
         arr = labels[:, None]
