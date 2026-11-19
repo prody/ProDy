@@ -35,7 +35,7 @@ from .anm import ANM
 from .gnm import checkENMParameters
 
 __author__ = 'Anupam Banerjee'
-__credits__ = ['Anupam Banerjee', 'Anthony Bogetti', 'Ivet Bahar']
+__credits__ = ['Anupam Banerjee']
 __email__ = ['anupam.banerjee@stonybrook.edu']
 
 __all__ = ['genANM', 'calcGenANM', 'buildGeneralizedHessian']

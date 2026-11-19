@@ -1,4 +1,4 @@
-"""This module contains unit tests for :mod:`~prody.dynamics.pathtools`."""
+"""This module contains unit tests for :mod:`~prody.dynamics.pathanalysis`."""
 
 import numpy as np
 from numpy.testing import assert_allclose

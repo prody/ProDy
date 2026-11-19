@@ -1,5 +1,5 @@
 Pathway Analysis
 ================
 
-.. automodule:: prody.dynamics.pathtools
+.. automodule:: prody.dynamics.pathanalysis
    :members:

@@ -382,9 +382,9 @@ from . import neo_adaptive
 from .neo_adaptive import *
 __all__.extend(neo_adaptive.__all__)
 
-from . import pathtools
-from .pathtools import *
-__all__.extend(pathtools.__all__)
+from . import pathanalysis
+from .pathanalysis import *
+__all__.extend(pathanalysis.__all__)
 
 from . import clustenm
 from .clustenm import *

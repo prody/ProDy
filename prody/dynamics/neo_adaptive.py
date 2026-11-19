@@ -1,70 +1,3 @@
-# adaptive.py (aanm_v2, pre-final) -- extended adaptive ANM driver.
-# Defaults: steric test ON, geometric correction ON, contact-aware network ON, adaptive stiffness filter ON (mu = 3),
-# so steps move along the softest modes first and stiffer contributions enter only when a step cannot progress.
-# soft_filter=0 gives the standard (unfiltered) driver. Each can be turned off.
-# Works standalone (imported from this folder) or installed as prody/dynamics/adaptive.py.
-# ---------------------------------------------------------------------------------------------
-# OPTIONS (keyword arguments to calcAdaptiveANM; command-line flags of aanm_job.py in brackets)
-#
-# Step acceptance: every candidate step must pass these tests; a failing step is retried at half
-# the size (backtracking line search), then with other modes (L2 rescue), then by rewinding.
-#
-#   adj_max = 6.0 A                     [--adj_max]           BOND GUARD, always on
-#       Rejects a step if any sequential Ca-Ca virtual bond exceeds adj_max. Bonds already longer
-#       than this in the start structure (genuine chain breaks) are exempt.
-#
-#   clash_min = 3.0 A (ON by default)   [--clash_min, 0 = off] STERIC TEST
-#   clash_sep = 3                       [--clash_sep]
-#       Rejects a step if, at its endpoint or its midpoint, any non-bonded Ca pair at least clash_sep
-#       residues apart comes closer than clash_min. Checking the midpoint catches two segments passing
-#       through each other within one step. Pairs already that close in either endpoint are exempt.
-#       Keep ON: without it, large rearrangements can reach the target only by crossing the chain.
-#
-# Aids for difficult transitions (both ON by default since aanm_v2; benchmarked on seven systems: harmless on the
-# six that already converge, and they cut the worst bond excursion about tenfold and rescue large rearrangements):
-#
-#   geom_bond_hi = 4.2 A (0 = off)            [--geom_bond_hi]   GEOMETRIC CORRECTION
-#   geom_clash   = 3.2 A (0 = off)            [--geom_clash]
-#   geom_iters   = 200                        [--geom_iters]
-#       After each candidate step, and before the tests above, virtual bonds longer than geom_bond_hi
-#       are pulled back and non-bonded pairs closer than geom_clash are pushed apart (position-based
-#       constraint satisfaction, like SHAKE), keeping the centre of mass fixed. Instead of rejecting a
-#       step that would tear a bond, the step is repaired, so a swinging segment is carried along its
-#       arc. Use when a run stalls with a bond pinned at the guard ceiling (large domain or tail
-#       relocations). Each correction is logged ("geom: ... mode step X A rms, correction Y A rms");
-#       if Y exceeds about 30% of X, the constraints rather than the modes drive the motion and the
-#       result should be described as geometric targeting.
-#
-#   contact_on = 4.5 A (0 = off)              [--contact_on]     CONTACT-AWARE NETWORK
-#   contact_k  = 10 (x gamma)                 [--contact_k]
-#   contact_sep = 3                           [--contact_sep]
-#       At every network build, non-bonded Ca pairs that have come within contact_on get a stiff spring
-#       (contact_k, rest length = current distance) before the modes are computed. Motions pushing those
-#       residues together become stiff and leave the soft modes, so steps route around the obstacle.
-#       Each spring has the ANM form k u u^T, so the six rigid-body zero modes are preserved. Native
-#       close pairs are exempt. Most useful together with geometric correction.
-#
-# Soft-first options (stiffness filter and its adaptive relaxation are ON by default; the others are OFF):
-#   coverage_floor = auto (0.35/0.50/0.70)    [--coverage_floor]   SOFT-MODE COVERAGE PER STEP
-#       Each step takes the smallest set of softest modes covering this share of the remaining deformation.
-#       Lower values (for example 0.1) keep early steps on the one or two softest modes.
-#   soft_ladder = off                         [--soft_ladder]      SOFT LADDER
-#       When a soft step makes too little progress, widen the set of softest modes (coverage doubled each time)
-#       before falling back to the overlap-ranked L2 rescue, which ignores stiffness. Use with a low coverage_floor.
-#   soft_filter_adapt = off                   [--soft_filter_adapt] ADAPTIVE FILTER
-#       With soft_filter on: when a filtered step makes too little progress, retry the same soft modes with the filter
-#       halved (down to mu/8, then off) before the soft ladder or any L2 rescue. Each step starts at full strength.
-#   soft_filter_fallback = off                [--soft_filter_fallback] FILTER FALLBACK
-#       With soft_filter on: when the run would end short of the target (soft modes and rescues exhausted, no rewind
-#       left), halve mu (down to mu/8, then off) and continue instead. The run ends only when it would end with the
-#       filter off, so the filter cannot stop a run earlier than the unfiltered driver. One-way driver.
-#   soft_filter = 3 (0 = off)                 [--soft_filter]      STIFFNESS FILTER
-#       Mode j contributes ov_j / (1 + mu (lambda_j / lambda_1 - 1)), mu = soft_filter: the softest mode
-#       passes in full, stiffer modes are damped smoothly instead of being cut off.
-#
-# Recommended use: the defaults. Always report the correction percentage (advise.py), since with correction on
-# the method is a hybrid of mode following and geometric constraint satisfaction.
-# ---------------------------------------------------------------------------------------------
 # -*- coding: utf-8 -*-
 """This module defines :func:`.calcNeoAdaptiveANM`, which generates a
 conformational transition path between two structures in which every accepted
@@ -87,8 +20,7 @@ adds, all on by default and each switchable with one keyword:
 """
 
 __author__ = 'Anupam Banerjee'
-__credits__ = ['Anupam Banerjee', 'Anthony Bogetti', 'Ivet Bahar',
-               'She Zhang', 'James Krieger']
+__credits__ = ['Anupam Banerjee']
 __email__ = ['anupam.banerjee@stonybrook.edu']
 
 from numbers import Integral
@@ -1567,6 +1499,9 @@ def calcNeoAdaptiveANM(a, b, n_steps=100, mode=AANM_ONEWAY, **kwargs):
         step (down to mu/8, then off), default **True**
     :kwarg soft_filter_fallback: if the run would stop short of the target,
         weaken the filter instead of stopping, default **False** (one-way only)
+    :kwarg soft_ladder: on a step that cannot progress, widen the set of softest
+        modes (coverage doubled each time) before the rescue that ranks modes by
+        overlap alone, default **False**
     :kwarg coverage_floor: share of the remaining deformation the selected soft
         modes must cover, set automatically from the overlap spectrum by default
 
@@ -1621,6 +1556,10 @@ def calcNeoAdaptiveANM(a, b, n_steps=100, mode=AANM_ONEWAY, **kwargs):
     residues apart by at least *clash_min*. For large rearrangements that the
     soft-first driver cannot complete, run again with ``soft_filter=0`` and keep
     the path that ends closer to the target.
+
+    Each geometric correction is logged as a share of the mode step. Report this
+    share with the path; if it exceeds about 30%, the constraints rather than the
+    modes drive the motion.
     """
 
     if not isinstance(n_steps, Integral):

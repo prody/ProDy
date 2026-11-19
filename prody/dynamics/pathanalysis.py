@@ -22,6 +22,10 @@ NeoAdaptiveANM stores the linear midpoint between consecutive accepted conformat
 because both are tested; :func:`dropMidpoints` removes these frames, so that functions
 working on steps (:func:`calcStepWork`) count accepted steps."""
 
+__author__ = 'Anupam Banerjee'
+__credits__ = ['Anupam Banerjee']
+__email__ = ['anupam.banerjee@stonybrook.edu']
+
 import os
 import shutil
 import subprocess
