@@ -15765,29 +15765,28 @@ class Cluster:
 
         return occupancy
     
-    def writeVoxelOccupancyPQR(self,output_file, min_occupancy=0.0, occupancy_as_charge=True):
-        """
-        Write the cluster voxel occupancy as a PQR-like FIL file.
+    def writeVoxelOccupancyPQR(self, output_file, min_occupancy=0.0, occupancy_as_charge=True):
+        """Write the cluster voxel occupancy as a PQR-like FIL file.
 
         Each occupied voxel is written as one FIL pseudoatom. The occupancy
-        value is stored in the PQR charge field.
+        value is stored in the PQR charge field when *occupancy_as_charge*
+        is **True**.
 
-        Parameters
-        ----------
-        output_file : str
-            Output PQR filename.
+        :arg output_file: Output PQR filename.
+        :type output_file: str
 
-        min_occupancy : float, optional
-            Only voxels with occupancy >= this value are written.
-            Default is 0.0.
+        :arg min_occupancy: Minimum occupancy value required for a voxel
+            to be written. Default is **0.0**.
+        :type min_occupancy: float
 
-        occupancy_as_charge : bool, optional
-            Store occupancy in the PQR charge field. Default True.
+        :arg occupancy_as_charge: If **True**, store occupancy in the PQR
+            charge field. Default is **True**.
+        :type occupancy_as_charge: bool
 
-        Returns
-        -------
-        output_file : str
-        """
+        :returns: Output PQR filename, or **None** if occupancy data
+            are unavailable.
+        :rtype: str or None """
+
         if min_occupancy < 0:
             raise ValueError("min_occupancy must be non-negative.")
 
@@ -15824,6 +15823,7 @@ class Cluster:
                 )
                 
         return output_file
+
 
 class ClusteringRecords:
     """ Stores the results of a clustering run, including the fitted model, the
