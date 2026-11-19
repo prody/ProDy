@@ -13447,11 +13447,17 @@ def renameChannelFilesWithClusterLabels(channels, labels, output_path,
 
     return renamed
 
+
 def calcNearestNeighborDistances(distance_matrix):
-    """
-    calculate the distance between all data points and their closest
-    data. returns distances as an array
-    """
+    """Calculate the distance from each data point to its nearest neighbor.
+
+    :arg distance_matrix: Pairwise distance matrix.
+    :type distance_matrix: array-like
+
+    :returns: Array of nearest-neighbor distances, or **NaN** if fewer
+        than two data points are provided.
+    :rtype: :class:`numpy.ndarray` or float"""
+    
     D = np.asarray(distance_matrix)
     n = D.shape[0]
     if n > 1:
@@ -13463,16 +13469,18 @@ def calcNearestNeighborDistances(distance_matrix):
 
     return np.nan 
 
+
 def calcDistancesToMediod(distance_matrix):
-    """
-    Finds the mediod and calculates the distances of all data points to that mediod
+    """Finds the mediod and calculates the distances of all data points to that mediod
     
-    Returns
-    --------
-    Tuple
-        Medoid
-        distances_to_mediod
-    """
+    :arg distance_matrix: Pairwise distance matrix.
+    :type distance_matrix: array-like
+
+    :returns: A tuple containing the medoid index and an array of
+        distances to the medoid. For fewer than two data points,
+        returns ``(0, np.nan)``.
+    :rtype: tuple """
+    
     D = np.asarray(distance_matrix)
     n = D.shape[0]
     if n > 1:
