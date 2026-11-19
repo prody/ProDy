@@ -15703,20 +15703,19 @@ class Cluster:
     def buildVoxelizedGraph(self, min_occupancy=0.0, return_coordinates=False):
         """Build a cluster occupancy grid by aggregating the voxel masks of all records.
 
-        Parameters
-        ----------
-        min_occupancy : float, optional
-            Minimum occupancy value required to keep a voxel in the graph.
-        return_coordinates : bool, optional
-            If True, return the occupancy array together with the global origin and
-            voxel size.
+        :arg min_occupancy: Minimum occupancy value required to retain a voxel.
+            Voxels below this threshold are set to zero. Default is **0.0**.
+        :type min_occupancy: float
 
-        Returns
-        -------
-        occupancy : numpy.ndarray
-            Occupancy map for the cluster, optionally accompanied by origin and voxel
-            size metadata.
-        """
+        :arg return_coordinates: If **True**, return the occupancy array together
+            with the global origin and voxel size. Default is **False**.
+        :type return_coordinates: bool
+
+        :returns: Cluster occupancy map as a NumPy array. If *return_coordinates*
+            is **True**, returns a tuple containing the occupancy array,
+            its origin, and the voxel size.
+        :rtype: :class:`numpy.ndarray` or tuple """
+
         if not np.any(self.records):
             self.graph_occupancy = None
             self.voxelized_graph = None
