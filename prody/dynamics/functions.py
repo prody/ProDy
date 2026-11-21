@@ -22,6 +22,7 @@ from .anm import ANM, ANMBase, MaskedANM
 from .analysis import calcProjection, calcCollectivity, calcScipionScore
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
+from .generalized_anm import genANM, GENANM_MODEL_NAMES, GENANM_KEYWORDS
 from .rtb import RTB
 from .pca import PCA, EDA
 from .imanm import imANM
@@ -114,6 +115,11 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
 
+    if isinstance(nma, genANM):
+        attr_dict['type'] = 'genANM'
+        for attr in ('_k_bond', '_k_theta', '_k_phi', '_kappa', '_n_zeros'):
+            attr_dict[attr] = dict_[attr]
+
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
         if not filename.lower().endswith(suffix):
@@ -170,6 +176,8 @@ def loadModel(filename, **kwargs):
             nma = MaskedANM(title)
         elif type_ == 'exANM':
             nma = exANM(title)
+        elif type_ == 'genANM':
+            nma = genANM(title)
         elif type_ == 'imANM':
             nma = imANM(title)
         elif type_ == 'NMA':
@@ -183,9 +191,9 @@ def loadModel(filename, **kwargs):
         for attr in attr_dict.files:
             if attr in ('type', '_name', '_title'):
                 continue
-            elif attr in ('_trace', '_cutoff', '_gamma'):
+            elif attr in ('_trace', '_cutoff', '_gamma', '_k_bond', '_k_theta', '_k_phi', '_kappa'):
                 dict_[attr] = attr_dict[attr][()]
-            elif attr in ('_dof', '_n_atoms', '_n_modes'):
+            elif attr in ('_dof', '_n_atoms', '_n_modes', '_n_zeros'):
                 dict_[attr] = int(attr_dict[attr])
             elif attr in ('masked', ):
                 dict_[attr] = bool(attr_dict[attr])
@@ -778,8 +786,9 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         If set to **None**, then all atoms will be considered as the system
     :type select: str, :class:`.Selection`, :class:`~numpy.ndarray`
 
-    :arg model: type of ENM that will be performed. It can be either ``"anm"`` 
-        or ``"gnm"`` or ``"exanm"``
+    :arg model: type of ENM that will be performed. It can be ``"anm"``,
+        ``"gnm"``, ``"exanm"`` or ``"genanm"`` (generalized ANM; keywords such as
+        *k_bond*, *k_theta*, *k_phi* and *kappa* are passed to :meth:`.genANM.buildHessian`)
     :type model: str
 
     :arg trim: type of method that will be used to trim the model. It can 
@@ -803,6 +812,8 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
 
     if model is GNM:
         model = 'gnm'
+    elif model is genANM:
+        model = 'genanm'
     elif model is ANM:
         model = 'anm'
     else:
@@ -834,37 +845,16 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         exanm.buildHessian(atoms, gamma=gamma, **kwargs)
         enm = exanm
         MaskedModel = MaskedExANM
-    elif model.lower() in ('genanm', 'generalized', 'generalized_anm'):
-        # Generalized ANM model
-        try:
-            from generalized_anm import genANM  # your local file
-        except ImportError:
-            from .generalized_anm import genANM
-        genanm = genANM(title)
-
-        # Extract generalized-ANM parameters, with defaults if missing
-        cutoff = kwargs.pop('cutoff', 15.0)
-        k_theta = kwargs.pop('k_theta', 10.0)
-        k_phi = kwargs.pop('k_phi', 1.0)
-        kappa = kwargs.pop('kappa', 20.0)
-        include_sequential = kwargs.pop('include_sequential', True)
-        symmetrize = kwargs.pop('symmetrize', True)
-
-        # Build generalized Hessian
-        genanm.buildHessian(atoms,
-                          cutoff=cutoff,
-                          gamma=gamma,
-                          k_theta=k_theta,
-                          k_phi=k_phi,
-                          kappa=kappa,
-                          include_sequential=include_sequential,
-                          symmetrize=symmetrize)
-
-        enm = genanm
-        # Reuse the same masked model as ANM because genANM is a subclass of ANM
+    elif model in GENANM_MODEL_NAMES:
+        # generalized ANM: contact springs plus virtual bond, angle and dihedral
+        # terms; keywords (k_bond, k_theta, k_phi, kappa, cutoff, ...) are passed
+        # to genANM.buildHessian, whose defaults are the default force constants
+        enm = genANM(title)
+        enm.buildHessian(atoms, gamma=gamma,
+                         **dict((k, v) for k, v in kwargs.items() if k in GENANM_KEYWORDS))
         MaskedModel = MaskedANM
     else:
-        raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
+        raise TypeError('model should be ANM, GNM, exANM or genANM instead of {0}'.format(model))
     
     if select is None:
         enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
