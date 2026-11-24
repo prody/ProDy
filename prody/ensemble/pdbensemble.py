@@ -459,6 +459,9 @@ class PDBEnsemble(Ensemble):
         
         atom_indices = self._indices if selected else slice(None, None, None)
         indices = indices if indices is not None else slice(None, None, None)
+
+        if self.hasSelectionIssue():
+            atom_indices = self.getIndices(calphas=True)
         
         return self._msa[indices, atom_indices]
 
@@ -491,6 +494,8 @@ class PDBEnsemble(Ensemble):
                 confs[i, which] = coords[which]
         else:
             selids = self._indices
+            if self.hasSelectionIssue():
+                selids = self.getIndices(calphas=True)
             coords = coords[selids]
             confs = self._confs[indices, selids].copy()
             for i, w in enumerate(self._weights[indices]):
