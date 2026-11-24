@@ -15,7 +15,8 @@ from Bio.Data import IUPACData
 
 from xml.etree.ElementTree import Element
 
-__all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
+__all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA',
+           'setLinalgBackend', 'getLinalgBackend', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
@@ -224,17 +225,59 @@ def alnum(string, alt='_', trim=False, single=False):
     return result
 
 
+LINALG_BACKEND = None  # None -> auto (scipy > numpy > torch); or 'scipy'/'numpy'/'torch' to force
+
+
+def setLinalgBackend(backend):
+    """Force the linear-algebra backend used for NMA/PCA eigen/SVD calculations.
+
+    :arg backend: one of ``'scipy'``, ``'numpy'``, ``'torch'``, or **None** for automatic
+        selection (prefer scipy, then numpy, then torch). ``'torch'`` selects the experimental
+        GPU-capable :mod:`torch.linalg` path (uses CUDA when available)."""
+
+    global LINALG_BACKEND
+    if backend not in (None, 'scipy', 'numpy', 'torch'):
+        raise ValueError("backend must be None, 'scipy', 'numpy', or 'torch'")
+    LINALG_BACKEND = backend
+
+
+def getLinalgBackend():
+    """Returns the forced linear-algebra backend, or **None** if selection is automatic."""
+
+    return LINALG_BACKEND
+
+
 def importLA():
-    """Returns one of :mod:`scipy.linalg` or :mod:`numpy.linalg`."""
+    """Returns one of :mod:`scipy.linalg`, :mod:`numpy.linalg`, or :mod:`torch.linalg`.
+
+    Selection honours :func:`setLinalgBackend` if set; otherwise it prefers :mod:`scipy.linalg`
+    (the reference path, with subset eigensolvers), then :mod:`numpy.linalg`, and finally
+    :mod:`torch.linalg` (experimental GPU path). torch is NOT auto-preferred because its ``eigh``/
+    ``svd`` return the full spectrum / require tensors -- callers handle that, but scipy is faster
+    and better-tested for typical sizes; force torch with ``setLinalgBackend('torch')`` for GPU."""
+
+    backend = LINALG_BACKEND
+    if backend == 'torch':
+        import torch.linalg as linalg
+        return linalg
+    if backend == 'numpy':
+        import numpy.linalg as linalg
+        return linalg
+    if backend == 'scipy':
+        import scipy.linalg as linalg
+        return linalg
 
     try:
         import scipy.linalg as linalg
     except ImportError:
         try:
             import numpy.linalg as linalg
-        except:
-            raise ImportError('scipy.linalg or numpy.linalg is required for '
-                              'NMA and structure alignment calculations')
+        except ImportError:
+            try:
+                import torch.linalg as linalg
+            except ImportError:
+                raise ImportError('scipy.linalg or numpy.linalg or torch.linalg is required for '
+                                  'NMA and structure alignment calculations')
     return linalg
 
 def createStringIO():
