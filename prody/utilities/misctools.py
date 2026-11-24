@@ -22,7 +22,32 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
            'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'checkIdentifiers', 'split', 'mad',
-           'importDec', 'impLoadModule']
+           'importDec', 'impLoadModule', 'joinProcesses']
+
+def joinProcesses(processes, what='frame'):
+    """Wait for each of *processes* and raise if any of them died.
+
+    A :class:`multiprocessing.Process` reports a failure only through its
+    ``exitcode``: the exception itself is raised in the child, where its traceback
+    goes to stderr, and the parent sees nothing.  A worker that writes its result
+    into a shared list therefore leaves its slot untouched, so a crash is
+    indistinguishable from a genuinely empty result unless the exit code is
+    checked.  *what* names the unit of work in the error message."""
+
+    failed = []
+    for i, process in enumerate(processes):
+        process.join()
+        if process.exitcode:
+            failed.append((i, process.exitcode))
+
+    if failed:
+        raise RuntimeError(
+            '{0} of {1} parallel {2} workers failed ({3}); '
+            'their tracebacks were written to stderr by the child processes. '
+            'Re-run with max_proc=1 to get the error in this process.'
+            .format(len(failed), len(processes), what,
+                    ', '.join('{0} exited {1}'.format(i, code) for i, code in failed)))
+
 
 DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []

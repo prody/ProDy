@@ -37,7 +37,7 @@ from prody.measure import calcAngle, calcDistance
 from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB, parsePDB
 
-from prody.utilities import showFigure, showMatrix
+from prody.utilities import showFigure, showMatrix, joinProcesses
 
 
 __all__ = ['calcWaterBridges', 'calcWaterBridgesTrajectory', 'getWaterBridgesInfoOutput',
@@ -456,7 +456,13 @@ def calcWaterBridges(atoms, **kwargs):
 
     water = atoms.select('water')
     if water is None:
-        raise ValueError('atoms has no water so cannot be analysed with WatFinder')
+        # A structure with no water has no water bridges: that is an answer, not an
+        # error.  Raising aborted a whole batch on one waterless structure, whether
+        # that batch was a script looping serially or a parallel run over frames.
+        # Every output type -- indices, atomic, info, and both the chain and cluster
+        # methods -- is a list, so an empty list is the right shape for all of them.
+        LOGGER.warn('atoms has no water, so there are no water bridges to find')
+        return []
 
     relations = RelationList(len(atoms))
     tooFarAtoms = atoms.select(
@@ -553,6 +559,41 @@ def calcWaterBridges(atoms, **kwargs):
 
 
 # took from interactions.py
+# Defined at module level, not nested in the functions below: multiprocessing pickles a
+# Process target under the "spawn" start method, the default on macOS since Python 3.8
+# and on Windows always, and a nested function cannot be pickled.  Each worker writes
+# into its own slot of the pre-sized shared list, so results stay in frame order however
+# the processes happen to finish.
+
+def _analyseWaterBridgeFrame(j0, start_frame, coords, interactions_all, atoms, indices,
+                             kwargs):
+    """Compute water bridges for frame *j0*, into its own slot."""
+
+    LOGGER.info('Frame: {0}'.format(j0))
+    atoms_copy = atoms.copy()
+    atoms_copy.setCoords(coords)
+
+    if indices is not None:
+        atoms_copy = atoms_copy[indices]
+        kwargs['selstr'] = atoms_copy.getSelstr()
+
+    interactions_all[j0-start_frame] = calcWaterBridges(
+        atoms_copy, isInfoLog=False,
+        prefix='frame {0}'.format(j0),
+        **kwargs)
+
+
+def _analyseWaterBridgeModel(i, start_frame, interactions_all, atoms, kwargs):
+    """Compute water bridges for one model of a multi-model structure."""
+
+    frameNum = i + start_frame
+    LOGGER.info('Model: {0}'.format(frameNum))
+    atoms.setACSIndex(frameNum)
+    interactions_all[i] = calcWaterBridges(
+        atoms, isInfoLog=False, prefix='frame {0}'.format(frameNum),
+        **kwargs)
+
+
 def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     """Computes water bridges for a given trajectory. Kwargs for options are the same as in calcWaterBridges.
 
@@ -565,7 +606,8 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
     :arg start_frame: frame to start from
     :type start_frame: int
 
-    :arg stop_frame: frame to stop
+    :arg stop_frame: index of the last frame to read, inclusive.
+        Default is -1, meaning all of them.
     :type stop_frame: int
 
     :arg max_proc: maximum number of processes to use
@@ -628,31 +670,16 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
             LOGGER.info('Common selection found with {0} atoms and {1} protein chains'.format(
                 selection.numAtoms(), len(list(selection.protein.getHierView()))))
 
-        def analyseFrame(j0, start_frame, frame0, interactions_all):
-            LOGGER.info('Frame: {0}'.format(j0))
-            atoms_copy = atoms.copy()
-            atoms_copy.setCoords(frame0.getCoords())
-
-            if indices is not None:
-                atoms_copy = atoms_copy[indices]
-                kwargs['selstr'] = atoms_copy.getSelstr()
-
-            interactions = calcWaterBridges(
-                atoms_copy, isInfoLog=False, 
-                prefix='frame {0}'.format(j0),
-                **kwargs)
-            interactions_all[j0-start_frame] = interactions
+        n_frames = traj.numConfs()
 
         if max_proc == 1:
-            interactions_all = []
+            interactions_all = [[] for _ in range(n_frames)]
             for j0, frame0 in enumerate(traj, start=start_frame):
-                interactions_all.append([])
-                analyseFrame(j0, start_frame, frame0, interactions_all)
+                _analyseWaterBridgeFrame(j0, start_frame, frame0.getCoords(),
+                                         interactions_all, atoms, indices, kwargs)
         else:
             with mp.Manager() as manager:
-                interactions_all = manager.list()
-                for j0, frame0 in enumerate(traj, start=start_frame):
-                    interactions_all.append([])
+                interactions_all = manager.list([[] for _ in range(n_frames)])
 
                 j0 = start_frame
                 while j0 < traj.numConfs()+start_frame:
@@ -661,9 +688,10 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                     for _ in range(max_proc):
                         frame0 = traj[j0-start_frame]
                         
-                        p = mp.Process(target=analyseFrame, args=(j0, start_frame,
-                                                                 frame0,
-                                                                 interactions_all))
+                        p = mp.Process(target=_analyseWaterBridgeFrame,
+                                       args=(j0, start_frame, frame0.getCoords(),
+                                             interactions_all, atoms, indices,
+                                             kwargs))
                         p.start()
                         processes.append(p)
 
@@ -671,8 +699,7 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
                         if j0 >= traj.numConfs()+start_frame:
                             break
 
-                    for p in processes:
-                        p.join()
+                    joinProcesses(processes, 'frame')
 
                 interactions_all = interactions_all[:]
 
@@ -680,40 +707,43 @@ def calcWaterBridgesTrajectory(atoms, trajectory, **kwargs):
 
     else:
         if atoms.numCoordsets() > 1:
-            def analyseFrame(i, interactions_all):
-                frameNum = i+start_frame
-                LOGGER.info('Model: {0}'.format(frameNum))
-                atoms.setACSIndex(i+start_frame)
-                interactions = calcWaterBridges(
-                    atoms, isInfoLog=False, prefix='frame {0}'.format(frameNum),
-                    **kwargs)
-                interactions_all[i] = interactions
+            # stop_frame is the index of the LAST frame to read, as it already is for
+            # the trajectory branch above and throughout interactions.py, so the slice
+            # needs the +1.  Without it the last model was silently dropped; and -1,
+            # the default meaning "all of them", has to be resolved before the +1 turns
+            # it into an empty slice.
+            if stop_frame == -1:
+                stop_frame = atoms.numCoordsets()
+
+            n_models = len(atoms.getCoordsets()[start_frame:stop_frame+1])
 
             if max_proc == 1:
-                interactions_all = []
-                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                    interactions_all.append([])
-                    analyseFrame(i, interactions_all)
+                interactions_all = [[] for _ in range(n_models)]
+                for i in range(n_models):
+                    _analyseWaterBridgeModel(i, start_frame, interactions_all, atoms,
+                                             kwargs)
             else:
                 with mp.Manager() as manager:
-                    interactions_all = manager.list()
-                    for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                        interactions_all.append([])
+                    interactions_all = manager.list([[] for _ in range(n_models)])
 
-                    i = start_frame
-                    while i < len(atoms.getCoordsets()[start_frame:stop_frame]):
+                    # i counts from 0, as the serial loop does: the worker adds
+                    # start_frame itself, so starting at start_frame here applied the
+                    # offset twice and indexed past the end of the list
+                    i = 0
+                    while i < n_models:
                         processes = []
                         for _ in range(max_proc):
-                            p = mp.Process(target=analyseFrame, args=(i, interactions_all))
+                            p = mp.Process(target=_analyseWaterBridgeModel,
+                                           args=(i, start_frame, interactions_all,
+                                                 atoms, kwargs))
                             p.start()
                             processes.append(p)
 
                             i += 1
-                            if i >= len(atoms.getCoordsets()[start_frame:stop_frame]):
+                            if i >= n_models:
                                 break
 
-                        for p in processes:
-                            p.join()
+                        joinProcesses(processes, 'model')
 
                     interactions_all = interactions_all[:]
         else:
@@ -1150,6 +1180,37 @@ def showWaterBridgesDistribution(frames, res_a, res_b=None, **kwargs):
     return calcWaterBridgesDistribution(frames, res_a, res_b, **kwargs)
 
 
+def _saveBridgesFrame(trajectory, atoms, frameIndex, frame, filename):
+    """Write one frame's bridging protein and water atoms to a PDB file."""
+    LOGGER.info('Frame: {0}'.format(frameIndex))
+    if trajectory:
+        coords = trajectory[frameIndex].getCoords()
+        atoms.setCoords(coords)
+    else:
+        atoms.setACSIndex(frameIndex)
+
+    waterAtoms = reduceTo1D(frame, sublistSel=lambda b: b.waters)
+    waterResidues = atoms.select(
+        'same residue as water within 1.6 of index {0}'.format(
+            " ".join(map(lambda a: str(a.getIndex()), waterAtoms))))
+
+    bridgeProteinAtoms = reduceTo1D(
+        frame, lambda p: p.getResnum(), lambda b: b.proteins)
+    atoms.setOccupancies(0)
+    atoms.select('resid {0}'.format(
+        " ".join(map(str, bridgeProteinAtoms)))).setOccupancies(1)
+
+    atomsToSave = atoms.select(
+        'protein').toAtomGroup() + waterResidues.toAtomGroup()
+
+    if trajectory:
+        writePDB('{0}_{1}.pdb'.format(filename, frameIndex),
+                 atomsToSave)
+    else:
+        writePDB('{0}_{1}.pdb'.format(filename, frameIndex),
+                 atomsToSave, csets=frameIndex)
+
+
 def savePDBWaterBridges(bridges, atoms, filename):
     """Saves single PDB with occupancy on protein atoms and waters involved bridges.
 
@@ -1202,46 +1263,18 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
     atoms = atoms.copy()
     mofifyBeta(bridgeFrames, atoms)
 
-    def saveBridgesFrame(trajectory, atoms, frameIndex, frame):
-        LOGGER.info('Frame: {0}'.format(frameIndex))
-        if trajectory:
-            coords = trajectory[frameIndex].getCoords()
-            atoms.setCoords(coords)
-        else:
-            atoms.setACSIndex(frameIndex)
-
-        waterAtoms = reduceTo1D(frame, sublistSel=lambda b: b.waters)
-        waterResidues = atoms.select(
-            'same residue as water within 1.6 of index {0}'.format(
-                " ".join(map(lambda a: str(a.getIndex()), waterAtoms))))
-
-        bridgeProteinAtoms = reduceTo1D(
-            frame, lambda p: p.getResnum(), lambda b: b.proteins)
-        atoms.setOccupancies(0)
-        atoms.select('resid {0}'.format(
-            " ".join(map(str, bridgeProteinAtoms)))).setOccupancies(1)
-
-        atomsToSave = atoms.select(
-            'protein').toAtomGroup() + waterResidues.toAtomGroup()
-
-        if trajectory:
-            writePDB('{0}_{1}.pdb'.format(filename, frameIndex),
-                     atomsToSave)
-        else:
-            writePDB('{0}_{1}.pdb'.format(filename, frameIndex),
-                     atomsToSave, csets=frameIndex)
-
     if max_proc == 1:
         for frameIndex, frame in enumerate(bridgeFrames):
-            saveBridgesFrame(trajectory, atoms, frameIndex, frame)
+            _saveBridgesFrame(trajectory, atoms, frameIndex, frame, filename)
     else:
         frameIndex = 0
         numFrames = len(bridgeFrames)
         while frameIndex < numFrames:
             processes = []
             for _ in range(max_proc):
-                p = mp.Process(target=saveBridgesFrame, args=(trajectory, atoms, frameIndex,
-                                                              bridgeFrames[frameIndex]))
+                p = mp.Process(target=_saveBridgesFrame,
+                               args=(trajectory, atoms, frameIndex,
+                                     bridgeFrames[frameIndex], filename))
                 p.start()
                 processes.append(p)
 
@@ -1249,8 +1282,7 @@ def savePDBWaterBridgesTrajectory(bridgeFrames, atoms, filename, trajectory=None
                 if frameIndex >= numFrames:
                     break
 
-            for p in processes:
-                p.join()
+            joinProcesses(processes, 'frame')
 
 def getBridgeIndicesString(bridge):
     return ' '.join(map(lambda a: str(a.getIndex()), bridge.proteins))\
@@ -1390,9 +1422,14 @@ def findClusterCenters(file_pattern, **kwargs):
             removeCoords.append(list(coords_all.getCoords()[ii]))
 
     if len(removeCoords) == coords_all.numAtoms():
-        raise ValueError('No waters were selected. You may need to align your trajectory \
-        or change default parameters for detecting water clusters (increase distC \
-        or decrease numC)')
+        # No molecule passed the clustering filter, so there are no cluster centres to
+        # save: an answer, not an error.  Raising aborted a batch part-way through, and
+        # no file is written rather than an empty one, which would look like a result.
+        LOGGER.warn('No waters were selected, so no cluster centres were found and '
+                    'nothing was written. You may need to align your trajectory or '
+                    'change the parameters for detecting water clusters (increase '
+                    'distC or decrease numC)')
+        return
 
     selectedWaters = AtomGroup()
     sel_waters = [] 
