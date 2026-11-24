@@ -31,6 +31,8 @@ class TestParseMMCIF(unittest.TestCase):
 
         self.altlocs = DATA_FILES['cif_6flr']
         self.his_selstr = 'resname HIS and chain B and resnum 234 and name CA'
+        
+        self.unwrappedcif = DATA_FILES['unwrapped_cif']
 
     def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""
@@ -51,6 +53,17 @@ class TestParseMMCIF(unittest.TestCase):
              os.path.splitext(self.multi['file'])[0],
             'failed to set AtomGroup title based on filename')
 
+    def testUnwrapped(self):
+        """Test the outcome of a simple parsing scenario of a CIF where the lines are wrapped."""
+
+        ag = parseDatafile(self.unwrappedcif['file'])
+
+        self.assertIsInstance(ag, prody.AtomGroup,
+            'parseMMCIF failed to return an AtomGroup instance')
+
+        self.assertEqual(ag.numAtoms(), self.unwrappedcif['n_atoms'],
+            'parseMMCIF failed to parse correct number of atoms')
+            
     def testPDBArgument(self):
         """Test outcome of invalid *pdb* arguments."""
 

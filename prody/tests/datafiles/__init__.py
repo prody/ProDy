@@ -480,6 +480,10 @@ DATA_FILES = {
     },
     'sep_modres': {
         'file': 'pdb5fc2_sep_modres.pdb'
+    },
+    'unwrapped_cif': {
+        'file': 'unwrapped.cif',
+        'n_atoms': 12109
     }
 }
 
