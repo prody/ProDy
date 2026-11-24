@@ -1,8 +1,18 @@
 """This module defines functions for type, value, and/or attribute checking."""
 
+from collections import Counter
+
 from numpy import any, float32, tile
 
-__all__ = ['checkCoords', 'checkWeights', 'checkTypes', 'checkAnisous']
+from .misctools import isListLike
+
+__all__ = [
+    'checkAnisous',
+    'checkBlocks',
+    'checkCoords',
+    'checkTypes',
+    'checkWeights',
+]
 
 COORDS_NDIM = set([2])
 CSETS_NDIMS = set([2, 3])
@@ -100,6 +110,63 @@ def checkWeights(weights, natoms, ncsets=None, dtype=float):
         raise ValueError('all weights must be greater or equal to 0')
 
     return weights
+
+
+def checkBlocks(blocks, nnodes, label='atoms'):
+    """Raises an exception unless *blocks* assigns each of *nnodes* nodes to a
+    block, leaving more degrees of freedom than a rigid body has, otherwise
+    returns **None**.
+
+    Blocks that leave only the 6 degrees of freedom of a rigid body, such as a
+    single block of everything or two blocks of one node each, give the block
+    based elastic network models no internal motion to describe, so they are
+    rejected here rather than left to fail later on when the block Hessian is
+    decomposed. Note that a block of a single node has only 3 of those degrees
+    of freedom, having nothing to rotate.
+
+    :arg blocks: a list or array of block identifiers, one per node. These are
+        counted rather than used as indices, so they can be of any hashable
+        type, such as strings, as long as they are all of the same one.
+    :type blocks: list, :class:`numpy.ndarray`
+
+    :arg nnodes: the number of nodes *blocks* has to assign
+    :type nnodes: int
+
+    :arg label: what the nodes are called in the exceptions raised,
+        default is ``'atoms'``
+    :type label: str
+    """
+
+    if not isListLike(blocks):
+        raise TypeError('blocks must be list like, not %s'
+                        % type(blocks).__name__)
+
+    # identifiers of mixed types would be counted separately here but could
+    # still be coerced into agreeing elsewhere, so they are not allowed
+    types = set(type(block) for block in blocks)
+    if len(types) > 1:
+        raise TypeError('blocks must all be of the same type, not %s'
+                        % ', '.join(sorted(type_.__name__ for type_ in types)))
+
+    # every identifier is of the same type by now, so one stands for them all
+    if len(blocks) and isListLike(blocks[0]):
+        raise ValueError('blocks must be one dimensional, giving one identifier '
+                         'for each node rather than a list of them')
+
+    if len(blocks) != nnodes:
+        raise ValueError('len(blocks) must match number of %s, %d, not %d'
+                         % (label, nnodes, len(blocks)))
+
+    # counted as the blocks themselves are, where a block of a single node
+    # contributes 3 degrees of freedom instead of 6, having nothing to rotate
+    counter = Counter(blocks)
+    nsingle = sum(1 for size in counter.values() if size == 1)
+    ndof = len(counter) * 6 - nsingle * 3
+
+    if ndof <= 6:
+        raise ValueError('blocks must leave more than the 6 degrees of freedom '
+                         'of a rigid body, not %d, otherwise there is no '
+                         'internal motion for them to describe' % ndof)
 
 
 def checkTypes(args, **types):
