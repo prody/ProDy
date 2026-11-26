@@ -65,7 +65,7 @@ __all__ = ['getVmdModel', 'calcChannels', 'calcChannelsMultipleFrames',
            'writeChimeraXCaviTracerScript', 'mergeFramesPQR',
            'writeChimeraXMultiModelScript', 'writePyMolMultiModelScript',
            'writeVmdMultiModelScript', 'ClusterCalculator','ClusteringRecords',
-           'Cluster', 'writeClusterLabels']
+           'Cluster', 'writeClusterLabels', 'writeVmdClusterScript']
 
 # Sampling of the enclosure test used to strip the moat (see
 # ChannelCalculator.calcEnclosure). These are constants, not knobs: the enclosure
@@ -19773,3 +19773,295 @@ def writeChimeraXMultiModelScript(pqr_file, atoms, output_path='.',
 
     return str(pqr_file), str(protein_file), str(script_file)
     
+
+def writeVmdClusterScript(pqr_file, atoms, labels, output_path='.',
+                          selected_clusters=None, column=0,
+                          representation='Licorice', view='overlay',
+                          density_isovalue=4.5):
+    """Write a VMD TCL script to display channels colored by cluster labels."""
+    
+    from pathlib import Path
+    import os
+    import numpy as np
+    #from prody import LOGGER, writeVmdMultiModelScript
+
+    representation = str(representation).lower()
+    view = str(view).lower()
+    rep_commands = {
+        'lines': 'Lines 2.0',
+        'licorice': 'Licorice 0.14 12 12',
+        'cpk': 'CPK 0.20 0.12 12 12',
+        'vdw': 'VDW 1.0 20.0',
+        'quicksurf': 'QuickSurf 1.0 {0:g} 0.25 2.0'.format(density_isovalue)}
+        
+    if representation not in rep_commands:
+        raise ValueError("representation must be 'Lines', 'Licorice', 'CPK', "
+                         "'VDW', or 'QuickSurf'")
+    if view not in ('overlay', 'frames'):
+        raise ValueError("view must be 'overlay' or 'frames'")
+    if representation == 'quicksurf' and density_isovalue <= 0:
+        raise ValueError('density_isovalue must be greater than zero')
+
+    pqr_file = Path(pqr_file).resolve()
+    if not pqr_file.is_file():
+        raise ValueError('PQR file not found: {0}'.format(pqr_file))
+
+    if isinstance(labels, (str, os.PathLike)):
+        table = np.loadtxt(str(labels), comments='#', delimiter='\t',
+                           dtype=int, ndmin=2)
+        column = int(column)
+        if not 0 <= column < table.shape[1]:
+            raise ValueError('column must be between 0 and {0}'.format(
+                             table.shape[1] - 1))
+        cluster_labels = table[:, column]
+    else:
+        cluster_labels = np.asarray(labels)
+        if cluster_labels.ndim != 1:
+            raise ValueError('labels must be a 1-D array or a TSV filename')
+        if not np.all(np.isfinite(cluster_labels)) or not np.all(
+                cluster_labels == cluster_labels.astype(int)):
+            raise ValueError('cluster labels must be finite integers')
+        cluster_labels = cluster_labels.astype(int)
+
+    frame_resids = []
+    current_resids = set()
+    in_model = False
+    saw_models = False
+    
+    with open(str(pqr_file)) as handle:
+        for line in handle:
+            if line.startswith('MODEL'):
+                if in_model:
+                    raise ValueError('Nested MODEL entries in PQR')
+                saw_models = True
+                in_model = True
+                current_resids = set()
+            elif line.startswith(('ATOM  ', 'HETATM')) and line[17:20] == 'FIL':
+                current_resids.add(int(line[22:26]))
+            elif line.startswith('ENDMDL'):
+                if not in_model:
+                    raise ValueError('ENDMDL without MODEL in PQR')
+                frame_resids.append(sorted(current_resids))
+                in_model = False
+                current_resids = set()
+    
+    if in_model:
+        raise ValueError('Unterminated MODEL block in PQR')
+    if not saw_models:
+        frame_resids = [sorted(current_resids)]
+    if not frame_resids:
+        raise ValueError('No PQR frames found')
+
+    n_channels = sum(len(row) for row in frame_resids)
+    if len(cluster_labels) != n_channels:
+        raise ValueError('{0} labels supplied, but {1} channel residues '
+                         'were found in the PQR'.format(len(cluster_labels), n_channels))
+
+    available = set(int(label) for label in cluster_labels if label != -2)
+    if selected_clusters is None:
+        selected = sorted(available)
+    else:
+        selected = list(dict.fromkeys(int(label) for label in selected_clusters))
+        missing = set(selected) - available
+        if missing:
+            raise ValueError('Clusters not present in labels: {0}'.format(
+                             sorted(missing)))
+
+    # The first colors are deliberately far apart: blue, red, green, orange,
+    # purple, cyan. Assign them in selected_clusters order, not by cluster ID.
+    # The fixed VMD ColorIDs below leave ColorID 8 free for the silver protein.
+    colors_rgb = (
+        (0.10, 0.32, 0.95),  # blue
+        (0.96, 0.12, 0.15),  # red
+        (0.05, 0.70, 0.22),  # green
+        (1.00, 0.55, 0.04),  # orange
+        (0.65, 0.17, 0.89),  # purple
+        (0.00, 0.78, 0.81),  # cyan
+        (0.97, 0.14, 0.61),  # magenta
+        (0.85, 0.70, 0.03),  # gold
+        (0.57, 0.31, 0.13),  # brown
+        (0.00, 0.48, 0.42),  # deep teal
+        (1.00, 0.43, 0.56),  # pink
+        (0.59, 0.79, 0.03),  # lime
+        (0.34, 0.17, 0.69),  # indigo
+        (0.98, 0.33, 0.22),  # coral
+        (0.10, 0.77, 0.61),  # turquoise
+        (0.71, 0.33, 0.07),  # copper
+        (0.26, 0.52, 1.00),  # azure
+        (0.83, 0.13, 0.39),  # raspberry
+        (0.34, 0.67, 0.11),  # leaf green
+        (0.94, 0.42, 0.03),  # tangerine
+        (0.46, 0.25, 0.83),  # violet
+        (0.00, 0.58, 0.80),  # ocean blue
+        (0.85, 0.33, 0.70),  # orchid
+        (0.62, 0.59, 0.00),  # olive
+        (0.24, 0.38, 0.80),  # cobalt
+        (0.84, 0.25, 0.14),  # brick red
+        (0.13, 0.61, 0.37),  # jade
+        (0.96, 0.56, 0.32),  # salmon
+        (0.57, 0.30, 0.55),  # plum
+        (0.42, 0.73, 0.83),  # light cyan
+        (0.74, 0.50, 0.00),  # ochre
+        (0.39, 0.39, 0.99),  # periwinkle
+    )
+    
+    color_ids = (0, 7, 1, 10, 4, 11, 3, 9, 12, 13, 14, 15,
+                 5, 6, 17, 18, 19, 20, 21, 22, 23, 24,
+                 25, 26, 27, 28, 29, 30, 31, 32, 33, 34)
+    
+    selected_non_noise = [label for label in selected if label >= 0]
+    
+    if len(selected_non_noise) > len(color_ids):
+        LOGGER.warn('More than {0} clusters selected; some colors repeat.'
+                    .format(len(color_ids)))
+    
+    cluster_colors = {label: color_ids[i % len(color_ids)]
+                      for i, label in enumerate(selected_non_noise)}
+    if -1 in selected:
+        cluster_colors[-1] = 2 
+
+    color_commands = ['# Protein: light silver NewCartoon (ColorID 8)',
+                      'color change rgb 8 0.79 0.81 0.85']
+    
+    for i, label in enumerate(selected_non_noise[:len(color_ids)]):
+        color_id = cluster_colors[label]
+        r, g, b = colors_rgb[i]
+        color_commands.append('color change rgb {0} {1:.3f} {2:.3f} {3:.3f}'
+                              .format(color_id, r, g, b))
+    if -1 in selected:
+        color_commands.append('color change rgb 2 0.48 0.48 0.48')
+
+    pqr_out, protein_out, script_out = writeVmdMultiModelScript(
+        str(pqr_file), atoms, output_path=output_path, object_type='channels')
+
+    labels_by_frame = []
+    offset = 0
+    
+    for resids in frame_resids:
+        labels_by_frame.append(cluster_labels[offset:offset + len(resids)].tolist())
+        offset += len(resids)
+
+    tcl_frames = '\n'.join('    {' + ' '.join(map(str, row)) + '}'
+                           for row in labels_by_frame)
+    
+    tcl_colors = ' '.join('{0} {1}'.format(label, color_id)
+                          for label, color_id in cluster_colors.items())
+
+    tcl = r'''
+# ----------------------------------------------------------------------
+# Cluster-based CaviTracer visualization
+# ----------------------------------------------------------------------
+__COLOR_COMMANDS__
+
+# Keep only the silver NewCartoon; hide the protein's translucent surface.
+mol showrep $protein_mol 1 off
+mol modcolor 0 $protein_mol ColorID 8
+
+array set cavi_cluster_colors {__CLUSTER_COLORS__}
+set cavi_cluster_labels {
+__LABELS_BY_FRAME__
+}
+if {[llength $cavi_cluster_labels] != [llength $result_mols]} {
+    error "PQR frame count and cluster-label frame count differ"
+}
+
+set cavi_frame_index 0
+foreach entry $result_mols {
+    set result_mol [lindex $entry 0]
+
+    # Delete the rank-based VDW representations from the parent VMD script.
+    while {[molinfo $result_mol get numreps] > 0} {
+        mol delrep 0 $result_mol
+    }
+
+    set sel [atomselect $result_mol "resname FIL"]
+    set resids [lsort -integer -unique [$sel get resid]]
+    set labels_for_frame [lindex $cavi_cluster_labels $cavi_frame_index]
+    # A frame without channels may contain a NIL placeholder in the PQR.
+    if {[llength $labels_for_frame] == 0} {
+        $sel delete
+        incr cavi_frame_index
+        continue
+    }
+    if {[llength $resids] != [llength $labels_for_frame]} {
+        error "Channel count and cluster labels differ in frame $cavi_frame_index"
+    }
+
+    # The PQR stores sampled channel centerlines, but VMD's atom-only loader
+    # does not create bonds. Link consecutive pseudoatoms of each channel,
+    # never pseudoatoms belonging to different channel residues.
+    set atom_indices [$sel get index]
+    set atom_resids [$sel get resid]
+    set atom_count [llength $atom_indices]
+    set bond_lists {}
+    for {set i 0} {$i < $atom_count} {incr i} {
+        set resid [lindex $atom_resids $i]
+        set neighbors {}
+        if {$i > 0 && [lindex $atom_resids [expr {$i - 1}]] == $resid} {
+            lappend neighbors [lindex $atom_indices [expr {$i - 1}]]
+        }
+        if {$i + 1 < $atom_count && [lindex $atom_resids [expr {$i + 1}]] == $resid} {
+            lappend neighbors [lindex $atom_indices [expr {$i + 1}]]
+        }
+        lappend bond_lists $neighbors
+    }
+    $sel setbonds $bond_lists
+    $sel delete
+
+    # Group residues according to their global cluster label.
+    array unset grouped_resids
+    array set grouped_resids {}
+    foreach resid $resids label $labels_for_frame {
+        if {[info exists cavi_cluster_colors($label)]} {
+            lappend grouped_resids($label) $resid
+        }
+    }
+
+    foreach label [array names grouped_resids] {
+        set color_id $cavi_cluster_colors($label)
+        set selected_resids [join $grouped_resids($label) " "]
+        mol representation __REPRESENTATION__
+        mol color ColorID $color_id
+        mol selection "resname FIL and resid $selected_resids"
+        mol material Opaque
+        mol addrep $result_mol
+    }
+    incr cavi_frame_index
+}
+puts "CaviTracer: clusters colored in $cavi_frame_index frames"
+puts "Cluster color legend:"
+foreach label [lsort -integer [array names cavi_cluster_colors]] {
+    puts "  Cluster $label: ColorID $cavi_cluster_colors($label)"
+}
+'''
+    if view == 'overlay':
+        tcl += r'''
+# Overlay the channels from every analyzed frame (PyMOL-like view).
+if {[info exists frame_driver]} {
+    catch {trace remove variable ::vmd_frame($frame_driver) write show_cavitracer_frame}
+    mol off $frame_driver
+}
+foreach entry $result_mols {
+    mol on [lindex $entry 0]
+}
+mol on $protein_mol
+mol top $protein_mol
+display resetview
+puts "CaviTracer: all [llength $result_mols] frames visible together"
+'''
+
+    tcl = tcl.replace('__COLOR_COMMANDS__', '\n'.join(color_commands))
+    tcl = tcl.replace('__REPRESENTATION__', rep_commands[representation])
+    tcl = tcl.replace('__CLUSTER_COLORS__', tcl_colors)
+    tcl = tcl.replace('__LABELS_BY_FRAME__', tcl_frames)
+
+    with open(script_out, 'a') as handle:
+        handle.write(tcl)
+
+    LOGGER.info('VMD cluster script written to {0}'.format(script_out))
+    LOGGER.info('Clusters: {0}; representation: {1}; view: {2}'
+                .format(selected, representation, view))
+
+    return pqr_out, protein_out, script_out
+
+
