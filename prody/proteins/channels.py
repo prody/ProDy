@@ -19778,12 +19778,63 @@ def writeVmdClusterScript(pqr_file, atoms, labels, output_path='.',
                           selected_clusters=None, column=0,
                           representation='Licorice', view='overlay',
                           density_isovalue=4.5):
-    """Write a VMD TCL script to display channels colored by cluster labels."""
+    """Write a VMD TCL script to display channels colored by cluster labels.
+    
+    The ``overlay`` view shows channels from all frames simultaneously, as in
+    the PyMOL clustering visualization. The ``frames`` view shows one frame
+    at a time; a channel keeps its cluster color across frames.
+
+    :arg pqr_file: Multi-model PQR produced by :func:`.mergeFramesPQR`.
+    :type pqr_file: str
+
+    :arg atoms: Reference protein structure to display as NewCartoon.
+    :type atoms: :class:`.Atomic`
+
+    :arg labels: Cluster labels in the order of channels in the PQR, either
+        a one-dimensional array or a TSV file. The value ``-1`` denotes
+        unclustered channels, and ``-2`` is omitted.
+    :type labels: array-like or str
+
+    :arg output_path: Directory for the VMD TCL script and protein PDB.
+        Default is the current directory.
+    :type output_path: str
+
+    :arg selected_clusters: Cluster IDs to display. Their order determines
+        the assigned, high-contrast colors. If None, all clusters are shown.
+    :type selected_clusters: list of int or None
+
+    :arg column: Zero-based TSV column containing the cluster labels.
+        Default is 0.
+    :type column: int
+
+    :arg representation: VMD representation for channels: ``'Licorice'``
+        (thin rods, default), ``'Lines'`` (thin bond lines), ``'CPK'``,
+        ``'VDW'``, or ``'QuickSurf'``. Bonds are reconstructed only between
+        adjacent pseudoatoms of the same channel, so line-based methods
+        display centerline paths without linking different channels.
+    :type representation: str
+
+    :arg view: ``'overlay'`` to show all frames together (default) or
+        ``'frames'`` to display them one at a time.
+    :type view: str
+
+    :arg density_isovalue: Density isovalue used for ``'QuickSurf'``.
+        Default is 4.5; ignored for other representations.
+    :type density_isovalue: float
+
+    :returns: Paths to the channel PQR, protein PDB, and generated TCL file.
+    :rtype: tuple
+
+    Example:
+    >> writeVmdClusterScript('channels_frames.pqr', protein, labels_voxel,
+                              output_path='vmd_clusters',
+                              selected_clusters=[21, 14, 25],
+                              representation='Licorice', view='overlay')
+    """
     
     from pathlib import Path
     import os
     import numpy as np
-    #from prody import LOGGER, writeVmdMultiModelScript
 
     representation = str(representation).lower()
     view = str(view).lower()
