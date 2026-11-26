@@ -25,6 +25,14 @@ overseer and developer in mid 2020.
 and made significant contributions to :mod:`.database` and :mod:`.dynamics` 
 including *SignDy* and Adaptive ANM.
 
+`Karolina Mikulska-Ruminska`_ is one of the main developers since 2022, with the addition of the new modules 
+:mod:`.protein.interactions` (*InSty*), :mod:`.protein.waterbridges`
+(*WatFinder*), :mod:`protein.channels` (*CaviTracer*), 
+in addition to being the developer of :mod:`.dynamics.mechstiff` (*MechStiff*).
+
+`Anthony Bogetti`_ is overseeing the overall development of *ProDy* between 
+2024 and 2026.
+
 `JiYoung Lee`_ is the main developer of :mod:`.Pharmmaker`, for constructing pharmacophore models using the outputs from :mod:`.DruGUI`.
 
 `Yan Zhang`_ contributed significantly to the development of 
@@ -33,13 +41,6 @@ the *cryo-EM* module, :mod:`.protein.emdmap`.
 `Burak Kaynak`_ contributed significantly to the development of 
 :mod:`.domain_decomposition`, :mod:`.dynamics.essa`, and
 :mod:`.dynamics.clustenm`. 
-
-`Karolina Mikulska-Ruminska`_ is one of the main developers since 2022, with the addition of the new modules 
-:mod:`.protein.interactions` (*InSty*), :mod:`.protein.waterbridges`
-(*WatFinder*), in addition to being the developer of :mod:`.dynamics.mechstiff` (*MechStiff*).
-
-`Anthony Bogetti`_ is overseeing the overall development of *ProDy* since 
-2024.
 
 `Anindita Dutta`_ contributed to the development of *Evol*,
 :mod:`.database` and :mod:`.sequence` modules.
@@ -58,12 +59,24 @@ and contributed to the development of :ref:`prody-apps`.
 
 `David Koes`_ contributed to the development of drug discovery tools.
 
+`Hoang Nguyen`_ developed the *CaviTracer* plugin for VMD,
+enabling visualization of protein channels and cavities.
+
+`Matthew Licht`_ developed methods for clustering and comparing channels 
+across protein conformations and molecular dynamics trajectories.
+
+`Ming Suet (Isabelle) Kwan`_ developed methods for identifying signature channels 
+and cavities across ensembles of protein structures.
+
 Contributors
 ------------
 
 In addition to the development team members, we acknowledge
 contributions and feedback from the following individuals:
 
+`Jan Brezovsky`_ contributed with improvements and extensions to the *CaviTracer* algorithm.
+
+`Eryk Trzcinski`_ developed the initial version of the *CaviTracer* algorithm for detecting protein channels and cavities.
 
 `Ying Liu`_ provided the code for Perturbation Response Scanning method.
 
@@ -99,3 +112,8 @@ insights.
 .. _David Koes: https://bits.csb.pitt.edu/
 .. _Luca Ponzoni: https://scholar.google.it/citations?user=8vfPOYUAAAAJ&hl=en
 .. _Mustafa Tekpinar: https://scholar.google.com/citations?user=qeVv6o8AAAAJ&hl=en   
+.. _Jan Brezovsky: https://scholar.google.com/citations?user=I9nB-MwAAAAJ&hl=en
+.. _Eryk Trzcinski: https://github.com/Erykiusz 
+.. _Hoang Nguyen: https://www.bahargroup.org/Faculty/bahar/lab.html
+.. _Matthew Licht: https://github.com/MatthewLicht
+.. _Ming Suet (Isabelle) Kwan: https://github.com/stoneandbone
