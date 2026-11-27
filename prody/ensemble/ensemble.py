@@ -618,7 +618,6 @@ class Ensemble(object):
             tar_org = tar_org.T
         else:
             weights_sum = weights.sum()
-            weights_dot = dot(weights.T, weights)
             if ref is None:
                 tar_com = (tar * weights).sum(axis=0) / weights_sum
             else:
@@ -637,8 +636,7 @@ class Ensemble(object):
             else:
                 mob_com = (mob * weights).sum(axis=0) / weights_sum
                 subtract(mob, mob_com, mob_org)
-                matrix = dot((tar_org * weights).T,
-                             (mob_org * weights)) / weights_dot
+                matrix = dot((tar_org * weights).T, mob_org) / weights_sum
 
             U, s, Vh = svd(matrix)
             Id = array([[1, 0, 0], [0, 1, 0], [0, 0, sign(det(matrix))]])

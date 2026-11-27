@@ -145,12 +145,11 @@ def getTransformation(mob, tar, weights=None):
         matrix = np.dot(mob.T, tar)
     else:
         weights_sum = weights.sum()
-        weights_dot = np.dot(weights.T, weights)
         mob_com = (mob * weights).sum(axis=0) / weights_sum
         tar_com = (tar * weights).sum(axis=0) / weights_sum
         mob = mob - mob_com
         tar = tar - tar_com
-        matrix = np.dot((mob * weights).T, (tar * weights)) / weights_dot
+        matrix = np.dot((mob * weights).T, tar) / weights_sum
 
     U, _, Vh = linalg.svd(matrix)
     d = np.sign(linalg.det(np.dot(U, Vh)))

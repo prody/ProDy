@@ -189,13 +189,11 @@ class Frame(object):
             matrix = np.dot(tar_org.T, mob_org)
         else:
             weights_sum = weights.sum()
-            weights_dot = np.dot(weights.T, weights)
             mob_com = (mob * weights).sum(axis=0) / weights_sum
             mob_org = mob - mob_com
             tar_com = (tar * weights).sum(axis=0) / weights_sum
             tar_org = tar - tar_com
-            matrix = np.dot((tar_org * weights).T,
-                            (mob_org * weights)) / weights_dot
+            matrix = np.dot((tar_org * weights).T, mob_org) / weights_sum
 
         U, s, Vh = linalg.svd(matrix)
         Id = np.array([[1, 0, 0],
